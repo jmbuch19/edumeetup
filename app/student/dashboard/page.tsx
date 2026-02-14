@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { FieldCategory } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { GraduationCap, MapPin, Search } from 'lucide-react'
@@ -27,13 +28,19 @@ export default async function StudentDashboard() {
 
     // 2. Matching Logic
     // Match on: Field of Interest AND Degree Level
+    const interest = student.fieldOfInterest as FieldCategory | null
+    // Check if interest is valid enum value (simple check or assuming valid from registration)
+    // Actually, registration saves string. If it matches Enum key, we use it. 
+    // If not, we skip field filtering or show no matches.
+    const fieldFilter = interest && Object.values(FieldCategory).includes(interest)
+        ? { equals: interest }
+        : undefined
+
     const matchedPrograms = await prisma.program.findMany({
         where: {
             AND: [
                 {
-                    fieldCategory: {
-                        contains: student.fieldOfInterest || '', // Simple match
-                    }
+                    fieldCategory: fieldFilter
                 },
                 {
                     degreeLevel: {

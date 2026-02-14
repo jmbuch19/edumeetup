@@ -79,10 +79,10 @@ model Program {
   
   programName    String
   degreeLevel    String            // Storing Enum as String for SQLite/Simple compatibility, or use Enum if DB supports
-  fieldCategory  String            // Enum
+  fieldCategory  FieldCategory     @default(Others)
   stemDesignated Boolean           @default(false)
-  durationMonths Int
-  tuitionFee     Float
+  durationMonths Int               @default(12)
+  tuitionFee     Float             @default(0)
   currency       String            @default("USD")
   englishTests   String?           // Comma separated list of accepted tests
   minEnglishScore Float?
@@ -107,6 +107,19 @@ model Interest {
   status         String            @default("INTERESTED") // "INTERESTED", "CONTACTED", "APPLIED"
   studentMessage String?
   createdAt      DateTime          @default(now())
+}
+
+enum FieldCategory {
+  Computer_Science  @map("Computer Science")
+  Engineering
+  Business
+  Data_Science      @map("Data Science")
+  Health_Sciences   @map("Health Sciences")
+  Social_Sciences   @map("Social Sciences")
+  Arts_Humanities   @map("Arts & Humanities")
+  Law
+  Architecture
+  Others
 }
 
 // Enums (handled as strings in SQLite usually, but good for validation)
