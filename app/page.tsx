@@ -28,6 +28,14 @@ export default function Home() {
             </Button>
           </Link>
         </div>
+
+        <div className="mt-8">
+          <Link href="/universities">
+            <Button variant="link" className="text-primary text-lg font-medium">
+              🔍 Browse All Universities &rarr;
+            </Button>
+          </Link>
+        </div>
       </section>
 
       {/* How it Works */}
