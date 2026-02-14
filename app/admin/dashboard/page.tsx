@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 import { verifyUniversity } from '@/app/actions'
 import { CheckCircle, XCircle, Globe, Mail } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminDashboard() {
     // Stats
     const stats = {

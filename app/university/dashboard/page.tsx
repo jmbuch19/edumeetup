@@ -7,6 +7,8 @@ import ProgramList from './program-list'
 
 import { User, MapPin, DollarSign, Calendar, BookOpen, Clock } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export default async function UniversityDashboard() {
     // Mock session for now - assuming verified university (ID from seed) if not logged in
     // For MVP demo, lets pick the Harvard one from Seed

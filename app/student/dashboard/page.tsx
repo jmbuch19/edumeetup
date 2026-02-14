@@ -7,6 +7,8 @@ import { expressInterest } from '@/app/actions'
 
 // Dashboard is server component
 // Dashboard is server component
+export const dynamic = 'force-dynamic'
+
 export default async function StudentDashboard() {
     // 1. Get Logged In Student (Mock for MVP: Get latest created student)
     // In real app: const session = await auth(); const email = session.user.email;
