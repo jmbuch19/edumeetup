@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ... existing generator and datasource ...
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      String   // "STUDENT", "UNIVERSITY", "ADMIN"
+  status    String   @default("ACTIVE") // "ACTIVE", "PENDING", "SUSPENDED"
+  createdAt DateTime @default(now())
+
+  studentProfile    StudentProfile?
+  universityProfile UniversityProfile?
+}
+
+model StudentProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Section A: Basic Profile
+  fullName          String
+  country           String?
+  currentStatus     String? // "Grade12", "BachelorFinalYear", "BachelorCompleted", "MasterCompleted", "WorkingProfessional"
+  
+  // Section B: Study Preference
+  fieldOfInterest   String? // Enum: Computer Science, Engineering, etc.
+  preferredCountries String? // Comma separated
+  preferredDegree   String? // "Bachelor's", "Master's", "MBA", "PhD", "Certificate"
+  budgetRange       String? // "< 15,000", "15,000–25,000", etc.
+  englishTestType   String? // "IELTS", "TOEFL", "Duolingo", "PTE", "Not Taken Yet"
+  englishScore      String? // Score as string to handle "Not Taken Yet" or ranges, or just use score
+  preferredIntake   String? // "Fall", "Spring", "Summer"
+  
+  profileComplete   Boolean  @default(false)
+  updatedAt         DateTime @updatedAt
+
+  interests Interest[]
+}
+
+model UniversityProfile {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institutionName   String
+  country           String
+  city              String?
+  website           String?
+  
+  // New Fields
+  repName           String?
+  repDesignation    String?
+  repEmail          String?
+  contactPhone      String?
+  accreditation     String?
+  scholarshipsAvailable Boolean @default(false)
+
+  contactEmail      String?   // Existing field, maybe redundant with repEmail but keeping for now
+  verificationStatus String   @default("PENDING") // "PENDING", "VERIFIED", "REJECTED"
+  verifiedDate      DateTime?
+  logo              String?   // URL to image
+
+  programs  Program[]
+  interests Interest[]
+}
+
+model Program {
+  id             String            @id @default(cuid())
+  universityId   String
+  university     UniversityProfile @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  
+  programName    String
+  degreeLevel    String            // Storing Enum as String for SQLite/Simple compatibility, or use Enum if DB supports
+  fieldCategory  String            // Enum
+  stemDesignated Boolean           @default(false)
+  durationMonths Int
+  tuitionFee     Float
+  currency       String            @default("USD")
+  englishTests   String?           // Comma separated list of accepted tests
+  minEnglishScore Float?
+  intakes        String?           // Comma separated list of intakes (Spring, Fall, etc.)
+
+  // degreeLevel    DegreeLevel     // If using proper Enums
+  // fieldCategory  FieldCategory
+  
+  status         String            @default("ACTIVE") // "ACTIVE", "PAUSED"
+
+  interests Interest[]
+}
+
+model Interest {
+  id             String            @id @default(cuid())
+  studentId      String
+  student        StudentProfile    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  universityId   String
+  university     UniversityProfile @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  programId      String?
+  program        Program?          @relation(fields: [programId], references: [id])
+  status         String            @default("INTERESTED") // "INTERESTED", "CONTACTED", "APPLIED"
+  studentMessage String?
+  createdAt      DateTime          @default(now())
+}
+
+// Enums (handled as strings in SQLite usually, but good for validation)
+// DegreeLevel: Associate, Bachelor's, Master's, MBA, PhD, Certificate
+// FieldCategory: Computer Science, Engineering, Business, Data Science, Health Sciences, Social Sciences, Arts & Humanities, Law, Architecture, Others
+// Intake: Fall, Spring, Summer
+// EnglishTest: IELTS, TOEFL, Duolingo, PTE, Not Required
