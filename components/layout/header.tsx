@@ -171,6 +171,11 @@ export async function Header() {
                             <Link href="/contact" className="w-full cursor-pointer">Contact</Link>
                         </DropdownMenuItem>
 
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                            <Link href="/admin/dashboard" className="w-full cursor-pointer font-bold text-red-600">Admin Demo Panel</Link>
+                        </DropdownMenuItem>
+
                         {!user && (
                             <>
                                 <DropdownMenuSeparator />
