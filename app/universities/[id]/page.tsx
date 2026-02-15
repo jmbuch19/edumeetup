@@ -106,16 +106,28 @@ export default async function UniversityDetailPage({
                                     </div>
                                     <div className="flex justify-between border-b border-gray-100 pb-2">
                                         <span className="font-medium">Field of Study</span>
-                                        <span>{program.fieldOfStudy}</span>
+                                        <span>{program.fieldCategory}</span>
                                     </div>
                                     <div className="flex justify-between border-b border-gray-100 pb-2">
                                         <span className="font-medium">Tuition Fee</span>
                                         <span>{program.currency} {program.tuitionFee.toLocaleString()}</span>
                                     </div>
                                     <div className="flex justify-between pt-2">
-                                        <span className="font-medium">Intake Date</span>
-                                        <span>{program.intakeDate}</span>
+                                        <span className="font-medium">Intakes</span>
+                                        <span>{program.intakes}</span>
                                     </div>
+                                    {isLoggedIn && (
+                                        <div className="mt-4 pt-4 border-t border-gray-100">
+                                            <form action={async () => {
+                                                'use server'
+                                                await expressInterest(university.id, undefined, program.id)
+                                            }}>
+                                                <Button size="sm" variant="outline" className="w-full">
+                                                    Express Interest in Program
+                                                </Button>
+                                            </form>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}

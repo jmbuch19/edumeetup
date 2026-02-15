@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { LayoutDashboard, Users, School, Settings, LogOut, Ticket } from "lucide-react"
 import { logout } from "@/app/actions"
+import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
 
 export default async function AdminLayout({
     children,
@@ -59,6 +60,7 @@ export default async function AdminLayout({
 
             {/* Main Content */}
             <main className="flex-1 md:ml-64 p-8">
+                <AdminBreadcrumbs />
                 {children}
             </main>
         </div>

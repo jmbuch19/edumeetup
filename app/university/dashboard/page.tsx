@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createProgram, updateUniversityProfile } from '@/app/actions'
+import { InterestedStudentsTable } from '@/components/university/interested-students-table'
 import ProgramList from './program-list'
 
 import { User, MapPin, DollarSign, Calendar, BookOpen, Clock } from 'lucide-react'
@@ -22,7 +23,11 @@ export default async function UniversityDashboard() {
         include: {
             programs: true,
             interests: {
-                include: { student: { include: { user: true } } }
+                include: {
+                    student: { include: { user: true } },
+                    program: true
+                },
+                orderBy: { createdAt: 'desc' }
             }
         }
     })
@@ -64,8 +69,17 @@ export default async function UniversityDashboard() {
                 }
             }
         },
-        take: 10,
         include: { user: true }
+    })
+
+    // 4. Fetch Availability Slots for Scheduling
+    const availabilitySlots = await prisma.availabilitySlot.findMany({
+        where: {
+            universityId: uni.id,
+            isBooked: false,
+            startTime: { gte: new Date() }
+        },
+        orderBy: { startTime: 'asc' }
     })
 
     return (
@@ -84,7 +98,10 @@ export default async function UniversityDashboard() {
                     {/* Settings: Meeting Link */}
                     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                         <h2 className="text-xl font-bold text-gray-900 mb-4">Profile Settings</h2>
-                        <form action={updateUniversityProfile} className="space-y-4">
+                        <form action={async (formData) => {
+                            'use server'
+                            await updateUniversityProfile(formData)
+                        }} className="space-y-4">
                             <input type="hidden" name="universityId" value={uni.id} />
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Booking Link</label>
@@ -103,7 +120,10 @@ export default async function UniversityDashboard() {
 
                     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                         <h2 className="text-xl font-bold text-gray-900 mb-4">Add New Program</h2>
-                        <form action={createProgram} className="space-y-4">
+                        <form action={async (formData) => {
+                            'use server'
+                            await createProgram(formData)
+                        }} className="space-y-4">
                             <input type="hidden" name="universityId" value={uni.id} />
 
                             <div>
@@ -123,7 +143,7 @@ export default async function UniversityDashboard() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Field of Study</label>
-                                    <Input name="fieldOfStudy" required placeholder="Engineering" />
+                                    <Input name="fieldCategory" required placeholder="Engineering" />
                                 </div>
                             </div>
 
@@ -133,8 +153,8 @@ export default async function UniversityDashboard() {
                                     <Input name="tuitionFee" type="number" required placeholder="50000" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Intake Date</label>
-                                    <Input name="intakeDate" required placeholder="Fall 2025" />
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Intakes</label>
+                                    <Input name="intakes" required placeholder="Fall 2025, Spring 2026" />
                                 </div>
                             </div>
 
@@ -147,48 +167,19 @@ export default async function UniversityDashboard() {
                             <Button type="submit" className="w-full">Create Program</Button>
                         </form>
                     </div>
+
+                    {/* Program List */}
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <h2 className="text-xl font-bold text-gray-900 mb-4">My Programs</h2>
+                        <ProgramList programs={uni.programs} />
+                    </div>
                 </div>
 
                 {/* Right Column: Students (Interested & Matched) */}
                 <div className="space-y-6">
                     {/* Interested Students (Full Access) */}
-                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                        <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                            <User className="h-5 w-5 text-primary" />
-                            Interested Students <span className="text-sm font-normal text-gray-500">({uni.interests.length})</span>
-                        </h2>
-                        {uni.interests.length === 0 ? (
-                            <p className="text-gray-500 text-sm italic">No inquiries yet.</p>
-                        ) : (
-                            <div className="space-y-4">
-                                {uni.interests.map(interest => (
-                                    <div key={interest.id} className="p-4 rounded-lg bg-blue-50 border border-blue-100">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div>
-                                                <h3 className="font-semibold text-gray-900">{interest.student.fullName}</h3>
-                                                <p className="text-xs text-blue-600 font-medium">Expressed Interest</p>
-                                            </div>
-                                            <span className="text-xs text-gray-500">{new Date(interest.createdAt).toLocaleDateString()}</span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-y-1 gap-x-4 text-sm text-gray-600 mb-3">
-                                            <div><span className="font-medium text-gray-700">Country:</span> {interest.student.country}</div>
-                                            <div><span className="font-medium text-gray-700">Budget:</span> {interest.student.budgetRange}</div>
-                                            <div><span className="font-medium text-gray-700">Degree:</span> {interest.student.preferredDegree}</div>
-                                            <div><span className="font-medium text-gray-700">Score:</span> {interest.student.englishScore}</div>
-                                        </div>
-                                        <div className="pt-2 border-t border-blue-200 mt-2">
-                                            <div className="flex items-center gap-2 text-sm text-gray-700 mb-2">
-                                                <span className="font-medium">Email:</span> {interest.student.user.email}
-                                            </div>
-                                            <a href={`mailto:${interest.student.user.email}?subject=Response from ${uni.institutionName}`} className="block">
-                                                <Button size="sm" className="w-full">Contact Student</Button>
-                                            </a>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    {/* Interested Students (Full Access) */}
+                    <InterestedStudentsTable interests={uni.interests} availabilitySlots={availabilitySlots} />
 
                     {/* Matched Students (Masked) */}
                     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
@@ -198,7 +189,10 @@ export default async function UniversityDashboard() {
                         </h2>
 
                         {matchedStudents.length === 0 ? (
-                            <p className="text-gray-500 text-sm italic">No new matches found.</p>
+                            <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                                <p className="text-gray-500 text-sm italic">No new matches found at this time.</p>
+                                <p className="text-xs text-gray-400 mt-1">Students matching your criteria will appear here automatically.</p>
+                            </div>
                         ) : (
                             <div className="space-y-4">
                                 {matchedStudents.map(student => (

@@ -105,5 +105,33 @@ export const EmailTemplates = {
         <hr />
         <h3>Message:</h3>
         <p>${ticket.message}</p>
+    `,
+
+    welcomeStudent: (fullName: string) => `
+        <h2>Welcome to EduMeetup!</h2>
+        <p>Dear ${fullName},</p>
+        <p>Thank you for joining EduMeetup. Your profile has been created successfully.</p>
+        <p>You can now:</p>
+        <ul>
+            <li>Browse universities and programs</li>
+            <li>Express interest in programs</li>
+            <li>Schedule meetings</li>
+        </ul>
+        <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/student/dashboard">Go to Dashboard</a></p>
+    `,
+
+    adminNewStudent: (fullName: string, email: string) => `
+        <h2>New Student Registration</h2>
+        <p><strong>Name:</strong> ${fullName}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p>Check the admin dashboard for details.</p>
+    `,
+
+    adminNewUniversity: (instName: string, email: string) => `
+        <h2>New University Registration</h2>
+        <p><strong>Institution:</strong> ${instName}</p>
+        <p><strong>Contact:</strong> ${email}</p>
+        <p><strong>Status:</strong> Pending Verification</p>
+        <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/admin/dashboard">Review Now</a></p>
     `
 }

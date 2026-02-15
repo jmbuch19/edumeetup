@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] }); // id: 7
 
@@ -34,6 +35,7 @@ export default function RootLayout({
         <main className="min-h-screen">
           {children}
         </main>
+        <Toaster />
         <Footer />
       </body>
     </html >

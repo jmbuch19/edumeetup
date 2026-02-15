@@ -3,6 +3,7 @@ import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
+import { prisma } from '@/lib/prisma'
 
 export default async function TicketListPage() {
     const user = await getSession()

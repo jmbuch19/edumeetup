@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
+import { prisma } from '@/lib/prisma'
 
 export default async function TicketDetailPage({ params }: { params: { id: string } }) {
     const user = await getSession()

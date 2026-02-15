@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { School, ChevronRight, Plus, Trash2, CheckCircle, ArrowLeft } from 'lucide-react'
+import { toast } from 'sonner'
 import { PRIORITY_MARKETS, ALL_COUNTRIES } from '@/lib/countries'
 import { registerUniversityWithPrograms } from '@/app/actions' // New action
 
@@ -111,12 +112,15 @@ export default function UniversityRegisterPage() {
             const result = await registerUniversityWithPrograms({ ...formData, programs }) // Call server action
             if (result?.error) {
                 setError(result.error)
+                toast.error(result.error)
                 setLoading(false)
             } else {
+                toast.success("Registration successful!")
                 // Success handled by redirect in action
             }
         } catch (err) {
             setError("Something went wrong")
+            toast.error("An unexpected error occurred.")
             setLoading(false)
         }
     }
@@ -270,7 +274,7 @@ export default function UniversityRegisterPage() {
                                             <h3 className="text-lg font-bold">Add New Program</h3>
                                         </div>
                                         <div className="p-6 space-y-4">
-                                            <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <label className="text-xs font-medium uppercase text-gray-500">Program Name *</label>
                                                     <Input name="programName" value={currentProgram.programName} onChange={handleProgramChange} placeholder="MSc Data Science" />
@@ -284,7 +288,7 @@ export default function UniversityRegisterPage() {
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <label className="text-xs font-medium uppercase text-gray-500">Field Category *</label>
                                                     <select name="fieldCategory" value={currentProgram.fieldCategory} onChange={handleProgramChange} className="w-full h-10 border rounded-md px-3 text-sm">
@@ -306,7 +310,7 @@ export default function UniversityRegisterPage() {
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-3 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <div>
                                                     <label className="text-xs font-medium uppercase text-gray-500">Duration (Months)</label>
                                                     <Input type="number" name="durationMonths" value={currentProgram.durationMonths} onChange={handleProgramChange} />

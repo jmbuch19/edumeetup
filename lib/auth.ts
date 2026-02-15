@@ -58,6 +58,22 @@ export async function getSession() {
 }
 
 export async function destroySession() {
+    const cookie = cookies().get(SESSION_COOKIE_NAME)
+
+    if (cookie?.value) {
+        try {
+            const { email } = JSON.parse(cookie.value)
+            if (email) {
+                await prisma.user.update({
+                    where: { email },
+                    data: { sessionToken: null }
+                })
+            }
+        } catch (e) {
+            // Ignore error if cookie is invalid, just delete it
+        }
+    }
+
     cookies().delete(SESSION_COOKIE_NAME)
 }
 

@@ -5,7 +5,8 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, EmailTemplates } from '@/lib/email'
-import { createSession, getSession, destroySession } from '@/lib/auth'
+import { createSession, getSession, destroySession, requireUser } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 export async function registerStudent(formData: FormData) {
     const email = formData.get('email') as string
@@ -71,10 +72,10 @@ export async function registerStudent(formData: FormData) {
         return { error: 'Registration failed' }
     }
 
-    redirect('/student/dashboard')
+    redirect('/student/register/success')
 }
 
-export async function expressInterest(universityId: string, studentEmail?: string) {
+export async function expressInterest(universityId: string, studentEmail?: string, programId?: string) {
     // Get session
     const user = await getSession()
     const sessionEmail = user?.email
@@ -103,8 +104,11 @@ export async function expressInterest(universityId: string, studentEmail?: strin
             data: {
                 studentId: student.id,
                 universityId: universityId,
+                programId: programId || null,
                 status: 'INTERESTED',
-                studentMessage: "I am interested in your programs."
+                studentMessage: programId
+                    ? `I am interested in a specific program.`
+                    : "I am interested in your programs."
             }
         })
 
@@ -172,8 +176,16 @@ export async function registerUniversity(formData: FormData) {
         console.log(`New university registered: ${institutionName}`)
 
         // SET SESSION COOKIE
-        // SET SESSION COOKIE
         await createSession(email)
+
+        // Notify Admin
+        if (process.env.INFO_EMAIL) {
+            await sendEmail({
+                to: process.env.INFO_EMAIL,
+                subject: "New University Registration",
+                html: EmailTemplates.adminNewUniversity(institutionName, contactEmail)
+            })
+        }
 
     } catch (error) {
         console.error('Registration failed:', error)
@@ -188,24 +200,35 @@ export async function createProgram(formData: FormData) {
     const universityId = formData.get('universityId') as string
     const programName = formData.get('programName') as string
     const degreeLevel = formData.get('degreeLevel') as string
-    const fieldOfStudy = formData.get('fieldOfStudy') as string
+    const fieldCategory = formData.get('fieldCategory') as string
     const tuitionFee = parseFloat(formData.get('tuitionFee') as string)
-    const intakeDate = formData.get('intakeDate') as string
+    const intakes = formData.get('intakes') as string
 
     if (!universityId || !programName) {
         return { error: "Missing fields" }
     }
 
     try {
+        const user = await requireUser()
+
+        // Security Check: Verify user owns this university profile
+        const uniProfile = await prisma.universityProfile.findUnique({
+            where: { userId: user.id }
+        })
+
+        if (!uniProfile || uniProfile.id !== universityId) {
+            return { error: "Unauthorized: You do not own this profile" }
+        }
+
         await prisma.program.create({
             data: {
                 universityId,
                 programName,
                 degreeLevel,
-                fieldOfStudy,
+                fieldCategory: fieldCategory as any, // Simple cast for MVP
                 tuitionFee,
                 currency: 'USD',
-                intakeDate,
+                intakes,
                 status: 'ACTIVE'
             }
         })
@@ -231,6 +254,14 @@ export async function verifyUniversity(formData: FormData) {
     const status = action === 'approve' ? 'VERIFIED' : 'REJECTED'
 
     try {
+        // First get the user ID
+        const uniProfile = await prisma.universityProfile.findUnique({
+            where: { id: universityId },
+            include: { user: true }
+        })
+
+        if (!uniProfile) return { error: "University not found" }
+
         const uni = await prisma.universityProfile.update({
             where: { id: universityId },
             data: {
@@ -238,9 +269,7 @@ export async function verifyUniversity(formData: FormData) {
                 verifiedDate: status === 'VERIFIED' ? new Date() : null,
                 user: {
                     update: {
-                        update: {
-                            status: status === 'VERIFIED' ? 'ACTIVE' : 'SUSPENDED'
-                        }
+                        status: status === 'VERIFIED' ? 'ACTIVE' : 'SUSPENDED'
                     }
                 }
             },
@@ -249,7 +278,7 @@ export async function verifyUniversity(formData: FormData) {
 
         // SEND EMAIL (Simulation)
         await sendEmail({
-            to: uni.contactEmail || uni.user.email,
+            to: uni.contactEmail || uniProfile.user.email,
             subject: `University Verification Update: ${uni.verificationStatus}`,
             html: EmailTemplates.verificationStatus(
                 uni.verificationStatus as 'VERIFIED' | 'REJECTED',
@@ -258,6 +287,17 @@ export async function verifyUniversity(formData: FormData) {
         })
 
         console.log(`University ${universityId} verified status set to ${status}`)
+
+        // Audit Log
+        if (user) {
+            await logAudit({
+                action: status === 'VERIFIED' ? 'VERIFY_UNIVERSITY' : 'REJECT_UNIVERSITY',
+                entityType: 'UNIVERSITY',
+                entityId: universityId,
+                actorId: user.id,
+                metadata: { status }
+            })
+        }
 
         revalidatePath('/admin/dashboard')
     } catch (error) {
@@ -368,9 +408,32 @@ export async function registerUniversityWithPrograms(data: any) {
 
 export async function deleteProgram(programId: string) {
     try {
+        const user = await requireUser()
+
+        // Security Check: Verify program belongs to user's university
+        const program = await prisma.program.findUnique({
+            where: { id: programId },
+            include: { university: true }
+        })
+
+        if (!program) return { error: "Program not found" }
+
+        if (program.university.userId !== user.id) {
+            return { error: "Unauthorized" }
+        }
+
         await prisma.program.delete({
             where: { id: programId }
         })
+
+        // Audit Log
+        await logAudit({
+            action: 'DELETE_PROGRAM',
+            entityType: 'PROGRAM',
+            entityId: programId,
+            actorId: user.id
+        })
+
         revalidatePath('/university/dashboard')
         return { success: true }
     } catch (error) {
@@ -386,12 +449,32 @@ export async function updateUniversityProfile(formData: FormData) {
     if (!universityId) return { error: "Missing university ID" }
 
     try {
+        const user = await requireUser()
+
+        // Security Check
+        const uniProfile = await prisma.universityProfile.findUnique({
+            where: { id: universityId }
+        })
+
+        if (!uniProfile || uniProfile.userId !== user.id) {
+            return { error: "Unauthorized" }
+        }
+
         await prisma.universityProfile.update({
             where: { id: universityId },
             data: {
                 meetingLink: meetingLink || null
             }
         })
+
+        // Audit Log
+        await logAudit({
+            action: 'UPDATE_UNIVERSITY_PROFILE',
+            entityType: 'UNIVERSITY',
+            entityId: universityId,
+            actorId: user.id
+        })
+
         revalidatePath('/university/dashboard')
         return { success: true }
     } catch (error) {
@@ -494,9 +577,152 @@ export async function createSupportTicket(formData: FormData) {
             html: EmailTemplates.supportTicketNotification(ticket, userName, user.email)
         })
 
-        return { success: true }
+        return { success: true, ticketId: ticket.id }
     } catch (error) {
         console.error("Failed to create ticket:", error)
         return { error: "Failed to create ticket" }
     }
+}
+
+export async function createMeeting(formData: FormData) {
+    const title = formData.get('title') as string
+    const startTime = formData.get('startTime') as string // ISO string
+    const duration = parseInt(formData.get('duration') as string) || 60
+    const type = formData.get('type') as string // ONE_TO_ONE, GROUP
+    const joinUrl = formData.get('joinUrl') as string
+    const participantIds = formData.getAll('participants') as string[] // Array of user IDs
+
+    if (!title || !startTime || participantIds.length === 0) {
+        return { error: "Missing required fields" }
+    }
+
+    try {
+        const user = await requireUser()
+        if (user.role !== 'UNIVERSITY') return { error: "Unauthorized" }
+
+        // Get university profile
+        const uniProfile = await prisma.universityProfile.findUnique({ where: { userId: user.id } })
+        if (!uniProfile) return { error: "Profile not found" }
+
+        const start = new Date(startTime)
+        const end = new Date(start.getTime() + duration * 60000)
+
+        const availabilitySlotId = formData.get('availabilitySlotId') as string | null
+
+        // Create Meeting
+        const meeting = await prisma.meeting.create({
+            data: {
+                title,
+                startTime: start,
+                endTime: end,
+                meetingType: type,
+                joinUrl,
+                createdByUniversityId: uniProfile.id,
+                participants: {
+                    create: participantIds.map(uid => ({
+                        participantUserId: uid,
+                        rsvpStatus: 'INVITED'
+                    }))
+                },
+                // Link slot if provided
+                availabilitySlot: availabilitySlotId ? {
+                    connect: { id: availabilitySlotId }
+                } : undefined
+            },
+            include: { participants: { include: { user: true } } }
+        })
+
+        // If slot used, mark as booked
+        if (availabilitySlotId) {
+            await prisma.availabilitySlot.update({
+                where: { id: availabilitySlotId },
+                data: { isBooked: true }
+            })
+        }
+
+        // Send Notifications (Email + DB)
+        // In real app, use a queue. For MVP, await.
+        for (const p of meeting.participants) {
+            // DB Notification
+            await prisma.notification.create({
+                data: {
+                    userId: p.participantUserId,
+                    type: 'MEETING_INVITE',
+                    title: 'New Meeting Invitation',
+                    message: `You have been invited to: ${title}`,
+                    payload: { meetingId: meeting.id }
+                }
+            })
+
+            // Email Notification
+            await sendEmail({
+                to: p.user.email,
+                subject: `Invitation: ${title}`,
+                html: `<p>You have been invited to a meeting with ${uniProfile.institutionName}.</p>
+                       <p><strong>Topic:</strong> ${title}</p>
+                       <p><strong>Time:</strong> ${start.toLocaleString()}</p>
+                       <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/student/dashboard?tab=meetings">View Details & RSVP</a></p>`
+            })
+        }
+
+        revalidatePath('/university/dashboard')
+        return { success: true }
+    } catch (error) {
+        console.error("Failed to create meeting:", error)
+        return { error: "Failed to create meeting" }
+    }
+}
+
+export async function updateRSVP(formData: FormData) {
+    const meetingId = formData.get('meetingId') as string
+    const status = formData.get('status') as string
+
+    try {
+        const user = await requireUser()
+
+        // Find participant record
+        // We find by meetingId + userId to be secure
+        const participant = await prisma.meetingParticipant.findFirst({
+            where: {
+                meetingId,
+                participantUserId: user.id
+            }
+        })
+
+        if (!participant) return { error: "Participant not found" }
+
+        await prisma.meetingParticipant.update({
+            where: { id: participant.id },
+            data: { rsvpStatus: status }
+        })
+
+        revalidatePath('/student/dashboard')
+        return { success: true }
+
+    } catch (error) {
+        console.error("Failed to update RSVP:", error)
+        return { error: "Failed to update RSVP" }
+    }
+}
+
+// Notification Actions
+export async function markNotificationAsRead(notificationId: string) {
+    const user = await requireUser()
+
+    // Verify ownership
+    const notification = await prisma.notification.findUnique({
+        where: { id: notificationId }
+    })
+
+    if (!notification || notification.userId !== user.id) {
+        return { error: "Unauthorized" }
+    }
+
+    await prisma.notification.update({
+        where: { id: notificationId },
+        data: { isRead: true }
+    })
+
+    revalidatePath('/', 'layout') // Refresh UI
+    return { success: true }
 }

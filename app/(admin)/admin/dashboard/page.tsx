@@ -1,8 +1,7 @@
 import React from 'react'
 import { prisma } from '@/lib/prisma'
-import { Button } from '@/components/ui/button'
-import { verifyUniversity } from '@/app/actions'
-import { CheckCircle, XCircle, Globe, Mail } from 'lucide-react'
+import { VerificationButtons } from '@/components/admin/verification-buttons'
+import { Globe } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -95,22 +94,7 @@ export default async function AdminDashboard() {
                                         )}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <div className="flex justify-end gap-2">
-                                            <form action={verifyUniversity}>
-                                                <input type="hidden" name="universityId" value={uni.id} />
-                                                <input type="hidden" name="action" value="approve" />
-                                                <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                                                    <CheckCircle className="h-4 w-4 mr-1" /> Approve
-                                                </Button>
-                                            </form>
-                                            <form action={verifyUniversity}>
-                                                <input type="hidden" name="universityId" value={uni.id} />
-                                                <input type="hidden" name="action" value="reject" />
-                                                <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
-                                                    <XCircle className="h-4 w-4 mr-1" /> Reject
-                                                </Button>
-                                            </form>
-                                        </div>
+                                        <VerificationButtons id={uni.id} />
                                     </td>
                                 </tr>
                             ))}

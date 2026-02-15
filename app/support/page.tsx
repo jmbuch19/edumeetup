@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button"
 import { createSupportTicket } from "@/app/actions"
 import { redirect } from "next/navigation"
 import { getSession } from "@/lib/auth"
+import Link from 'next/link'
 
 export default async function SupportPage() {
     // 1. Check Session
@@ -23,7 +24,7 @@ export default async function SupportPage() {
             console.error(result.error)
             return
         }
-        redirect('/support/tickets')
+        redirect(`/support/success?ticketId=${result.ticketId}`)
     }
 
     return (

@@ -41,30 +41,38 @@ export default async function AdminUsersPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {users.map((user) => (
-                            <TableRow key={user.id}>
-                                <TableCell className="font-medium">{user.email}</TableCell>
-                                <TableCell>
-                                    <Badge variant={
-                                        user.role === 'ADMIN' ? 'default' :
-                                            user.role === 'UNIVERSITY' ? 'secondary' : 'outline'
-                                    }>
-                                        {user.role}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell>
-                                    {user.studentProfile?.fullName || user.universityProfile?.institutionName || '-'}
-                                </TableCell>
-                                <TableCell>
-                                    <Badge variant={user.status === 'ACTIVE' ? 'outline' : 'destructive'} className={user.status === 'ACTIVE' ? 'text-green-600 border-green-200 bg-green-50' : ''}>
-                                        {user.status}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell className="text-muted-foreground">
-                                    {format(new Date(user.createdAt), 'MMM d, yyyy')}
+                        {users.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                    No users found.
                                 </TableCell>
                             </TableRow>
-                        ))}
+                        ) : (
+                            users.map((user) => (
+                                <TableRow key={user.id}>
+                                    <TableCell className="font-medium">{user.email}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={
+                                            user.role === 'ADMIN' ? 'default' :
+                                                user.role === 'UNIVERSITY' ? 'secondary' : 'outline'
+                                        }>
+                                            {user.role}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        {user.studentProfile?.fullName || user.universityProfile?.institutionName || '-'}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant={user.status === 'ACTIVE' ? 'outline' : 'destructive'} className={user.status === 'ACTIVE' ? 'text-green-600 border-green-200 bg-green-50' : ''}>
+                                            {user.status}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">
+                                        {format(new Date(user.createdAt), 'MMM d, yyyy')}
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
                     </TableBody>
                 </Table>
             </div>

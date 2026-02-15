@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { GraduationCap } from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 
 export default function StudentRegisterPage() {
     return (
@@ -23,7 +25,9 @@ export default function StudentRegisterPage() {
                     </p>
                 </div>
 
-                <form className="mt-8 space-y-8" action={registerStudent}>
+                <form className="mt-8 space-y-8" action={async (formData: FormData) => {
+                    await registerStudent(formData)
+                }}>
                     {/* Section A: Basic Profile */}
                     <div className="space-y-6">
                         <h3 className="text-lg font-medium leading-6 text-gray-900 border-b pb-2">Section A — Basic Profile</h3>
@@ -46,7 +50,7 @@ export default function StudentRegisterPage() {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
-                                <div className="flex gap-4">
+                                <div className="flex gap-4 flex-wrap">
                                     <label className="flex items-center space-x-2 cursor-pointer">
                                         <input type="radio" name="gender" value="Male" required className="accent-primary h-4 w-4" />
                                         <span className="text-sm text-gray-700">Male</span>

@@ -20,7 +20,10 @@ export default function LoginPage() {
                     </p>
                 </div>
 
-                <form className="mt-8 space-y-6" action={login}>
+                <form className="mt-8 space-y-6" action={async (formData) => {
+                    'use server'
+                    await login(formData)
+                }}>
                     <div className="space-y-4">
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700">

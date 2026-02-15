@@ -20,7 +20,9 @@ export async function searchUniversities({
     const skip = (page - 1) * pageSize
 
     try {
-        const where: any = {}
+        const where: any = {
+            verificationStatus: 'VERIFIED'
+        }
 
         // 1. Text Search (Name or Location)
         if (query) {

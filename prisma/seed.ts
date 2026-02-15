@@ -22,6 +22,20 @@ async function main() {
     })
     console.log({ admin })
 
+    // Create Admin User
+    const adminEmail2 = 'admin@edumeetup.com' // Renamed to avoid conflict with previous adminEmail
+    const admin2 = await prisma.user.upsert({ // Renamed to avoid conflict with previous admin
+        where: { email: adminEmail2 },
+        update: { password: 'admin123' }, // Force update password
+        create: {
+            email: adminEmail2,
+            password: 'admin123', // In production, this should be hashed
+            role: 'ADMIN',
+            status: 'ACTIVE'
+        }
+    })
+    console.log({ admin: admin2 }) // Log with a distinct name
+
     // Create Student
     const studentEmail = 'student@example.com'
     const student = await prisma.user.upsert({
@@ -37,7 +51,6 @@ async function main() {
                     fullName: 'John Doe',
                     country: 'India',
                     currentStatus: 'Undergraduate Student',
-                    yearOfPassing: 2024,
                     fieldOfInterest: 'Computer Science',
                     preferredCountries: 'USA, UK',
                     preferredDegree: "Master's",
@@ -73,9 +86,9 @@ async function main() {
                             {
                                 programName: 'Computer Science',
                                 degreeLevel: "Master's",
-                                fieldOfStudy: 'Engineering',
+                                fieldCategory: 'Engineering',
                                 tuitionFee: 50000,
-                                intakeDate: 'Fall 2025',
+                                intakes: 'Fall 2025',
                             },
                         ],
                     },

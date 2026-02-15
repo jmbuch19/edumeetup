@@ -4,9 +4,25 @@ import { GraduationCap, LogOut, User as UserIcon, LayoutDashboard, Ticket } from
 import { Button } from "@/components/ui/button"
 import { getSession } from "@/lib/auth"
 import { logout } from "@/app/actions"
+import { prisma } from "@/lib/prisma"
+import { NotificationBell } from "@/components/notifications/notification-bell"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu"
+import { Menu } from "lucide-react"
 
 export async function Header() {
     const user = await getSession()
+
+    const notifications = user ? await prisma.notification.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: 'desc' },
+        take: 10
+    }) : []
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-md">
@@ -48,10 +64,12 @@ export async function Header() {
                     </Link>
                 </nav>
 
-                {/* Auth Buttons */}
-                <div className="flex items-center gap-3">
+                {/* Auth Buttons - Desktop */}
+                <div className="hidden md:flex items-center gap-3">
                     {user ? (
                         <div className="flex items-center gap-3">
+                            <NotificationBell notifications={notifications} />
+
                             <span className="text-sm text-gray-600 hidden md:inline-block">
                                 {user.email}
                             </span>
@@ -81,7 +99,7 @@ export async function Header() {
                                 </Button>
                             </Link>
                             <Link href="/student/register">
-                                <Button variant="primary" size="sm">
+                                <Button variant="default" size="sm">
                                     Sign up
                                 </Button>
                             </Link>
@@ -89,6 +107,89 @@ export async function Header() {
                     )}
                 </div>
             </div>
-        </header>
+            {/* Mobile Menu */}
+            <div className="md:hidden flex items-center gap-4">
+                {user ? (
+                    <div className="flex items-center gap-3">
+                        {/* Bell - Keep visible on mobile */}
+                        <NotificationBell notifications={notifications} />
+
+                        {/* Dashboard Quick Link - Keep visible */}
+                        <Link href={
+                            user.role === 'STUDENT' ? '/student/dashboard' :
+                                user.role === 'UNIVERSITY' ? '/university/dashboard' :
+                                    '/admin/dashboard'
+                        }>
+                            <Button variant="ghost" size="icon" title="Dashboard">
+                                <LayoutDashboard className="h-5 w-5 text-gray-600" />
+                            </Button>
+                        </Link>
+                    </div>
+                ) : (
+                    <Link href="/login">
+                        <Button variant="ghost" size="sm">
+                            Log in
+                        </Button>
+                    </Link>
+                )}
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                            <Menu className="h-6 w-6" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem asChild>
+                            <Link href="/universities" className="w-full cursor-pointer">Browse Universities</Link>
+                        </DropdownMenuItem>
+
+                        {user?.role === 'STUDENT' && (
+                            <DropdownMenuItem asChild>
+                                <Link href="/student/dashboard" className="w-full cursor-pointer">Dashboard</Link>
+                            </DropdownMenuItem>
+                        )}
+                        {user?.role === 'UNIVERSITY' && (
+                            <DropdownMenuItem asChild>
+                                <Link href="/university/dashboard" className="w-full cursor-pointer">Dashboard</Link>
+                            </DropdownMenuItem>
+                        )}
+                        {user?.role === 'ADMIN' && (
+                            <DropdownMenuItem asChild>
+                                <Link href="/admin/dashboard" className="w-full cursor-pointer">Admin Panel</Link>
+                            </DropdownMenuItem>
+                        )}
+
+                        <DropdownMenuItem asChild>
+                            <Link href="/about" className="w-full cursor-pointer">About</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <Link href="/contact" className="w-full cursor-pointer">Contact</Link>
+                        </DropdownMenuItem>
+
+                        {!user && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
+                                    <Link href="/student/register" className="w-full cursor-pointer font-semibold text-primary">Sign up</Link>
+                                </DropdownMenuItem>
+                            </>
+                        )}
+
+                        {user && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <form action={logout} className="w-full">
+                                    <button type="submit" className="w-full text-left px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-sm flex items-center gap-2">
+                                        <LogOut className="h-4 w-4" />
+                                        Sign Out
+                                    </button>
+                                </form>
+                            </>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        </header >
     )
 }

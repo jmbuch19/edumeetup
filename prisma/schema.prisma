@@ -20,9 +20,13 @@ model User {
   studentProfile    StudentProfile?
   universityProfile UniversityProfile?
   supportTickets    SupportTicket[]
+  notifications     Notification[]
+  meetingParticipants MeetingParticipant[]
 
   sessionToken      String?  @unique // For Single Session enforcement
+  auditLogs         AuditLog[]
 }
+
 
 model StudentProfile {
   id                String   @id @default(cuid())
@@ -76,7 +80,23 @@ model UniversityProfile {
 
   programs  Program[]
   interests Interest[]
+  meetingsCreated Meeting[]
+  availabilitySlots AvailabilitySlot[]
+
+
 }
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String   // e.g., "VERIFY_UNIVERSITY", "DELETE_PROGRAM"
+  entityType String  // e.g., "UNIVERSITY", "PROGRAM"
+  entityId  String
+  actorId   String   // User ID of who performed the action
+  actor     User     @relation(fields: [actorId], references: [id])
+  metadata  Json?    // Extra details
+  createdAt DateTime @default(now())
+}
+
 
 model Program {
   id             String            @id @default(cuid())
@@ -110,10 +130,92 @@ model Interest {
   university     UniversityProfile @relation(fields: [universityId], references: [id], onDelete: Cascade)
   programId      String?
   program        Program?          @relation(fields: [programId], references: [id])
-  status         String            @default("INTERESTED") // "INTERESTED", "CONTACTED", "APPLIED"
+  status         String            @default("INTERESTED") // "INTERESTED", "WITHDRAWN", "ARCHIVED", "SHORTLISTED"
   studentMessage String?
+  universityNote String?
+  
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([studentId, universityId, programId])
+}
+
+model Meeting {
+  id                    String            @id @default(cuid())
+  createdByUniversityId String
+  university            UniversityProfile @relation(fields: [createdByUniversityId], references: [id], onDelete: Cascade)
+
+  meetingType    String // "ONE_TO_ONE", "GROUP"
+  title          String
+  agenda         String?
+  startTime      DateTime
+  endTime        DateTime
+  timezone       String            @default("UTC")
+  locationType   String            @default("VIDEO") // "VIDEO", "IN_PERSON"
+  joinUrl        String?
+
+  status         String            @default("SCHEDULED") // "DRAFT", "SCHEDULED", "COMPLETED", "CANCELED"
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  participants   MeetingParticipant[]
+  availabilitySlot AvailabilitySlot?
+}
+
+model MeetingParticipant {
+  id             String            @id @default(cuid())
+  meetingId      String
+  meeting        Meeting           @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  // Linking to User allows both Student and UniversityRep (if needed as participant)
+  // But typically UniversityRep is the host (via createdByUniversityId)
+  // We'll stick to a generic participantUserId for flexibility
+  participantUserId String
+  user           User              @relation(fields: [participantUserId], references: [id], onDelete: Cascade)
+
+  participantType String           @default("STUDENT") // "STUDENT", "UNIVERSITY_REP"
+  rsvpStatus     String            @default("INVITED") // "INVITED", "ACCEPTED", "DECLINED", "NO_RESPONSE"
+  role           String            @default("ATTENDEE") // "HOST", "ATTENDEE"
+
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([meetingId, participantUserId])
+}
+
+model Notification {
+  id             String            @id @default(cuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type           String            // "MEETING_INVITE", "MEETING_UPDATE", "MEETING_CANCELED"
+  title          String
+  message        String
+  payload        Json?             // Flexible data (e.g. meetingId)
+  isRead         Boolean           @default(false)
+  
   createdAt      DateTime          @default(now())
 }
+
+model AvailabilitySlot {
+  id             String            @id @default(cuid())
+  universityId   String
+  university     UniversityProfile @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  
+  startTime      DateTime
+  endTime        DateTime
+  isBooked       Boolean           @default(false)
+  
+  meetingId      String?           @unique
+  meeting        Meeting?          @relation(fields: [meetingId], references: [id])
+
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([universityId])
+  @@index([startTime])
+}
+
 
 enum FieldCategory {
   Computer_Science  @map("Computer Science")

@@ -32,17 +32,22 @@ export default function Home() {
           </Link>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-8 flex flex-col gap-2 items-center">
           <Link href="/universities">
             <Button variant="link" className="text-primary text-lg font-medium">
               🔍 Browse All Universities &rarr;
             </Button>
           </Link>
+          <Link href="/admin/dashboard">
+            <Button variant="ghost" className="text-muted-foreground text-sm">
+              🔐 Admin Login
+            </Button>
+          </Link>
         </div>
-      </section>
+      </section >
 
       {/* How it Works */}
-      <section className="w-full py-20 px-4 bg-white">
+      < section className="w-full py-20 px-4 bg-white" >
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">How it Works</h2>
 
@@ -81,7 +86,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
-    </div>
+      </section >
+    </div >
   );
 }

@@ -1,0 +1,49 @@
+app/(admin)/admin/dashboard/page.tsx(99,51): error TS2322: Type '(formData: FormData) => Promise<{ error: string; } | undefined>' is not assignable to type 'string | ((formData: FormData) => void | Promise<void>) | undefined'.
+  Type '(formData: FormData) => Promise<{ error: string; } | undefined>' is not assignable to type '(formData: FormData) => void | Promise<void>'.
+    Type 'Promise<{ error: string; } | undefined>' is not assignable to type 'void | Promise<void>'.
+      Type 'Promise<{ error: string; } | undefined>' is not assignable to type 'Promise<void>'.
+        Type '{ error: string; } | undefined' is not assignable to type 'void'.
+          Type '{ error: string; }' is not assignable to type 'void'.
+app/(admin)/admin/dashboard/page.tsx(106,51): error TS2322: Type '(formData: FormData) => Promise<{ error: string; } | undefined>' is not assignable to type 'string | ((formData: FormData) => void | Promise<void>) | undefined'.
+  Type '(formData: FormData) => Promise<{ error: string; } | undefined>' is not assignable to type '(formData: FormData) => void | Promise<void>'.
+    Type 'Promise<{ error: string; } | undefined>' is not assignable to type 'void | Promise<void>'.
+      Type 'Promise<{ error: string; } | undefined>' is not assignable to type 'Promise<void>'.
+        Type '{ error: string; } | undefined' is not assignable to type 'void'.
+          Type '{ error: string; }' is not assignable to type 'void'.
+app/actions.ts(208,17): error TS2322: Type 'string' is not assignable to type 'FieldCategory | undefined'.
+app/actions.ts(244,25): error TS2353: Object literal may only specify known properties, and 'update' does not exist in type '(Without<Without<UserUpdateToOneWithWhereWithoutUniversityProfileInput, UserUpdateWithoutUniversityProfileInput> & UserUpdateWithoutUniversityProfileInput, UserUncheckedUpdateWithoutUniversityProfileInput> & UserUncheckedUpdateWithoutUniversityProfileInput) | (Without<...> & ... 1 more ... & UserUpdateWithoutUnivers...'.
+app/actions.ts(255,41): error TS2339: Property 'user' does not exist on type '{ country: string; id: string; userId: string; institutionName: string; city: string | null; website: string | null; repName: string | null; repDesignation: string | null; repEmail: string | null; ... 7 more ...; meetingLink: string | null; }'.
+app/login/page.tsx(23,50): error TS2322: Type '(formData: FormData) => Promise<{ error: string; } | undefined>' is not assignable to type 'string | ((formData: FormData) => void | Promise<void>) | undefined'.
+  Type '(formData: FormData) => Promise<{ error: string; } | undefined>' is not assignable to type '(formData: FormData) => void | Promise<void>'.
+    Type 'Promise<{ error: string; } | undefined>' is not assignable to type 'void | Promise<void>'.
+      Type 'Promise<{ error: string; } | undefined>' is not assignable to type 'Promise<void>'.
+        Type '{ error: string; } | undefined' is not assignable to type 'void'.
+          Type '{ error: string; }' is not assignable to type 'void'.
+app/student/dashboard/page.tsx(118,26): error TS2304: Cannot find name 'Calendar'.
+app/student/register/page.tsx(28,50): error TS2322: Type '(formData: FormData) => Promise<{ error: string; }>' is not assignable to type 'string | ((formData: FormData) => void | Promise<void>) | undefined'.
+  Type '(formData: FormData) => Promise<{ error: string; }>' is not assignable to type '(formData: FormData) => void | Promise<void>'.
+    Type 'Promise<{ error: string; }>' is not assignable to type 'void | Promise<void>'.
+      Type 'Promise<{ error: string; }>' is not assignable to type 'Promise<void>'.
+        Type '{ error: string; }' is not assignable to type 'void'.
+app/support/page.tsx(38,18): error TS2304: Cannot find name 'Link'.
+app/support/page.tsx(40,19): error TS2304: Cannot find name 'Link'.
+app/support/tickets/[id]/page.tsx(15,26): error TS2304: Cannot find name 'prisma'.
+app/support/tickets/page.tsx(13,27): error TS2304: Cannot find name 'prisma'.
+app/support/tickets/page.tsx(50,43): error TS7006: Parameter 'ticket' implicitly has an 'any' type.
+app/universities/[id]/page.tsx(109,56): error TS2339: Property 'fieldOfStudy' does not exist on type '{ id: string; status: string; universityId: string; programName: string; degreeLevel: string; fieldCategory: FieldCategory; tuitionFee: number; intakes: string | null; stemDesignated: boolean; durationMonths: number; currency: string; englishTests: string | null; minEnglishScore: number | null; }'.
+app/universities/[id]/page.tsx(117,56): error TS2339: Property 'intakeDate' does not exist on type '{ id: string; status: string; universityId: string; programName: string; degreeLevel: string; fieldCategory: FieldCategory; tuitionFee: number; intakes: string | null; stemDesignated: boolean; durationMonths: number; currency: string; englishTests: string | null; minEnglishScore: number | null; }'.
+app/university/dashboard/page.tsx(101,31): error TS2322: Type '(formData: FormData) => Promise<{ error: string; success?: undefined; } | { success: boolean; error?: undefined; }>' is not assignable to type 'string | ((formData: FormData) => void | Promise<void>) | undefined'.
+  Type '(formData: FormData) => Promise<{ error: string; success?: undefined; } | { success: boolean; error?: undefined; }>' is not assignable to type '(formData: FormData) => void | Promise<void>'.
+    Type 'Promise<{ error: string; success?: undefined; } | { success: boolean; error?: undefined; }>' is not assignable to type 'void | Promise<void>'.
+      Type 'Promise<{ error: string; success?: undefined; } | { success: boolean; error?: undefined; }>' is not assignable to type 'Promise<void>'.
+        Type '{ error: string; success?: undefined; } | { success: boolean; error?: undefined; }' is not assignable to type 'void'.
+          Type '{ error: string; success?: undefined; }' is not assignable to type 'void'.
+app/university/dashboard/page.tsx(120,31): error TS2322: Type '(formData: FormData) => Promise<{ error: string; } | undefined>' is not assignable to type 'string | ((formData: FormData) => void | Promise<void>) | undefined'.
+  Type '(formData: FormData) => Promise<{ error: string; } | undefined>' is not assignable to type '(formData: FormData) => void | Promise<void>'.
+    Type 'Promise<{ error: string; } | undefined>' is not assignable to type 'void | Promise<void>'.
+      Type 'Promise<{ error: string; } | undefined>' is not assignable to type 'Promise<void>'.
+        Type '{ error: string; } | undefined' is not assignable to type 'void'.
+          Type '{ error: string; }' is not assignable to type 'void'.
+components/layout/header.tsx(94,41): error TS2322: Type '"primary"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+components/ui/calendar.tsx(57,17): error TS2353: Object literal may only specify known properties, and 'IconLeft' does not exist in type 'Partial<CustomComponents>'.
+prisma/seed.ts(40,21): error TS2353: Object literal may only specify known properties, and 'yearOfPassing' does not exist in type '(Without<StudentProfileCreateWithoutUserInput, StudentProfileUncheckedCreateWithoutUserInput> & StudentProfileUncheckedCreateWithoutUserInput) | (Without<...> & StudentProfileCreateWithoutUserInput)'.

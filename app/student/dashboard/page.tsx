@@ -2,8 +2,9 @@ import { prisma } from '@/lib/prisma'
 import { FieldCategory } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { GraduationCap, MapPin, Search } from 'lucide-react'
+import { GraduationCap, MapPin, Search, Calendar } from 'lucide-react'
 import { expressInterest } from '@/app/actions'
+import { StudentMeetingsTable } from '@/components/student/student-meetings-table'
 
 // Dashboard is server component
 // Dashboard is server component
@@ -56,6 +57,11 @@ export default async function StudentDashboard() {
                 },
                 {
                     status: 'ACTIVE'
+                },
+                {
+                    university: {
+                        verificationStatus: 'VERIFIED'
+                    }
                 }
             ]
         },
@@ -79,6 +85,17 @@ export default async function StudentDashboard() {
     })
     const interestedUniIds = new Set(userInterests.map(i => i.universityId))
 
+    // 4. My Meetings
+    const myMeetings = await prisma.meetingParticipant.findMany({
+        where: { participantUserId: user.id },
+        include: {
+            meeting: {
+                include: { university: true }
+            }
+        },
+        orderBy: { meeting: { startTime: 'asc' } }
+    })
+
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -98,6 +115,17 @@ export default async function StudentDashboard() {
                     </Link>
                 </div>
             </div>
+
+            {/* My Meetings Section */}
+            {myMeetings.length > 0 && (
+                <div className="mb-12">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                        <Calendar className="h-6 w-6 text-primary" />
+                        My Meetings
+                    </h2>
+                    <StudentMeetingsTable meetings={myMeetings} />
+                </div>
+            )}
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -124,8 +152,8 @@ export default async function StudentDashboard() {
 
                 {matchedPrograms.length === 0 ? (
                     <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200 border-dashed">
-                        <p className="text-gray-500">No specific matches found yet update your profile to see more.</p>
-                        <p className="text-sm text-gray-400 mt-2">Try changing your Field of Interest or Degree Level.</p>
+                        <p className="text-gray-500">No matches yet — Update preferences to see recommended programs.</p>
+                        <p className="text-sm text-gray-400 mt-2">Try changing your Field of Interest or Degree Level in your profile.</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -170,7 +198,7 @@ export default async function StudentDashboard() {
                                         ) : (
                                             <form action={async () => {
                                                 'use server'
-                                                await expressInterest(program.university.id, student.user.email)
+                                                await expressInterest(program.university.id, student.user.email, program.id)
                                             }}>
                                                 <div className="flex gap-2">
                                                     <Link href={`/universities/${program.university.id}`} className="flex-1">
