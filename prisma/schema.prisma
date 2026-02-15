@@ -25,6 +25,14 @@ model User {
 
   sessionToken      String?  @unique // For Single Session enforcement
   auditLogs         AuditLog[]
+
+  // Security & Verification
+  emailVerified     DateTime?
+  otpCode           String?
+  otpExpiresAt      DateTime?
+
+  // Contact
+  phoneNumber       String?
 }
 
 
@@ -38,6 +46,7 @@ model StudentProfile {
   gender            String?  // "Male", "Female", "Prefer not to say"
   ageGroup          String?  // "Under 20", "21-25", "26-30", "31+"
   country           String?
+  phoneNumber       String? // Optional override or detailed storage
   currentStatus     String? // "Grade12", "BachelorFinalYear", "BachelorCompleted", "MasterCompleted", "WorkingProfessional"
   
   // Section B: Study Preference
@@ -69,6 +78,7 @@ model UniversityProfile {
   repDesignation    String?
   repEmail          String?
   contactPhone      String?
+  phoneNumber       String? // Head office contact
   accreditation     String?
   scholarshipsAvailable Boolean @default(false)
 

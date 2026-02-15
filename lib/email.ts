@@ -133,5 +133,13 @@ export const EmailTemplates = {
         <p><strong>Contact:</strong> ${email}</p>
         <p><strong>Status:</strong> Pending Verification</p>
         <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/admin/dashboard">Review Now</a></p>
+    `,
+
+    otpVerification: (otp: string) => `
+        <h2>Verify Your Email</h2>
+        <p>Thank you for registering with EduMeetup. Please use the following One-Time Password (OTP) to verify your email address:</p>
+        <h1 style="font-size: 32px; letter-spacing: 5px; color: #4F46E5;">${otp}</h1>
+        <p>This code will expire in 15 minutes.</p>
+        <p>If you did not request this, please ignore this email.</p>
     `
 }

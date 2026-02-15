@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache'
 import { sendEmail, EmailTemplates } from '@/lib/email'
 import { createSession, getSession, destroySession, requireUser } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { generateOTP } from '@/lib/otp'
 
 export async function registerStudent(formData: FormData) {
     const email = formData.get('email') as string
@@ -36,6 +37,9 @@ export async function registerStudent(formData: FormData) {
             return { error: 'User already exists' }
         }
 
+        const otpCode = generateOTP()
+        const otpExpiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
+
         // Create User and StudentProfile
         await prisma.user.create({
             data: {
@@ -43,6 +47,9 @@ export async function registerStudent(formData: FormData) {
                 password, // In real app, hash password!
                 role: 'STUDENT',
                 status: 'ACTIVE',
+                otpCode,
+                otpExpiresAt,
+                emailVerified: null,
                 studentProfile: {
                     create: {
                         fullName,
@@ -58,21 +65,26 @@ export async function registerStudent(formData: FormData) {
                         preferredIntake,
                         preferredCountries: preferredCountries || 'USA, UK, Canada',
                         profileComplete: true,
+                        phoneNumber: formData.get('phoneNumber') as string,
                     }
-                }
+                },
+                phoneNumber: formData.get('phoneNumber') as string,
             }
         })
 
-        // SET SESSION COOKIE
-        // SET SESSION COOKIE
-        await createSession(email)
+        // Send OTP Email
+        await sendEmail({
+            to: email,
+            subject: 'Verify your EduMeetup Email',
+            html: EmailTemplates.otpVerification(otpCode)
+        })
 
     } catch (error) {
         console.error('Registration failed:', error)
         return { error: 'Registration failed' }
     }
 
-    redirect('/student/register/success')
+    redirect(`/verify-email?email=${encodeURIComponent(email)}`)
 }
 
 export async function expressInterest(universityId: string, studentEmail?: string, programId?: string) {
@@ -363,6 +375,7 @@ export async function registerUniversityWithPrograms(data: any) {
                 password, // Note: In production, hash this!
                 role: 'UNIVERSITY',
                 status: 'PENDING',
+                phoneNumber: contactPhone, // Store in User as well
                 universityProfile: {
                     create: {
                         institutionName,
@@ -373,6 +386,7 @@ export async function registerUniversityWithPrograms(data: any) {
                         repDesignation,
                         repEmail: email, // Using login email as rep email for now
                         contactPhone,
+                        phoneNumber: contactPhone, // Map contactPhone to new phoneNumber field
                         accreditation,
                         scholarshipsAvailable,
                         verificationStatus: 'PENDING',
@@ -725,4 +739,36 @@ export async function markNotificationAsRead(notificationId: string) {
 
     revalidatePath('/', 'layout') // Refresh UI
     return { success: true }
+}
+
+export async function verifyEmail(email: string, otp: string) {
+    if (!email || !otp) return { error: 'Missing fields' }
+
+    try {
+        const user = await prisma.user.findUnique({ where: { email } })
+
+        if (!user) return { error: 'User not found' }
+        if (user.otpCode !== otp) return { error: 'Invalid OTP' }
+        if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) return { error: 'OTP Expired' }
+
+        // Verify User
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                emailVerified: new Date(),
+                otpCode: null,
+                otpExpiresAt: null,
+                status: 'ACTIVE'
+            }
+        })
+
+        // Create Session
+        await createSession(email)
+
+        return { success: true }
+
+    } catch (error) {
+        console.error('Verification failed:', error)
+        return { error: 'Verification failed' }
+    }
 }

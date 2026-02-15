@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { PasswordStrength } from '@/components/ui/password-strength'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { School, ChevronRight, Plus, Trash2, CheckCircle, ArrowLeft } from 'lucide-react'
@@ -185,12 +186,12 @@ export default function UniversityRegisterPage() {
                             <h2 className="text-xl font-semibold text-gray-900 border-b pb-2 pt-4">Representative Details</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Rep Name</label>
-                                    <Input name="repName" value={formData.repName} onChange={handleInputChange} placeholder="John Doe" />
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Rep Name *</label>
+                                    <Input name="repName" value={formData.repName} onChange={handleInputChange} placeholder="John Doe" required />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
-                                    <Input name="repDesignation" value={formData.repDesignation} onChange={handleInputChange} placeholder="Director of Admissions" />
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Designation *</label>
+                                    <Input name="repDesignation" value={formData.repDesignation} onChange={handleInputChange} placeholder="Director of Admissions" required />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Rep Email (Login) *</label>
@@ -199,10 +200,36 @@ export default function UniversityRegisterPage() {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
                                     <Input name="password" value={formData.password} onChange={handleInputChange} type="password" placeholder="••••••••" required />
+                                    <PasswordStrength password={formData.password} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Phone</label>
-                                    <Input name="contactPhone" value={formData.contactPhone} onChange={handleInputChange} placeholder="+1 234 567 8900" />
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Phone *</label>
+                                    <div className="flex gap-2">
+                                        <select
+                                            className="h-10 w-24 rounded-md border border-gray-300 bg-background px-2 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                                            onChange={(e) => setFormData(prev => ({ ...prev, contactPhone: e.target.value + " " + (prev.contactPhone.split(' ')[1] || '') }))}
+                                        >
+                                            <option value="+1">+1 (US/CA)</option>
+                                            <option value="+91">+91 (IN)</option>
+                                            <option value="+44">+44 (UK)</option>
+                                            <option value="+61">+61 (AU)</option>
+                                            <option value="+49">+49 (DE)</option>
+                                            <option value="+86">+86 (CN)</option>
+                                            <option value="+971">+971 (AE)</option>
+                                            <option value="">Other</option>
+                                        </select>
+                                        <Input
+                                            name="contactPhone"
+                                            value={formData.contactPhone.split(' ').slice(1).join(' ')}
+                                            onChange={(e) => {
+                                                const code = formData.contactPhone.split(' ')[0] || '+1';
+                                                setFormData(prev => ({ ...prev, contactPhone: code + " " + e.target.value }))
+                                            }}
+                                            placeholder="234 567 8900"
+                                            required
+                                        />
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">Select code and enter number.</p>
                                 </div>
                                 <div className="flex items-center space-x-2 pt-6">
                                     <input
@@ -422,6 +449,6 @@ export default function UniversityRegisterPage() {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     )
 }

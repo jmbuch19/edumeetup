@@ -8,8 +8,12 @@ import Link from 'next/link'
 import { GraduationCap } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { PasswordStrength } from '@/components/ui/password-strength'
 
 export default function StudentRegisterPage() {
+    const [phone, setPhone] = useState({ code: '+1', number: '' })
+    const [password, setPassword] = useState('')
+
     return (
         <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
             <div className="w-full max-w-3xl space-y-8 bg-white p-8 rounded-xl shadow-sm border border-gray-100">
@@ -33,18 +37,26 @@ export default function StudentRegisterPage() {
                         <h3 className="text-lg font-medium leading-6 text-gray-900 border-b pb-2">Section A — Basic Profile</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="col-span-1 md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
                                 <Input name="fullName" type="text" required placeholder="John Doe" />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
                                 <Input name="email" type="email" required placeholder="john@example.com" />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                                <Input name="password" type="password" required placeholder="••••••••" />
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                                <Input
+                                    name="password"
+                                    type="password"
+                                    required
+                                    placeholder="••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                />
+                                <PasswordStrength password={password} />
                             </div>
 
 
@@ -67,7 +79,7 @@ export default function StudentRegisterPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Age Group</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Age Group *</label>
                                 <select name="ageGroup" required className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                                     <option value="">Select Age Group</option>
                                     <option value="Under 20">Under 20</option>
@@ -78,8 +90,8 @@ export default function StudentRegisterPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Country of Residence</label>
-                                <select name="country" className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Country of Residence *</label>
+                                <select name="country" required className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                                     <option value="">Select Country</option>
                                     <option value="India">India</option>
                                     {/* Detailed ISO List */}
@@ -281,7 +293,34 @@ export default function StudentRegisterPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Current Education Level</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+                                <div className="flex gap-2">
+                                    <select
+                                        className="h-10 w-24 rounded-md border border-gray-300 bg-background px-2 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                                        value={phone.code}
+                                        onChange={(e) => setPhone({ ...phone, code: e.target.value })}
+                                    >
+                                        <option value="+1">+1 (US/CA)</option>
+                                        <option value="+91">+91 (IN)</option>
+                                        <option value="+44">+44 (UK)</option>
+                                        <option value="+61">+61 (AU)</option>
+                                        <option value="+49">+49 (DE)</option>
+                                        <option value="+86">+86 (CN)</option>
+                                        <option value="+971">+971 (AE)</option>
+                                        <option value="">Other</option>
+                                    </select>
+                                    <Input
+                                        value={phone.number}
+                                        onChange={(e) => setPhone({ ...phone, number: e.target.value })}
+                                        placeholder="234 567 8900"
+                                        required
+                                    />
+                                    <input type="hidden" name="phoneNumber" value={`${phone.code} ${phone.number}`} />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Current Education Level *</label>
                                 <select name="currentStatus" className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                                     <option value="">Select Status</option>
                                     <option value="Grade 12">12th Grade</option>
