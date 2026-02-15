@@ -222,6 +222,12 @@ export async function verifyUniversity(formData: FormData) {
 
     if (!universityId || !action) return { error: "Missing fields" }
 
+    // SECURITY: Admin only
+    const user = await getSession()
+    if (!user || user.role !== 'ADMIN') {
+        return { error: "Unauthorized" }
+    }
+
     const status = action === 'approve' ? 'VERIFIED' : 'REJECTED'
 
     try {

@@ -61,10 +61,19 @@ export async function destroySession() {
     cookies().delete(SESSION_COOKIE_NAME)
 }
 
+
 export async function requireUser() {
     const user = await getSession()
     if (!user) {
         redirect('/login')
+    }
+    return user
+}
+
+export async function requireRole(role: string) {
+    const user = await requireUser()
+    if (user.role !== role) {
+        redirect('/') // or strictly throw error
     }
     return user
 }
