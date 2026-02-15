@@ -7,19 +7,15 @@ import ProgramList from './program-list'
 
 import { User, MapPin, DollarSign, Calendar, BookOpen, Clock } from 'lucide-react'
 
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
+import { requireUser } from '@/lib/auth'
 
 // ... existing imports
 
 export const dynamic = 'force-dynamic'
 
 export default async function UniversityDashboard() {
-    const session = cookies().get('edumeetup_session')
-    if (!session?.value) {
-        redirect('/login')
-    }
-    const email = session.value
+    const user = await requireUser()
+    const email = user.email
 
     const uni = await prisma.universityProfile.findFirst({
         where: { user: { email } },

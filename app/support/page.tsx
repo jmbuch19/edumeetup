@@ -1,20 +1,15 @@
 import { Button } from "@/components/ui/button"
 import { createSupportTicket } from "@/app/actions"
 import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
-import { prisma } from "@/lib/prisma"
-import Link from "next/link"
+import { getSession } from "@/lib/auth"
 
 export default async function SupportPage() {
-    const sessionEmail = cookies().get('edumeetup_session')?.value
-    if (!sessionEmail) {
+    // 1. Check Session
+    const user = await getSession()
+
+    if (!user) {
         redirect('/login?next=/support')
     }
-
-    const user = await prisma.user.findUnique({
-        where: { email: sessionEmail },
-        include: { studentProfile: true, universityProfile: true }
-    })
 
     if (!user) redirect('/login')
 

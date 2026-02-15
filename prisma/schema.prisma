@@ -20,6 +20,8 @@ model User {
   studentProfile    StudentProfile?
   universityProfile UniversityProfile?
   supportTickets    SupportTicket[]
+
+  sessionToken      String?  @unique // For Single Session enforcement
 }
 
 model StudentProfile {
@@ -29,6 +31,8 @@ model StudentProfile {
   
   // Section A: Basic Profile
   fullName          String
+  gender            String?  // "Male", "Female", "Prefer not to say"
+  ageGroup          String?  // "Under 20", "21-25", "26-30", "31+"
   country           String?
   currentStatus     String? // "Grade12", "BachelorFinalYear", "BachelorCompleted", "MasterCompleted", "WorkingProfessional"
   

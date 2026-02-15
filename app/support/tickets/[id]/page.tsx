@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma"
+import { getSession } from "@/lib/auth"
 import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -7,12 +7,8 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 
 export default async function TicketDetailPage({ params }: { params: { id: string } }) {
-    const sessionEmail = cookies().get('edumeetup_session')?.value
-    if (!sessionEmail) redirect('/login?next=/support/tickets')
-
-    const user = await prisma.user.findUnique({
-        where: { email: sessionEmail }
-    })
+    const user = await getSession()
+    if (!user) redirect('/login?next=/support/tickets')
 
     if (!user) redirect('/login')
 
@@ -77,8 +73,8 @@ export default async function TicketDetailPage({ params }: { params: { id: strin
                         <div>
                             <span className="text-xs uppercase font-semibold text-gray-500">Priority</span>
                             <p className={`font-medium ${ticket.priority === 'HIGH' ? 'text-red-600' :
-                                    ticket.priority === 'MEDIUM' ? 'text-yellow-600' :
-                                        'text-green-600'
+                                ticket.priority === 'MEDIUM' ? 'text-yellow-600' :
+                                    'text-green-600'
                                 }`}>
                                 {ticket.priority}
                             </p>

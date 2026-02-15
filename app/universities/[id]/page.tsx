@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers'
+import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -13,8 +13,8 @@ export default async function UniversityDetailPage({
 }) {
     // Await params before using
     const { id } = await params
-    const session = cookies().get('edumeetup_session')
-    const isLoggedIn = !!session?.value
+    const user = await getSession()
+    const isLoggedIn = !!user
 
     const university = await prisma.universityProfile.findUnique({
         where: { id },

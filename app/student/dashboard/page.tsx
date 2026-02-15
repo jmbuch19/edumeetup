@@ -7,20 +7,15 @@ import { expressInterest } from '@/app/actions'
 
 // Dashboard is server component
 // Dashboard is server component
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
+import { requireUser } from '@/lib/auth'
 
 // ... existing imports
 
 export const dynamic = 'force-dynamic'
 
 export default async function StudentDashboard() {
-    const session = cookies().get('edumeetup_session')
-    if (!session?.value) {
-        redirect('/login')
-    }
-
-    const email = session.value
+    const user = await requireUser()
+    const email = user.email
 
     const student = await prisma.studentProfile.findFirst({
         where: { user: { email } },

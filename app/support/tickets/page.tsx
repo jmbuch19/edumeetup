@@ -1,16 +1,12 @@
-import { prisma } from "@/lib/prisma"
+import { getSession } from "@/lib/auth"
 import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 
 export default async function TicketListPage() {
-    const sessionEmail = cookies().get('edumeetup_session')?.value
-    if (!sessionEmail) redirect('/login?next=/support/tickets')
-
-    const user = await prisma.user.findUnique({
-        where: { email: sessionEmail }
-    })
+    const user = await getSession()
+    if (!user) redirect('/login?next=/support/tickets')
 
     if (!user) redirect('/login')
 
@@ -66,8 +62,8 @@ export default async function TicketListPage() {
                                     </td>
                                     <td className="p-4">
                                         <span className={`text-xs font-bold px-2 py-1 rounded-full ${ticket.priority === 'HIGH' ? 'bg-red-100 text-red-800' :
-                                                ticket.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                                                    'bg-green-100 text-green-800'
+                                            ticket.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-green-100 text-green-800'
                                             }`}>
                                             {ticket.priority}
                                         </span>

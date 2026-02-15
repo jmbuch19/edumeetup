@@ -5,12 +5,15 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, EmailTemplates } from '@/lib/email'
+import { createSession, getSession, destroySession } from '@/lib/auth'
 
 export async function registerStudent(formData: FormData) {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
     const fullName = formData.get('fullName') as string
     const country = formData.get('country') as string
+    const gender = formData.get('gender') as string
+    const ageGroup = formData.get('ageGroup') as string
     const currentStatus = formData.get('currentStatus') as string
     const fieldOfInterest = formData.get('fieldOfInterest') as string
     const preferredDegree = formData.get('preferredDegree') as string
@@ -21,7 +24,7 @@ export async function registerStudent(formData: FormData) {
     const preferredCountries = formData.get('preferredCountries') as string
 
     // Basic validation
-    if (!email || !password || !fullName) {
+    if (!email || !password || !fullName || !gender || !ageGroup) {
         return { error: 'Missing required fields' }
     }
 
@@ -42,6 +45,8 @@ export async function registerStudent(formData: FormData) {
                 studentProfile: {
                     create: {
                         fullName,
+                        gender,
+                        ageGroup,
                         country,
                         currentStatus,
                         fieldOfInterest,
@@ -58,12 +63,8 @@ export async function registerStudent(formData: FormData) {
         })
 
         // SET SESSION COOKIE
-        cookies().set('edumeetup_session', email, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 60 * 60 * 24 * 7, // 1 week
-            path: '/'
-        })
+        // SET SESSION COOKIE
+        await createSession(email)
 
     } catch (error) {
         console.error('Registration failed:', error)
@@ -74,8 +75,9 @@ export async function registerStudent(formData: FormData) {
 }
 
 export async function expressInterest(universityId: string, studentEmail?: string) {
-    // Get email from cookie if not provided
-    const sessionEmail = cookies().get('edumeetup_session')?.value
+    // Get session
+    const user = await getSession()
+    const sessionEmail = user?.email
 
     if (!sessionEmail && !studentEmail) return { error: "Not logged in" }
 
@@ -170,12 +172,8 @@ export async function registerUniversity(formData: FormData) {
         console.log(`New university registered: ${institutionName}`)
 
         // SET SESSION COOKIE
-        cookies().set('edumeetup_session', email, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 60 * 60 * 24 * 7, // 1 week
-            path: '/'
-        })
+        // SET SESSION COOKIE
+        await createSession(email)
 
     } catch (error) {
         console.error('Registration failed:', error)
@@ -275,12 +273,8 @@ export async function login(formData: FormData) {
         if (user.password !== password) return { error: "Invalid password" }
 
         // SET SESSION COOKIE
-        cookies().set('edumeetup_session', email, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 60 * 60 * 24 * 7, // 1 week
-            path: '/'
-        })
+        // SET SESSION COOKIE
+        await createSession(email)
 
         if (user.role === 'STUDENT') redirect('/student/dashboard')
         if (user.role === 'UNIVERSITY') redirect('/university/dashboard')
@@ -296,7 +290,7 @@ export async function login(formData: FormData) {
 }
 
 export async function logout() {
-    cookies().delete('edumeetup_session')
+    await destroySession()
     redirect('/')
 }
 
@@ -460,8 +454,10 @@ export async function createSupportTicket(formData: FormData) {
         return { error: 'Missing required fields' }
     }
 
-    const sessionEmail = cookies().get('edumeetup_session')?.value
-    if (!sessionEmail) return { error: "Not logged in" }
+    const user = await getSession()
+    if (!user) return { error: "Not logged in" }
+
+    const sessionEmail = user.email
 
     try {
         const user = await prisma.user.findUnique({
