@@ -1,6 +1,4 @@
 
-import Link from 'next/link'
-
 export default function PrivacyPage() {
     return (
         <div className="bg-white min-h-screen py-16">
@@ -17,10 +15,10 @@ export default function PrivacyPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Introduction</h2>
                         <p>
-                            <strong>Edumeetup.com</strong> ("Platform", "we", "us", "our") is operated by [Your Company Name / Your Name], based in Ahmedabad, Gujarat, India.
+                            <strong>Edumeetup.com</strong> (&quot;Platform&quot;, &quot;we&quot;, &quot;us&quot;, &quot;our&quot;) is operated by [Your Company Name / Your Name], based in Ahmedabad, Gujarat, India.
                         </p>
                         <p>
-                            We are committed to protecting your privacy and handling your digital personal data (as defined under the <em>Digital Personal Data Protection Act, 2023</em> – "DPDP Act") in a fair, lawful, and transparent manner.
+                            We are committed to protecting your privacy and handling your digital personal data (as defined under the <em>Digital Personal Data Protection Act, 2023</em> – &quot;DPDP Act&quot;) in a fair, lawful, and transparent manner.
                         </p>
                         <p className="mt-2">This Privacy Policy explains:</p>
                         <ul className="list-disc pl-6 space-y-2 mt-2">
@@ -87,7 +85,7 @@ export default function PrivacyPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">6. Consent & Notice (DPDP Act Compliance)</h2>
                         <ul className="list-disc pl-6 space-y-2">
-                            <li>We obtain your (or your parent/guardian's) free, specific, informed, unconditional, and unambiguous consent via affirmative action (checkbox during signup).</li>
+                            <li>We obtain your (or your parent/guardian&apos;s) free, specific, informed, unconditional, and unambiguous consent via affirmative action (checkbox during signup).</li>
                             <li><strong>For users under 18:</strong> Verifiable parental/guardian consent is mandatory before any data processing (email verification + consent checkbox).</li>
                             <li>Consent can be withdrawn anytime by emailing <a href="mailto:info@edumeetup.com" className="text-primary underline">info@edumeetup.com</a> (withdrawal may limit access to features).</li>
                             <li>We provide this notice before/during consent collection.</li>
@@ -160,12 +158,12 @@ export default function PrivacyPage() {
                     </section>
 
                     <section>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-4">13. Children's Data (Special Protection)</h2>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">13. Children&apos;s Data (Special Protection)</h2>
                         <p>For users under 18:</p>
                         <ul className="list-disc pl-6 space-y-2 mt-2">
                             <li>Verifiable parental/guardian consent mandatory.</li>
                             <li>No behavioral tracking or targeted ads.</li>
-                            <li>Parents can access/correct/erase child's data via request.</li>
+                            <li>Parents can access/correct/erase child&apos;s data via request.</li>
                         </ul>
                     </section>
 

@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth"
-import { cookies } from "next/headers"
+
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Badge } from "@/components/ui/badge"

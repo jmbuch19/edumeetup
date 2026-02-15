@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { PasswordStrength } from '@/components/ui/password-strength'
 import { Input } from '@/components/ui/input'
-import Link from 'next/link'
+
 import { School, ChevronRight, Plus, Trash2, CheckCircle, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { PRIORITY_MARKETS, ALL_COUNTRIES } from '@/lib/countries'
@@ -15,6 +15,20 @@ const DEGREE_LEVELS = ["Associate", "Bachelor's", "Master's", "MBA", "PhD", "Cer
 const FIELD_CATEGORIES = ["Computer Science", "Engineering", "Business", "Data Science", "Health Sciences", "Social Sciences", "Arts & Humanities", "Law", "Architecture", "Others"]
 const INTAKES = ["Fall", "Spring", "Summer"]
 const ENGLISH_TESTS = ["IELTS", "TOEFL", "Duolingo", "PTE", "Not Required"]
+
+interface ProgramState {
+    programName: string
+    degreeLevel: string
+    fieldCategory: string
+    stemDesignated: boolean
+    durationMonths: string
+    tuitionFee: string
+    currency: string
+    intakes: string[]
+    englishTests: string[]
+    minEnglishScore?: string
+    id?: number
+}
 
 export default function UniversityRegisterPage() {
     const [step, setStep] = useState(1)
@@ -40,18 +54,18 @@ export default function UniversityRegisterPage() {
     })
 
     // Programs State (Step 2)
-    const [programs, setPrograms] = useState<any[]>([])
+    const [programs, setPrograms] = useState<ProgramState[]>([])
     const [currentProgram, setCurrentProgram] = useState({
         programName: '',
         degreeLevel: '',
         fieldCategory: '',
         stemDesignated: false,
-        durationMonths: 12, // Default
-        tuitionFee: 0,
+        durationMonths: '12', // Default
+        tuitionFee: '0',
         currency: 'USD',
         intakes: [] as string[],
         englishTests: [] as string[],
-        minEnglishScore: 0
+        minEnglishScore: '0'
     })
     const [isProgramModalOpen, setIsProgramModalOpen] = useState(false)
 
@@ -93,12 +107,12 @@ export default function UniversityRegisterPage() {
             degreeLevel: '',
             fieldCategory: '',
             stemDesignated: false,
-            durationMonths: 12,
-            tuitionFee: 0,
+            durationMonths: '12',
+            tuitionFee: '0',
             currency: 'USD',
             intakes: [],
             englishTests: [],
-            minEnglishScore: 0
+            minEnglishScore: '0'
         })
         setIsProgramModalOpen(false)
     }
@@ -111,7 +125,14 @@ export default function UniversityRegisterPage() {
         setLoading(true)
         setError('')
         try {
-            const result = await registerUniversityWithPrograms({ ...formData, programs }) // Call server action
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const formattedPrograms = programs.map(({ id, ...p }) => ({
+                ...p,
+                minEnglishScore: p.minEnglishScore || '0',
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                fieldCategory: p.fieldCategory as any
+            }))
+            const result = await registerUniversityWithPrograms({ ...formData, programs: formattedPrograms }) // Call server action
             if (result?.error) {
                 setError(result.error)
                 toast.error(result.error)
@@ -120,7 +141,7 @@ export default function UniversityRegisterPage() {
                 toast.success("Registration successful!")
                 // Success handled by redirect in action
             }
-        } catch (err) {
+        } catch {
             setError("Something went wrong")
             toast.error("An unexpected error occurred.")
             setLoading(false)
@@ -273,7 +294,7 @@ export default function UniversityRegisterPage() {
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 gap-4">
-                                    {programs.map((prog, idx) => (
+                                    {programs.map((prog) => (
                                         <div key={prog.id} className="flex justify-between items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                                             <div>
                                                 <h4 className="font-bold text-primary">{prog.programName}</h4>
@@ -286,7 +307,7 @@ export default function UniversityRegisterPage() {
                                                     {prog.currency} {prog.tuitionFee}/yr • {prog.durationMonths} months • {prog.intakes.join(", ")}
                                                 </div>
                                             </div>
-                                            <Button variant="ghost" size="sm" onClick={() => removeProgram(prog.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                            <Button variant="ghost" size="sm" onClick={() => prog.id && removeProgram(prog.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>

@@ -41,7 +41,7 @@ export async function getSession() {
 
     try {
         // Try parsing JSON (New format)
-        const { email, sessionToken, role } = JSON.parse(cookie.value)
+        const { email, sessionToken } = JSON.parse(cookie.value)
 
         if (!email || !sessionToken) return null
 
@@ -61,7 +61,7 @@ export async function getSession() {
         // Return user (Prisma user object already has role, but we validated session)
         return user
 
-    } catch (e) {
+    } catch {
         // Fallback or Invalid JSON (Legacy cookie maybe just string?)
         // If legacy cookie was just email string, we invalidate it because we enforce token now.
         return null
@@ -80,7 +80,7 @@ export async function destroySession() {
                     data: { sessionToken: null }
                 })
             }
-        } catch (e) {
+        } catch {
             // Ignore error if cookie is invalid, just delete it
         }
     }

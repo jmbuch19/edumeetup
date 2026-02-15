@@ -24,7 +24,7 @@ export function VerificationButtons({ id }: { id: string }) {
             } else {
                 toast.success(`University ${action === 'approve' ? 'approved' : 'rejected'} successfully`)
             }
-        } catch (error) {
+        } catch {
             toast.error('An error occurred')
         } finally {
             setLoading(false)

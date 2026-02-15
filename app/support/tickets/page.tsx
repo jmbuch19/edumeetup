@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth"
-import { cookies } from "next/headers"
+
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
@@ -29,7 +29,7 @@ export default async function TicketListPage() {
 
             {tickets.length === 0 ? (
                 <div className="text-center py-20 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                    <p className="text-gray-500 text-lg mb-4">You haven't submitted any support tickets.</p>
+                    <p className="text-gray-500 text-lg mb-4">You haven&apos;t submitted any support tickets.</p>
                     <Link href="/support" className="text-blue-600 hover:underline">
                         Create your first ticket &rarr;
                     </Link>

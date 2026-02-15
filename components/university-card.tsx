@@ -1,7 +1,7 @@
 import { GraduationCap, MapPin } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { UniversityProfile, Program } from '@prisma/client'
+import { UniversityProfile } from '@prisma/client'
 
 // Use a type that matches what the search action returns
 type UniversityWithPrograms = UniversityProfile & {
@@ -10,10 +10,9 @@ type UniversityWithPrograms = UniversityProfile & {
 
 interface UniversityCardProps {
     university: UniversityWithPrograms
-    matchData?: any // For future use
 }
 
-export function UniversityCard({ university, matchData }: UniversityCardProps) {
+export function UniversityCard({ university }: UniversityCardProps) {
     return (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
             <div className="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-100 relative">

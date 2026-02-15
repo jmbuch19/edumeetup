@@ -3,7 +3,7 @@ import Link from "next/link"
 import { getSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Users, School, Settings, LogOut, Ticket } from "lucide-react"
+import { LayoutDashboard, Users, School, LogOut, Ticket, LucideIcon } from "lucide-react"
 import { logout } from "@/app/actions"
 import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
 
@@ -67,7 +67,7 @@ export default async function AdminLayout({
     )
 }
 
-function NavItem({ href, icon: Icon, label }: { href: string; icon: any; label: string }) {
+function NavItem({ href, icon: Icon, label }: { href: string; icon: LucideIcon; label: string }) {
     return (
         <Link href={href} className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 hover:text-primary transition-colors">
             <Icon className="h-5 w-5" />

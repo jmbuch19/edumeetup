@@ -1,8 +1,9 @@
 'use server'
 
-import { cookies } from 'next/headers'
+
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { FieldCategory } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, EmailTemplates } from '@/lib/email'
 import { createSession, getSession, destroySession, requireUser, hashPassword, comparePassword } from '@/lib/auth'
@@ -11,6 +12,35 @@ import { generateOTP } from '@/lib/otp'
 import { loginRateLimiter, registerRateLimiter } from '@/lib/ratelimit'
 import { headers } from 'next/headers'
 import { registerStudentSchema, registerUniversitySchema, loginSchema } from '@/lib/schemas'
+
+interface ProgramData {
+    programName: string
+    degreeLevel: string
+    fieldCategory: FieldCategory
+    stemDesignated: boolean
+    durationMonths: string
+    tuitionFee: string
+    currency: string
+    intakes: string[]
+    englishTests: string[]
+    minEnglishScore?: string
+}
+
+interface UniversityRegistrationData {
+    email: string
+    password: string
+    institutionName: string
+    country: string
+    city: string
+    website: string
+    repName: string
+    repDesignation: string
+    contactPhone: string
+    accreditation: string
+    scholarshipsAvailable: boolean
+    website_url?: string // Honeypot
+    programs: ProgramData[]
+}
 
 export async function registerStudent(formData: FormData) {
     const rawData = Object.fromEntries(formData.entries())
@@ -23,7 +53,7 @@ export async function registerStudent(formData: FormData) {
     }
 
     const {
-        email, password, fullName, gender, ageGroup, phoneNumber,
+        email, password, fullName, gender, ageGroup,
         country, currentStatus, fieldOfInterest, preferredDegree,
         budgetRange, englishTestType, englishScore, preferredIntake,
         preferredCountries
@@ -243,7 +273,7 @@ export async function createProgram(formData: FormData) {
                 universityId,
                 programName,
                 degreeLevel,
-                fieldCategory: fieldCategory as any,
+                fieldCategory: fieldCategory as FieldCategory,
                 tuitionFee,
                 currency: 'USD',
                 intakes,
@@ -362,7 +392,7 @@ export async function logout() {
     redirect('/')
 }
 
-export async function registerUniversityWithPrograms(data: any) {
+export async function registerUniversityWithPrograms(data: UniversityRegistrationData) {
     const {
         email, password, institutionName, country, city, website,
         repName, repDesignation, contactPhone, accreditation, scholarshipsAvailable,
@@ -410,7 +440,7 @@ export async function registerUniversityWithPrograms(data: any) {
                         scholarshipsAvailable,
                         verificationStatus: 'PENDING',
                         programs: {
-                            create: programs.map((p: any) => ({
+                            create: programs.map((p: ProgramData) => ({
                                 programName: p.programName,
                                 degreeLevel: p.degreeLevel,
                                 fieldCategory: p.fieldCategory,

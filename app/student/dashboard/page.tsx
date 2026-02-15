@@ -228,7 +228,10 @@ export default async function StudentDashboard() {
                         <div key={uni.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                             <div className="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-100">
                                 {uni.logo ? (
-                                    <img src={uni.logo} alt={uni.institutionName} className="max-h-20 max-w-[80%]" />
+                                    <>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={uni.logo} alt={uni.institutionName} className="max-h-20 max-w-[80%]" />
+                                    </>
                                 ) : (
                                     <GraduationCap className="h-12 w-12 text-gray-400" />
                                 )}

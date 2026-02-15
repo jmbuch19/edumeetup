@@ -11,7 +11,7 @@ export async function logAudit({
     entityType: string
     entityId: string
     actorId: string
-    metadata?: any
+    metadata?: Record<string, unknown>
 }) {
     try {
         await prisma.auditLog.create({

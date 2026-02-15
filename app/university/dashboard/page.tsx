@@ -6,7 +6,7 @@ import { createProgram, updateUniversityProfile } from '@/app/actions'
 import { InterestedStudentsTable } from '@/components/university/interested-students-table'
 import ProgramList from './program-list'
 
-import { User, MapPin, DollarSign, Calendar, BookOpen, Clock } from 'lucide-react'
+import { BookOpen, Clock } from 'lucide-react'
 
 import { requireUser } from '@/lib/auth'
 
@@ -135,8 +135,8 @@ export default async function UniversityDashboard() {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Degree Level</label>
                                     <select name="degreeLevel" className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm">
-                                        <option value="Bachelor's">Bachelor's</option>
-                                        <option value="Master's">Master's</option>
+                                        <option value="Bachelor's">Bachelor&apos;s</option>
+                                        <option value="Master's">Master&apos;s</option>
                                         <option value="MBA">MBA</option>
                                         <option value="PhD">PhD</option>
                                     </select>
@@ -200,7 +200,7 @@ export default async function UniversityDashboard() {
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
                                                 <h3 className="font-semibold text-gray-900 blur-[2px] select-none">Hidden Name</h3>
-                                                <p className="text-xs text-gray-500">Matches "{student.fieldOfInterest}"</p>
+                                                <p className="text-xs text-gray-500">Matches &quot;{student.fieldOfInterest}&quot;</p>
                                             </div>
                                             <span className="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded">Match</span>
                                         </div>

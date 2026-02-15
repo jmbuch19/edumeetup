@@ -21,13 +21,13 @@ export default function Home() {
           <Link href="/student/register" className="w-full">
             <Button size="lg" className="w-full text-lg h-14 gap-2">
               <User className="h-5 w-5" />
-              I'm a Student
+              I&apos;m a Student
             </Button>
           </Link>
           <Link href="/university/register" className="w-full">
             <Button size="lg" variant="outline" className="w-full text-lg h-14 gap-2">
               <School className="h-5 w-5" />
-              I'm a University
+              I&apos;m a University
             </Button>
           </Link>
         </div>

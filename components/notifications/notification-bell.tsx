@@ -27,7 +27,7 @@ interface Notification {
 export function NotificationBell({ notifications = [] }: { notifications: Notification[] }) {
     const [open, setOpen] = useState(false)
     const unreadCount = notifications.filter(n => !n.isRead).length
-    const [optimisticUnreadCount, setOptimisticUnreadCount] = useState(unreadCount)
+
 
     const handleMarkAsRead = async (id: string) => {
         // Optimistic update logic could go here, but for MVP we rely on revalidatePath

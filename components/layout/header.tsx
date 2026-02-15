@@ -1,6 +1,6 @@
 
 import Link from "next/link"
-import { GraduationCap, LogOut, User as UserIcon, LayoutDashboard, Ticket } from "lucide-react"
+import { GraduationCap, LogOut, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getSession } from "@/lib/auth"
 import { logout } from "@/app/actions"

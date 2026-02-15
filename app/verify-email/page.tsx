@@ -35,7 +35,7 @@ function VerifyEmailForm() {
                 toast.success('Email verified successfully!')
                 router.push('/student/dashboard') // Or determine role based routing if needed
             }
-        } catch (error) {
+        } catch {
             toast.error('Something went wrong.')
         } finally {
             setLoading(false)
@@ -60,7 +60,7 @@ function VerifyEmailForm() {
                 <p className="mt-2 text-sm text-gray-600">
                     We sent a 6-digit code to <strong>{email}</strong>
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Check your spam folder if you don't see it.</p>
+                <p className="text-xs text-gray-500 mt-1">Check your spam folder if you don&apos;t see it.</p>
             </div>
 
             <form onSubmit={handleVerify} className="mt-8 space-y-6">

@@ -2,7 +2,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { GraduationCap, MapPin, Globe, Mail, Phone, CheckCircle, Calendar } from 'lucide-react'
+import { MapPin, Globe, Mail, CheckCircle, Calendar } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { expressInterest } from '@/app/actions'
 

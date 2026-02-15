@@ -13,6 +13,25 @@ interface EmailPayload {
     html: string
 }
 
+interface PublicInquiryData {
+    fullName: string
+    role: string
+    email: string
+    country: string
+    subject: string
+    message: string
+    phone?: string
+    orgName?: string
+}
+
+interface SupportTicketData {
+    id: string
+    type: string
+    category: string
+    priority: string
+    message: string
+}
+
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -75,7 +94,7 @@ export const EmailTemplates = {
         }
     `,
 
-    publicInquiryNotification: (inquiry: any) => `
+    publicInquiryNotification: (inquiry: PublicInquiryData) => `
         <h2>New Public Inquiry</h2>
         <p><strong>From:</strong> ${inquiry.fullName} (${inquiry.role})</p>
         <p><strong>Email:</strong> ${inquiry.email}</p>
@@ -96,7 +115,7 @@ export const EmailTemplates = {
         <p>Best regards,<br/>The EduMeetup Team</p>
     `,
 
-    supportTicketNotification: (ticket: any, userName: string, userEmail: string) => `
+    supportTicketNotification: (ticket: SupportTicketData, userName: string, userEmail: string) => `
         <h2>New Support Ticket #${ticket.id.slice(-6)}</h2>
         <p><strong>User:</strong> ${userName} (${ticket.type})</p>
         <p><strong>Email:</strong> ${userEmail}</p>

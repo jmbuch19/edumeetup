@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { FieldCategory } from '@prisma/client'
+import { FieldCategory, Prisma } from '@prisma/client'
 
 export type SearchParams = {
     query?: string
@@ -20,7 +20,7 @@ export async function searchUniversities({
     const skip = (page - 1) * pageSize
 
     try {
-        const where: any = {
+        const where: Prisma.UniversityProfileWhereInput = {
             verificationStatus: 'VERIFIED'
         }
 

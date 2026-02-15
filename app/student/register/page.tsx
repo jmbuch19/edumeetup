@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { GraduationCap } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
+
 import { PasswordStrength } from '@/components/ui/password-strength'
 
 export default function StudentRegisterPage() {

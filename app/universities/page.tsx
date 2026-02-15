@@ -20,7 +20,7 @@ export default async function UniversitiesPage({
     const field = (searchParams.field as string) || ''
     const page = Number(searchParams.page) || 1
 
-    const { universities, totalPages, totalCount } = await searchUniversities({
+    const { universities, totalPages } = await searchUniversities({
         query,
         country,
         field,
@@ -101,8 +101,7 @@ export default async function UniversitiesPage({
                         <UniversityCard
                             key={uni.id}
                             university={uni}
-                            // Pass undefined matchData implies "Public View"
-                            matchData={undefined}
+
                         />
                     ))}
                 </div>

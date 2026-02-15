@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button"
+
 import { ContactSubmitButton } from "@/components/contact-submit-button"
 import { submitPublicInquiry } from "@/app/actions"
 import { redirect } from "next/navigation"
@@ -21,7 +21,7 @@ export default function ContactPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Contact Us</h1>
                     <p className="text-gray-500 mt-2">
-                        Have a question? We're here to help. Fill out the form below and we'll get back to you shortly.
+                        Have a question? We&apos;re here to help. Fill out the form below and we&apos;ll get back to you shortly.
                     </p>
                 </div>
 

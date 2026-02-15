@@ -26,7 +26,7 @@ export default function AboutPage() {
                 <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 mt-10">
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">Contact Us</h3>
                     <p>
-                        Have questions? We'd love to hear from you.
+                        Have questions? We&apos;d love to hear from you.
                         <br />
                         Email: <a href="mailto:jaydeep@edumeetup.com" className="text-primary hover:underline">jaydeep@edumeetup.com</a>
                     </p>
