@@ -82,11 +82,47 @@ export async function GET() {
                         programs: {
                             create: [
                                 {
-                                    programName: 'Computer Science',
+                                    programName: 'Computer Science', // ...
                                     degreeLevel: "Master's",
                                     fieldCategory: 'Engineering',
                                     tuitionFee: 50000,
                                     intakes: 'Fall 2025',
+                                },
+                            ],
+                        },
+                    },
+                },
+            },
+        })
+
+        // Create Pending University for Demo
+        const pendingUniEmail = 'registrar@stanford.edu'
+        await prisma.user.upsert({
+            where: { email: pendingUniEmail },
+            update: {},
+            create: {
+                email: pendingUniEmail,
+                password: 'password123',
+                role: 'UNIVERSITY',
+                status: 'ACTIVE',
+                universityProfile: {
+                    create: {
+                        institutionName: 'Stanford University',
+                        country: 'USA',
+                        city: 'Stanford',
+                        website: 'https://stanford.edu',
+                        contactEmail: 'registrar@stanford.edu',
+                        verificationStatus: 'PENDING',
+                        repName: 'Jane Smith',
+                        repDesignation: 'Registrar',
+                        programs: {
+                            create: [
+                                {
+                                    programName: 'Data Science',
+                                    degreeLevel: "Master's",
+                                    fieldCategory: 'Engineering', // Science is not in enum, using Engineering or similar
+                                    tuitionFee: 60000,
+                                    intakes: 'Fall 2026',
                                 },
                             ],
                         },
