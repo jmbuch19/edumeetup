@@ -1,10 +1,19 @@
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
+import { compare, hash } from 'bcryptjs'
 
 const SESSION_COOKIE_NAME = 'edumeetup_session'
 
-export async function createSession(email: string) {
+export async function hashPassword(password: string) {
+    return await hash(password, 12)
+}
+
+export async function comparePassword(plain: string, hashed: string) {
+    return await compare(plain, hashed)
+}
+
+export async function createSession(email: string, role: string) {
     // 1. Generate new token
     const sessionToken = crypto.randomUUID()
 
@@ -15,13 +24,14 @@ export async function createSession(email: string) {
     })
 
     // 3. Set Cookie
-    const sessionData = JSON.stringify({ email, sessionToken })
+    const sessionData = JSON.stringify({ email, sessionToken, role })
     cookies().set(SESSION_COOKIE_NAME, sessionData, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 60 * 60 * 24 * 7, // 1 week
         path: '/',
-        sameSite: 'lax'
+        sameSite: 'lax',
+        priority: 'high'
     })
 }
 
@@ -31,7 +41,7 @@ export async function getSession() {
 
     try {
         // Try parsing JSON (New format)
-        const { email, sessionToken } = JSON.parse(cookie.value)
+        const { email, sessionToken, role } = JSON.parse(cookie.value)
 
         if (!email || !sessionToken) return null
 
@@ -48,6 +58,7 @@ export async function getSession() {
             return null // Token mismatch = Logged out by newer session
         }
 
+        // Return user (Prisma user object already has role, but we validated session)
         return user
 
     } catch (e) {

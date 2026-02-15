@@ -1,9 +1,5 @@
-
 import { PrismaClient } from '@prisma/client'
-import { hash } from 'bcryptjs' // Need to install bcryptjs or use simple hash for MVP?
-// Using simple string for MVP since we don't have bcrypt yet, or install it. 
-// Actually, for MVP let's just use plain text for now or install bcrypt.
-// Let's install bcryptjs.
+import { hash } from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -15,7 +11,7 @@ async function main() {
         update: {},
         create: {
             email: adminEmail,
-            password: 'password123', // In real app, hash this
+            password: await hash('password123', 12),
             role: 'ADMIN',
             status: 'ACTIVE',
         },
@@ -26,10 +22,10 @@ async function main() {
     const adminEmail2 = 'admin@edumeetup.com' // Renamed to avoid conflict with previous adminEmail
     const admin2 = await prisma.user.upsert({ // Renamed to avoid conflict with previous admin
         where: { email: adminEmail2 },
-        update: { password: 'admin123' }, // Force update password
+        update: { password: await hash('admin123', 12) }, // Force update password
         create: {
             email: adminEmail2,
-            password: 'admin123', // In production, this should be hashed
+            password: await hash('admin123', 12),
             role: 'ADMIN',
             status: 'ACTIVE'
         }
@@ -43,7 +39,7 @@ async function main() {
         update: {},
         create: {
             email: studentEmail,
-            password: 'password123',
+            password: await hash('password123', 12),
             role: 'STUDENT',
             status: 'ACTIVE',
             studentProfile: {
@@ -69,7 +65,7 @@ async function main() {
         update: {},
         create: {
             email: uniEmail,
-            password: 'password123',
+            password: await hash('password123', 12),
             role: 'UNIVERSITY',
             status: 'ACTIVE',
             universityProfile: {

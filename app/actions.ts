@@ -5,29 +5,39 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, EmailTemplates } from '@/lib/email'
-import { createSession, getSession, destroySession, requireUser } from '@/lib/auth'
+import { createSession, getSession, destroySession, requireUser, hashPassword, comparePassword } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { generateOTP } from '@/lib/otp'
+import { loginRateLimiter, registerRateLimiter } from '@/lib/ratelimit'
+import { headers } from 'next/headers'
+import { registerStudentSchema, registerUniversitySchema, loginSchema } from '@/lib/schemas'
 
 export async function registerStudent(formData: FormData) {
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
-    const fullName = formData.get('fullName') as string
-    const country = formData.get('country') as string
-    const gender = formData.get('gender') as string
-    const ageGroup = formData.get('ageGroup') as string
-    const currentStatus = formData.get('currentStatus') as string
-    const fieldOfInterest = formData.get('fieldOfInterest') as string
-    const preferredDegree = formData.get('preferredDegree') as string
-    const budgetRange = formData.get('budgetRange') as string
-    const englishTestType = formData.get('englishTestType') as string
-    const englishScore = formData.get('englishScore') as string
-    const preferredIntake = formData.get('preferredIntake') as string
-    const preferredCountries = formData.get('preferredCountries') as string
+    const rawData = Object.fromEntries(formData.entries())
+    const validation = registerStudentSchema.safeParse({
+        ...rawData,
+    })
 
-    // Basic validation
-    if (!email || !password || !fullName || !gender || !ageGroup) {
-        return { error: 'Missing required fields' }
+    if (!validation.success) {
+        return { error: validation.error.flatten().fieldErrors }
+    }
+
+    const {
+        email, password, fullName, gender, ageGroup, phoneNumber,
+        country, currentStatus, fieldOfInterest, preferredDegree,
+        budgetRange, englishTestType, englishScore, preferredIntake,
+        preferredCountries
+    } = validation.data
+
+    // HONEYPOT & SPAM CHECK (from schema)
+    if (validation.data.website_url) {
+        return { error: 'Spam detected' }
+    }
+
+    // RATE LIMIT (By IP)
+    const ip = headers().get('x-forwarded-for') || 'unknown'
+    if (!registerRateLimiter.check(ip)) {
+        return { error: 'Too many registration attempts. Please try again later.' }
     }
 
     try {
@@ -44,7 +54,7 @@ export async function registerStudent(formData: FormData) {
         await prisma.user.create({
             data: {
                 email,
-                password, // In real app, hash password!
+                password: await hashPassword(password),
                 role: 'STUDENT',
                 status: 'ACTIVE',
                 otpCode,
@@ -84,11 +94,75 @@ export async function registerStudent(formData: FormData) {
         return { error: 'Registration failed' }
     }
 
+    // SET SESSION COOKIE
+    await createSession(email, 'STUDENT')
+
     redirect(`/verify-email?email=${encodeURIComponent(email)}`)
 }
 
+export async function registerUniversity(formData: FormData) {
+    const rawData = Object.fromEntries(formData.entries())
+    const validation = registerUniversitySchema.safeParse(rawData)
+
+    if (!validation.success) {
+        return { error: validation.error.flatten().fieldErrors }
+    }
+
+    const { email, password, institutionName, country, website, contactEmail } = validation.data
+
+    if (validation.data.website_url) return { error: 'Spam detected' }
+
+    const ip = headers().get('x-forwarded-for') || 'unknown'
+    if (!registerRateLimiter.check(ip)) {
+        return { error: 'Too many attempts. Please wait.' }
+    }
+
+    try {
+        const existingUser = await prisma.user.findUnique({ where: { email } })
+        if (existingUser) {
+            return { error: 'User already exists' }
+        }
+
+        await prisma.user.create({
+            data: {
+                email,
+                password: await hashPassword(password),
+                role: 'UNIVERSITY',
+                status: 'PENDING',
+                universityProfile: {
+                    create: {
+                        institutionName,
+                        country,
+                        city: '',
+                        website,
+                        contactEmail,
+                        verificationStatus: 'PENDING',
+                    }
+                }
+            }
+        })
+
+        console.log(`New university registered: ${institutionName}`)
+
+        await createSession(email, 'UNIVERSITY')
+
+        if (process.env.INFO_EMAIL) {
+            await sendEmail({
+                to: process.env.INFO_EMAIL,
+                subject: "New University Registration",
+                html: EmailTemplates.adminNewUniversity(institutionName, contactEmail || email)
+            })
+        }
+
+    } catch (error) {
+        console.error('Registration failed:', error)
+        return { error: 'Registration failed' }
+    }
+
+    redirect('/university/dashboard')
+}
+
 export async function expressInterest(universityId: string, studentEmail?: string, programId?: string) {
-    // Get session
     const user = await getSession()
     const sessionEmail = user?.email
 
@@ -111,7 +185,6 @@ export async function expressInterest(universityId: string, studentEmail?: strin
 
         if (!university) return { error: "University not found" }
 
-        // Create Interest
         await prisma.interest.create({
             data: {
                 studentId: student.id,
@@ -124,7 +197,6 @@ export async function expressInterest(universityId: string, studentEmail?: strin
             }
         })
 
-        // SEND EMAIL (Simulation)
         await sendEmail({
             to: university.contactEmail || university.user.email,
             subject: `New Interest from ${student.fullName}`,
@@ -143,72 +215,7 @@ export async function expressInterest(universityId: string, studentEmail?: strin
     }
 }
 
-export async function registerUniversity(formData: FormData) {
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
-    const institutionName = formData.get('institutionName') as string
-    const country = formData.get('country') as string
-    const city = formData.get('city') as string
-    const website = formData.get('website') as string
-    const contactEmail = formData.get('contactEmail') as string
-
-    // Basic validation
-    if (!email || !password || !institutionName) {
-        return { error: 'Missing required fields' }
-    }
-
-    try {
-        // Check if user exists
-        const existingUser = await prisma.user.findUnique({ where: { email } })
-        if (existingUser) {
-            return { error: 'User already exists' }
-        }
-
-        // Create User and UniversityProfile
-        await prisma.user.create({
-            data: {
-                email,
-                password, // In real app, hash password!
-                role: 'UNIVERSITY',
-                status: 'PENDING',
-                universityProfile: {
-                    create: {
-                        institutionName,
-                        country,
-                        city,
-                        website,
-                        contactEmail,
-                        verificationStatus: 'PENDING',
-                        // logo would need file upload, skipping for MVP or using placeholder
-                    }
-                }
-            }
-        })
-
-        console.log(`New university registered: ${institutionName}`)
-
-        // SET SESSION COOKIE
-        await createSession(email)
-
-        // Notify Admin
-        if (process.env.INFO_EMAIL) {
-            await sendEmail({
-                to: process.env.INFO_EMAIL,
-                subject: "New University Registration",
-                html: EmailTemplates.adminNewUniversity(institutionName, contactEmail)
-            })
-        }
-
-    } catch (error) {
-        console.error('Registration failed:', error)
-        return { error: 'Registration failed' }
-    }
-
-    redirect('/university/dashboard')
-}
-
 export async function createProgram(formData: FormData) {
-    // Hidden field universityId (insecure but MVP)
     const universityId = formData.get('universityId') as string
     const programName = formData.get('programName') as string
     const degreeLevel = formData.get('degreeLevel') as string
@@ -223,7 +230,6 @@ export async function createProgram(formData: FormData) {
     try {
         const user = await requireUser()
 
-        // Security Check: Verify user owns this university profile
         const uniProfile = await prisma.universityProfile.findUnique({
             where: { userId: user.id }
         })
@@ -237,7 +243,7 @@ export async function createProgram(formData: FormData) {
                 universityId,
                 programName,
                 degreeLevel,
-                fieldCategory: fieldCategory as any, // Simple cast for MVP
+                fieldCategory: fieldCategory as any,
                 tuitionFee,
                 currency: 'USD',
                 intakes,
@@ -253,11 +259,10 @@ export async function createProgram(formData: FormData) {
 
 export async function verifyUniversity(formData: FormData) {
     const universityId = formData.get('universityId') as string
-    const action = formData.get('action') as string // "approve" or "reject"
+    const action = formData.get('action') as string
 
     if (!universityId || !action) return { error: "Missing fields" }
 
-    // SECURITY: Admin only
     const user = await getSession()
     if (!user || user.role !== 'ADMIN') {
         return { error: "Unauthorized" }
@@ -266,7 +271,6 @@ export async function verifyUniversity(formData: FormData) {
     const status = action === 'approve' ? 'VERIFIED' : 'REJECTED'
 
     try {
-        // First get the user ID
         const uniProfile = await prisma.universityProfile.findUnique({
             where: { id: universityId },
             include: { user: true }
@@ -288,7 +292,6 @@ export async function verifyUniversity(formData: FormData) {
             include: { user: true }
         })
 
-        // SEND EMAIL (Simulation)
         await sendEmail({
             to: uni.contactEmail || uniProfile.user.email,
             subject: `University Verification Update: ${uni.verificationStatus}`,
@@ -298,18 +301,13 @@ export async function verifyUniversity(formData: FormData) {
             )
         })
 
-        console.log(`University ${universityId} verified status set to ${status}`)
-
-        // Audit Log
-        if (user) {
-            await logAudit({
-                action: status === 'VERIFIED' ? 'VERIFY_UNIVERSITY' : 'REJECT_UNIVERSITY',
-                entityType: 'UNIVERSITY',
-                entityId: universityId,
-                actorId: user.id,
-                metadata: { status }
-            })
-        }
+        await logAudit({
+            action: status === 'VERIFIED' ? 'VERIFY_UNIVERSITY' : 'REJECT_UNIVERSITY',
+            entityType: 'UNIVERSITY',
+            entityId: universityId,
+            actorId: user.id,
+            metadata: { status }
+        })
 
         revalidatePath('/admin/dashboard')
     } catch (error) {
@@ -319,20 +317,32 @@ export async function verifyUniversity(formData: FormData) {
 }
 
 export async function login(formData: FormData) {
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
+    const rawData = Object.fromEntries(formData.entries())
+    const validation = loginSchema.safeParse(rawData)
 
-    if (!email || !password) return { error: "Missing fields" }
+    if (!validation.success) {
+        return { error: "Missing fields" }
+    }
+
+    const { email, password } = validation.data
+
+    const ip = headers().get('x-forwarded-for') || 'unknown'
+    const limitKey = `${ip}:${email}`
+    if (!loginRateLimiter.check(limitKey)) {
+        return { error: 'Too many login attempts. Please try again in a minute.' }
+    }
 
     try {
         const user = await prisma.user.findUnique({ where: { email } })
-        if (!user) return { error: "User not found" }
+        if (!user) return { error: "Invalid email or password" }
 
-        if (user.password !== password) return { error: "Invalid password" }
+        const isValid = await comparePassword(password, user.password)
 
-        // SET SESSION COOKIE
-        // SET SESSION COOKIE
-        await createSession(email)
+        if (!isValid) {
+            return { error: 'Invalid email or password' }
+        }
+
+        await createSession(email, user.role)
 
         if (user.role === 'STUDENT') redirect('/student/dashboard')
         if (user.role === 'UNIVERSITY') redirect('/university/dashboard')
@@ -363,6 +373,15 @@ export async function registerUniversityWithPrograms(data: any) {
         return { error: 'Missing required fields' }
     }
 
+    // HONEYPOT
+    if (data.website_url) return { error: 'Spam detected' }
+
+    // RATE LIMIT
+    const ip = headers().get('x-forwarded-for') || 'unknown'
+    if (!registerRateLimiter.check(ip)) {
+        return { error: 'Too many attempts. Please verify you are human.' }
+    }
+
     try {
         const existingUser = await prisma.user.findUnique({ where: { email } })
         if (existingUser) {
@@ -372,10 +391,10 @@ export async function registerUniversityWithPrograms(data: any) {
         await prisma.user.create({
             data: {
                 email,
-                password, // Note: In production, hash this!
+                password: await hashPassword(password),
                 role: 'UNIVERSITY',
                 status: 'PENDING',
-                phoneNumber: contactPhone, // Store in User as well
+                phoneNumber: contactPhone,
                 universityProfile: {
                     create: {
                         institutionName,
@@ -384,9 +403,9 @@ export async function registerUniversityWithPrograms(data: any) {
                         website,
                         repName,
                         repDesignation,
-                        repEmail: email, // Using login email as rep email for now
+                        repEmail: email,
                         contactPhone,
-                        phoneNumber: contactPhone, // Map contactPhone to new phoneNumber field
+                        phoneNumber: contactPhone,
                         accreditation,
                         scholarshipsAvailable,
                         verificationStatus: 'PENDING',
@@ -424,7 +443,6 @@ export async function deleteProgram(programId: string) {
     try {
         const user = await requireUser()
 
-        // Security Check: Verify program belongs to user's university
         const program = await prisma.program.findUnique({
             where: { id: programId },
             include: { university: true }
@@ -440,7 +458,6 @@ export async function deleteProgram(programId: string) {
             where: { id: programId }
         })
 
-        // Audit Log
         await logAudit({
             action: 'DELETE_PROGRAM',
             entityType: 'PROGRAM',
@@ -465,7 +482,6 @@ export async function updateUniversityProfile(formData: FormData) {
     try {
         const user = await requireUser()
 
-        // Security Check
         const uniProfile = await prisma.universityProfile.findUnique({
             where: { id: universityId }
         })
@@ -481,14 +497,6 @@ export async function updateUniversityProfile(formData: FormData) {
             }
         })
 
-        // Audit Log
-        await logAudit({
-            action: 'UPDATE_UNIVERSITY_PROFILE',
-            entityType: 'UNIVERSITY',
-            entityId: universityId,
-            actorId: user.id
-        })
-
         revalidatePath('/university/dashboard')
         return { success: true }
     } catch (error) {
@@ -500,41 +508,23 @@ export async function updateUniversityProfile(formData: FormData) {
 export async function submitPublicInquiry(formData: FormData) {
     const fullName = formData.get('fullName') as string
     const email = formData.get('email') as string
-    const role = formData.get('role') as string
-    const country = formData.get('country') as string
     const subject = formData.get('subject') as string
     const message = formData.get('message') as string
-    const phone = formData.get('phone') as string
-    const orgName = formData.get('orgName') as string
+    const role = formData.get('role') as string
 
-    if (!fullName || !email || !role || !message) {
-        return { error: 'Missing required fields' }
+    if (!fullName || !email || !message) {
+        return { error: 'Missing fields' }
     }
 
     try {
-        // 1. Save to Database
-        const inquiry = await prisma.publicInquiry.create({
-            data: {
-                fullName,
-                email,
-                role,
-                country,
-                subject,
-                message,
-                phone: phone || null,
-                orgName: orgName || null,
-                status: 'NEW'
-            }
-        })
-
-        // 2. Email to INFO (Notification)
+        // Send email to Admin
         await sendEmail({
             to: process.env.INFO_EMAIL || 'info@edumeetup.com',
             subject: `[Public Inquiry] ${subject} — ${fullName} (${role})`,
-            html: EmailTemplates.publicInquiryNotification(inquiry)
+            html: EmailTemplates.publicInquiryNotification({ fullName, email, role, subject, message })
         })
 
-        // 3. Auto-reply to Sender
+        // Auto-reply
         await sendEmail({
             to: email,
             subject: `We received your inquiry: ${subject}`,
@@ -587,7 +577,7 @@ export async function createSupportTicket(formData: FormData) {
         // 2. Email to SUPPORT (Notification)
         await sendEmail({
             to: process.env.SUPPORT_EMAIL || 'support@edumeetup.com',
-            subject: `[Support Ticket #${ticket.id.slice(-6)}] ${category} — ${userName}`,
+            subject: `[Support Ticket #${ticket.id.slice(-6)}] ${category} — ${userName} `,
             html: EmailTemplates.supportTicketNotification(ticket, userName, user.email)
         })
 
@@ -655,7 +645,6 @@ export async function createMeeting(formData: FormData) {
         }
 
         // Send Notifications (Email + DB)
-        // In real app, use a queue. For MVP, await.
         for (const p of meeting.participants) {
             // DB Notification
             await prisma.notification.create({
@@ -663,7 +652,7 @@ export async function createMeeting(formData: FormData) {
                     userId: p.participantUserId,
                     type: 'MEETING_INVITE',
                     title: 'New Meeting Invitation',
-                    message: `You have been invited to: ${title}`,
+                    message: `You have been invited to: ${title} `,
                     payload: { meetingId: meeting.id }
                 }
             })
@@ -671,11 +660,11 @@ export async function createMeeting(formData: FormData) {
             // Email Notification
             await sendEmail({
                 to: p.user.email,
-                subject: `Invitation: ${title}`,
+                subject: `Invitation: ${title} `,
                 html: `<p>You have been invited to a meeting with ${uniProfile.institutionName}.</p>
-                       <p><strong>Topic:</strong> ${title}</p>
-                       <p><strong>Time:</strong> ${start.toLocaleString()}</p>
-                       <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/student/dashboard?tab=meetings">View Details & RSVP</a></p>`
+        <p><strong>Topic: </strong> ${title}</p>
+            <p><strong>Time: </strong> ${start.toLocaleString()}</p>
+                <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/student/dashboard?tab=meetings" > View Details & RSVP </a></p> `
             })
         }
 
@@ -695,7 +684,6 @@ export async function updateRSVP(formData: FormData) {
         const user = await requireUser()
 
         // Find participant record
-        // We find by meetingId + userId to be secure
         const participant = await prisma.meetingParticipant.findFirst({
             where: {
                 meetingId,
@@ -719,7 +707,6 @@ export async function updateRSVP(formData: FormData) {
     }
 }
 
-// Notification Actions
 export async function markNotificationAsRead(notificationId: string) {
     const user = await requireUser()
 
@@ -763,7 +750,7 @@ export async function verifyEmail(email: string, otp: string) {
         })
 
         // Create Session
-        await createSession(email)
+        await createSession(email, 'STUDENT')
 
         return { success: true }
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { hashPassword } from '@/lib/auth'
 
 export async function GET() {
     try {
@@ -10,7 +11,7 @@ export async function GET() {
             update: {},
             create: {
                 email: adminEmail,
-                password: 'password123',
+                password: await hashPassword('password123'),
                 role: 'ADMIN',
                 status: 'ACTIVE',
             },
@@ -20,10 +21,10 @@ export async function GET() {
         const adminEmail2 = 'admin@edumeetup.com'
         await prisma.user.upsert({
             where: { email: adminEmail2 },
-            update: { password: 'admin123' },
+            update: { password: await hashPassword('admin123') },
             create: {
                 email: adminEmail2,
-                password: 'admin123',
+                password: await hashPassword('admin123'),
                 role: 'ADMIN',
                 status: 'ACTIVE'
             }
@@ -36,7 +37,7 @@ export async function GET() {
             update: {},
             create: {
                 email: studentEmail,
-                password: 'password123',
+                password: await hashPassword('password123'),
                 role: 'STUDENT',
                 status: 'ACTIVE',
                 studentProfile: {
@@ -67,7 +68,7 @@ export async function GET() {
             update: {},
             create: {
                 email: uniEmail,
-                password: 'password123',
+                password: await hashPassword('password123'),
                 role: 'UNIVERSITY',
                 status: 'ACTIVE',
                 universityProfile: {
@@ -102,7 +103,7 @@ export async function GET() {
             update: {},
             create: {
                 email: pendingUniEmail,
-                password: 'password123',
+                password: await hashPassword('password123'),
                 role: 'UNIVERSITY',
                 status: 'ACTIVE',
                 universityProfile: {

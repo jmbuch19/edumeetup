@@ -37,6 +37,9 @@ export default function StudentRegisterPage() {
                         <h3 className="text-lg font-medium leading-6 text-gray-900 border-b pb-2">Section A — Basic Profile</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="col-span-1 md:col-span-2">
+                                {/* Honeypot Field - Hidden */}
+                                <input type="text" name="website_url" className="hidden" aria-hidden="true" autoComplete="off" tabIndex={-1} />
+
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
                                 <Input name="fullName" type="text" required placeholder="John Doe" />
                             </div>

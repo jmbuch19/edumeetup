@@ -9,21 +9,36 @@ export function middleware(request: NextRequest) {
         if (!session) {
             return NextResponse.redirect(new URL('/login', request.url))
         }
+        try {
+            const { role } = JSON.parse(session.value)
+            if (role !== 'ADMIN') {
+                return NextResponse.redirect(new URL('/', request.url))
+            }
+        } catch (e) {
+            // Invalid cookie format
+            return NextResponse.redirect(new URL('/login', request.url))
+        }
     }
 
     // Protect Student Dashboard
-    if (request.nextUrl.pathname.startsWith('/student')) {
-        // Specifically protect dashboard, ignore public student registration if needed (though usually public)
-        // Actually /student/register is public. 
-        // We should only protect /student/dashboard
-        if (request.nextUrl.pathname.startsWith('/student/dashboard') && !session) {
+    if (request.nextUrl.pathname.startsWith('/student/dashboard')) {
+        if (!session) {
             return NextResponse.redirect(new URL('/login', request.url))
         }
+        // Optional: Enforce role === 'STUDENT' if strictness required
     }
 
     // Protect University Dashboard
     if (request.nextUrl.pathname.startsWith('/university/dashboard')) {
         if (!session) {
+            return NextResponse.redirect(new URL('/login', request.url))
+        }
+        try {
+            const { role } = JSON.parse(session.value)
+            if (role !== 'UNIVERSITY') {
+                return NextResponse.redirect(new URL('/', request.url)) // or unauthorized page
+            }
+        } catch (e) {
             return NextResponse.redirect(new URL('/login', request.url))
         }
     }

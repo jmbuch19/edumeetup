@@ -36,6 +36,7 @@ export default function UniversityRegisterPage() {
         contactPhone: '',
         accreditation: '',
         scholarshipsAvailable: false,
+        website_url: '', // Honeypot
     })
 
     // Programs State (Step 2)
