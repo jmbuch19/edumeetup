@@ -7,13 +7,23 @@ import { expressInterest } from '@/app/actions'
 
 // Dashboard is server component
 // Dashboard is server component
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+
+// ... existing imports
+
 export const dynamic = 'force-dynamic'
 
 export default async function StudentDashboard() {
-    // 1. Get Logged In Student (Mock for MVP: Get latest created student)
-    // In real app: const session = await auth(); const email = session.user.email;
+    const session = cookies().get('edumeetup_session')
+    if (!session?.value) {
+        redirect('/login')
+    }
+
+    const email = session.value
+
     const student = await prisma.studentProfile.findFirst({
-        orderBy: { updatedAt: 'desc' }, // Get the most recent one (likely the one just registered)
+        where: { user: { email } },
         include: { user: true }
     })
 

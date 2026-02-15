@@ -19,6 +19,7 @@ model User {
 
   studentProfile    StudentProfile?
   universityProfile UniversityProfile?
+  supportTickets    SupportTicket[]
 }
 
 model StudentProfile {
@@ -67,6 +68,7 @@ model UniversityProfile {
   verificationStatus String   @default("PENDING") // "PENDING", "VERIFIED", "REJECTED"
   verifiedDate      DateTime?
   logo              String?   // URL to image
+  meetingLink       String?   // URL to Calendly, Google Meet, etc.
 
   programs  Program[]
   interests Interest[]
@@ -127,3 +129,48 @@ enum FieldCategory {
 // FieldCategory: Computer Science, Engineering, Business, Data Science, Health Sciences, Social Sciences, Arts & Humanities, Law, Architecture, Others
 // Intake: Fall, Spring, Summer
 // EnglishTest: IELTS, TOEFL, Duolingo, PTE, Not Required
+
+enum InquiryStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TicketType {
+  STUDENT
+  UNIVERSITY
+}
+
+model PublicInquiry {
+  id        String   @id @default(cuid())
+  fullName  String
+  email     String
+  role      String   // Student, University, etc.
+  country   String
+  subject   String
+  message   String
+  phone     String?
+  orgName   String?
+  status    InquiryStatus @default(NEW)
+  createdAt DateTime @default(now())
+}
+
+model SupportTicket {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      TicketType
+  category  String
+  priority  TicketPriority
+  message   String
+  status    InquiryStatus @default(NEW)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

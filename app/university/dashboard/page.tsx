@@ -2,19 +2,27 @@ import React from 'react'
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { createProgram } from '@/app/actions'
+import { createProgram, updateUniversityProfile } from '@/app/actions'
 import ProgramList from './program-list'
 
 import { User, MapPin, DollarSign, Calendar, BookOpen, Clock } from 'lucide-react'
 
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+
+// ... existing imports
+
 export const dynamic = 'force-dynamic'
 
 export default async function UniversityDashboard() {
-    // Mock session for now - assuming verified university (ID from seed) if not logged in
-    // For MVP demo, lets pick the Harvard one from Seed
-    // Mock session: Try to find Harvard, otherwise get the first available one
-    let uni = await prisma.universityProfile.findFirst({
-        where: { institutionName: 'Harvard University' },
+    const session = cookies().get('edumeetup_session')
+    if (!session?.value) {
+        redirect('/login')
+    }
+    const email = session.value
+
+    const uni = await prisma.universityProfile.findFirst({
+        where: { user: { email } },
         include: {
             programs: true,
             interests: {
@@ -22,17 +30,6 @@ export default async function UniversityDashboard() {
             }
         }
     })
-
-    if (!uni) {
-        uni = await prisma.universityProfile.findFirst({
-            include: {
-                programs: true,
-                interests: {
-                    include: { student: { include: { user: true } } }
-                }
-            }
-        })
-    }
 
     // If no mock uni, show empty state or handle gracefully
     if (!uni) return <div>University not found (Seed data missing?)</div>
@@ -88,11 +85,24 @@ export default async function UniversityDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Left Column: Programs & Create */}
                 <div className="space-y-6">
+                    {/* Settings: Meeting Link */}
                     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold text-gray-900">My Programs ({uni.programs.length})</h2>
-                        </div>
-                        <ProgramList programs={uni.programs} />
+                        <h2 className="text-xl font-bold text-gray-900 mb-4">Profile Settings</h2>
+                        <form action={updateUniversityProfile} className="space-y-4">
+                            <input type="hidden" name="universityId" value={uni.id} />
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Booking Link</label>
+                                <p className="text-xs text-gray-500 mb-2">Paste your Calendly, Google Appointment, or Zoom link here. Students will use this to book meetings with you.</p>
+                                <div className="flex gap-2">
+                                    <Input
+                                        name="meetingLink"
+                                        defaultValue={uni.meetingLink || ''}
+                                        placeholder="https://calendly.com/your-university/30min"
+                                    />
+                                    <Button type="submit" variant="outline">Save</Button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
 
                     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">

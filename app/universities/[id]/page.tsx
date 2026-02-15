@@ -1,7 +1,8 @@
+import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { GraduationCap, MapPin, Globe, Mail, Phone, CheckCircle } from 'lucide-react'
+import { GraduationCap, MapPin, Globe, Mail, Phone, CheckCircle, Calendar } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { expressInterest } from '@/app/actions'
 
@@ -12,6 +13,8 @@ export default async function UniversityDetailPage({
 }) {
     // Await params before using
     const { id } = await params
+    const session = cookies().get('edumeetup_session')
+    const isLoggedIn = !!session?.value
 
     const university = await prisma.universityProfile.findUnique({
         where: { id },
@@ -24,26 +27,13 @@ export default async function UniversityDetailPage({
 
     async function handleExpressInterest() {
         'use server'
-        // Mock user for now - in real app get from session
-        const mockStudentEmail = 'student@example.com'
-        await expressInterest(id, mockStudentEmail)
+        await expressInterest(id)
     }
 
     return (
         <div className="container mx-auto px-4 py-8">
-            <Link href="/universities" className="text-sm text-gray-500 hover:underline mb-6 inline-block">
-                &larr; Back to Universities
-            </Link>
-
             {/* Header */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-8">
-                <div className="h-48 bg-gradient-to-r from-primary/10 to-secondary/10 flex items-center justify-center">
-                    {university.logo ? (
-                        <img src={university.logo} alt={university.institutionName} className="max-h-32 max-w-[80%] object-contain" />
-                    ) : (
-                        <GraduationCap className="h-20 w-20 text-primary/40" />
-                    )}
-                </div>
                 <div className="p-8">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
@@ -69,17 +59,34 @@ export default async function UniversityDetailPage({
                             </div>
                         </div>
 
-                        <form action={handleExpressInterest}>
-                            <Button size="lg" className="gap-2">
-                                <Mail className="h-4 w-4" />
-                                Express Interest
-                            </Button>
-                        </form>
+                        {isLoggedIn ? (
+                            <div className="flex gap-2">
+                                {university.meetingLink && (
+                                    <a href={university.meetingLink} target="_blank" rel="noopener noreferrer">
+                                        <Button variant="outline" className="gap-2">
+                                            <Calendar className="h-4 w-4" />
+                                            Book Meeting
+                                        </Button>
+                                    </a>
+                                )}
+                                <form action={handleExpressInterest}>
+                                    <Button size="lg" className="gap-2">
+                                        <Mail className="h-4 w-4" />
+                                        Express Interest
+                                    </Button>
+                                </form>
+                            </div>
+                        ) : (
+                            <Link href="/login">
+                                <Button size="lg" variant="secondary" className="gap-2">
+                                    Login to Connect
+                                </Button>
+                            </Link>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Programs */}
             <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-gray-900">Available Programs</h2>
 

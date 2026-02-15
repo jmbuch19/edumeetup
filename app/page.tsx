@@ -7,11 +7,14 @@ export default function Home() {
     <div className="flex flex-col items-center">
       {/* Hero Section */}
       <section className="w-full py-20 md:py-32 bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex flex-col items-center text-center px-4">
-        <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-primary mb-6">
+        <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-primary mb-4">
           WHERE DREAMS MEET DESTINATIONS
         </h1>
+        <h2 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-6">
+          Guidance. Exposure. Direction.
+        </h2>
         <p className="text-xl md:text-2xl text-gray-600 max-w-2xl mb-10">
-          Connect directly with universities worldwide. Find your perfect program and start your journey today.
+          edUmeetup brings students, mentors & institutions together — online & on ground.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
