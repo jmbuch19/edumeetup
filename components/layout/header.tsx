@@ -62,14 +62,14 @@ export async function Header() {
                     <Link href="/contact" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
                         Contact
                     </Link>
-                    {/* Admin Link for Demo Visibility */}
-                    <Link href="/admin/dashboard" className="text-sm font-bold text-red-600 hover:text-red-700 transition-colors border border-red-200 bg-red-50 px-3 py-1 rounded-full">
-                        Admin Demo
-                    </Link>
+
                 </nav>
 
-                {/* Auth Buttons - Desktop */}
                 <div className="hidden md:flex items-center gap-3">
+                    {/* Admin Demo Link - Always Visible */}
+                    <Link href="/admin/dashboard" className="text-sm font-bold text-red-600 hover:text-red-700 transition-colors border border-red-200 bg-red-50 px-3 py-1 rounded-full whitespace-nowrap">
+                        Admin Demo
+                    </Link>
                     {user ? (
                         <div className="flex items-center gap-3">
                             <NotificationBell notifications={notifications} />
