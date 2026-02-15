@@ -541,8 +541,11 @@ export async function submitPublicInquiry(formData: FormData) {
     const subject = formData.get('subject') as string
     const message = formData.get('message') as string
     const role = formData.get('role') as string
+    const country = formData.get('country') as string
+    const phone = formData.get('phone') as string || undefined
+    const orgName = formData.get('orgName') as string || undefined
 
-    if (!fullName || !email || !message) {
+    if (!fullName || !email || !message || !country) {
         return { error: 'Missing fields' }
     }
 
@@ -551,7 +554,16 @@ export async function submitPublicInquiry(formData: FormData) {
         await sendEmail({
             to: process.env.INFO_EMAIL || 'info@edumeetup.com',
             subject: `[Public Inquiry] ${subject} — ${fullName} (${role})`,
-            html: EmailTemplates.publicInquiryNotification({ fullName, email, role, subject, message })
+            html: EmailTemplates.publicInquiryNotification({
+                fullName,
+                email,
+                role,
+                country,
+                subject,
+                message,
+                phone,
+                orgName
+            })
         })
 
         // Auto-reply
