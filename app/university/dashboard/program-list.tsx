@@ -12,7 +12,7 @@ interface Program {
     id: string
     programName: string
     degreeLevel: string
-    fieldOfStudy: string
+    fieldCategory: string
     tuitionFee: number
 }
 
@@ -44,7 +44,7 @@ export default function ProgramList({ programs: initialPrograms }: { programs: P
                         <div className="flex justify-between items-start">
                             <div>
                                 <h3 className="font-semibold text-gray-900">{prog.programName}</h3>
-                                <p className="text-sm text-gray-500">{prog.degreeLevel} • {prog.fieldOfStudy}</p>
+                                <p className="text-sm text-gray-500">{prog.degreeLevel} • {prog.fieldCategory}</p>
                             </div>
                             <div className="flex items-center gap-4">
                                 <span className="text-sm font-medium text-green-600 font-mono">${prog.tuitionFee.toLocaleString()}</span>
