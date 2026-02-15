@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { ContactSubmitButton } from "@/components/contact-submit-button"
 import { submitPublicInquiry } from "@/app/actions"
 import { redirect } from "next/navigation"
 
@@ -91,7 +92,7 @@ export default function ContactPage() {
                             </div>
                         </div>
 
-                        <Button type="submit" className="w-full">Submit Inquiry</Button>
+                        <ContactSubmitButton />
                     </form>
                 </div>
             </div>
