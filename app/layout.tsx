@@ -19,19 +19,25 @@ export const viewport = {
   userScalable: false,
 };
 
-export default function RootLayout({
+import { getSession } from "@/lib/auth";
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getSession();
+
   return (
     <html lang="en">
       <body className={inter.className}>
         <Header />
-        {/* Beta Banner */}
-        <div className="bg-amber-100 text-amber-900 text-center py-2 text-sm font-medium border-b border-amber-200">
-          🚧 Beta Version – Testing Phase. System is active for demonstration.
-        </div>
+        {/* Beta Banner - Only for Logged In Users */}
+        {session && (
+          <div className="bg-amber-100 text-amber-900 text-center py-2 text-sm font-medium border-b border-amber-200">
+            🚧 Beta Version – Testing Phase. System is active for demonstration.
+          </div>
+        )}
         <main className="min-h-screen">
           {children}
         </main>

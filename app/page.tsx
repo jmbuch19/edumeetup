@@ -1,9 +1,21 @@
+'use client'
+
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { User, School } from "lucide-react";
+import { User, School, ArrowRight } from "lucide-react";
 import { HowItWorks } from "@/components/home/how-it-works";
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<'student' | 'university'>('student');
+
+  const scrollToHowItWorks = (tab: 'student' | 'university') => {
+    setActiveTab(tab);
+    const element = document.getElementById('how-it-works');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
   return (
     <div className="flex flex-col items-center">
       {/* Hero Section */}
@@ -19,18 +31,24 @@ export default function Home() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
-          <Link href="/student/register" className="w-full">
-            <Button size="lg" className="w-full text-lg h-14 gap-2">
-              <User className="h-5 w-5" />
-              I&apos;m a Student
-            </Button>
-          </Link>
-          <Link href="/university/register" className="w-full">
-            <Button size="lg" variant="outline" className="w-full text-lg h-14 gap-2">
-              <School className="h-5 w-5" />
-              I&apos;m a University
-            </Button>
-          </Link>
+          <Button
+            size="lg"
+            className="w-full text-lg h-14 gap-2"
+            onClick={() => scrollToHowItWorks('student')}
+          >
+            <User className="h-5 w-5" />
+            I&apos;m a Student
+          </Button>
+
+          <Button
+            size="lg"
+            variant="outline"
+            className="w-full text-lg h-14 gap-2"
+            onClick={() => scrollToHowItWorks('university')}
+          >
+            <School className="h-5 w-5" />
+            I&apos;m a University
+          </Button>
         </div>
 
         <div className="mt-8 flex flex-col gap-2 items-center">
@@ -47,8 +65,34 @@ export default function Home() {
         </div>
       </section >
 
-      <HowItWorks />
-    </div>
+
+
+      <HowItWorks activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Context-Aware Sticky Bar (Fix 5) */}
+      {
+        activeTab === 'university' && (
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg z-50 animate-in slide-in-from-bottom-5">
+            <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 p-2 rounded-full hidden sm:block">
+                  <School className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">Viewing as University</p>
+                  <p className="text-sm text-gray-500">Join verified institutions recruiting directly.</p>
+                </div>
+              </div>
+              <Link href="/university/register">
+                <Button size="lg" className="w-full sm:w-auto gap-2 shadow-sm">
+                  Register Your University <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )
+      }
+    </div >
   );
 }
 

@@ -5,8 +5,22 @@ import Link from 'next/link'
 import styles from './how-it-works.module.css'
 import { cn } from '@/lib/utils'
 
-export function HowItWorks() {
-    const [activeTab, setActiveTab] = useState<'student' | 'university'>('student')
+interface HowItWorksProps {
+    activeTab?: 'student' | 'university'
+    onTabChange?: (tab: 'student' | 'university') => void
+}
+
+export function HowItWorks({ activeTab: propActiveTab, onTabChange }: HowItWorksProps) {
+    const [localActiveTab, setLocalActiveTab] = useState<'student' | 'university'>('student')
+    const activeTab = propActiveTab || localActiveTab
+
+    const handleTabChange = (tab: 'student' | 'university') => {
+        if (onTabChange) {
+            onTabChange(tab)
+        } else {
+            setLocalActiveTab(tab)
+        }
+    }
 
     return (
         <section className={styles.howItWorks} id="how-it-works">
@@ -31,7 +45,7 @@ export function HowItWorks() {
                         role="tab"
                         aria-selected={activeTab === 'student'}
                         aria-controls="panel-student"
-                        onClick={() => setActiveTab('student')}
+                        onClick={() => handleTabChange('student')}
                     >
                         <span className={styles.tabIcon}>🎓</span>
                         <span className={styles.tabLabel}>I&apos;m a Student</span>
@@ -42,7 +56,7 @@ export function HowItWorks() {
                         role="tab"
                         aria-selected={activeTab === 'university'}
                         aria-controls="panel-university"
-                        onClick={() => setActiveTab('university')}
+                        onClick={() => handleTabChange('university')}
                     >
                         <span className={styles.tabIcon}>🏛️</span>
                         <span className={styles.tabLabel}>I&apos;m a University</span>
@@ -63,16 +77,16 @@ export function HowItWorks() {
                     {/* Stats bar — social proof for students */}
                     <div className={styles.statBar}>
                         <div className={styles.statItem}>
-                            <div className={styles.statValue}>300+</div>
-                            <div className={styles.statLabel}>Verified universities<br />across 40 countries</div>
+                            <div className={styles.statValue}>Verified</div>
+                            <div className={styles.statLabel}>Admin-verified<br />institutions</div>
                         </div>
                         <div className={styles.statItem}>
                             <div className={styles.statValue}>Free</div>
-                            <div className={styles.statLabel}>Always free<br />for students</div>
+                            <div className={styles.statLabel}>No agent fees<br />for students</div>
                         </div>
                         <div className={styles.statItem}>
-                            <div className={styles.statValue}>48hr</div>
-                            <div className={styles.statLabel}>Average university<br />response time</div>
+                            <div className={styles.statValue}>Direct</div>
+                            <div className={styles.statLabel}>Direct connection<br />(No middlemen)</div>
                         </div>
                     </div>
 
@@ -224,8 +238,8 @@ export function HowItWorks() {
                             <p>Apply for verification today. Our team reviews within 48 hours. Then go live and start receiving student interest.</p>
                         </div>
                         <div className={styles.ctaActions}>
-                            <Link href="/university/register" className={styles.btnPrimary}>Apply for Verification →</Link>
-                            <Link href="/about#universities" className={styles.btnGhost}>Learn more</Link>
+                            <Link href="#how-it-works" className={styles.btnGhost}>See How Verification Works</Link>
+                            <Link href="/university/register" className={styles.btnPrimary}>Start Your Application →</Link>
                         </div>
                     </div>
 
