@@ -1,12 +1,11 @@
 
 'use client'
 import { toast } from 'sonner'
-
 import React, { useState } from 'react'
-
 import { Button } from '@/components/ui/button'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Users } from 'lucide-react'
 import { deleteProgram } from '@/app/actions'
+import { InterestPanel } from '@/components/university/interest-panel'
 
 interface Program {
     id: string
@@ -14,10 +13,14 @@ interface Program {
     degreeLevel: string
     fieldCategory: string
     tuitionFee: number
+    _count?: {
+        interests: number
+    }
 }
 
 export default function ProgramList({ programs: initialPrograms }: { programs: Program[] }) {
     const [programs, setPrograms] = useState(initialPrograms)
+    const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null)
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this program?')) return
@@ -30,6 +33,8 @@ export default function ProgramList({ programs: initialPrograms }: { programs: P
             toast.error('Failed to delete program')
         }
     }
+
+    const selectedProgram = programs.find(p => p.id === selectedProgramId)
 
     return (
         <div className="space-y-4">
@@ -47,7 +52,17 @@ export default function ProgramList({ programs: initialPrograms }: { programs: P
                                 <p className="text-sm text-gray-500">{prog.degreeLevel} • {prog.fieldCategory}</p>
                             </div>
                             <div className="flex items-center gap-4">
-                                <span className="text-sm font-medium text-green-600 font-mono">${prog.tuitionFee.toLocaleString()}</span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2 text-blue-600 border-blue-100 hover:bg-blue-50"
+                                    onClick={() => setSelectedProgramId(prog.id)}
+                                >
+                                    <Users className="h-4 w-4" />
+                                    {prog._count?.interests || 0} Interested
+                                </Button>
+
+                                <span className="text-sm font-medium text-green-600 font-mono hidden sm:inline-block">${prog.tuitionFee.toLocaleString()}</span>
                                 <Button variant="ghost" size="sm" onClick={() => handleDelete(prog.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0">
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -56,6 +71,14 @@ export default function ProgramList({ programs: initialPrograms }: { programs: P
                     </div>
                 ))
             )}
+
+            <InterestPanel
+                programId={selectedProgramId}
+                open={!!selectedProgramId}
+                onOpenChange={(open) => !open && setSelectedProgramId(null)}
+                programName={selectedProgram?.programName || ''}
+            />
         </div>
     )
 }
+

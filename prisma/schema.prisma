@@ -25,6 +25,8 @@ model User {
 
   sessionToken      String?  @unique // For Single Session enforcement
   auditLogs         AuditLog[]
+  advisedRequests   AdvisoryRequest[] @relation("AdviserRequests")
+
 
   // Security & Verification
   emailVerified     DateTime?
@@ -62,6 +64,7 @@ model StudentProfile {
   updatedAt         DateTime @updatedAt
 
   interests Interest[]
+  advisoryRequests AdvisoryRequest[]
 }
 
 model UniversityProfile {
@@ -289,4 +292,45 @@ model SupportTicket {
   status    InquiryStatus @default(NEW)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum AdvisoryStatus {
+  NEW
+  ASSIGNED
+  SCHEDULED
+  COMPLETED
+  FOLLOW_UP
+}
+
+model AdvisoryRequest {
+  id            String   @id @default(cuid())
+  studentId     String
+  student       StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Step 2: Goals (Captured in form, potentially redundant with profile but good for snapshot)
+  targetDegree  String?
+  fieldOfInterest String?
+  targetCountry String?
+  
+  // Readiness
+  budgetRange   String?
+  englishScore  String?
+  greGmatScore  String?
+
+  // Step 3: Logistics
+  preferredTime String? // e.g., "Weekday Mornings"
+  targetIntake  String? // e.g., "Fall 2026"
+  
+  openQuestion  String? @db.Text
+
+  // Status & Admin
+  status        AdvisoryStatus @default(NEW)
+  adviserId     String? // User ID of the admin/adviser
+  adviser       User?    @relation("AdviserRequests", fields: [adviserId], references: [id])
+  
+  internalNotes String? @db.Text
+  sessionLink   String? // Zoom/Meet link
+
+  createdAt     DateTime @default(now())
+  completedAt   DateTime?
 }

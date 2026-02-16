@@ -34,6 +34,7 @@ export default async function AdminLayout({
                     <NavItem href="/admin/universities" icon={School} label="Universities" />
                     <NavItem href="/admin/users" icon={Users} label="Users" />
                     <NavItem href="/admin/tickets" icon={Ticket} label="Support Tickets" />
+                    <NavItem href="/admin/advisory" icon={Users} label="Advisory Requests" />
                     {/* <NavItem href="/admin/settings" icon={Settings} label="Settings" /> */}
                 </nav>
 
