@@ -51,6 +51,11 @@ export default function UniversityRegisterPage() {
         accreditation: '',
         scholarshipsAvailable: false,
         website_url: '', // Honeypot
+        // Certification
+        certAuthority: false,
+        certLegitimacy: false,
+        certPurpose: false,
+        certAccountability: false,
     })
 
     // Programs State (Step 2)
@@ -158,13 +163,13 @@ export default function UniversityRegisterPage() {
                         <p className="text-primary-foreground/80 mt-1">Join our network of world-class institutions</p>
                     </div>
                     <div className="bg-white/10 px-4 py-2 rounded-lg text-sm font-medium">
-                        Step {step} of 3
+                        Step {step} of 4
                     </div>
                 </div>
 
                 {/* Progress Bar */}
                 <div className="w-full bg-gray-200 h-2">
-                    <div className="bg-secondary h-2 transition-all duration-300" style={{ width: `${(step / 3) * 100}%` }}></div>
+                    <div className="bg-secondary h-2 transition-all duration-300" style={{ width: `${(step / 4) * 100}%` }}></div>
                 </div>
 
                 <div className="p-8">
@@ -463,8 +468,95 @@ export default function UniversityRegisterPage() {
                                 <Button variant="ghost" onClick={() => setStep(2)}>
                                     <ArrowLeft className="mr-2 h-4 w-4" /> Back to Programs
                                 </Button>
-                                <Button onClick={handleSubmit} size="lg" disabled={loading} className="px-8">
-                                    {loading ? "Submitting..." : "Submit Registration"}
+                                <Button onClick={() => setStep(4)} size="lg" className="px-8">
+                                    Next: Certification <ChevronRight className="ml-2 h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 4: Certification */}
+                    {step === 4 && (
+                        <div className="space-y-6">
+                            <div className="text-center">
+                                <div className="h-12 w-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <CheckCircle className="h-6 w-6" />
+                                </div>
+                                <h2 className="text-2xl font-bold text-gray-900">Legal Self-Certification</h2>
+                                <p className="text-gray-500">You must legally self-certify to proceed.</p>
+                            </div>
+
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 space-y-4">
+                                <div className="flex items-start gap-3">
+                                    <input
+                                        type="checkbox"
+                                        id="certAuthority"
+                                        checked={formData.certAuthority}
+                                        onChange={() => handleToggleChange('certAuthority')}
+                                        className="mt-1 h-5 w-5 text-primary border-gray-300 rounded focus:ring-primary"
+                                    />
+                                    <label htmlFor="certAuthority" className="text-sm text-blue-900 leading-relaxed">
+                                        <strong>1. Authority:</strong> I, <span className="font-mono bg-blue-100 px-1 rounded">{formData.repName}</span>, am authorized by <span className="font-mono bg-blue-100 px-1 rounded">{formData.institutionName}</span> to act as its official representative on EduMeetup.
+                                    </label>
+                                </div>
+
+                                <div className="flex items-start gap-3">
+                                    <input
+                                        type="checkbox"
+                                        id="certLegitimacy"
+                                        checked={formData.certLegitimacy}
+                                        onChange={() => handleToggleChange('certLegitimacy')}
+                                        className="mt-1 h-5 w-5 text-primary border-gray-300 rounded focus:ring-primary"
+                                    />
+                                    <label htmlFor="certLegitimacy" className="text-sm text-blue-900 leading-relaxed">
+                                        <strong>2. Legitimacy:</strong> <span className="font-mono bg-blue-100 px-1 rounded">{formData.institutionName}</span> is a real, accredited higher education institution, not a coaching center or unauthorized agency.
+                                    </label>
+                                </div>
+
+                                <div className="flex items-start gap-3">
+                                    <input
+                                        type="checkbox"
+                                        id="certPurpose"
+                                        checked={formData.certPurpose}
+                                        onChange={() => handleToggleChange('certPurpose')}
+                                        className="mt-1 h-5 w-5 text-primary border-gray-300 rounded focus:ring-primary"
+                                    />
+                                    <label htmlFor="certPurpose" className="text-sm text-blue-900 leading-relaxed">
+                                        <strong>3. Purpose:</strong> I am registering solely for genuine student recruitment and academic collaboration, aligning with EduMeetup's core mission.
+                                    </label>
+                                </div>
+
+                                <div className="flex items-start gap-3">
+                                    <input
+                                        type="checkbox"
+                                        id="certAccountability"
+                                        checked={formData.certAccountability}
+                                        onChange={() => handleToggleChange('certAccountability')}
+                                        className="mt-1 h-5 w-5 text-primary border-gray-300 rounded focus:ring-primary"
+                                    />
+                                    <label htmlFor="certAccountability" className="text-sm text-blue-900 leading-relaxed">
+                                        <strong>4. Accountability:</strong> I understand this declaration is recorded with my IP address and timestamp. False representation may lead to account suspension and legal action.
+                                    </label>
+                                </div>
+                            </div>
+
+                            {error && (
+                                <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm border border-red-200">
+                                    {error}
+                                </div>
+                            )}
+
+                            <div className="flex justify-between pt-6">
+                                <Button variant="ghost" onClick={() => setStep(3)}>
+                                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to Review
+                                </Button>
+                                <Button
+                                    onClick={handleSubmit}
+                                    size="lg"
+                                    className="px-8 transition-all"
+                                    disabled={loading || !formData.certAuthority || !formData.certLegitimacy || !formData.certPurpose || !formData.certAccountability}
+                                >
+                                    {loading ? "Registering..." : "Confirm & Register"}
                                 </Button>
                             </div>
                         </div>

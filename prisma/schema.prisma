@@ -96,6 +96,14 @@ model UniversityProfile {
   meetingsCreated Meeting[]
   availabilitySlots AvailabilitySlot[]
 
+  // Certification & Audit
+  certAuthority     Boolean   @default(false)
+  certLegitimacy    Boolean   @default(false)
+  certPurpose       Boolean   @default(false)
+  certAccountability Boolean  @default(false)
+  certTimestamp     DateTime?
+  certIp            String?
+
 
 }
 

@@ -40,6 +40,11 @@ interface UniversityRegistrationData {
     scholarshipsAvailable: boolean
     website_url?: string // Honeypot
     programs: ProgramData[]
+    // Certification
+    certAuthority: boolean
+    certLegitimacy: boolean
+    certPurpose: boolean
+    certAccountability: boolean
 }
 
 export async function registerStudent(formData: FormData) {
@@ -396,7 +401,8 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
     const {
         email, password, institutionName, country, city, website,
         repName, repDesignation, contactPhone, accreditation, scholarshipsAvailable,
-        programs
+        programs,
+        certAuthority, certLegitimacy, certPurpose, certAccountability
     } = data
 
     if (!email || !password || !institutionName) {
@@ -438,6 +444,13 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
                         phoneNumber: contactPhone,
                         accreditation,
                         scholarshipsAvailable,
+                        // Certification
+                        certAuthority,
+                        certLegitimacy,
+                        certPurpose,
+                        certAccountability,
+                        certIp: ip,
+                        certTimestamp: new Date(),
                         verificationStatus: 'PENDING',
                         programs: {
                             create: programs.map((p: ProgramData) => ({
