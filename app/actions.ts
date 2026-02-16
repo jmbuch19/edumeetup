@@ -897,3 +897,115 @@ export async function updateStudentProfile(formData: FormData) {
         return { error: "Failed to update profile" }
     }
 }
+
+export async function cancelMeeting(meetingId: string) {
+    try {
+        const user = await requireUser()
+
+        const meeting = await prisma.meeting.findUnique({
+            where: { id: meetingId },
+            include: {
+                university: { include: { user: true } },
+                participants: { include: { user: true } }
+            }
+        })
+
+        if (!meeting) return { error: "Meeting not found" }
+        if (meeting.university.user.id !== user.id) return { error: "Unauthorized" }
+
+        // 1. Update Status
+        await prisma.meeting.update({
+            where: { id: meetingId },
+            data: { status: 'CANCELED' }
+        })
+
+        // 2. Free up slot if exists
+        if (meeting.availabilitySlotId) {
+            await prisma.availabilitySlot.update({
+                where: { id: meeting.availabilitySlotId },
+                data: { isBooked: false }
+            })
+        }
+
+        // 3. Notify Participants
+        for (const p of meeting.participants) {
+            if (p.participantUserId === user.id) continue
+
+            // DB Notification
+            await prisma.notification.create({
+                data: {
+                    userId: p.participantUserId,
+                    type: 'MEETING_CANCELED',
+                    title: 'Meeting Canceled',
+                    message: `The meeting "${meeting.title}" has been canceled by the university.`,
+                    payload: { meetingId: meeting.id }
+                }
+            })
+
+            // Email
+            await sendEmail({
+                to: p.user.email,
+                subject: `Canceled: ${meeting.title}`,
+                html: `<p>The meeting <strong>${meeting.title}</strong> scheduled for ${new Date(meeting.startTime).toLocaleString()} has been canceled.</p>`
+            })
+        }
+
+        revalidatePath('/university/dashboard')
+        revalidatePath('/student/dashboard')
+        return { success: true }
+
+    } catch (error) {
+        console.error("Failed to cancel meeting:", error)
+        return { error: "Failed to cancel meeting" }
+    }
+}
+
+export async function updateMeeting(meetingId: string, formData: FormData) {
+    try {
+        const user = await requireUser()
+
+        const meeting = await prisma.meeting.findUnique({
+            where: { id: meetingId },
+            include: { university: { include: { user: true } } }
+        })
+
+        if (!meeting) return { error: "Meeting not found" }
+        if (meeting.university.user.id !== user.id) return { error: "Unauthorized" }
+
+        const title = formData.get('title') as string
+        const joinUrl = formData.get('joinUrl') as string
+        const agenda = formData.get('agenda') as string
+
+        // Simple update
+        const updatedMeeting = await prisma.meeting.update({
+            where: { id: meetingId },
+            data: {
+                title,
+                joinUrl,
+                agenda
+            },
+            include: { participants: { include: { user: true } } }
+        })
+
+        // Notify
+        for (const p of updatedMeeting.participants) {
+            if (p.participantUserId === user.id) continue
+
+            await prisma.notification.create({
+                data: {
+                    userId: p.participantUserId,
+                    type: 'MEETING_UPDATED',
+                    title: 'Meeting Updated',
+                    message: `Details for "${title}" have been updated.`,
+                    payload: { meetingId: meeting.id }
+                }
+            })
+        }
+
+        revalidatePath('/university/dashboard')
+        return { success: true }
+    } catch (error) {
+        console.error("Failed to update meeting:", error)
+        return { error: "Failed to update meeting" }
+    }
+}

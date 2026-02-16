@@ -6,6 +6,8 @@ import { ChevronLeft, ChevronRight, Video, Users, Calendar as CalendarIcon } fro
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
+import { MeetingActions } from '@/components/university/meeting-actions'
+
 interface Meeting {
     id: string
     title: string
@@ -13,7 +15,12 @@ interface Meeting {
     endTime: Date
     meetingType: string
     status: string
+    joinUrl: string | null
+    agenda: string | null
 }
+
+// ... inside CalendarView ...
+
 
 interface AvailabilitySlot {
     id: string
@@ -146,6 +153,7 @@ export function CalendarView({ meetings, slots }: CalendarViewProps) {
                                                 <Users className="w-4 h-4 text-indigo-500" /> :
                                                 <Video className="w-4 h-4 text-indigo-500" />
                                             }
+                                            <MeetingActions meeting={meeting} />
                                         </div>
                                         <div className="mt-2 text-xs">
                                             <span className={cn(
