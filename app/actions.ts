@@ -238,6 +238,17 @@ export async function expressInterest(universityId: string, studentEmail?: strin
             }
         })
 
+        // Notification for University
+        await prisma.notification.create({
+            data: {
+                userId: university.user.id, // University Admin User
+                type: 'INTEREST_RECEIVED',
+                title: 'New Student Interest',
+                message: `${student.fullName} is interested in ${programId ? 'one of your programs' : 'your university'}.`,
+                payload: { studentId: student.id, programId }
+            }
+        })
+
         await sendEmail({
             to: university.contactEmail || university.user.email,
             subject: `New Interest from ${student.fullName}`,
@@ -775,6 +786,27 @@ export async function updateRSVP(formData: FormData) {
             where: { id: participant.id },
             data: { rsvpStatus: status }
         })
+
+        // Notify University
+        const meeting = await prisma.meeting.findUnique({
+            where: { id: meetingId },
+            include: { university: { include: { user: true } } }
+        })
+
+        if (meeting?.university?.user) {
+            const studentProfile = await prisma.studentProfile.findFirst({ where: { userId: user.id } })
+            const studentName = studentProfile?.fullName || user.email
+
+            await prisma.notification.create({
+                data: {
+                    userId: meeting.university.user.id,
+                    type: 'MEETING_RSVP',
+                    title: 'Meeting RSVP Update',
+                    message: `${studentName} has responded: ${status} for "${meeting.title}"`,
+                    payload: { meetingId, studentId: user.id, status }
+                }
+            })
+        }
 
         revalidatePath('/student/dashboard')
         return { success: true }
