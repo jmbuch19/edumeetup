@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, User, School, Globe } from "lucide-react";
+import { HowItWorks } from "@/components/home/how-it-works";
 
 export default function Home() {
   return (
@@ -46,47 +47,8 @@ export default function Home() {
         </div>
       </section >
 
-      {/* How it Works */}
-      < section className="w-full py-20 px-4 bg-white" >
-        <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">How it Works</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* Step 1 */}
-            <div className="flex flex-col items-center text-center p-6 rounded-2xl bg-gray-50 border border-gray-100 shadow-sm">
-              <div className="bg-primary/10 p-4 rounded-full mb-6">
-                <User className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Create Profile</h3>
-              <p className="text-gray-600">
-                Students create profiles with their preferences. Universities list their programs.
-              </p>
-            </div>
-
-            {/* Step 2 */}
-            <div className="flex flex-col items-center text-center p-6 rounded-2xl bg-gray-50 border border-gray-100 shadow-sm">
-              <div className="bg-primary/10 p-4 rounded-full mb-6">
-                <Globe className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Browse & Match</h3>
-              <p className="text-gray-600">
-                Students browse verified universities and find their perfect match based on interests.
-              </p>
-            </div>
-
-            {/* Step 3 */}
-            <div className="flex flex-col items-center text-center p-6 rounded-2xl bg-gray-50 border border-gray-100 shadow-sm">
-              <div className="bg-primary/10 p-4 rounded-full mb-6">
-                <ArrowRight className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Connect</h3>
-              <p className="text-gray-600">
-                Express interest with one click. Universities review and connect directly via email.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section >
-    </div >
+      <HowItWorks />
+    </div>
   );
 }
+

@@ -18,7 +18,7 @@ export default function AboutPage() {
                     Discover programs that match your interests, budget, and career goals. Connect with universities that are actively looking for students like you.
                 </p>
 
-                <h2 className="text-2xl font-semibold text-gray-900 mt-8">For Universities</h2>
+                <h2 id="universities" className="text-2xl font-semibold text-gray-900 mt-8 scroll-mt-24">For Universities</h2>
                 <p>
                     Reach a diverse pool of qualified students from around the globe. Showcase your programs and find the perfect candidates for your institution.
                 </p>

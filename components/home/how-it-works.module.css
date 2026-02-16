@@ -1,0 +1,635 @@
+.howItWorks {
+    padding: 100px 24px 120px;
+    background: #FFFFFF;
+    position: relative;
+    overflow: hidden;
+    font-family: 'DM Sans', sans-serif;
+    color: #1E2D3D;
+}
+
+/* Subtle background grid texture */
+.howItWorks::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(34, 113, 179, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34, 113, 179, 0.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+}
+
+.sectionInner {
+    max-width: 1100px;
+    margin: 0 auto;
+    position: relative;
+}
+
+/* ─── SECTION LABEL ────────────────────────────────────────── */
+.sectionLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #2271B3;
+    margin-bottom: 18px;
+}
+
+.sectionLabel::before {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 2px;
+    background: #2271B3;
+    border-radius: 2px;
+}
+
+/* ─── HEADLINE ─────────────────────────────────────────────── */
+.sectionHeadline {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(36px, 5vw, 58px);
+    font-weight: 600;
+    line-height: 1.08;
+    color: #0D2137;
+    margin-bottom: 52px;
+    max-width: 600px;
+}
+
+.sectionHeadline em {
+    font-style: italic;
+    font-weight: 300;
+    color: #2271B3;
+}
+
+/* ─── TAB SWITCHER ─────────────────────────────────────────── */
+.tabSwitcher {
+    display: inline-flex;
+    background: #F7FAFD;
+    border: 1.5px solid #D0DFEd;
+    border-radius: 100px;
+    padding: 5px;
+    margin-bottom: 56px;
+    gap: 4px;
+}
+
+.tabBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 28px;
+    border-radius: 100px;
+    border: none;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #5A7089;
+    cursor: pointer;
+    transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    position: relative;
+}
+
+.tabIcon {
+    font-size: 16px;
+    transition: transform 0.3s ease;
+}
+
+.tabBtn:hover {
+    color: #0D2137;
+}
+
+.tabBtn.active {
+    background: #0D2137;
+    color: #FFFFFF;
+    box-shadow: 0 4px 20px rgba(13, 33, 55, 0.25);
+}
+
+.tabBtn.active .tabIcon {
+    transform: scale(1.15);
+}
+
+/* ─── TAB PANELS ───────────────────────────────────────────── */
+.tabPanel {
+    display: none;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.tabPanel.active {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+    animation: fadeUp 0.4s ease forwards;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ─── STEP GRID ────────────────────────────────────────────── */
+.stepsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 2px;
+    background: #D0DFEd;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 48px;
+}
+
+.stepCard {
+    background: #FFFFFF;
+    padding: 36px 28px;
+    position: relative;
+    transition: background 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stepCard:hover {
+    background: #F7FAFD;
+}
+
+.stepNumber {
+    font-family: 'Fraunces', serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Student tab — blue accent */
+.panelStudent .stepNumber {
+    color: #2271B3;
+}
+
+.panelStudent .stepNumber::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, #2271B3, transparent);
+    opacity: 0.3;
+}
+
+/* University tab — teal accent */
+.panelUniversity .stepNumber {
+    color: #1A7F6E;
+}
+
+.panelUniversity .stepNumber::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, #1A7F6E, transparent);
+    opacity: 0.3;
+}
+
+.stepIcon {
+    font-size: 32px;
+    margin-bottom: 16px;
+    display: block;
+    line-height: 1;
+}
+
+.stepTitle {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: #0D2137;
+    margin-bottom: 10px;
+    line-height: 1.2;
+}
+
+.stepDesc {
+    font-size: 14px;
+    line-height: 1.65;
+    color: #5A7089;
+}
+
+/* ─── VALUE PROPS BAR (University-specific) ────────────────── */
+.valueProps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 48px;
+}
+
+.valueProp {
+    background: #F7FAFD;
+    border: 1.5px solid #D0DFEd;
+    border-radius: 16px;
+    padding: 28px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.valueProp:hover {
+    border-color: #1A7F6E;
+    box-shadow: 0 8px 32px rgba(26, 127, 110, 0.08);
+}
+
+.valueProp::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(to right, #1A7F6E, #2271B3);
+    opacity: 0;
+    transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.valueProp:hover::before {
+    opacity: 1;
+}
+
+.valuePropIcon {
+    font-size: 28px;
+    margin-bottom: 14px;
+    display: block;
+}
+
+.valuePropLabel {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #1A7F6E;
+    margin-bottom: 6px;
+}
+
+.valuePropTitle {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: #0D2137;
+    margin-bottom: 8px;
+    line-height: 1.25;
+}
+
+.valuePropDesc {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #5A7089;
+}
+
+/* ─── COMPARISON ROW (University tab) ─────────────────────── */
+.comparisonRow {
+    background: #0D2137;
+    border-radius: 16px;
+    padding: 40px 44px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 48px;
+    position: relative;
+    overflow: hidden;
+}
+
+.comparisonRow::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(34, 113, 179, 0.3) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.comparisonCol {
+    position: relative;
+}
+
+.comparisonLabel {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.colOld .comparisonLabel {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.colNew .comparisonLabel {
+    color: #7EC8E3;
+}
+
+.comparisonCol h4 {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: 14px;
+}
+
+.colOld h4 {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.colNew h4 {
+    color: #FFFFFF;
+}
+
+.comparisonList {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.comparisonList li {
+    font-size: 13px;
+    line-height: 1.5;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.colOld .comparisonList li {
+    color: rgba(255, 255, 255, 0.4);
+    text-decoration: line-through;
+    text-decoration-color: rgba(255, 255, 255, 0.2);
+}
+
+.colOld .comparisonList li::before {
+    content: '✕';
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.25);
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.colNew .comparisonList li {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.colNew .comparisonList li::before {
+    content: '✓';
+    font-size: 11px;
+    color: #7EC8E3;
+    margin-top: 2px;
+    flex-shrink: 0;
+    font-weight: 700;
+}
+
+.comparisonDivider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.comparisonDivider .vsLine {
+    width: 1px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.comparisonDivider .vsBadge {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ─── CTA BLOCK ────────────────────────────────────────────── */
+.ctaBlock {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 32px 40px;
+    border-radius: 16px;
+    border: 1.5px solid #D0DFEd;
+}
+
+.panelStudent .ctaBlock {
+    background: #E8F3FC;
+    border-color: rgba(34, 113, 179, 0.2);
+}
+
+.panelUniversity .ctaBlock {
+    background: #E6F5F2;
+    border-color: rgba(26, 127, 110, 0.2);
+}
+
+.ctaText h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #0D2137;
+    margin-bottom: 4px;
+}
+
+.ctaText p {
+    font-size: 14px;
+    color: #5A7089;
+    line-height: 1.5;
+}
+
+.ctaActions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.btnPrimary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 28px;
+    border-radius: 100px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+}
+
+.panelStudent .btnPrimary {
+    background: #2271B3;
+    color: #FFFFFF;
+}
+
+.panelStudent .btnPrimary:hover {
+    background: #0D2137;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(34, 113, 179, 0.35);
+}
+
+.panelUniversity .btnPrimary {
+    background: #1A7F6E;
+    color: #FFFFFF;
+}
+
+.panelUniversity .btnPrimary:hover {
+    background: #145f52;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(26, 127, 110, 0.35);
+}
+
+.btnGhost {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 13px 20px;
+    border-radius: 100px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    background: transparent;
+    color: #5A7089;
+    border: 1.5px solid #D0DFEd;
+    transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+}
+
+.btnGhost:hover {
+    border-color: #0D2137;
+    color: #0D2137;
+}
+
+/* ─── STUDENT STAT BAR ─────────────────────────────────────── */
+.statBar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: #D0DFEd;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 48px;
+}
+
+.statItem {
+    background: #FFFFFF;
+    padding: 28px;
+    text-align: center;
+}
+
+.statValue {
+    font-family: 'Fraunces', serif;
+    font-size: 38px;
+    font-weight: 700;
+    color: #2271B3;
+    line-height: 1;
+    margin-bottom: 6px;
+}
+
+.statLabel {
+    font-size: 13px;
+    color: #5A7089;
+    line-height: 1.4;
+}
+
+/* ─── UNIVERSITY ROI STRIP ─────────────────────────────────── */
+.roiStrip {
+    background: #FEF6E8;
+    border: 1.5px solid rgba(201, 130, 26, 0.25);
+    border-radius: 16px;
+    padding: 22px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.roiStrip .roiIcon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.roiStrip p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1E2D3D;
+}
+
+.roiStrip strong {
+    color: #C9821A;
+}
+
+/* ─── RESPONSIVE ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .howItWorks {
+        padding: 64px 20px 80px;
+    }
+
+    .stepsGrid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .valueProps {
+        grid-template-columns: 1fr;
+    }
+
+    .comparisonRow {
+        grid-template-columns: 1fr;
+        padding: 28px 24px;
+    }
+
+    .comparisonDivider {
+        flex-direction: row;
+    }
+
+    .comparisonDivider .vsLine {
+        width: 60px;
+        height: 1px;
+    }
+
+    .ctaBlock {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .ctaActions {
+        margin-left: 0;
+    }
+
+    .statBar {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 520px) {
+    .tabBtn span.tabLabel {
+        display: none;
+    }
+
+    .stepsGrid {
+        grid-template-columns: 1fr;
+    }
+}
