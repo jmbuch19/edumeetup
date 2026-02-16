@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, User, School, Globe } from "lucide-react";
+import { User, School } from "lucide-react";
 import { HowItWorks } from "@/components/home/how-it-works";
 
 export default function Home() {
