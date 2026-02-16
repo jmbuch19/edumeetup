@@ -76,3 +76,21 @@ export const publicInquirySchema = z.object({
     phone: z.string().optional(),
     orgName: z.string().optional()
 })
+
+export const studentProfileSchema = z.object({
+    fullName: z.string().min(2, "Name is required"),
+    country: z.string().min(2, "Country is required"),
+    gender: z.string().optional(),
+    ageGroup: z.string().optional(),
+    phoneNumber: z.string().optional(),
+
+    // Preferences
+    currentStatus: z.string().optional(),
+    fieldOfInterest: z.string().optional(),
+    preferredDegree: z.string().optional(),
+    budgetRange: z.string().optional(),
+    englishTestType: z.string().optional(),
+    englishScore: z.string().optional(),
+    preferredIntake: z.string().optional(),
+    preferredCountries: z.string().optional(),
+})

@@ -11,7 +11,7 @@ import { logAudit } from '@/lib/audit'
 import { generateOTP } from '@/lib/otp'
 import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateLimiter, interestRateLimiter, inviteRateLimiter } from '@/lib/ratelimit'
 import { headers } from 'next/headers'
-import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema } from '@/lib/schemas'
+import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema, studentProfileSchema } from '@/lib/schemas'
 
 interface ProgramData {
     programName: string
@@ -835,5 +835,33 @@ export async function verifyEmail(email: string, otp: string) {
     } catch (error) {
         console.error('Verification failed:', error)
         return { error: 'Verification failed' }
+    }
+}
+
+export async function updateStudentProfile(formData: FormData) {
+    const user = await requireUser()
+    const student = await prisma.studentProfile.findFirst({ where: { userId: user.id } })
+
+    if (!student) return { error: "Profile not found" }
+
+    const rawData = Object.fromEntries(formData.entries())
+    const validation = studentProfileSchema.safeParse(rawData)
+
+    if (!validation.success) {
+        return { error: validation.error.flatten().fieldErrors }
+    }
+
+    try {
+        await prisma.studentProfile.update({
+            where: { id: student.id },
+            data: validation.data
+        })
+
+        revalidatePath('/student/profile')
+        revalidatePath('/student/dashboard')
+        return { success: true }
+    } catch (error) {
+        console.error("Failed to update profile:", error)
+        return { error: "Failed to update profile" }
     }
 }
