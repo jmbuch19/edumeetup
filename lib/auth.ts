@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { compare, hash } from 'bcryptjs'
+import { createHash } from 'crypto'
 
 const SESSION_COOKIE_NAME = 'edumeetup_session'
 
@@ -13,17 +14,22 @@ export async function comparePassword(plain: string, hashed: string) {
     return await compare(plain, hashed)
 }
 
+function hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex')
+}
+
 export async function createSession(email: string, role: string) {
     // 1. Generate new token
     const sessionToken = crypto.randomUUID()
+    const hashedToken = hashToken(sessionToken)
 
     // 2. Update User in DB (Invalidates old sessions)
     await prisma.user.update({
         where: { email },
-        data: { sessionToken }
+        data: { sessionToken: hashedToken }
     })
 
-    // 3. Set Cookie
+    // 3. Set Cookie (Store RAW token)
     const sessionData = JSON.stringify({ email, sessionToken, role })
     cookies().set(SESSION_COOKIE_NAME, sessionData, {
         httpOnly: true,
@@ -53,8 +59,9 @@ export async function getSession() {
 
         if (!user) return null
 
-        // Single Session Check
-        if (user.sessionToken !== sessionToken) {
+        // Single Session Check (Hash Comparison)
+        const hashedToken = hashToken(sessionToken)
+        if (user.sessionToken !== hashedToken) {
             return null // Token mismatch = Logged out by newer session
         }
 

@@ -139,7 +139,7 @@ export default async function UniversityDashboard() {
                                 <Input name="programName" required placeholder="MSc Computer Science" />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Degree Level</label>
                                     <select name="degreeLevel" className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm">
@@ -155,7 +155,7 @@ export default async function UniversityDashboard() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Tuition Fee (USD)</label>
                                     <Input name="tuitionFee" type="number" required placeholder="50000" />

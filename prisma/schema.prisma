@@ -150,7 +150,7 @@ model Interest {
   universityId   String
   university     UniversityProfile @relation(fields: [universityId], references: [id], onDelete: Cascade)
   programId      String?
-  program        Program?          @relation(fields: [programId], references: [id])
+  program        Program?          @relation(fields: [programId], references: [id], onDelete: Cascade)
   status         String            @default("INTERESTED") // "INTERESTED", "WITHDRAWN", "ARCHIVED", "SHORTLISTED"
   studentMessage String?
   universityNote String?
@@ -334,7 +334,7 @@ model AdvisoryRequest {
   // Status & Admin
   status        AdvisoryStatus @default(NEW)
   adviserId     String? // User ID of the admin/adviser
-  adviser       User?    @relation("AdviserRequests", fields: [adviserId], references: [id])
+  adviser       User?    @relation("AdviserRequests", fields: [adviserId], references: [id], onDelete: SetNull)
   
   internalNotes String? @db.Text
   sessionLink   String? // Zoom/Meet link

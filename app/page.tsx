@@ -19,7 +19,7 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center">
       {/* Hero Section */}
-      <section className="w-full py-20 md:py-32 bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex flex-col items-center text-center px-4">
+      <section className="w-full py-16 md:py-24 bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex flex-col items-center text-center px-4 relative">
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-primary mb-4">
           WHERE DREAMS MEET DESTINATIONS
         </h1>
@@ -57,15 +57,17 @@ export default function Home() {
               🔍 Browse All Universities &rarr;
             </Button>
           </Link>
-          <Link href="/admin/dashboard">
-            <Button variant="ghost" className="text-muted-foreground text-sm">
-              🔐 Admin Login
-            </Button>
-          </Link>
         </div>
       </section >
 
-
+      {/* Fixed Admin Login Button (Bottom Right, left of Chat Widget) */}
+      <div className="fixed bottom-6 right-24 z-40 hidden md:block">
+        <Link href="/admin/dashboard">
+          <Button variant="ghost" size="sm" className="text-muted-foreground opacity-50 hover:opacity-100 transition-opacity">
+            🔐 Admin Login
+          </Button>
+        </Link>
+      </div>
 
       <HowItWorks activeTab={activeTab} onTabChange={setActiveTab} />
 

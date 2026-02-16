@@ -37,4 +37,10 @@ export class RateLimiter {
 export const loginRateLimiter = new RateLimiter(60 * 1000, 5)
 
 // Allow 3 registration attempts per 1 minute (prevent spam bots)
-export const registerRateLimiter = new RateLimiter(60 * 1000, 3) 
+export const registerRateLimiter = new RateLimiter(60 * 1000, 3)
+
+// [NEW] Rate Limiters
+export const contactRateLimiter = new RateLimiter(60 * 1000, 3)
+export const supportRateLimiter = new RateLimiter(60 * 1000, 5)
+export const interestRateLimiter = new RateLimiter(60 * 1000, 10)
+export const inviteRateLimiter = new RateLimiter(60 * 1000, 20) 

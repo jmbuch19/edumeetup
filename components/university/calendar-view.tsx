@@ -43,9 +43,9 @@ export function CalendarView({ meetings, slots }: CalendarViewProps) {
     const daySlots = slots.filter(s => isSameDay(new Date(s.startTime), selectedDate))
 
     return (
-        <div className="flex flex-col lg:flex-row gap-6 h-[600px]">
+        <div className="flex flex-col lg:flex-row gap-6 h-auto w-full">
             {/* Calendar Grid */}
-            <div className="w-full lg:w-2/3 bg-white p-6 rounded-lg border border-gray-100 shadow-sm flex flex-col">
+            <div className="w-full lg:w-2/3 bg-white p-6 rounded-lg border border-gray-100 shadow-sm flex flex-col overflow-x-auto">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold text-gray-800">
                         {format(currentMonth, 'MMMM yyyy')}
@@ -60,58 +60,62 @@ export function CalendarView({ meetings, slots }: CalendarViewProps) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-7 text-center text-sm font-medium text-gray-500 mb-2">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                        <div key={day} className="py-2">{day}</div>
-                    ))}
-                </div>
+                <div className="overflow-x-auto">
+                    <div className="min-w-[500px]">
+                        <div className="grid grid-cols-7 text-center text-sm font-medium text-gray-500 mb-2">
+                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                                <div key={day} className="py-2">{day}</div>
+                            ))}
+                        </div>
 
-                <div className="grid grid-cols-7 gap-1 flex-1">
-                    {/* Add empty slots for start padding if needed - for MVP assuming simple grid */}
-                    {/* Actually better to align days correctly. user: date-fns getDay() */}
-                    {Array.from({ length: monthStart.getDay() }).map((_, i) => (
-                        <div key={`empty-${i}`} className="h-24 bg-gray-50/30 rounded-md"></div>
-                    ))}
+                        <div className="grid grid-cols-7 gap-1 flex-1">
+                            {/* Add empty slots for start padding if needed - for MVP assuming simple grid */}
+                            {/* Actually better to align days correctly. user: date-fns getDay() */}
+                            {Array.from({ length: monthStart.getDay() }).map((_, i) => (
+                                <div key={`empty-${i}`} className="h-24 bg-gray-50/30 rounded-md"></div>
+                            ))}
 
-                    {daysInMonth.map(day => {
-                        const hasMeeting = meetings.some(m => isSameDay(new Date(m.startTime), day))
-                        const hasSlot = slots.some(s => isSameDay(new Date(s.startTime), day) && !s.isBooked)
-                        const isSelected = isSameDay(day, selectedDate)
+                            {daysInMonth.map(day => {
+                                const hasMeeting = meetings.some(m => isSameDay(new Date(m.startTime), day))
+                                const hasSlot = slots.some(s => isSameDay(new Date(s.startTime), day) && !s.isBooked)
+                                const isSelected = isSameDay(day, selectedDate)
 
-                        return (
-                            <div
-                                key={day.toISOString()}
-                                onClick={() => setSelectedDate(day)}
-                                className={cn(
-                                    "h-24 p-2 border rounded-md cursor-pointer transition-colors relative flex flex-col justify-between hover:border-primary/50",
-                                    isSelected ? "border-primary bg-blue-50/30 ring-1 ring-primary" : "border-gray-100",
-                                    !isSameMonth(day, currentMonth) && "text-gray-300 bg-gray-50"
-                                )}
-                            >
-                                <span className={cn(
-                                    "text-sm font-medium block w-6 h-6 rounded-full flex items-center justify-center",
-                                    isSameDay(day, new Date()) && "bg-primary text-white"
-                                )}>
-                                    {format(day, 'd')}
-                                </span>
+                                return (
+                                    <div
+                                        key={day.toISOString()}
+                                        onClick={() => setSelectedDate(day)}
+                                        className={cn(
+                                            "h-24 p-2 border rounded-md cursor-pointer transition-colors relative flex flex-col justify-between hover:border-primary/50",
+                                            isSelected ? "border-primary bg-blue-50/30 ring-1 ring-primary" : "border-gray-100",
+                                            !isSameMonth(day, currentMonth) && "text-gray-300 bg-gray-50"
+                                        )}
+                                    >
+                                        <span className={cn(
+                                            "text-sm font-medium block w-6 h-6 rounded-full flex items-center justify-center",
+                                            isSameDay(day, new Date()) && "bg-primary text-white"
+                                        )}>
+                                            {format(day, 'd')}
+                                        </span>
 
-                                <div className="space-y-1">
-                                    {hasMeeting && (
-                                        <div className="flex items-center gap-1 text-[10px] bg-indigo-100 text-indigo-700 px-1 py-0.5 rounded w-fit max-w-full truncate">
-                                            <Video className="w-3 h-3" />
-                                            <span>Mtg</span>
+                                        <div className="space-y-1">
+                                            {hasMeeting && (
+                                                <div className="flex items-center gap-1 text-[10px] bg-indigo-100 text-indigo-700 px-1 py-0.5 rounded w-fit max-w-full truncate">
+                                                    <Video className="w-3 h-3" />
+                                                    <span>Mtg</span>
+                                                </div>
+                                            )}
+                                            {hasSlot && (
+                                                <div className="flex items-center gap-1 text-[10px] bg-green-100 text-green-700 px-1 py-0.5 rounded w-fit max-w-full truncate">
+                                                    <CalendarIcon className="w-3 h-3" />
+                                                    <span>Slot</span>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                    {hasSlot && (
-                                        <div className="flex items-center gap-1 text-[10px] bg-green-100 text-green-700 px-1 py-0.5 rounded w-fit max-w-full truncate">
-                                            <CalendarIcon className="w-3 h-3" />
-                                            <span>Slot</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )
-                    })}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -94,17 +94,18 @@ export function InterestedStudentsTable({ interests, availabilitySlots = [] }: {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
                 <h2 className="text-xl font-bold">Interested Students ({interests.length})</h2>
                 <Button
                     onClick={handleScheduleClick}
                     disabled={selectedIds.length === 0}
+                    className="w-full sm:w-auto"
                 >
                     Schedule Meeting ({selectedIds.length})
                 </Button>
             </div>
 
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -200,7 +201,7 @@ export function InterestedStudentsTable({ interests, availabilitySlots = [] }: {
                                     )}
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium mb-1">Date & Time</label>
                                         <input name="startTime" type="datetime-local" required={scheduleMode === 'MANUAL'} className="w-full p-2 border rounded bg-transparent" />

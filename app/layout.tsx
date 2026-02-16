@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Toaster } from "sonner";
+import { ChatWidget } from "@/components/ai/chat-widget";
 
 const inter = Inter({ subsets: ["latin"] }); // id: 7
 
@@ -41,7 +42,8 @@ export default async function RootLayout({
         <main className="min-h-screen">
           {children}
         </main>
-        <Toaster />
+        <ChatWidget />
+        <Toaster richColors position="top-center" />
         <Footer />
       </body>
     </html >

@@ -300,7 +300,7 @@ export default function UniversityRegisterPage() {
                             ) : (
                                 <div className="grid grid-cols-1 gap-4">
                                     {programs.map((prog) => (
-                                        <div key={prog.id} className="flex justify-between items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                                        <div key={prog.id} className="flex flex-wrap justify-between items-start gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                                             <div>
                                                 <h4 className="font-bold text-primary">{prog.programName}</h4>
                                                 <div className="text-sm text-gray-600 space-x-2">

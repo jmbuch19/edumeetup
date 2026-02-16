@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { GraduationCap, MapPin, Search, Calendar, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -58,7 +58,7 @@ export function DashboardUI({
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-                <TabsList className="bg-gray-100 p-1">
+                <TabsList className="bg-gray-100 p-1 h-auto flex-wrap justify-start">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="advisory" className="relative">
                         Guided Pathway
@@ -161,7 +161,7 @@ export function DashboardUI({
                                                     <form action={async () => {
                                                         await expressInterest(program.university.id, student.user.email, program.id)
                                                     }}>
-                                                        <div className="flex gap-2">
+                                                        <div className="flex flex-col sm:flex-row gap-2">
                                                             <Link href={`/universities/${program.university.id}`} className="flex-1">
                                                                 <Button variant="outline" type="button" className="w-full">View Details</Button>
                                                             </Link>
@@ -190,7 +190,10 @@ export function DashboardUI({
                                     <div key={uni.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                                         <div className="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-100">
                                             {uni.logo ? (
-                                                <img src={uni.logo} alt={uni.institutionName} className="max-h-20 max-w-[80%]" />
+                                                <>
+                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                    <img src={uni.logo} alt={uni.institutionName} className="max-h-20 max-w-[80%]" />
+                                                </>
                                             ) : (
                                                 <GraduationCap className="h-12 w-12 text-gray-400" />
                                             )}

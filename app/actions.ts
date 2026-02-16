@@ -6,12 +6,12 @@ import { prisma } from '@/lib/prisma'
 import { FieldCategory } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, EmailTemplates } from '@/lib/email'
-import { createSession, getSession, destroySession, requireUser, hashPassword, comparePassword } from '@/lib/auth'
+import { createSession, getSession, destroySession, requireUser, requireRole, hashPassword, comparePassword } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { generateOTP } from '@/lib/otp'
-import { loginRateLimiter, registerRateLimiter } from '@/lib/ratelimit'
+import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateLimiter, interestRateLimiter, inviteRateLimiter } from '@/lib/ratelimit'
 import { headers } from 'next/headers'
-import { registerStudentSchema, registerUniversitySchema, loginSchema } from '@/lib/schemas'
+import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema } from '@/lib/schemas'
 
 interface ProgramData {
     programName: string
@@ -204,6 +204,12 @@ export async function expressInterest(universityId: string, studentEmail?: strin
     if (!sessionEmail && !studentEmail) return { error: "Not logged in" }
 
     const emailToUse = sessionEmail || studentEmail
+    const ip = headers().get('x-forwarded-for') || 'unknown'
+
+    // Rate Limit: 10 per minute
+    if (!interestRateLimiter.check(ip)) {
+        return { error: 'Too many interest requests. Please wait.' }
+    }
 
     try {
         const student = await prisma.studentProfile.findFirst({
@@ -251,16 +257,17 @@ export async function expressInterest(universityId: string, studentEmail?: strin
 }
 
 export async function createProgram(formData: FormData) {
-    const universityId = formData.get('universityId') as string
-    const programName = formData.get('programName') as string
-    const degreeLevel = formData.get('degreeLevel') as string
-    const fieldCategory = formData.get('fieldCategory') as string
-    const tuitionFee = parseFloat(formData.get('tuitionFee') as string)
-    const intakes = formData.get('intakes') as string
+    const rawData = Object.fromEntries(formData.entries())
+    const validation = createProgramSchema.safeParse(rawData)
 
-    if (!universityId || !programName) {
-        return { error: "Missing fields" }
+    if (!validation.success) {
+        return { error: validation.error.flatten().fieldErrors }
     }
+
+    const {
+        programName, degreeLevel, fieldCategory, tuitionFee,
+        durationMonths, intakes, currency, englishTests, minEnglishScore, stemDesignated
+    } = validation.data
 
     try {
         const user = await requireUser()
@@ -269,19 +276,23 @@ export async function createProgram(formData: FormData) {
             where: { userId: user.id }
         })
 
-        if (!uniProfile || uniProfile.id !== universityId) {
-            return { error: "Unauthorized: You do not own this profile" }
+        if (!uniProfile) {
+            return { error: "Unauthorized: No university profile found" }
         }
 
         await prisma.program.create({
             data: {
-                universityId,
+                universityId: uniProfile.id, // Derived from session
                 programName,
                 degreeLevel,
                 fieldCategory: fieldCategory as FieldCategory,
                 tuitionFee,
-                currency: 'USD',
+                durationMonths,
+                currency,
                 intakes,
+                englishTests,
+                minEnglishScore: minEnglishScore ? parseFloat(minEnglishScore) : null,
+                stemDesignated,
                 status: 'ACTIVE'
             }
         })
@@ -298,10 +309,7 @@ export async function verifyUniversity(formData: FormData) {
 
     if (!universityId || !action) return { error: "Missing fields" }
 
-    const user = await getSession()
-    if (!user || user.role !== 'ADMIN') {
-        return { error: "Unauthorized" }
-    }
+    const user = await requireRole('ADMIN')
 
     const status = action === 'approve' ? 'VERIFIED' : 'REJECTED'
 
@@ -517,24 +525,21 @@ export async function deleteProgram(programId: string) {
 }
 
 export async function updateUniversityProfile(formData: FormData) {
-    const universityId = formData.get('universityId') as string
     const meetingLink = formData.get('meetingLink') as string
-
-    if (!universityId) return { error: "Missing university ID" }
 
     try {
         const user = await requireUser()
 
         const uniProfile = await prisma.universityProfile.findUnique({
-            where: { id: universityId }
+            where: { userId: user.id }
         })
 
-        if (!uniProfile || uniProfile.userId !== user.id) {
-            return { error: "Unauthorized" }
+        if (!uniProfile) {
+            return { error: "Unauthorized: No university profile found" }
         }
 
         await prisma.universityProfile.update({
-            where: { id: universityId },
+            where: { id: uniProfile.id }, // Derived from session
             data: {
                 meetingLink: meetingLink || null
             }
@@ -549,18 +554,19 @@ export async function updateUniversityProfile(formData: FormData) {
 }
 
 export async function submitPublicInquiry(formData: FormData) {
-    const fullName = formData.get('fullName') as string
-    const email = formData.get('email') as string
-    const subject = formData.get('subject') as string
-    const message = formData.get('message') as string
-    const role = formData.get('role') as string
-    const country = formData.get('country') as string
-    const phone = formData.get('phone') as string || undefined
-    const orgName = formData.get('orgName') as string || undefined
-
-    if (!fullName || !email || !message || !country) {
-        return { error: 'Missing fields' }
+    const ip = headers().get('x-forwarded-for') || 'unknown'
+    if (!contactRateLimiter.check(ip)) {
+        return { error: 'Too many inquiries. Please wait.' }
     }
+
+    const rawData = Object.fromEntries(formData.entries())
+    const validation = publicInquirySchema.safeParse(rawData)
+
+    if (!validation.success) {
+        return { error: validation.error.flatten().fieldErrors }
+    }
+
+    const { fullName, email, subject, message, role, country, phone, orgName } = validation.data
 
     try {
         // Send email to Admin
@@ -594,13 +600,19 @@ export async function submitPublicInquiry(formData: FormData) {
 }
 
 export async function createSupportTicket(formData: FormData) {
-    const category = formData.get('category') as string
-    const priority = formData.get('priority') as "LOW" | "MEDIUM" | "HIGH"
-    const message = formData.get('message') as string
-
-    if (!category || !priority || !message) {
-        return { error: 'Missing required fields' }
+    const ip = headers().get('x-forwarded-for') || 'unknown'
+    if (!supportRateLimiter.check(ip)) {
+        return { error: 'Too many support tickets. Please wait.' }
     }
+
+    const rawData = Object.fromEntries(formData.entries())
+    const validation = supportTicketSchema.safeParse(rawData)
+
+    if (!validation.success) {
+        return { error: validation.error.flatten().fieldErrors }
+    }
+
+    const { category, priority, message } = validation.data
 
     const user = await getSession()
     if (!user) return { error: "Not logged in" }
@@ -644,29 +656,40 @@ export async function createSupportTicket(formData: FormData) {
 }
 
 export async function createMeeting(formData: FormData) {
-    const title = formData.get('title') as string
-    const startTime = formData.get('startTime') as string // ISO string
-    const duration = parseInt(formData.get('duration') as string) || 60
-    const type = formData.get('type') as string // ONE_TO_ONE, GROUP
-    const joinUrl = formData.get('joinUrl') as string
-    const participantIds = formData.getAll('participants') as string[] // Array of user IDs
-
-    if (!title || !startTime || participantIds.length === 0) {
-        return { error: "Missing required fields" }
+    const rawData = {
+        title: formData.get('title'),
+        startTime: formData.get('startTime'),
+        duration: formData.get('duration'),
+        type: formData.get('type'),
+        joinUrl: formData.get('joinUrl'),
+        participants: formData.getAll('participants'),
+        availabilitySlotId: formData.get('availabilitySlotId') || undefined
     }
+
+    const validation = createMeetingSchema.safeParse(rawData)
+
+    if (!validation.success) {
+        return { error: validation.error.flatten().fieldErrors }
+    }
+
+    const { title, startTime, duration, type, joinUrl, participants, availabilitySlotId } = validation.data
 
     try {
         const user = await requireUser()
         if (user.role !== 'UNIVERSITY') return { error: "Unauthorized" }
 
-        // Get university profile
+        const ip = headers().get('x-forwarded-for') || 'unknown'
+        // Rate Limit: 20 per minute
+        if (!inviteRateLimiter.check(ip)) {
+            return { error: 'Too many meeting invites. Please wait.' }
+        }
+
+        // Get university profile (DERIVED)
         const uniProfile = await prisma.universityProfile.findUnique({ where: { userId: user.id } })
         if (!uniProfile) return { error: "Profile not found" }
 
         const start = new Date(startTime)
         const end = new Date(start.getTime() + duration * 60000)
-
-        const availabilitySlotId = formData.get('availabilitySlotId') as string | null
 
         // Create Meeting
         const meeting = await prisma.meeting.create({
@@ -676,9 +699,9 @@ export async function createMeeting(formData: FormData) {
                 endTime: end,
                 meetingType: type,
                 joinUrl,
-                createdByUniversityId: uniProfile.id,
+                createdByUniversityId: uniProfile.id, // Derived
                 participants: {
-                    create: participantIds.map(uid => ({
+                    create: participants.map(uid => ({
                         participantUserId: uid,
                         rsvpStatus: 'INVITED'
                     }))

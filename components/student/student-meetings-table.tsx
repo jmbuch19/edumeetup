@@ -52,12 +52,12 @@ export function StudentMeetingsTable({ meetings }: { meetings: MeetingParticipan
 
                 return (
                     <div key={participant.meetingId} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
-                        <div className="flex justify-between items-start">
+                        <div className="flex justify-between items-start gap-4">
                             <div>
                                 <h3 className="text-lg font-bold text-gray-900">{meeting.title}</h3>
                                 <p className="text-sm text-gray-600 font-medium">{meeting.university.institutionName}</p>
 
-                                <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                                <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-gray-500">
                                     <div className="flex items-center gap-1">
                                         <Calendar className="h-4 w-4" />
                                         {new Date(meeting.startTime).toLocaleDateString()}
@@ -82,7 +82,7 @@ export function StudentMeetingsTable({ meetings }: { meetings: MeetingParticipan
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-4 pt-4 border-t border-gray-100 gap-4">
                             {participant.rsvpStatus === 'ACCEPTED' && !isPast && meeting.joinUrl ? (
                                 <a href={meeting.joinUrl} target="_blank" rel="noopener noreferrer">
                                     <Button className="gap-2">
