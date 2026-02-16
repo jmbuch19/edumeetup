@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Mail, MapPin, Search, Send, User } from 'lucide-react'
+import { Loader2, Mail, MapPin, Send, User } from 'lucide-react'
 import {
     getInterestedStudents,
     getProgramInterestStats,

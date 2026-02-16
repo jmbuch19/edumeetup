@@ -11,7 +11,8 @@ import { AdvisoryForm } from '@/components/student/advisory-form'
 import { expressInterest } from '@/app/actions'
 
 // Types
-import { Program, UniversityProfile, MeetingParticipant, Meeting, Interest, AdvisoryRequest, AdvisoryStatus } from '@prisma/client'
+// Types
+import { Program, UniversityProfile, MeetingParticipant, Meeting, AdvisoryRequest } from '@prisma/client'
 
 // Extended types for relations
 type ExtendedProgram = Program & { university: UniversityProfile }
@@ -19,7 +20,7 @@ type ExtendedUniversity = UniversityProfile & { programs: Program[] }
 type ExtendedMeeting = MeetingParticipant & { meeting: Meeting & { university: UniversityProfile } }
 
 interface DashboardUIProps {
-    student: any // Typed lazily to avoid deep nesting issues, but ideally strict
+    student: { fullName: string; fieldOfInterest: string | null; preferredDegree: string | null; user: { email: string } }
     matchedPrograms: ExtendedProgram[]
     recommendedUniversities: ExtendedUniversity[]
     myMeetings: ExtendedMeeting[]

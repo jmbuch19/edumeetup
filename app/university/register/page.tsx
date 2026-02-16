@@ -522,7 +522,7 @@ export default function UniversityRegisterPage() {
                                         className="mt-1 h-5 w-5 text-primary border-gray-300 rounded focus:ring-primary"
                                     />
                                     <label htmlFor="certPurpose" className="text-sm text-blue-900 leading-relaxed">
-                                        <strong>3. Purpose:</strong> I am registering solely for genuine student recruitment and academic collaboration, aligning with EduMeetup's core mission.
+                                        <strong>3. Purpose:</strong> I am registering solely for genuine student recruitment and academic collaboration, aligning with EduMeetup&apos;s core mission.
                                     </label>
                                 </div>
 

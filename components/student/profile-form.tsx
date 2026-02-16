@@ -37,7 +37,7 @@ export function ProfileForm({ initialData, fieldCategories }: ProfileFormProps) 
             } else {
                 toast.success("Profile updated successfully")
             }
-        } catch (error) {
+        } catch {
             toast.error("Something went wrong")
         } finally {
             setLoading(false)
@@ -105,9 +105,9 @@ export function ProfileForm({ initialData, fieldCategories }: ProfileFormProps) 
                                 <SelectTrigger><SelectValue placeholder="Current Status" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="Grade12">Grade 12</SelectItem>
-                                    <SelectItem value="BachelorFinalYear">Bachelor's Final Year</SelectItem>
-                                    <SelectItem value="BachelorCompleted">Bachelor's Completed</SelectItem>
-                                    <SelectItem value="MasterCompleted">Master's Completed</SelectItem>
+                                    <SelectItem value="BachelorFinalYear">Bachelor&apos;s Final Year</SelectItem>
+                                    <SelectItem value="BachelorCompleted">Bachelor&apos;s Completed</SelectItem>
+                                    <SelectItem value="MasterCompleted">Master&apos;s Completed</SelectItem>
                                     <SelectItem value="WorkingProfessional">Working Professional</SelectItem>
                                 </SelectContent>
                             </Select>

@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import React, { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import Papa from 'papaparse'
 import { Button } from '@/components/ui/button'
-import { UploadCloud, FileSpreadsheet, CheckCircle, AlertCircle, X } from 'lucide-react'
+import { UploadCloud, CheckCircle, AlertCircle, X } from 'lucide-react'
 import { bulkCreatePrograms, ProgramImportData } from '@/app/actions/bulk-program-actions'
 import { useRouter } from 'next/navigation'
 
@@ -75,7 +76,7 @@ export function ProgramImportModal({ universityId, open, onOpenChange }: Program
             } else {
                 setError(result.error || "Import failed")
             }
-        } catch (e) {
+        } catch {
             setError("An unexpected error occurred.")
         } finally {
             setIsUploading(false)

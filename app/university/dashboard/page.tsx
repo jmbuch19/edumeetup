@@ -9,7 +9,6 @@ import ProgramList from './program-list'
 import { BookOpen, Clock } from 'lucide-react'
 
 import { requireUser } from '@/lib/auth'
-import { ProgramImportButton } from '@/components/university/program-import-button'
 
 // ... existing imports
 

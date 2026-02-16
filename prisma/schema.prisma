@@ -141,6 +141,9 @@ model Program {
   status         String            @default("ACTIVE") // "ACTIVE", "PAUSED"
 
   interests Interest[]
+
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 }
 
 model Interest {

@@ -6,9 +6,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea' // We created this
 import { Label } from '@/components/ui/label' // We created this
-import { updateAdvisoryStatus, updateAdvisoryNotes } from '@/app/actions/admin-advisory-actions'
+import { updateAdvisoryNotes } from '@/app/actions/admin-advisory-actions'
 import { SelectStatus } from './select-status' // We'll create a client component for interactivity
-import { ArrowLeft, Mail, Calendar, MapPin, GraduationCap, DollarSign, FileText } from 'lucide-react'
+import { ArrowLeft, Mail, Calendar, MapPin, GraduationCap, DollarSign } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -98,7 +98,7 @@ export default async function AdvisoryDetailPage({ params }: { params: { id: str
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Student's Question</CardTitle>
+                            <CardTitle>Student&apos;s Question</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="bg-muted p-4 rounded-md italic text-muted-foreground">

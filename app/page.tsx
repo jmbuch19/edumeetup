@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { User, School, ArrowRight } from "lucide-react";
+import { User, School } from "lucide-react";
 import { HowItWorks } from "@/components/home/how-it-works";
 
 export default function Home() {
@@ -87,7 +87,7 @@ export default function Home() {
               </div>
               <Link href="/university/register">
                 <Button size="lg" className="w-full sm:w-auto gap-2 shadow-sm">
-                  Register Your University <ArrowRight className="h-4 w-4" />
+                  Register Your University <span className="ml-2">&rarr;</span>
                 </Button>
               </Link>
             </div>

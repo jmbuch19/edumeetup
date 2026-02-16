@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { FieldCategory } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, EmailTemplates } from '@/lib/email'
-import { createSession, getSession, destroySession, requireUser, requireRole, hashPassword, comparePassword } from '@/lib/auth'
+import { createSession, destroySession, requireUser, requireRole, hashPassword, comparePassword } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { generateOTP } from '@/lib/otp'
 import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateLimiter, interestRateLimiter, inviteRateLimiter } from '@/lib/ratelimit'
@@ -210,7 +210,7 @@ export async function expressInterest(universityId: string, studentEmail?: strin
 
     const sessionEmail = user.email
     const emailToUse = sessionEmail || studentEmail
-    const ip = headers().get('x-forwarded-for') || 'unknown'
+    // const ip = headers().get('x-forwarded-for') || 'unknown'
 
     try {
         const student = await prisma.studentProfile.findFirst({

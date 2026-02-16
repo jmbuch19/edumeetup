@@ -2,7 +2,6 @@
 
 import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/auth'
-import { revalidatePath } from 'next/cache'
 import { sendEmail } from '@/lib/email' // Assuming this exists
 
 // Types for the UI

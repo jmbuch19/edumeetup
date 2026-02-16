@@ -7,6 +7,53 @@ import { FieldCategory } from '@prisma/client'
 
 // ...
 
+export type ProgramImportData = {
+    programName: string
+    degreeLevel: string
+    fieldCategory: string
+    tuitionFee: number
+    durationMonths: number
+    intakes: string
+}
+
+export async function bulkCreatePrograms(universityId: string, data: ProgramImportData[]) {
+    try {
+        const user = await requireUser()
+        if (user.role !== 'UNIVERSITY') return { error: "Unauthorized" }
+
+        // Verify ownership
+        const uniProfile = await prisma.universityProfile.findUnique({ where: { userId: user.id } })
+        if (!uniProfile || uniProfile.id !== universityId) return { error: "Unauthorized" }
+
+        let createdCount = 0
+
+        for (const item of data) {
+            await prisma.program.create({
+                data: {
+                    universityId,
+                    programName: item.programName,
+                    degreeLevel: item.degreeLevel,
+                    fieldCategory: mapFieldCategory(item.fieldCategory),
+                    tuitionFee: item.tuitionFee,
+                    durationMonths: item.durationMonths,
+                    intakes: item.intakes,
+                    stemDesignated: false, // Default
+                    currency: 'USD',
+                    englishTests: null // Fixed: expect string or null, not array
+                }
+            })
+            createdCount++
+        }
+
+        revalidatePath('/university/dashboard')
+        return { success: true, count: createdCount }
+    } catch (error) {
+        console.error("Bulk create error:", error)
+        return { error: "Failed to import programs" }
+    }
+}
+
+
 function mapFieldCategory(input: string): FieldCategory {
     if (!input) return FieldCategory.Others
     const lower = input.toLowerCase()

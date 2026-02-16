@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -10,7 +11,7 @@ export function ChatWidget() {
     const [isOpen, setIsOpen] = useState(false);
     const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
         api: '/api/chat',
-    });
+    } as any) as any;
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -48,7 +49,7 @@ export function ChatWidget() {
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
                         {messages.length === 0 && (
                             <div className="text-center text-gray-500 text-sm mt-10 p-4">
-                                <p>👋 Hi there! I'm your AI assistant.</p>
+                                <p>👋 Hi there! I&apos;m your AI assistant.</p>
                                 <p>Ask me how to find universities, schedule meetings, or register!</p>
                             </div>
                         )}
