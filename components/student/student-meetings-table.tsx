@@ -53,6 +53,7 @@ export function StudentMeetingsTable({ meetings }: { meetings: MeetingParticipan
                 const now = new Date()
                 const startTime = new Date(meeting.startTime)
                 const endTime = new Date(meeting.endTime)
+                const isPast = endTime < now
                 const timeDiff = startTime.getTime() - now.getTime()
                 const isCloseEnough = timeDiff <= 15 * 60 * 1000 // 15 mins
                 const isOngoing = now >= startTime && now <= endTime

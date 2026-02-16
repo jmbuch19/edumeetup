@@ -198,18 +198,19 @@ export async function registerUniversity(formData: FormData) {
 }
 
 export async function expressInterest(universityId: string, studentEmail?: string, programId?: string) {
-    const user = await getSession()
-    const sessionEmail = user?.email
+    const user = await requireUser()
 
-    if (!sessionEmail && !studentEmail) return { error: "Not logged in" }
+    // RATE LIMIT
+    if (!interestRateLimiter.check(user.id)) {
+        return { error: "Too many interest requests. Please try again later." }
+    }
 
+    // Verify Student Role
+    if (user.role !== 'STUDENT') return { error: "Only students can express interest" }
+
+    const sessionEmail = user.email
     const emailToUse = sessionEmail || studentEmail
     const ip = headers().get('x-forwarded-for') || 'unknown'
-
-    // Rate Limit: 10 per minute
-    if (!interestRateLimiter.check(ip)) {
-        return { error: 'Too many interest requests. Please wait.' }
-    }
 
     try {
         const student = await prisma.studentProfile.findFirst({
@@ -565,12 +566,14 @@ export async function updateUniversityProfile(formData: FormData) {
 }
 
 export async function submitPublicInquiry(formData: FormData) {
+    const rawData = Object.fromEntries(formData.entries())
+
+    // RATE LIMIT (IP Based)
     const ip = headers().get('x-forwarded-for') || 'unknown'
     if (!contactRateLimiter.check(ip)) {
-        return { error: 'Too many inquiries. Please wait.' }
+        return { error: "Too many inquiries. Please try again later." }
     }
 
-    const rawData = Object.fromEntries(formData.entries())
     const validation = publicInquirySchema.safeParse(rawData)
 
     if (!validation.success) {
@@ -611,9 +614,11 @@ export async function submitPublicInquiry(formData: FormData) {
 }
 
 export async function createSupportTicket(formData: FormData) {
-    const ip = headers().get('x-forwarded-for') || 'unknown'
-    if (!supportRateLimiter.check(ip)) {
-        return { error: 'Too many support tickets. Please wait.' }
+    const user = await requireUser()
+
+    // RATE LIMIT
+    if (!supportRateLimiter.check(user.id)) {
+        return { error: "Too many support tickets. Please wait a moment." }
     }
 
     const rawData = Object.fromEntries(formData.entries())
@@ -625,7 +630,6 @@ export async function createSupportTicket(formData: FormData) {
 
     const { category, priority, message } = validation.data
 
-    const user = await getSession()
     if (!user) return { error: "Not logged in" }
 
     const sessionEmail = user.email
@@ -667,6 +671,13 @@ export async function createSupportTicket(formData: FormData) {
 }
 
 export async function createMeeting(formData: FormData) {
+    const user = await requireUser()
+
+    // RATE LIMIT
+    if (!inviteRateLimiter.check(user.id)) {
+        return { error: "You are sending too many meeting invites. Please slow down." }
+    }
+
     const rawData = {
         title: formData.get('title'),
         startTime: formData.get('startTime'),
@@ -686,14 +697,7 @@ export async function createMeeting(formData: FormData) {
     const { title, startTime, duration, type, joinUrl, participants, availabilitySlotId } = validation.data
 
     try {
-        const user = await requireUser()
         if (user.role !== 'UNIVERSITY') return { error: "Unauthorized" }
-
-        const ip = headers().get('x-forwarded-for') || 'unknown'
-        // Rate Limit: 20 per minute
-        if (!inviteRateLimiter.check(ip)) {
-            return { error: 'Too many meeting invites. Please wait.' }
-        }
 
         // Get university profile (DERIVED)
         const uniProfile = await prisma.universityProfile.findUnique({ where: { userId: user.id } })
@@ -906,7 +910,8 @@ export async function cancelMeeting(meetingId: string) {
             where: { id: meetingId },
             include: {
                 university: { include: { user: true } },
-                participants: { include: { user: true } }
+                participants: { include: { user: true } },
+                availabilitySlot: true
             }
         })
 
@@ -920,9 +925,9 @@ export async function cancelMeeting(meetingId: string) {
         })
 
         // 2. Free up slot if exists
-        if (meeting.availabilitySlotId) {
+        if (meeting.availabilitySlot) {
             await prisma.availabilitySlot.update({
-                where: { id: meeting.availabilitySlotId },
+                where: { id: meeting.availabilitySlot.id },
                 data: { isBooked: false }
             })
         }
