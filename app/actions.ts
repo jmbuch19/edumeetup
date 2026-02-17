@@ -12,6 +12,7 @@ import { generateOTP } from '@/lib/otp'
 import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateLimiter, interestRateLimiter, inviteRateLimiter } from '@/lib/ratelimit'
 import { headers } from 'next/headers'
 import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema, studentProfileSchema } from '@/lib/schemas'
+import { createNotification } from '@/lib/notifications'
 
 interface ProgramData {
     programName: string
@@ -240,20 +241,16 @@ export async function expressInterest(universityId: string, studentEmail?: strin
         })
 
         // Notification for University
-        await prisma.notification.create({
-            data: {
-                userId: university.user.id, // University Admin User
-                type: 'INTEREST_RECEIVED',
-                title: 'New Student Interest',
-                message: `${student.fullName} is interested in ${programId ? 'one of your programs' : 'your university'}.`,
-                payload: { studentId: student.id, programId }
-            }
-        })
-
-        await sendEmail({
-            to: university.contactEmail || university.user.email,
-            subject: `New Interest from ${student.fullName}`,
-            html: EmailTemplates.universityInterest(
+        // Notification for University
+        await createNotification({
+            userId: university.user.id,
+            type: 'INTEREST_RECEIVED',
+            title: 'New Student Interest',
+            message: `${student.fullName} is interested in ${programId ? 'one of your programs' : 'your university'}.`,
+            payload: { studentId: student.id, programId },
+            emailTo: university.contactEmail || university.user.email,
+            emailSubject: `New Interest from ${student.fullName}`,
+            emailHtml: EmailTemplates.universityInterest(
                 student.fullName,
                 student.user.email,
                 "I am interested in your programs."
@@ -740,21 +737,16 @@ export async function createMeeting(formData: FormData) {
         // Send Notifications (Email + DB)
         for (const p of meeting.participants) {
             // DB Notification
-            await prisma.notification.create({
-                data: {
-                    userId: p.participantUserId,
-                    type: 'MEETING_INVITE',
-                    title: 'New Meeting Invitation',
-                    message: `You have been invited to: ${title} `,
-                    payload: { meetingId: meeting.id }
-                }
-            })
-
-            // Email Notification
-            await sendEmail({
-                to: p.user.email,
-                subject: `Invitation: ${title} `,
-                html: `<p>You have been invited to a meeting with ${uniProfile.institutionName}.</p>
+            // DB & Email Notification
+            await createNotification({
+                userId: p.participantUserId,
+                type: 'MEETING_INVITE',
+                title: 'New Meeting Invitation',
+                message: `You have been invited to: ${title} `,
+                payload: { meetingId: meeting.id },
+                emailTo: p.user.email,
+                emailSubject: `Invitation: ${title} `,
+                emailHtml: `<p>You have been invited to a meeting with ${uniProfile.institutionName}.</p>
         <p><strong>Topic: </strong> ${title}</p>
             <p><strong>Time: </strong> ${start.toLocaleString()}</p>
                 <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/student/dashboard?tab=meetings" > View Details & RSVP </a></p> `
