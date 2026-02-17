@@ -37,19 +37,20 @@ export async function createNotification(data: NotificationPayload) {
         console.error(`Failed to send notification (${data.type}):`, error)
         // Don't throw, just log. Notifications shouldn't break the main flow.
     }
+}
 
-    export async function sendMeetingRequestEmail(
-        repEmail: string,
-        studentName: string,
-        studentCountry: string,
-        purpose: string,
-        date: Date,
-        duration: number,
-        meetingId: string,
-        note?: string
-    ) {
-        const subject = `New Meeting Request: ${studentName}`
-        const html = `
+export async function sendMeetingRequestEmail(
+    repEmail: string,
+    studentName: string,
+    studentCountry: string,
+    purpose: string,
+    date: Date,
+    duration: number,
+    meetingId: string,
+    note?: string
+) {
+    const subject = `New Meeting Request: ${studentName}`
+    const html = `
         <h2>New Meeting Request</h2>
         <p><strong>Student:</strong> ${studentName} (${studentCountry})</p>
         <p><strong>Purpose:</strong> ${purpose}</p>
@@ -58,29 +59,29 @@ export async function createNotification(data: NotificationPayload) {
         ${note ? `<p><strong>Note:</strong> ${note}</p>` : ''}
         <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/university/meetings">View Request</a></p>
     `
-        await createNotification({
-            userId: 'system', // or specific rep ID if available context
-            type: 'MEETING_REQUEST',
-            title: 'New Meeting Request',
-            message: `from ${studentName}`,
-            emailTo: repEmail,
-            emailSubject: subject,
-            emailHtml: html
-        })
-    }
+    await createNotification({
+        userId: 'system', // or specific rep ID if available context
+        type: 'MEETING_REQUEST',
+        title: 'New Meeting Request',
+        message: `from ${studentName}`,
+        emailTo: repEmail,
+        emailSubject: subject,
+        emailHtml: html
+    })
+}
 
-    export async function sendMeetingConfirmedEmailToStudent(
-        studentEmail: string,
-        universityName: string,
-        repName: string,
-        date: Date,
-        duration: number,
-        location: string,
-        meetingCode: string,
-        questions?: string
-    ) {
-        const subject = `Meeting Confirmed: ${universityName}`
-        const html = `
+export async function sendMeetingConfirmedEmailToStudent(
+    studentEmail: string,
+    universityName: string,
+    repName: string,
+    date: Date,
+    duration: number,
+    location: string,
+    meetingCode: string,
+    questions?: string
+) {
+    const subject = `Meeting Confirmed: ${universityName}`
+    const html = `
         <h2>Meeting Confirmed!</h2>
         <p>Your meeting with <strong>${universityName}</strong> (${repName}) is confirmed.</p>
         <p><strong>Date:</strong> ${date.toLocaleString()}</p>
@@ -90,39 +91,39 @@ export async function createNotification(data: NotificationPayload) {
         ${questions ? `<p><strong>Your Questions:</strong> ${questions}</p>` : ''}
         <p>Add to your calendar!</p>
     `
-        await sendEmail({ to: studentEmail, subject, html })
-    }
+    await sendEmail({ to: studentEmail, subject, html })
+}
 
-    export async function sendMeetingConfirmedEmailToRep(
-        repEmail: string,
-        studentName: string,
-        date: Date,
-        duration: number
-    ) {
-        const subject = `Meeting Confirmed: ${studentName}`
-        const html = `
+export async function sendMeetingConfirmedEmailToRep(
+    repEmail: string,
+    studentName: string,
+    date: Date,
+    duration: number
+) {
+    const subject = `Meeting Confirmed: ${studentName}`
+    const html = `
         <h2>Meeting Confirmed</h2>
         <p>Meeting with <strong>${studentName}</strong> is now CONFIRMED.</p>
         <p><strong>Date:</strong> ${date.toLocaleString()}</p>
         <p><strong>Duration:</strong> ${duration} mins</p>
         <p>Check dashboard for details.</p>
     `
-        await sendEmail({ to: repEmail, subject, html })
-    }
+    await sendEmail({ to: repEmail, subject, html })
+}
 
-    export async function sendMeetingCancelledEmail(
-        recipientEmail: string,
-        recipientRole: string,
-        counterpartName: string,
-        date: Date,
-        reason: string
-    ) {
-        const subject = `Meeting Cancelled: ${counterpartName}`
-        const html = `
+export async function sendMeetingCancelledEmail(
+    recipientEmail: string,
+    recipientRole: string,
+    counterpartName: string,
+    date: Date,
+    reason: string
+) {
+    const subject = `Meeting Cancelled: ${counterpartName}`
+    const html = `
         <h2>Meeting Cancelled</h2>
         <p>Your meeting with <strong>${counterpartName}</strong> on ${date.toLocaleString()} has been cancelled.</p>
         <p><strong>Reason:</strong> ${reason}</p>
         <p>Please reschedule if needed.</p>
     `
-        await sendEmail({ to: recipientEmail, subject, html })
-    }
+    await sendEmail({ to: recipientEmail, subject, html })
+}
