@@ -21,11 +21,11 @@ type ExtendedMeeting = MeetingParticipant & { meeting: Meeting & { university: U
 
 interface DashboardUIProps {
     student: { fullName: string; fieldOfInterest: string | null; preferredDegree: string | null; user: { email: string } }
-    matchedPrograms: ExtendedProgram[]
-    recommendedUniversities: ExtendedUniversity[]
-    myMeetings: ExtendedMeeting[]
-    interestedUniIds: Set<string>
-    advisoryStatus: AdvisoryRequest | null
+    matchedPrograms: any[] // Serialized ExtendedProgram
+    recommendedUniversities: any[] // Serialized ExtendedUniversity
+    myMeetings: any[] // Serialized ExtendedMeeting
+    interestedUniIds: string[] // Changed from Set to Array for serialization
+    advisoryStatus: any // Serialized AdvisoryRequest
 }
 
 export function DashboardUI({
@@ -33,9 +33,11 @@ export function DashboardUI({
     matchedPrograms,
     recommendedUniversities,
     myMeetings,
-    interestedUniIds,
+    interestedUniIds, // Now an Array
     advisoryStatus
 }: DashboardUIProps) {
+    // Re-create Set for internal use if needed, or just use includes
+    const interestedSet = new Set(interestedUniIds)
     const [activeTab, setActiveTab] = useState('overview')
 
     return (
@@ -120,8 +122,8 @@ export function DashboardUI({
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {matchedPrograms.map((program) => {
-                                    const isInterested = interestedUniIds.has(program.universityId)
+                                {matchedPrograms.map((program: any) => {
+                                    const isInterested = interestedSet.has(program.universityId)
                                     return (
                                         <div key={program.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:border-primary/50 transition-colors">
                                             <div className="p-6">

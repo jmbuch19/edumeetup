@@ -84,14 +84,25 @@ export default async function StudentDashboard() {
     // 5. Advisory Status
     const advisoryStatus = await getStudentAdvisoryStatus()
 
+    // SERIALIZATION FIX:
+    // Convert Set to Array for Client Component
+    const interestedUniIdsArray = Array.from(interestedUniIds)
+
+    // Normalize Dates (Simple JSON parse/stringify hack to convert Dates to Strings)
+    // This prevents "Date cannot be passed to Client Component" error
+    const cleanPrograms = JSON.parse(JSON.stringify(matchedPrograms))
+    const cleanUniversities = JSON.parse(JSON.stringify(recommendedUniversities))
+    const cleanMeetings = JSON.parse(JSON.stringify(myMeetings))
+    const cleanAdvisory = JSON.parse(JSON.stringify(advisoryStatus))
+
     return (
         <DashboardUI
             student={student}
-            matchedPrograms={matchedPrograms}
-            recommendedUniversities={recommendedUniversities}
-            myMeetings={myMeetings}
-            interestedUniIds={interestedUniIds}
-            advisoryStatus={advisoryStatus}
+            matchedPrograms={cleanPrograms}
+            recommendedUniversities={cleanUniversities}
+            myMeetings={cleanMeetings}
+            interestedUniIds={interestedUniIdsArray}
+            advisoryStatus={cleanAdvisory}
         />
     )
 }
