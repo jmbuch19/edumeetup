@@ -16,7 +16,7 @@ export default async function AvailabilityPage() {
 
     // Let's instantiate prisma here to get profile ID.
     const { prisma } = await import("@/lib/prisma")
-    const university = await prisma.universityProfile.findUnique({
+    const university = await prisma.university.findUnique({
         where: { userId: user.id }
     })
 

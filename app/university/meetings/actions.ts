@@ -21,7 +21,7 @@ export async function exportMeetingsToCSV(filters?: any) {
 
     let universityId = null
 
-    const profile = await prisma.universityProfile.findUnique({ where: { userId } })
+    const profile = await prisma.university.findUnique({ where: { userId } })
     if (profile) {
         universityId = profile.id
     } else {

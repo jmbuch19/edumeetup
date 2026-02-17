@@ -22,7 +22,7 @@ export async function bulkCreatePrograms(universityId: string, data: ProgramImpo
         if (user.role !== 'UNIVERSITY') return { error: "Unauthorized" }
 
         // Verify ownership
-        const uniProfile = await prisma.universityProfile.findUnique({ where: { userId: user.id } })
+        const uniProfile = await prisma.university.findUnique({ where: { userId: user.id } })
         if (!uniProfile || uniProfile.id !== universityId) return { error: "Unauthorized" }
 
         let createdCount = 0

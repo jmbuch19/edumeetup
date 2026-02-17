@@ -7,120 +7,154 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ... existing generator and datasource ...
+// User & Auth Models (Standard Auth.js / NextAuth)
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      String   // "STUDENT", "UNIVERSITY", "ADMIN"
-  status    String   @default("ACTIVE") // "ACTIVE", "PENDING", "SUSPENDED"
-  createdAt DateTime @default(now())
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(STUDENT)
+  isActive      Boolean   @default(true)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  studentProfile    StudentProfile?
-  universityProfile UniversityProfile?
+  accounts      Account[]
+  sessions      Session[]
+  
+  // Relations to Profiles
+  student       Student?
+  university    University?
+  
+  // Relations to Features
   supportTickets    SupportTicket[]
   notifications     Notification[]
   meetingParticipants MeetingParticipant[]
-
-  sessionToken      String?  @unique // For Single Session enforcement
   auditLogs         AuditLog[]
   advisedRequests   AdvisoryRequest[] @relation("AdviserRequests")
-
-
-  // Security & Verification
-  emailVerified     DateTime?
-  otpCode           String?
-  otpExpiresAt      DateTime?
-
-  // Contact
-  // Contact
-  phoneNumber       String?
-
-  passwordResetToken PasswordResetToken?
 }
 
-model PasswordResetToken {
-  id        String   @id @default(cuid())
-  token     String   @unique // Hashed
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
 }
 
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
-model StudentProfile {
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Domain Models
+
+model Student {
   id                String   @id @default(cuid())
   userId            String   @unique
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  // Section A: Basic Profile
-  fullName          String
-  gender            String?  // "Male", "Female", "Prefer not to say"
-  ageGroup          String?  // "Under 20", "21-25", "26-30", "31+"
-  country           String?
+  // Contact & Location
+  phone             String?
+  city              String?
   pincode           String?
+  country           String?  @default("India")
   
   // IP Tracking & Verification
-  ipAddress         String?   // Raw IP address
-  ipCity            String?   // City from IP lookup
-  ipRegion          String?   // State/Region from IP lookup
-  ipCountry         String?   // Country from IP lookup
-  ipPincode         String?   // Pincode from IP lookup
+  ipAddress         String?
+  ipCity            String?
+  ipRegion          String?
+  ipCountry         String?
+  ipPincode         String?
   ipLatitude        String?
   ipLongitude       String?
-  ipIsp             String?   // Internet Service Provider (e.g. Airtel, Jio)
+  ipIsp             String?
   
-  cityMismatch      Boolean   @default(false)
-  pincodeMismatch   Boolean   @default(false)
-  
-  // Section B: Study Preference
-  fieldOfInterest   String? // Enum: Computer Science, Engineering, etc.
-  preferredCountries String? // Comma separated
-  preferredDegree   String? // "Bachelor's", "Master's", "MBA", "PhD", "Certificate"
-  budgetRange       String? // "< 15,000", "15,000–25,000", etc.
-  englishTestType   String? // "IELTS", "TOEFL", "Duolingo", "PTE", "Not Taken Yet"
-  englishScore      String? // Score as string to handle "Not Taken Yet" or ranges, or just use score
-  preferredIntake   String? // "Fall", "Spring", "Summer"
-  
+  cityMismatch      Boolean  @default(false)
+  pincodeMismatch   Boolean  @default(false)
+
+  // Preserved Profile Fields (Critical for App Functionality)
+  fullName          String? // Can sync with User.name
+  gender            String?
+  ageGroup          String?
+  currentStatus     String?
+  fieldOfInterest   String?
+  preferredCountries String?
+  preferredDegree   String?
+  budgetRange       String?
+  englishTestType   String?
+  englishScore      String?
+  preferredIntake   String?
   profileComplete   Boolean  @default(false)
+  
+  createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  interests Interest[]
-  advisoryRequests AdvisoryRequest[]
+  // Relations
+  interests         Interest[]
+  advisoryRequests  AdvisoryRequest[]
 }
 
-model UniversityProfile {
+model University {
   id                String    @id @default(cuid())
   userId            String    @unique
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  institutionName   String
+  
+  institutionName   String      // Renamed from universityName to match code usage
   country           String
   city              String?
   website           String?
+  accreditationNo   String?
   
-  // New Fields
+  verificationStatus String   @default("PENDING") // Added to match code usage
+  isVerified        Boolean   @default(false)
+  verifiedAt        DateTime?
+  verifiedByAdmin   String?
+  
+  // Preserved Fields
+  contactEmail      String?
+  logo              String?
+  about             String?   @db.Text
+  foundedYear       Int?
+  campusSize        String?
+  totalStudents     Int?
+  internationalStudents Int?
+  
+  // Rep Details (Merged from old schema)
   repName           String?
   repDesignation    String?
   repEmail          String?
   contactPhone      String?
-  phoneNumber       String? // Head office contact
-  accreditation     String?
+  
+  // Features
   scholarshipsAvailable Boolean @default(false)
-
-  contactEmail      String?   // Existing field, maybe redundant with repEmail but keeping for now
-  verificationStatus String   @default("PENDING") // "PENDING", "VERIFIED", "REJECTED"
-  verifiedDate      DateTime?
-  logo              String?   // URL to image
-  meetingLink       String?   // URL to Calendly, Google Meet, etc.
-
-  programs  Program[]
-  interests Interest[]
-  meetingsCreated Meeting[]
-  availabilitySlots AvailabilitySlot[]
-
-  // Certification & Audit
+  meetingLink       String?
+  
+  // Certification
   certAuthority     Boolean   @default(false)
   certLegitimacy    Boolean   @default(false)
   certPurpose       Boolean   @default(false)
@@ -128,143 +162,180 @@ model UniversityProfile {
   certTimestamp     DateTime?
   certIp            String?
 
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
+  // Relations
+  programs          Program[]
+  interests         Interest[]
+  meetingsCreated   Meeting[]
+  availabilitySlots AvailabilitySlot[]
 }
-
-model AuditLog {
-  id        String   @id @default(cuid())
-  action    String   // e.g., "VERIFY_UNIVERSITY", "DELETE_PROGRAM"
-  entityType String  // e.g., "UNIVERSITY", "PROGRAM"
-  entityId  String
-  actorId   String   // User ID of who performed the action
-  actor     User     @relation(fields: [actorId], references: [id])
-  metadata  Json?    // Extra details
-  createdAt DateTime @default(now())
-}
-
 
 model Program {
-  id             String            @id @default(cuid())
+  id             String      @id @default(cuid())
   universityId   String
-  university     UniversityProfile @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  university     University  @relation(fields: [universityId], references: [id], onDelete: Cascade)
   
   programName    String
-  degreeLevel    String            // Storing Enum as String for SQLite/Simple compatibility, or use Enum if DB supports
-  fieldCategory  FieldCategory     @default(Others)
-  stemDesignated Boolean           @default(false)
-  durationMonths Int               @default(12)
-  tuitionFee     Float             @default(0)
-  currency       String            @default("USD")
-  englishTests   String?           // Comma separated list of accepted tests
-  minEnglishScore Float?
-  intakes        String?           // Comma separated list of intakes (Spring, Fall, etc.)
-
-  // degreeLevel    DegreeLevel     // If using proper Enums
-  // fieldCategory  FieldCategory
+  degreeLevel    String
+  fieldCategory  String
+  durationMonths Int?        // Renamed from duration to match code if needed, but let's check code usage.
+  tuitionFee     Float?
+  currency       String?     @default("USD")
   
-  status         String            @default("ACTIVE") // "ACTIVE", "PAUSED"
+  // Preserved fields
+  status         String      @default("ACTIVE")
+  stemDesignated Boolean     @default(false)
+  englishTests   String?
+  minEnglishScore Float?
+  intakes        String?
+  description    String?     @db.Text
+  
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
-  interests Interest[]
-
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @default(now()) @updatedAt
+  interests      Interest[]
 }
 
+// Enums
+
+enum UserRole {
+  STUDENT
+  UNIVERSITY
+  ADMIN
+}
+
+// Feature Models (Updated to use new Student/University relations)
+
 model Interest {
-  id             String            @id @default(cuid())
+  id             String      @id @default(cuid())
   studentId      String
-  student        StudentProfile    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student        Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   universityId   String
-  university     UniversityProfile @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  university     University  @relation(fields: [universityId], references: [id], onDelete: Cascade)
   programId      String?
-  program        Program?          @relation(fields: [programId], references: [id], onDelete: Cascade)
-  status         String            @default("INTERESTED") // "INTERESTED", "WITHDRAWN", "ARCHIVED", "SHORTLISTED"
+  program        Program?    @relation(fields: [programId], references: [id], onDelete: Cascade)
+  status         String      @default("INTERESTED")
   studentMessage String?
   universityNote String?
   
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   @@unique([studentId, universityId, programId])
 }
 
 model Meeting {
-  id                    String            @id @default(cuid())
+  id                    String      @id @default(cuid())
   createdByUniversityId String
-  university            UniversityProfile @relation(fields: [createdByUniversityId], references: [id], onDelete: Cascade)
+  university            University  @relation(fields: [createdByUniversityId], references: [id], onDelete: Cascade)
 
-  meetingType    String // "ONE_TO_ONE", "GROUP"
+  meetingType    String
   title          String
   agenda         String?
   startTime      DateTime
   endTime        DateTime
-  timezone       String            @default("UTC")
-  locationType   String            @default("VIDEO") // "VIDEO", "IN_PERSON"
+  timezone       String      @default("UTC")
+  locationType   String      @default("VIDEO")
   joinUrl        String?
 
-  status         String            @default("SCHEDULED") // "DRAFT", "SCHEDULED", "COMPLETED", "CANCELED"
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  status         String      @default("SCHEDULED")
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   participants   MeetingParticipant[]
   availabilitySlot AvailabilitySlot?
 }
 
 model MeetingParticipant {
-  id             String            @id @default(cuid())
+  id             String      @id @default(cuid())
   meetingId      String
-  meeting        Meeting           @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-
-  // Linking to User allows both Student and UniversityRep (if needed as participant)
-  // But typically UniversityRep is the host (via createdByUniversityId)
-  // We'll stick to a generic participantUserId for flexibility
+  meeting        Meeting     @relation(fields: [meetingId], references: [id], onDelete: Cascade)
   participantUserId String
-  user           User              @relation(fields: [participantUserId], references: [id], onDelete: Cascade)
+  user           User        @relation(fields: [participantUserId], references: [id], onDelete: Cascade)
 
-  participantType String           @default("STUDENT") // "STUDENT", "UNIVERSITY_REP"
-  rsvpStatus     String            @default("INVITED") // "INVITED", "ACCEPTED", "DECLINED", "NO_RESPONSE"
-  role           String            @default("ATTENDEE") // "HOST", "ATTENDEE"
+  participantType String     @default("STUDENT")
+  rsvpStatus     String      @default("INVITED")
+  role           String      @default("ATTENDEE")
 
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   @@unique([meetingId, participantUserId])
 }
 
 model Notification {
-  id             String            @id @default(cuid())
+  id             String      @id @default(cuid())
   userId         String
-  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  type           String            // "MEETING_INVITE", "MEETING_UPDATE", "MEETING_CANCELED"
+  type           String
   title          String
   message        String
-  payload        Json?             // Flexible data (e.g. meetingId)
-  isRead         Boolean           @default(false)
+  payload        Json?
+  isRead         Boolean     @default(false)
   
-  createdAt      DateTime          @default(now())
+  createdAt      DateTime    @default(now())
 }
 
 model AvailabilitySlot {
-  id             String            @id @default(cuid())
+  id             String      @id @default(cuid())
   universityId   String
-  university     UniversityProfile @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  university     University  @relation(fields: [universityId], references: [id], onDelete: Cascade)
   
   startTime      DateTime
   endTime        DateTime
-  isBooked       Boolean           @default(false)
+  isBooked       Boolean     @default(false)
   
-  meetingId      String?           @unique
-  meeting        Meeting?          @relation(fields: [meetingId], references: [id])
+  meetingId      String?     @unique
+  meeting        Meeting?    @relation(fields: [meetingId], references: [id])
 
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   @@index([universityId])
   @@index([startTime])
 }
 
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  entityType String
+  entityId  String
+  actorId   String
+  actor     User     @relation(fields: [actorId], references: [id])
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
 
+model AdvisoryRequest {
+  id            String   @id @default(cuid())
+  studentId     String
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  targetDegree  String?
+  fieldOfInterest String?
+  targetCountry String?
+  budgetRange   String?
+  englishScore  String?
+  greGmatScore  String?
+  preferredTime String?
+  targetIntake  String?
+  openQuestion  String?  @db.Text
+
+  status        AdvisoryStatus @default(NEW)
+  adviserId     String?
+  adviser       User?    @relation("AdviserRequests", fields: [adviserId], references: [id], onDelete: SetNull)
+  
+  internalNotes String?  @db.Text
+  sessionLink   String?
+
+  createdAt     DateTime @default(now())
+  completedAt   DateTime?
+}
+
+// Preserve Enums for Feature Compatibility
 enum FieldCategory {
   Computer_Science  @map("Computer Science")
   Engineering
@@ -277,12 +348,6 @@ enum FieldCategory {
   Architecture
   Others
 }
-
-// Enums (handled as strings in SQLite usually, but good for validation)
-// DegreeLevel: Associate, Bachelor's, Master's, MBA, PhD, Certificate
-// FieldCategory: Computer Science, Engineering, Business, Data Science, Health Sciences, Social Sciences, Arts & Humanities, Law, Architecture, Others
-// Intake: Fall, Spring, Summer
-// EnglishTest: IELTS, TOEFL, Duolingo, PTE, Not Required
 
 enum InquiryStatus {
   NEW
@@ -306,7 +371,7 @@ model PublicInquiry {
   id        String   @id @default(cuid())
   fullName  String
   email     String
-  role      String   // Student, University, etc.
+  role      String
   country   String
   subject   String
   message   String
@@ -335,37 +400,4 @@ enum AdvisoryStatus {
   SCHEDULED
   COMPLETED
   FOLLOW_UP
-}
-
-model AdvisoryRequest {
-  id            String   @id @default(cuid())
-  studentId     String
-  student       StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  // Step 2: Goals (Captured in form, potentially redundant with profile but good for snapshot)
-  targetDegree  String?
-  fieldOfInterest String?
-  targetCountry String?
-  
-  // Readiness
-  budgetRange   String?
-  englishScore  String?
-  greGmatScore  String?
-
-  // Step 3: Logistics
-  preferredTime String? // e.g., "Weekday Mornings"
-  targetIntake  String? // e.g., "Fall 2026"
-  
-  openQuestion  String? @db.Text
-
-  // Status & Admin
-  status        AdvisoryStatus @default(NEW)
-  adviserId     String? // User ID of the admin/adviser
-  adviser       User?    @relation("AdviserRequests", fields: [adviserId], references: [id], onDelete: SetNull)
-  
-  internalNotes String? @db.Text
-  sessionLink   String? // Zoom/Meet link
-
-  createdAt     DateTime @default(now())
-  completedAt   DateTime?
 }

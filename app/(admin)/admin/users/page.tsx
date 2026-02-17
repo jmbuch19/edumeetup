@@ -15,8 +15,8 @@ export default async function AdminUsersPage() {
     const users = await prisma.user.findMany({
         orderBy: { createdAt: 'desc' },
         include: {
-            studentProfile: { select: { fullName: true } },
-            universityProfile: { select: { institutionName: true } }
+            student: { select: { fullName: true } },
+            university: { select: { institutionName: true } }
         }
     })
 
@@ -60,11 +60,11 @@ export default async function AdminUsersPage() {
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
-                                        {user.studentProfile?.fullName || user.universityProfile?.institutionName || '-'}
+                                        {user.student?.fullName || user.university?.institutionName || '-'}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={user.status === 'ACTIVE' ? 'outline' : 'destructive'} className={user.status === 'ACTIVE' ? 'text-green-600 border-green-200 bg-green-50' : ''}>
-                                            {user.status}
+                                        <Badge variant={user.isActive ? 'outline' : 'destructive'} className={user.isActive ? 'text-green-600 border-green-200 bg-green-50' : ''}>
+                                            {user.isActive ? 'ACTIVE' : 'INACTIVE'}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">

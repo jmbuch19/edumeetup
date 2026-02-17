@@ -5,7 +5,6 @@ const prisma = new PrismaClient()
 
 async function main() {
     const email = `teststudent_${Date.now()}@example.com`
-    const password = 'password123'
 
     console.log(`Testing with email: ${email}`)
 
@@ -17,10 +16,9 @@ async function main() {
         const user = await prisma.user.create({
             data: {
                 email,
-                password,
                 role: 'STUDENT',
                 status: 'ACTIVE',
-                studentProfile: {
+                student: {
                     create: {
                         fullName: 'Test Student',
                         country: 'India',
@@ -31,20 +29,22 @@ async function main() {
                     }
                 }
             },
-            include: { studentProfile: true }
+            include: { student: true }
         })
         console.log('1. Registration successful:', user.id)
 
         // 2. Verify Login Logic (Query)
+        // 2. Verify Login Logic (Query)
         const loginUser = await prisma.user.findUnique({ where: { email } })
-        if (loginUser && loginUser.password === password) {
-            console.log('2. Login verification successful')
+        if (loginUser) {
+            console.log('2. User creation successful')
         } else {
-            console.error('2. Login verification failed')
+            console.error('2. User missing')
         }
 
         // 3. Verify Dashboard Access (Check if profile exists)
-        if (user.studentProfile) {
+        // 3. Verify Dashboard Access (Check if profile exists)
+        if (user.student) {
             console.log('3. Student profile exists, dashboard should be accessible')
         } else {
             console.error('3. Student profile missing')

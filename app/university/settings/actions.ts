@@ -28,7 +28,7 @@ export async function updateUniversitySettings(formData: FormData) {
     const isPublic = formData.get('isPublic') === 'on'
 
     try {
-        await prisma.universityProfile.update({
+        await prisma.university.update({
             where: { userId },
             data: {
                 website,
@@ -57,7 +57,7 @@ export async function getUniversitySettings() {
     const session = await auth()
     if (!session || !session.user) return null
 
-    return await prisma.universityProfile.findUnique({
+    return await prisma.university.findUnique({
         where: { userId: session.user.id }
     })
 }

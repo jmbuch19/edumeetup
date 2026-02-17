@@ -1,4 +1,4 @@
-import { getUniversityMeetings } from '@/app/meeting-actions'
+import { getUniversityMeetings } from '@/app/actions'
 import MeetingList from '@/components/university/MeetingList'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'

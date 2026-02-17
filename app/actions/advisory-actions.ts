@@ -27,7 +27,7 @@ export async function createAdvisoryRequest(data: AdvisoryRequestData) {
     const user = await requireUser()
 
     // Ensure student profile exists
-    const student = await prisma.studentProfile.findUnique({
+    const student = await prisma.student.findUnique({
         where: { userId: user.id }
     })
 
@@ -57,7 +57,7 @@ export async function createAdvisoryRequest(data: AdvisoryRequestData) {
 
 export async function getStudentAdvisoryStatus() {
     const user = await requireUser()
-    const student = await prisma.studentProfile.findUnique({
+    const student = await prisma.student.findUnique({
         where: { userId: user.id },
         select: { id: true }
     })

@@ -2,7 +2,7 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AvailabilityForm from '@/components/meeting/AvailabilityForm'
-import { getAvailability } from '@/app/meeting-actions'
+import { getAvailability } from '@/app/actions'
 
 export default async function AvailabilityPage() {
     const session = await auth()

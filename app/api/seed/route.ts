@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { hashPassword } from '@/lib/auth'
+
 
 export async function GET() {
     try {
@@ -11,7 +11,7 @@ export async function GET() {
             update: {},
             create: {
                 email: adminEmail,
-                password: await hashPassword('password123'),
+                email: adminEmail,
                 role: 'ADMIN',
                 status: 'ACTIVE',
             },
@@ -21,10 +21,9 @@ export async function GET() {
         const adminEmail2 = 'admin@edumeetup.com'
         await prisma.user.upsert({
             where: { email: adminEmail2 },
-            update: { password: await hashPassword('admin123') },
+            update: {},
             create: {
                 email: adminEmail2,
-                password: await hashPassword('admin123'),
                 role: 'ADMIN',
                 status: 'ACTIVE'
             }
@@ -37,10 +36,10 @@ export async function GET() {
             update: {},
             create: {
                 email: studentEmail,
-                password: await hashPassword('password123'),
+                email: studentEmail,
                 role: 'STUDENT',
                 status: 'ACTIVE',
-                studentProfile: {
+                student: {
                     create: {
                         fullName: 'John Doe',
                         country: 'India',
@@ -68,10 +67,10 @@ export async function GET() {
             update: {},
             create: {
                 email: uniEmail,
-                password: await hashPassword('password123'),
+                email: uniEmail,
                 role: 'UNIVERSITY',
                 status: 'ACTIVE',
-                universityProfile: {
+                university: {
                     create: {
                         institutionName: 'Harvard University',
                         country: 'USA',
@@ -103,10 +102,10 @@ export async function GET() {
             update: {},
             create: {
                 email: pendingUniEmail,
-                password: await hashPassword('password123'),
+                email: pendingUniEmail,
                 role: 'UNIVERSITY',
-                status: 'ACTIVE',
-                universityProfile: {
+                isActive: true,
+                university: {
                     create: {
                         institutionName: 'Stanford University',
                         country: 'USA',

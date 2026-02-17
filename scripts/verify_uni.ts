@@ -4,13 +4,13 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-    const uni = await prisma.universityProfile.findFirst()
+    const uni = await prisma.university.findFirst()
     if (!uni) {
         console.log("No university found")
         return
     }
 
-    await prisma.universityProfile.update({
+    await prisma.university.update({
         where: { id: uni.id },
         data: { verificationStatus: 'VERIFIED' }
     })

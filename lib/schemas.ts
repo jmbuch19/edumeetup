@@ -2,12 +2,10 @@ import { z } from 'zod'
 
 export const loginSchema = z.object({
     email: z.string().email("Invalid email address"),
-    password: z.string().min(1, "Password is required")
 })
 
 export const registerStudentSchema = z.object({
     email: z.string().email(),
-    password: z.string().min(8, "Password must be at least 8 characters"),
     fullName: z.string().min(2, "Name too short"),
     country: z.string().min(2),
     gender: z.string(),
@@ -28,7 +26,6 @@ export const registerStudentSchema = z.object({
 
 export const registerUniversitySchema = z.object({
     email: z.string().email(),
-    password: z.string().min(8),
     institutionName: z.string().min(2),
     country: z.string().min(2),
     website: z.string().url().optional().or(z.literal('')),
@@ -57,7 +54,8 @@ export const createMeetingSchema = z.object({
     type: z.enum(["ONE_TO_ONE", "GROUP"]),
     joinUrl: z.string().url("Invalid meeting URL"),
     participants: z.array(z.string()).min(1, "At least one participant required"),
-    availabilitySlotId: z.string().optional()
+    availabilitySlotId: z.string().optional(),
+    agenda: z.string().optional()
 })
 
 export const supportTicketSchema = z.object({

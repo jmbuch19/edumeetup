@@ -8,7 +8,7 @@ export const EMAIL_STYLES = {
     },
 }
 
-export function generateEmailHtml(content: string): string {
+export function generateEmailHtml(title: string, content: string): string {
     return `
 <!DOCTYPE html>
 <html>
@@ -42,6 +42,7 @@ export function generateEmailHtml(content: string): string {
 
         <!-- BODY -->
         <div class="content">
+            <h1 style="font-size: 24px; color: ${EMAIL_STYLES.colors.primary}; margin-bottom: 20px; text-align: center;">${title}</h1>
             ${content}
         </div>
 

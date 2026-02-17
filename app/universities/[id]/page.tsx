@@ -1,4 +1,4 @@
-import { getSession } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -13,10 +13,11 @@ export default async function UniversityDetailPage({
 }) {
     // Await params before using
     const { id } = await params
-    const user = await getSession()
+    const session = await auth()
+    const user = session?.user
     const isLoggedIn = !!user
 
-    const university = await prisma.universityProfile.findUnique({
+    const university = await prisma.university.findUnique({
         where: { id },
         include: { programs: true }
     })

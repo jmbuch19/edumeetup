@@ -20,14 +20,14 @@ export const viewport = {
   userScalable: false,
 };
 
-import { getSession } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await getSession();
+  const session = await auth();
 
   return (
     <html lang="en">

@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { GraduationCap, LogOut, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { getSession } from "@/lib/auth"
+import { auth } from "@/lib/auth"
 import { logout } from "@/app/actions"
 import { prisma } from "@/lib/prisma"
 import { NotificationBell } from "@/components/notifications/notification-bell"
@@ -18,7 +18,8 @@ import { AuthButtons } from "./auth-buttons"
 import { MobileLoginButton, MobileSignUpItem } from "./mobile-auth-buttons"
 
 export async function Header() {
-    const user = await getSession()
+    const session = await auth()
+    const user = session?.user
 
     const notifications = user ? await prisma.notification.findMany({
         where: { userId: user.id },

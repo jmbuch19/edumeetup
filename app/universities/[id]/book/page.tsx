@@ -10,7 +10,7 @@ export default async function BookingPage({
 }) {
     const { id } = await params
 
-    const university = await prisma.universityProfile.findUnique({
+    const university = await prisma.university.findUnique({
         where: { id }
     })
 

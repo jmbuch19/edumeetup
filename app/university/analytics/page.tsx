@@ -12,7 +12,7 @@ export default async function UniversityAnalyticsPage() {
     }
 
     // Get University Profile
-    const uni = await prisma.universityProfile.findUnique({
+    const uni = await prisma.university.findUnique({
         where: { userId: session.user.id },
         include: {
             events: {

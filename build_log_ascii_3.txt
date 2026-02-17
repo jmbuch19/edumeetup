@@ -1,0 +1,238 @@
+
+> edumeetup-mvp@0.1.0 build
+> prisma generate --schema=./prisma/schema.prisma && next build --no-lint
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+
+✔ Generated Prisma Client (v5.22.0) to .\node_modules\@prisma\client in 199ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Want to react to database changes in your app as they happen? Discover how with Pulse: https://pris.ly/tip-1-pulse
+
+ ⚠ Linting is disabled.
+[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+  ▲ Next.js 14.2.35
+  - Environments: .env.local, .env
+  - Experiments (use with caution):
+    · instrumentationHook
+
+   Creating an optimized production build ...
+[@sentry/nextjs] It appears you've configured a `sentry.server.config.ts` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.server.config.ts` file afterward.
+[@sentry/nextjs] It seems like you don't have a global error handler set up. It is recommended that you add a 'global-error.js' file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)
+[@sentry/nextjs] It appears you've configured a `sentry.edge.config.ts` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.edge.config.ts` file afterward.
+[@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your `sentry.client.config.ts` file, or moving its content to `instrumentation-client.ts`. When using Turbopack `sentry.client.config.ts` will no longer work. Read more about the `instrumentation-client.ts` file: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client
+ ✓ Compiled successfully
+   Skipping validation of types
+   Collecting page data ...
+   Generating static pages (0/51) ...
+Cron job failed: TypeError: Cannot read properties of undefined (reading 'findMany')
+    at d (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\.next\server\app\api\cron\complete-meetings\route.js:1:3409)
+    at C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\@opentelemetry\api\build\src\context\NoopContextManager.js:25:19)
+    at ContextAPI.with (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\@opentelemetry\api\build\src\api\context.js:60:46)
+    at NoopTracer.startActiveSpan (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\@opentelemetry\api\build\src\trace\NoopTracer.js:65:31)
+    at ProxyTracer.startActiveSpan (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\@opentelemetry\api\build\src\trace\ProxyTracer.js:36:24)
+    at C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\next\dist\server\lib\trace\tracer.js:122:103
+    at NoopContextManager.with (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\@opentelemetry\api\build\src\context\NoopContextManager.js:25:19)
+    at ContextAPI.with (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\@opentelemetry\api\build\src\api\context.js:60:46)
+   Generating static pages (12/51) 
+TypeError: Cannot read properties of undefined (reading 'findMany')
+    at r (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\.next\server\chunks\4333.js:1:7810)
+    at g (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\.next\server\app\events\page.js:1:2750)
+    at C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\.next\server\chunks\1967.js:19:74029
+    at g.handleCallbackErrors (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\.next\server\chunks\1967.js:19:5586)
+    at Object.apply (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\.next\server\chunks\1967.js:19:74002)
+    at Object.apply (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\.next\server\app\events\page.js:1:4860)
+    at em (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:134808)
+    at e (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:137693)
+    at e_ (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:138168)
+    at Array.toJSON (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:135777) {
+  digest: '3703470167'
+}
+TypeError: Cannot read properties of undefined (reading 'findMany')
+    at r (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\.next\server\chunks\4333.js:1:7810)
+    at g (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\.next\server\app\events\page.js:1:2750)
+    at C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\.next\server\chunks\1967.js:19:74029
+    at g.handleCallbackErrors (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\.next\server\chunks\1967.js:19:5586)
+    at Object.apply (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\.next\server\chunks\1967.js:19:74002)
+    at Object.apply (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\.next\server\app\events\page.js:1:4860)
+    at em (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:134808)
+    at e (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:137693)
+    at e_ (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:138168)
+    at Array.toJSON (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:135777) {
+  digest: '3703470167'
+}
+   Generating static pages (25/51) 
+   Generating static pages (38/51) 
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+{
+  where: {
+    email: "jaydeep@edumeetup.com"
+  },
+  update: {},
+  create: {
+    email: "jaydeep@edumeetup.com",
+    role: "ADMIN",
+    status: "ACTIVE",
+    ~~~~~~
+?   id?: String,
+?   name?: String | Null,
+?   emailVerified?: DateTime | Null,
+?   image?: String | Null,
+?   isActive?: Boolean,
+?   createdAt?: DateTime,
+?   updatedAt?: DateTime,
+?   accounts?: AccountCreateNestedManyWithoutUserInput,
+?   sessions?: SessionCreateNestedManyWithoutUserInput,
+?   student?: StudentCreateNestedOneWithoutUserInput,
+?   university?: UniversityCreateNestedOneWithoutUserInput,
+?   supportTickets?: SupportTicketCreateNestedManyWithoutUserInput,
+?   notifications?: NotificationCreateNestedManyWithoutUserInput,
+?   meetingParticipants?: MeetingParticipantCreateNestedManyWithoutUserInput,
+?   auditLogs?: AuditLogCreateNestedManyWithoutActorInput,
+?   advisedRequests?: AdvisoryRequestCreateNestedManyWithoutAdviserInput
+  }
+}
+
+Unknown argument `status`. Available options are marked with ?.
+Seeding failed: PrismaClientValidationError: 
+Invalid `prisma.user.upsert()` invocation:
+
+{
+  where: {
+    email: "jaydeep@edumeetup.com"
+  },
+  update: {},
+  create: {
+    email: "jaydeep@edumeetup.com",
+    role: "ADMIN",
+    status: "ACTIVE",
+    ~~~~~~
+?   id?: String,
+?   name?: String | Null,
+?   emailVerified?: DateTime | Null,
+?   image?: String | Null,
+?   isActive?: Boolean,
+?   createdAt?: DateTime,
+?   updatedAt?: DateTime,
+?   accounts?: AccountCreateNestedManyWithoutUserInput,
+?   sessions?: SessionCreateNestedManyWithoutUserInput,
+?   student?: StudentCreateNestedOneWithoutUserInput,
+?   university?: UniversityCreateNestedOneWithoutUserInput,
+?   supportTickets?: SupportTicketCreateNestedManyWithoutUserInput,
+?   notifications?: NotificationCreateNestedManyWithoutUserInput,
+?   meetingParticipants?: MeetingParticipantCreateNestedManyWithoutUserInput,
+?   auditLogs?: AuditLogCreateNestedManyWithoutActorInput,
+?   advisedRequests?: AdvisoryRequestCreateNestedManyWithoutAdviserInput
+  }
+}
+
+Unknown argument `status`. Available options are marked with ?.
+    at wn (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async c (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\.next\server\app\api\seed\route.js:1:3396)
+    at async C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38411
+    at async e_.execute (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:27880)
+    at async e_.handle (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:39943)
+    at async exportAppRoute (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\next\dist\export\routes\app-route.js:77:26) {
+  clientVersion: '5.22.0'
+}
+prisma:error 
+Invalid `prisma.university.findMany()` invocation:
+
+
+The column `University.institutionName` does not exist in the current database.
+PrismaClientKnownRequestError: 
+Invalid `prisma.university.findMany()` invocation:
+
+
+The column `University.institutionName` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async h (C:\Users\JAYDEEP\.gemini\antigravity\scratch\edumeetup-mvp\.next\server\app\(admin)\admin\universities\page.js:1:4911) {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'University', column: 'University.institutionName' },
+  digest: '1265804090'
+}
+ ✓ Generating static pages (51/51)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ƒ /                                    9.44 kB         176 kB
+├ ƒ /_not-found                          364 B           156 kB
+├ ƒ /about                               365 B           156 kB
+├ ƒ /admin/advisory                      414 B           159 kB
+├ ƒ /admin/advisory/[id]                 2.11 kB         199 kB
+├ ƒ /admin/dashboard                     365 B           156 kB
+├ ƒ /admin/overview                      364 B           156 kB
+├ ƒ /admin/universities                  413 B           159 kB
+├ ƒ /admin/users                         359 B           156 kB
+├ ƒ /api/admin/suspicious-students       0 B                0 B
+├ ƒ /api/auth/[...nextauth]              0 B                0 B
+├ ƒ /api/auth/send-magic-link            0 B                0 B
+├ ƒ /api/chat                            0 B                0 B
+├ ƒ /api/cron/complete-meetings          0 B                0 B
+├ ƒ /api/seed                            0 B                0 B
+├ ○ /api/setup-admin                     0 B                0 B
+├ ƒ /api/test-email                      0 B                0 B
+├ ƒ /auth-error                          3.34 kB         170 kB
+├ ƒ /auth/error                          2.79 kB         169 kB
+├ ƒ /auth/verify-request                 413 B           159 kB
+├ ƒ /contact                             4.03 kB         178 kB
+├ ƒ /contact/success                     413 B           159 kB
+├ ƒ /events                              413 B           159 kB
+├ ƒ /events/[id]                         1.64 kB         168 kB
+├ ○ /health                              0 B                0 B
+├ ƒ /login                               3.94 kB         174 kB
+├ ƒ /onboarding                          413 B           159 kB
+├ ƒ /privacy                             365 B           156 kB
+├ ƒ /student/dashboard                   12.6 kB         183 kB
+├ ƒ /student/meetings                    2.83 kB         185 kB
+├ ƒ /student/profile                     4.91 kB         209 kB
+├ ƒ /student/register                    7.47 kB         183 kB
+├ ƒ /student/register/success            414 B           159 kB
+├ ƒ /support                             414 B           159 kB
+├ ƒ /support/success                     414 B           159 kB
+├ ƒ /support/tickets                     413 B           159 kB
+├ ƒ /support/tickets/[id]                413 B           159 kB
+├ ƒ /terms                               413 B           159 kB
+├ ƒ /universities                        413 B           159 kB
+├ ƒ /universities/[id]                   413 B           159 kB
+├ ƒ /universities/[id]/book              5.07 kB         172 kB
+├ ƒ /university-login                    4.66 kB         174 kB
+├ ƒ /university/analytics                364 B           156 kB
+├ ƒ /university/availability             5.29 kB         200 kB
+├ ƒ /university/dashboard                118 kB          307 kB
+├ ƒ /university/dashboard/availability   20.6 kB         213 kB
+├ ƒ /university/dashboard/calendar       6.57 kB         220 kB
+├ ƒ /university/events                   414 B           159 kB
+├ ƒ /university/events/new               3.42 kB         168 kB
+├ ƒ /university/meetings                 6.47 kB         190 kB
+├ ƒ /university/register                 9.41 kB         183 kB
+├ ƒ /university/register/success         414 B           159 kB
+├ ƒ /university/reps                     3.29 kB         181 kB
+├ ƒ /university/settings                 3.25 kB         167 kB
+└ ƒ /verify-request                      413 B           159 kB
++ First Load JS shared by all            156 kB
+  ├ chunks/725-5acfe7d4da46ae0b.js       99.4 kB
+  ├ chunks/fd9d1056-6bbce26b3f6ab6b3.js  53.8 kB
+  └ other shared chunks (total)          2.97 kB
+
+
+ƒ Middleware                             33.4 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

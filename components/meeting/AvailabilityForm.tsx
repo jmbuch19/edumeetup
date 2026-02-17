@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Loader2, Save, Trash2 } from 'lucide-react'
-import { updateAvailability } from '@/app/meeting-actions'
+import { updateAvailability } from '@/app/actions'
 import { Label } from '@/components/ui/label'
 
 interface AvailabilityFormProps {

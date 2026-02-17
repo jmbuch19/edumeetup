@@ -20,7 +20,7 @@ export async function getUniversityMetrics() {
     let universityId = null
 
     // Check linkage
-    const profile = await prisma.universityProfile.findUnique({ where: { userId } })
+    const profile = await prisma.university.findUnique({ where: { userId } })
     if (profile) universityId = profile.id
     // If rep?
     if (!universityId) {

@@ -1,6 +1,6 @@
 
 import Link from "next/link"
-import { getSession } from "@/lib/auth"
+import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { LayoutDashboard, Users, School, LogOut, Ticket, LucideIcon } from "lucide-react"
@@ -12,9 +12,9 @@ export default async function AdminLayout({
 }: {
     children: React.ReactNode
 }) {
-    const session = await getSession()
+    const session = await auth()
 
-    if (!session || session.role !== 'ADMIN') {
+    if (!session?.user || session.user.role !== 'ADMIN') {
         redirect('/login')
     }
 
@@ -45,7 +45,7 @@ export default async function AdminLayout({
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-900 truncate">Admin</p>
-                            <p className="text-xs text-gray-500 truncate">{session.email}</p>
+                            <p className="text-xs text-gray-500 truncate">{session.user?.email}</p>
                         </div>
                     </div>
                     <form action={logout}>

@@ -8,9 +8,16 @@ import { GraduationCap, Loader2 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import { toast } from 'sonner'
-import { PasswordStrength } from '@/components/ui/password-strength'
 
-const initialState = {
+
+interface State {
+    error?: string | null | any
+    success?: boolean
+    email?: string
+    message?: string
+}
+
+const initialState: State = {
     error: null,
 }
 
@@ -32,16 +39,36 @@ function SubmitButton() {
 
 export default function StudentRegisterPage() {
     const [phone, setPhone] = useState({ code: '+1', number: '' })
-    const [password, setPassword] = useState('')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [state, formAction] = useFormState(registerStudent as any, initialState)
     const formRef = useRef<HTMLFormElement>(null)
 
     useEffect(() => {
+        const handleSuccess = async (email: string) => {
+            try {
+                toast.loading("Sending login link...")
+                const res = await fetch("/api/auth/send-magic-link", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, loginType: 'student' }),
+                })
+
+                if (!res.ok) throw new Error("Failed to send magic link")
+
+                toast.success("Account created! Check your email to login.")
+                // Redirect to verify request page
+                window.location.href = `/auth/verify-request?email=${encodeURIComponent(email)}`
+            } catch (error) {
+                toast.error("Account created, but failed to send link. Please login manually.")
+            }
+        }
+
         if (state?.error) {
             // Handle specific field errors or general errors
             const msg = typeof state.error === 'string' ? state.error : "Please check the form for errors."
             toast.error(msg)
+        } else if (state?.success && state?.email) {
+            handleSuccess(state.email)
         }
     }, [state])
 
@@ -76,19 +103,6 @@ export default function StudentRegisterPage() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
                                 <Input name="email" type="email" required placeholder="john@example.com" />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                                <Input
-                                    name="password"
-                                    type="password"
-                                    required
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                />
-                                <PasswordStrength password={password} />
                             </div>
 
 
@@ -463,7 +477,7 @@ export default function StudentRegisterPage() {
                         Sign in
                     </Link>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     )
 }

@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache"
 
 export async function setAvailability(slots: { startTime: Date, endTime: Date }[]) {
     const user = await requireRole('UNIVERSITY')
-    const university = await prisma.universityProfile.findUnique({
+    const university = await prisma.university.findUnique({
         where: { userId: user.id }
     })
 
@@ -49,7 +49,7 @@ export async function getAvailability(universityId: string) {
 
 export async function deleteAvailabilitySlot(slotId: string) {
     const user = await requireRole('UNIVERSITY')
-    const university = await prisma.universityProfile.findUnique({
+    const university = await prisma.university.findUnique({
         where: { userId: user.id }
     })
 
@@ -96,7 +96,7 @@ export async function requestFollowUp(meetingId: string) {
     }
 
     // 2. Create a notification for the university
-    const uniProfile = await prisma.universityProfile.findUnique({
+    const uniProfile = await prisma.university.findUnique({
         where: { id: meeting.createdByUniversityId }
     })
 

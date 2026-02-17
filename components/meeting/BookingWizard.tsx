@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Calendar, Clock, CheckCircle } from 'lucide-react'
-import { getAvailableSlots, createMeetingRequest } from '@/app/meeting-actions'
+import { getAvailableSlots, createMeetingRequest } from '@/app/actions'
 import { Loader2 } from 'lucide-react'
 
 export default function BookingWizard({ universityId, universityName }: { universityId: string, universityName: string }) {

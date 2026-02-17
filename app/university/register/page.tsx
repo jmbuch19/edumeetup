@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { PasswordStrength } from '@/components/ui/password-strength'
+
 import { Input } from '@/components/ui/input'
 
 import { School, ChevronRight, Plus, Trash2, CheckCircle, ArrowLeft } from 'lucide-react'
@@ -40,7 +40,6 @@ export default function UniversityRegisterPage() {
         // Step 1: Basic Info
         institutionName: '',
         email: '',
-        password: '',
         country: '',
         city: '',
         website: '',
@@ -142,9 +141,24 @@ export default function UniversityRegisterPage() {
                 setError(result.error)
                 toast.error(result.error)
                 setLoading(false)
-            } else {
-                toast.success("Registration successful!")
-                // Success handled by redirect in action
+            } else if (result?.success && result?.email) {
+                // Success - Send Magic Link
+                try {
+                    toast.loading("Sending login link...")
+                    const res = await fetch("/api/auth/send-magic-link", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: result.email, loginType: 'university' }),
+                    })
+
+                    if (!res.ok) throw new Error("Failed to send magic link")
+
+                    toast.success("Registration successful! Check your email.")
+                    window.location.href = `/auth/verify-request?email=${encodeURIComponent(result.email)}`
+                } catch (error) {
+                    toast.error("Registration successful, but failed to send link. Please login manually.")
+                    setLoading(false)
+                }
             }
         } catch {
             setError("Something went wrong")
@@ -224,11 +238,7 @@ export default function UniversityRegisterPage() {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Rep Email (Login) *</label>
                                     <Input name="email" value={formData.email} onChange={handleInputChange} type="email" placeholder="john.doe@university.edu" required />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                                    <Input name="password" value={formData.password} onChange={handleInputChange} type="password" placeholder="••••••••" required />
-                                    <PasswordStrength password={formData.password} />
-                                </div>
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Contact Phone *</label>
                                     <div className="flex gap-2">

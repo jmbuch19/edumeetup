@@ -10,7 +10,7 @@ export default async function StudentDashboard() {
     const user = await requireUser()
     const email = user.email
 
-    const student = await prisma.studentProfile.findFirst({
+    const student = await prisma.student.findFirst({
         where: { user: { email } },
         include: { user: true }
     })
@@ -55,7 +55,7 @@ export default async function StudentDashboard() {
     })
 
     // Fallback: Recommended Universities
-    const recommendedUniversities = await prisma.universityProfile.findMany({
+    const recommendedUniversities = await prisma.university.findMany({
         where: { verificationStatus: 'VERIFIED' },
         take: 3,
         include: { programs: true }

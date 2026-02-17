@@ -1,20 +1,26 @@
 import { Button } from "@/components/ui/button"
 import { createSupportTicket } from "@/app/actions"
 import { redirect } from "next/navigation"
-import { getSession } from "@/lib/auth"
+import { auth } from "@/lib/auth"
 import Link from 'next/link'
+
+import { prisma } from "@/lib/prisma"
 
 export default async function SupportPage() {
     // 1. Check Session
-    const user = await getSession()
+    const session = await auth()
+    const user = session?.user
 
     if (!user) {
         redirect('/login?next=/support')
     }
 
-    if (!user) redirect('/login')
+    const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: { student: true, university: true }
+    })
 
-    const userName = user.studentProfile?.fullName || user.universityProfile?.institutionName || "User"
+    const userName = dbUser?.student?.fullName || dbUser?.university?.institutionName || user.name || "User"
     const userRole = user.role
 
     async function action(formData: FormData) {

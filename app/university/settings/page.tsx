@@ -10,7 +10,7 @@ export default async function SettingsPage() {
     }
 
     const userId = session.user.id
-    const settings = await prisma.universityProfile.findUnique({
+    const settings = await prisma.university.findUnique({
         where: { userId }
     })
 

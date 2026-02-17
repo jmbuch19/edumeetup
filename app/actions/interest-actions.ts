@@ -24,7 +24,7 @@ export type InterestedStudent = {
 
 export async function getProgramInterestStats(programId: string): Promise<InterestStats> {
     const user = await requireUser()
-    const uni = await prisma.universityProfile.findUnique({ where: { userId: user.id } })
+    const uni = await prisma.university.findUnique({ where: { userId: user.id } })
     if (!uni) throw new Error("Unauthorized")
 
     // Verify program belongs to uni
@@ -65,7 +65,7 @@ export async function getProgramInterestStats(programId: string): Promise<Intere
 
 export async function getInterestedStudents(programId: string): Promise<InterestedStudent[]> {
     const user = await requireUser()
-    const uni = await prisma.universityProfile.findUnique({ where: { userId: user.id } })
+    const uni = await prisma.university.findUnique({ where: { userId: user.id } })
     if (!uni) throw new Error("Unauthorized")
 
     // Verify program belongs to uni
@@ -111,7 +111,7 @@ export async function getInterestedStudents(programId: string): Promise<Interest
 
 export async function sendBulkNotification(programId: string, subject: string, message: string) {
     const user = await requireUser()
-    const uni = await prisma.universityProfile.findUnique({ where: { userId: user.id } })
+    const uni = await prisma.university.findUnique({ where: { userId: user.id } })
     if (!uni) throw new Error("Unauthorized")
 
     // Verify program belongs to uni

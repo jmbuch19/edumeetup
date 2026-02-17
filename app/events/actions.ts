@@ -45,7 +45,7 @@ export async function registerForEvent(eventId: string) {
     }
 
     // Check if student profile exists
-    const student = await prisma.studentProfile.findUnique({
+    const student = await prisma.student.findUnique({
         where: { userId: session.user.id }
     })
 
@@ -101,7 +101,7 @@ export async function getUniversityEvents() {
 
     const userId = session.user.id
     // Find uni id
-    const profile = await prisma.universityProfile.findUnique({ where: { userId } })
+    const profile = await prisma.university.findUnique({ where: { userId } })
 
     let universityId = profile?.id
 
@@ -135,7 +135,7 @@ export async function createEvent(formData: FormData) {
 
     const userId = session.user.id
     let universityId = null
-    const profile = await prisma.universityProfile.findUnique({ where: { userId } })
+    const profile = await prisma.university.findUnique({ where: { userId } })
     if (profile) universityId = profile.id
     else {
         const user = await prisma.user.findUnique({ where: { id: userId } }) as any

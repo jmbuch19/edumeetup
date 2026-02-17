@@ -16,14 +16,14 @@ export default async function AdminDashboard() {
 
     // Stats
     const stats = {
-        totalStudents: await prisma.studentProfile.count(),
-        totalUniversities: await prisma.universityProfile.count(),
-        verifiedUniversities: await prisma.universityProfile.count({ where: { verificationStatus: 'VERIFIED' } }),
-        pendingUniversities: await prisma.universityProfile.count({ where: { verificationStatus: 'PENDING' } }),
+        totalStudents: await prisma.student.count(),
+        totalUniversities: await prisma.university.count(),
+        verifiedUniversities: await prisma.university.count({ where: { verificationStatus: 'VERIFIED' } }),
+        pendingUniversities: await prisma.university.count({ where: { verificationStatus: 'PENDING' } }),
         totalInterests: await prisma.interest.count(),
     }
 
-    const pendingUniversities = await prisma.universityProfile.findMany({
+    const pendingUniversities = await prisma.university.findMany({
         where: { verificationStatus: 'PENDING' },
         include: { user: true } // to get email
     })

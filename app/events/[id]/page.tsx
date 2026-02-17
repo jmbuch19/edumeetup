@@ -19,7 +19,7 @@ export default async function EventDetailsPage(props: any) {
     // Check if user is registered
     let isRegistered = false
     if (session && session.user && (session.user as any).role === 'STUDENT') {
-        const student = await prisma.studentProfile.findUnique({ where: { userId: session.user.id } })
+        const student = await prisma.student.findUnique({ where: { userId: session.user.id } })
         if (student) {
             const registration = await prisma.eventRegistration.findUnique({
                 where: {

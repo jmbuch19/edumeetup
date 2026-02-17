@@ -18,7 +18,7 @@ export default async function UniversityDashboard() {
     const user = await requireUser()
     const email = user.email
 
-    const uni = await prisma.universityProfile.findFirst({
+    const uni = await prisma.university.findFirst({
         where: { user: { email } },
         include: {
             programs: {
@@ -77,7 +77,7 @@ export default async function UniversityDashboard() {
     const programFields = uni.programs.map(p => p.fieldCategory).filter(Boolean)
     const uniqueFields = Array.from(new Set(programFields))
 
-    const matchedStudents = await prisma.studentProfile.findMany({
+    const matchedStudents = await prisma.student.findMany({
         where: {
             fieldOfInterest: { in: uniqueFields },
             // Exclude if already interested? Maybe, or just mark them. 

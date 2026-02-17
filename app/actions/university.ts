@@ -20,7 +20,7 @@ export async function searchUniversities({
     const skip = (page - 1) * pageSize
 
     try {
-        const where: Prisma.UniversityProfileWhereInput = {
+        const where: Prisma.UniversityWhereInput = {
             verificationStatus: 'VERIFIED'
         }
 
@@ -49,8 +49,8 @@ export async function searchUniversities({
 
         // Execute Query
         const [total, universities] = await Promise.all([
-            prisma.universityProfile.count({ where }),
-            prisma.universityProfile.findMany({
+            prisma.university.count({ where }),
+            prisma.university.findMany({
                 where,
                 include: {
                     user: { select: { email: true } }, // Minimal user info

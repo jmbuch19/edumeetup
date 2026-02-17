@@ -1,0 +1,78 @@
+
+> edumeetup-mvp@0.1.0 build
+> prisma generate --schema=./prisma/schema.prisma && next build --no-lint
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+
+✔ Generated Prisma Client (v5.22.0) to .\node_modules\@prisma\client in 152ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Want real-time updates to your database without manual polling? Discover how with Pulse: https://pris.ly/tip-0-pulse
+
+ ⚠ Linting is disabled.
+[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+  ▲ Next.js 14.2.35
+  - Environments: .env.local, .env
+  - Experiments (use with caution):
+    · instrumentationHook
+
+   Creating an optimized production build ...
+[@sentry/nextjs] It appears you've configured a `sentry.server.config.ts` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.server.config.ts` file afterward.
+[@sentry/nextjs] It seems like you don't have a global error handler set up. It is recommended that you add a 'global-error.js' file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)
+[@sentry/nextjs] It appears you've configured a `sentry.edge.config.ts` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.edge.config.ts` file afterward.
+[@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your `sentry.client.config.ts` file, or moving its content to `instrumentation-client.ts`. When using Turbopack `sentry.client.config.ts` will no longer work. Read more about the `instrumentation-client.ts` file: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client
+Failed to compile.
+
+./app/student/meetings/page.tsx
+Module not found: Can't resolve '@/app/meeting-actions'
+
+https://nextjs.org/docs/messages/module-not-found
+
+./app/university/availability/page.tsx
+Module not found: Can't resolve '@/app/meeting-actions'
+
+https://nextjs.org/docs/messages/module-not-found
+
+./components/meeting/AvailabilityForm.tsx:10:1
+Module not found: Can't resolve '@/app/meeting-actions'
+[0m [90m  8 |[39m [36mimport[39m { [33mCard[39m[33m,[39m [33mCardContent[39m[33m,[39m [33mCardHeader[39m[33m,[39m [33mCardTitle[39m[33m,[39m [33mCardDescription[39m } [36mfrom[39m [32m'@/components/ui/card'[39m[0m
+[0m [90m  9 |[39m [36mimport[39m { [33mLoader2[39m[33m,[39m [33mSave[39m[33m,[39m [33mTrash2[39m } [36mfrom[39m [32m'lucide-react'[39m[0m
+[0m[31m[1m>[22m[39m[90m 10 |[39m [36mimport[39m { updateAvailability } [36mfrom[39m [32m'@/app/meeting-actions'[39m[0m
+[0m [90m    |[39m [31m[1m^[22m[39m[0m
+[0m [90m 11 |[39m [36mimport[39m { [33mLabel[39m } [36mfrom[39m [32m'@/components/ui/label'[39m[0m
+[0m [90m 12 |[39m[0m
+[0m [90m 13 |[39m [36minterface[39m [33mAvailabilityFormProps[39m {[0m
+
+https://nextjs.org/docs/messages/module-not-found
+
+./components/meeting/BookingWizard.tsx:9:1
+Module not found: Can't resolve '@/app/meeting-actions'
+[0m [90m  7 |[39m [36mimport[39m { [33mLabel[39m } [36mfrom[39m [32m'@/components/ui/label'[39m[0m
+[0m [90m  8 |[39m [36mimport[39m { [33mCalendar[39m[33m,[39m [33mClock[39m[33m,[39m [33mCheckCircle[39m } [36mfrom[39m [32m'lucide-react'[39m[0m
+[0m[31m[1m>[22m[39m[90m  9 |[39m [36mimport[39m { getAvailableSlots[33m,[39m createMeetingRequest } [36mfrom[39m [32m'@/app/meeting-actions'[39m[0m
+[0m [90m    |[39m [31m[1m^[22m[39m[0m
+[0m [90m 10 |[39m [36mimport[39m { [33mLoader2[39m } [36mfrom[39m [32m'lucide-react'[39m[0m
+[0m [90m 11 |[39m[0m
+[0m [90m 12 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mBookingWizard[39m({ universityId[33m,[39m universityName }[33m:[39m { universityId[33m:[39m string[33m,[39m universityName[33m:[39m string }) {[0m
+
+https://nextjs.org/docs/messages/module-not-found
+
+./components/meeting/RescheduleModal.tsx:9:1
+Module not found: Can't resolve '@/app/meeting-actions'
+[0m [90m  7 |[39m [36mimport[39m { [33mLabel[39m } [36mfrom[39m [32m'@/components/ui/label'[39m[0m
+[0m [90m  8 |[39m [36mimport[39m { [33mTextarea[39m } [36mfrom[39m [32m'@/components/ui/textarea'[39m[0m
+[0m[31m[1m>[22m[39m[90m  9 |[39m [36mimport[39m { proposeReschedule } [36mfrom[39m [32m'@/app/meeting-actions'[39m[0m
+[0m [90m    |[39m [31m[1m^[22m[39m[0m
+[0m [90m 10 |[39m [36mimport[39m { [33mCalendar[39m[33m,[39m [33mLoader2[39m } [36mfrom[39m [32m'lucide-react'[39m[0m
+[0m [90m 11 |[39m[0m
+[0m [90m 12 |[39m [36minterface[39m [33mRescheduleModalProps[39m {[0m
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./components/student/StudentMeetingList.tsx
+
+
+> Build failed because of webpack errors

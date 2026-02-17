@@ -14,7 +14,7 @@ import { Eye, ExternalLink } from "lucide-react"
 import Link from "next/link"
 
 export default async function AdminUniversitiesPage() {
-    const universities = await prisma.universityProfile.findMany({
+    const universities = await prisma.university.findMany({
         orderBy: { verificationStatus: 'asc' }, // Pending first
         include: {
             programs: true,

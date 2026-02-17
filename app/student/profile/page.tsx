@@ -14,7 +14,7 @@ export default async function StudentProfilePage() {
         redirect('/')
     }
 
-    const student = await prisma.studentProfile.findFirst({
+    const student = await prisma.student.findFirst({
         where: { userId: user.id }
     })
 

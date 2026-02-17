@@ -12,7 +12,7 @@ export async function GET() {
 
     try {
         // Fetch students with any location mismatch
-        const suspicious = await prisma.studentProfile.findMany({
+        const suspicious = await prisma.student.findMany({
             where: {
                 OR: [
                     { cityMismatch: true },

@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-    const unis = await prisma.universityProfile.findMany({
+    const unis = await prisma.university.findMany({
         include: { programs: true }
     })
 
@@ -25,8 +25,8 @@ async function main() {
 
     unis.forEach(u => {
         u.programs.forEach(p => {
-            if (p.tuitionFee > 150000) highTuitionCount++
-            if (p.tuitionFee < 1000) lowTuitionCount++
+            if ((p.tuitionFee ?? 0) > 150000) highTuitionCount++
+            if ((p.tuitionFee ?? 0) < 1000) lowTuitionCount++
             if (!p.englishTests || p.englishTests === '') noEnglishCount++
         })
     })

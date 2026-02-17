@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Calendar, Clock, MapPin, Video, CheckCircle, XCircle, AlertCircle, User } from 'lucide-react'
-import { updateMeetingStatus } from '@/app/meeting-actions'
+import { updateMeetingStatus } from '@/app/actions'
 import { useRouter } from 'next/navigation'
 import { RescheduleModal } from '@/components/meeting/RescheduleModal'
 

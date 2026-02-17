@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 export default async function CalendarPage() {
     const user = await requireRole('UNIVERSITY')
 
-    const university = await prisma.universityProfile.findUnique({
+    const university = await prisma.university.findUnique({
         where: { userId: user.id }
     })
 

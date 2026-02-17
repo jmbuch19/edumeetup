@@ -18,9 +18,8 @@ export async function GET() {
         const admin = await prisma.user.create({
             data: {
                 email: adminEmail,
-                password: "adminpassword123", // Change immediately!
                 role: "ADMIN",
-                status: "ACTIVE"
+                isActive: true
             }
         })
 

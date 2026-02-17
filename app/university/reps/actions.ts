@@ -14,7 +14,7 @@ export async function getUniversityReps() {
     const userId = session.user.id
 
     // Get the university profile ID first
-    const profile = await prisma.universityProfile.findUnique({
+    const profile = await prisma.university.findUnique({
         where: { userId },
         select: { id: true }
     })
@@ -62,7 +62,7 @@ export async function createRep(formData: FormData) {
     }
 
     const userId = session.user.id
-    const profile = await prisma.universityProfile.findUnique({
+    const profile = await prisma.university.findUnique({
         where: { userId },
         select: { id: true }
     })
@@ -99,7 +99,7 @@ export async function toggleRepStatus(repId: string, currentStatus: string) {
 
     // Verify ownership (rep belongs to this uni)
     const userId = session.user.id
-    const profile = await prisma.universityProfile.findUnique({
+    const profile = await prisma.university.findUnique({
         where: { userId },
         select: { id: true }
     })
