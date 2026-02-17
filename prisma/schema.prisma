@@ -60,10 +60,20 @@ model StudentProfile {
   gender            String?  // "Male", "Female", "Prefer not to say"
   ageGroup          String?  // "Under 20", "21-25", "26-30", "31+"
   country           String?
-  phoneNumber       String? // Optional override or detailed storage
-  currentStatus     String? // "Grade12", "BachelorFinalYear", "BachelorCompleted", "MasterCompleted", "WorkingProfessional"
-  city              String?
   pincode           String?
+  
+  // IP Tracking & Verification
+  ipAddress         String?   // Raw IP address
+  ipCity            String?   // City from IP lookup
+  ipRegion          String?   // State/Region from IP lookup
+  ipCountry         String?   // Country from IP lookup
+  ipPincode         String?   // Pincode from IP lookup
+  ipLatitude        String?
+  ipLongitude       String?
+  ipIsp             String?   // Internet Service Provider (e.g. Airtel, Jio)
+  
+  cityMismatch      Boolean   @default(false)
+  pincodeMismatch   Boolean   @default(false)
   
   // Section B: Study Preference
   fieldOfInterest   String? // Enum: Computer Science, Engineering, etc.

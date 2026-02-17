@@ -13,6 +13,7 @@ import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateL
 import { headers } from 'next/headers'
 import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema, studentProfileSchema } from '@/lib/schemas'
 import { createNotification } from '@/lib/notifications'
+import { getIpFromHeaders, getIpGeoInfo } from '@/lib/getIpInfo'
 
 interface ProgramData {
     programName: string
@@ -72,12 +73,27 @@ export async function registerStudent(prevState: any, formData: FormData) {
     }
 
     // RATE LIMIT (By IP)
-    const ip = headers().get('x-forwarded-for') || 'unknown'
+    const ip = getIpFromHeaders()
     if (!registerRateLimiter.check(ip)) {
         return { error: 'Too many registration attempts. Please try again later.' }
     }
 
     try {
+        // IP Tracking & Geo-Verification
+        const ipInfo = await getIpGeoInfo(ip)
+
+        // Mismatch Detection
+        const userCity = (formData.get('city') as string)?.trim() || ''
+        const userPincode = (formData.get('pincode') as string)?.trim() || ''
+
+        const cityMismatch = userCity && ipInfo.city
+            ? userCity.toLowerCase() !== ipInfo.city.toLowerCase()
+            : false
+
+        const pincodeMismatch = userPincode && ipInfo.pincode
+            ? userPincode !== ipInfo.pincode
+            : false
+
         // Check if user exists
         const existingUser = await prisma.user.findUnique({ where: { email } })
         if (existingUser) {
@@ -113,28 +129,46 @@ export async function registerStudent(prevState: any, formData: FormData) {
                         preferredCountries: preferredCountries || 'USA, UK, Canada',
                         profileComplete: true,
                         phoneNumber: formData.get('phoneNumber') as string,
+                        // New Fields
+                        city: userCity,
+                        pincode: userPincode,
+                        // IP Tracking
+                        ipAddress: ipInfo.ip,
+                        ipCity: ipInfo.city,
+                        ipRegion: ipInfo.region,
+                        ipCountry: ipInfo.country,
+                        ipPincode: ipInfo.pincode,
+                        ipLatitude: ipInfo.latitude,
+                        ipLongitude: ipInfo.longitude,
+                        ipIsp: ipInfo.isp,
+                        // Mismatches
+                        cityMismatch,
+                        pincodeMismatch
                     }
                 },
                 phoneNumber: formData.get('phoneNumber') as string,
             }
         })
-
-        // Send OTP Email
-        await sendEmail({
-            to: email,
-            subject: 'Verify your EduMeetup Email',
-            html: EmailTemplates.otpVerification(otpCode)
+        phoneNumber: formData.get('phoneNumber') as string,
+            }
         })
 
+// Send OTP Email
+await sendEmail({
+    to: email,
+    subject: 'Verify your EduMeetup Email',
+    html: EmailTemplates.otpVerification(otpCode)
+})
+
     } catch (error) {
-        console.error('Registration failed:', error)
-        return { error: 'Registration failed' }
-    }
+    console.error('Registration failed:', error)
+    return { error: 'Registration failed' }
+}
 
-    // SET SESSION COOKIE
-    await createSession(email, 'STUDENT')
+// SET SESSION COOKIE
+await createSession(email, 'STUDENT')
 
-    redirect(`/verify-email?email=${encodeURIComponent(email)}`)
+redirect(`/verify-email?email=${encodeURIComponent(email)}`)
 }
 
 export async function registerUniversity(formData: FormData) {
