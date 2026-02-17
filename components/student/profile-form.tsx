@@ -59,16 +59,24 @@ export function ProfileForm({ initialData, fieldCategories }: ProfileFormProps) 
                             <Input id="id_full_name" name="fullName" defaultValue={initialData.fullName} required />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="id_country">Country of Residence</Label>
+                            <Label htmlFor="id_country">Country of Residence <span className="text-red-500">*</span></Label>
                             <Input id="id_country" name="country" defaultValue={initialData.country || ''} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="id_city">City <span className="text-red-500">*</span></Label>
+                            <Input id="id_city" name="city" defaultValue={initialData.city || ''} required placeholder="e.g. Mumbai" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="id_pincode">PIN Code <span className="text-red-500">*</span></Label>
+                            <Input id="id_pincode" name="pincode" defaultValue={initialData.pincode || ''} required placeholder="e.g. 400001" />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="id_phone">Phone Number</Label>
                             <Input id="id_phone" name="phoneNumber" defaultValue={initialData.phoneNumber || ''} placeholder="+1234567890" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="id_gender">Gender</Label>
-                            <Select name="gender" defaultValue={initialData.gender || undefined}>
+                            <Label htmlFor="id_gender">Gender <span className="text-red-500">*</span></Label>
+                            <Select name="gender" defaultValue={initialData.gender || undefined} required>
                                 <SelectTrigger><SelectValue placeholder="Select Gender" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="Male">Male</SelectItem>

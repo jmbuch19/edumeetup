@@ -80,9 +80,11 @@ export const publicInquirySchema = z.object({
 export const studentProfileSchema = z.object({
     fullName: z.string().min(2, "Name is required"),
     country: z.string().min(2, "Country is required"),
-    gender: z.string().optional(),
+    gender: z.string().min(1, "Gender is required"),
     ageGroup: z.string().optional(),
     phoneNumber: z.string().optional(),
+    city: z.string().min(2, "City is required"),
+    pincode: z.string().min(4, "PIN Code is required"),
 
     // Preferences
     currentStatus: z.string().optional(),

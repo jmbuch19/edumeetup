@@ -50,6 +50,8 @@ model StudentProfile {
   country           String?
   phoneNumber       String? // Optional override or detailed storage
   currentStatus     String? // "Grade12", "BachelorFinalYear", "BachelorCompleted", "MasterCompleted", "WorkingProfessional"
+  city              String?
+  pincode           String?
   
   // Section B: Study Preference
   fieldOfInterest   String? // Enum: Computer Science, Engineering, etc.
