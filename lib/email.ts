@@ -33,11 +33,17 @@ interface SupportTicketData {
 }
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // true for 465, false for other ports
     auth: {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD
-    }
+    },
+    // Fail fast if connection hangs
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 5000,    // 5 seconds
+    socketTimeout: 10000      // 10 seconds
 })
 
 export async function sendEmail({ to, subject, html }: EmailPayload) {
