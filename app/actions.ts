@@ -884,7 +884,7 @@ export async function verifyEmail(email: string, otp: string) {
 
     } catch (error) {
         console.error('Verification failed:', error)
-        return { error: 'Verification failed' }
+        return { error: `Verification failed: ${(error as Error).message}` }
     }
 }
 
