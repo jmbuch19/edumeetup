@@ -34,7 +34,19 @@ model User {
   otpExpiresAt      DateTime?
 
   // Contact
+  // Contact
   phoneNumber       String?
+
+  passwordResetToken PasswordResetToken?
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique // Hashed
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 
