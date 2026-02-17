@@ -200,15 +200,18 @@ export default async function UniversityDashboard() {
                     {/* Program List */}
                     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                         <h2 className="text-xl font-bold text-gray-900 mb-4">My Programs</h2>
-                        <ProgramList programs={uni.programs} />
+                        <ProgramList programs={JSON.parse(JSON.stringify(uni.programs))} />
                     </div>
                 </div>
 
                 {/* Right Column: Students (Interested & Matched) */}
                 <div className="space-y-6">
                     {/* Interested Students (Full Access) */}
-                    {/* Interested Students (Full Access) */}
-                    <InterestedStudentsTable interests={uni.interests} availabilitySlots={availabilitySlots} />
+                    {/* SERIALIZATION FIX: Convert Dates to Strings for Client Component */}
+                    <InterestedStudentsTable
+                        interests={JSON.parse(JSON.stringify(uni.interests))}
+                        availabilitySlots={JSON.parse(JSON.stringify(availabilitySlots))}
+                    />
 
                     {/* Matched Students (Masked) */}
                     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">

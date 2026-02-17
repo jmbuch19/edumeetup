@@ -21,17 +21,17 @@ interface InterestWithStudent {
         programName: string
     } | null
     status: string
-    createdAt: Date
+    createdAt: string | Date // Allow string for serialized data
 }
 
 interface AvailabilitySlot {
     id: string
-    startTime: Date
-    endTime: Date
+    startTime: string | Date // Allow string
+    endTime: string | Date // Allow string
     isBooked: boolean
 }
 
-export function InterestedStudentsTable({ interests, availabilitySlots = [] }: { interests: InterestWithStudent[], availabilitySlots?: AvailabilitySlot[] }) {
+export function InterestedStudentsTable({ interests, availabilitySlots = [] }: { interests: any[], availabilitySlots?: any[] }) {
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
