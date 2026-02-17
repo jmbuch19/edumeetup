@@ -344,10 +344,17 @@ export async function verifyUniversity(formData: FormData) {
             include: { user: true }
         })
 
-        await sendEmail({
-            to: uni.contactEmail || uniProfile.user.email,
-            subject: `University Verification Update: ${uni.verificationStatus}`,
-            html: EmailTemplates.verificationStatus(
+        // Notification (Email + In-App)
+        await createNotification({
+            userId: uniProfile.userId, // Notify the University User
+            type: 'VERIFICATION_UPDATE',
+            title: `University Verification: ${status}`,
+            message: status === 'VERIFIED'
+                ? "Congratulations! Your university profile has been verified. You can now publish programs and accept meetings."
+                : "Your university verification was rejected. Please contact support for more details.",
+            emailTo: uni.contactEmail || uniProfile.user.email,
+            emailSubject: `University Verification Update: ${uni.verificationStatus}`,
+            emailHtml: EmailTemplates.verificationStatus(
                 uni.verificationStatus as 'VERIFIED' | 'REJECTED',
                 uni.institutionName
             )
@@ -658,6 +665,15 @@ export async function createSupportTicket(formData: FormData) {
             to: process.env.SUPPORT_EMAIL || 'support@edumeetup.com',
             subject: `[Support Ticket #${ticket.id.slice(-6)}] ${category} — ${userName} `,
             html: EmailTemplates.supportTicketNotification(ticket, userName, user.email)
+        })
+
+        // 3. Notify User (Confirmation)
+        await createNotification({
+            userId: user.id,
+            type: 'TICKET_CREATED',
+            title: 'Support Ticket Received',
+            message: `We received your ticket #${ticket.id.slice(-6)}: "${category}". Our team will review it shortly.`,
+            payload: { ticketId: ticket.id }
         })
 
         return { success: true, ticketId: ticket.id }
