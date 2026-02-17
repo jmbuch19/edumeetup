@@ -1,18 +1,49 @@
-
 'use client'
 
 import { registerStudent } from '@/app/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
-import { GraduationCap } from 'lucide-react'
-import { useState } from 'react'
-
+import { GraduationCap, Loader2 } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { useFormState, useFormStatus } from 'react-dom'
+import { toast } from 'sonner'
 import { PasswordStrength } from '@/components/ui/password-strength'
+
+const initialState = {
+    error: null,
+}
+
+function SubmitButton() {
+    const { pending } = useFormStatus()
+    return (
+        <Button type="submit" className="w-full" size="lg" disabled={pending}>
+            {pending ? (
+                <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Account...
+                </>
+            ) : (
+                "Create Account"
+            )}
+        </Button>
+    )
+}
 
 export default function StudentRegisterPage() {
     const [phone, setPhone] = useState({ code: '+1', number: '' })
     const [password, setPassword] = useState('')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [state, formAction] = useFormState(registerStudent as any, initialState)
+    const formRef = useRef<HTMLFormElement>(null)
+
+    useEffect(() => {
+        if (state?.error) {
+            // Handle specific field errors or general errors
+            const msg = typeof state.error === 'string' ? state.error : "Please check the form for errors."
+            toast.error(msg)
+        }
+    }, [state])
 
     return (
         <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
@@ -29,9 +60,7 @@ export default function StudentRegisterPage() {
                     </p>
                 </div>
 
-                <form className="mt-8 space-y-8" action={async (formData: FormData) => {
-                    await registerStudent(formData)
-                }}>
+                <form ref={formRef} className="mt-8 space-y-8" action={formAction}>
                     {/* Section A: Basic Profile */}
                     <div className="space-y-6">
                         <h3 className="text-lg font-medium leading-6 text-gray-900 border-b pb-2">Section A — Basic Profile</h3>
@@ -419,9 +448,12 @@ export default function StudentRegisterPage() {
                         <label className="block text-sm text-gray-500 mb-4">
                             By creating an account, you agree to our <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>.
                         </label>
-                        <Button type="submit" className="w-full" size="lg">
-                            Create Account
-                        </Button>
+                        {state?.error && (
+                            <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm mb-4">
+                                {state.error}
+                            </div>
+                        )}
+                        <SubmitButton />
                     </div>
                 </form>
 

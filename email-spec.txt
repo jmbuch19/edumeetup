@@ -1,0 +1,484 @@
+Set up complete email notification system for edUmeetup.
+Use Gmail SMTP via Google Workspace (credentials already in .env).
+
+==============================================
+EMAIL SERVICE SETUP
+==============================================
+Provider:     Gmail SMTP (Google Workspace)
+Host:         smtp.gmail.com
+Port:         587
+Secure:       false (uses STARTTLS)
+User:         process.env.EMAIL_USER
+Password:     process.env.EMAIL_APP_PASSWORD
+From address: process.env.EMAIL_FROM (noreply@edumeetup.com)
+Admin email:  process.env.EMAIL_ADMIN (jaydeep@edumeetup.com)
+
+Install nodemailer if not already installed.
+Create a shared email service module at: /lib/email.js (or /utils/email.js)
+All email functions must use this shared module.
+All emails must be HTML formatted (not plain text).
+All emails must include a plain text fallback.
+
+==============================================
+SHARED EMAIL TEMPLATE (use for ALL emails)
+==============================================
+Every email must use this base HTML structure:
+
+HEADER:
+- Background: #1B5E7E (deep teal)
+- Logo: edUmeetup (text if image not available)
+- Tagline: WHERE DREAMS MEET DESTINATIONS
+- Text color: white
+
+BODY:
+- White background
+- Max width: 600px, centered
+- Font: Arial or system font
+- Padding: 30px
+
+FOOTER:
+- Light gray background #F5F5F5
+- Text: "© 2025 edUmeetup | jaydeep@edumeetup.com"
+- Text: "www.edumeetup.com"
+- Small text: "You received this because you have an account on edumeetup.com"
+
+BUTTON STYLE:
+- Background: #2B7A9B
+- Text: white, bold
+- Padding: 14px 28px
+- Border radius: 6px
+- No underline
+
+==============================================
+EMAIL 1: STUDENT WELCOME
+==============================================
+Trigger:   When new Student Profile is created
+To:        Student's email
+Subject:   "Welcome to edUmeetup! 🎓 Your journey starts here"
+
+Body:
+- "Hi [student_full_name],"
+- "Welcome to edUmeetup — where students find their dream university!"
+- "Your account is ready. Here's what to do next:"
+- List:
+    1. Complete your profile (takes 2 minutes)
+    2. Browse universities in your preferred countries
+    3. Bookmark universities you like
+    4. Book a virtual meeting with a university rep
+- Button: "Browse Universities" → links to /universities
+- "Questions? Reply to this email."
+
+==============================================
+EMAIL 2: UNIVERSITY REGISTRATION RECEIVED
+==============================================
+Trigger:   When new University Profile is created
+To:        University contact email
+Subject:   "Registration received — under review ⏳"
+
+Body:
+- "Dear [institution_name] Team,"
+- "Thank you for registering on edUmeetup!"
+- "Your profile is currently under review. We verify all institutions within 2 business days."
+- "What happens next:"
+    1. Our team reviews your submitted documents
+    2. We verify your institution details
+    3. You receive an approval email
+    4. Your profile goes live to thousands of students
+- "Questions? Email jaydeep@edumeetup.com"
+
+==============================================
+EMAIL 3: UNIVERSITY VERIFIED (APPROVED)
+==============================================
+Trigger:   When University Profile verification_status changes to "verified"
+To:        University contact email
+Subject:   "🎉 Congratulations! Your profile is now live on edumeetup.com"
+
+Body:
+- "Dear [institution_name] Team,"
+- "Great news — your institution has been verified!"
+- "Your profile is now live and visible to students worldwide."
+- "Get started:"
+    1. Set your availability for student meetings → /university/availability
+    2. Add your programs → /university/programs
+    3. Browse interested students → /university/students
+- Button: "Go to Your Dashboard" → /university/dashboard
+- "Welcome to the edUmeetup family! 🌍"
+
+==============================================
+EMAIL 4: UNIVERSITY REJECTED
+==============================================
+Trigger:   When University Profile verification_status changes to "rejected"
+To:        University contact email
+Subject:   "edUmeetup — Additional information required"
+
+Body:
+- "Dear [institution_name] Team,"
+- "Thank you for your patience while we reviewed your application."
+- "We need some additional information before we can approve your profile."
+- "Reason: [rejection_reason from database]"
+- "To resubmit, please:"
+    1. Review the reason above
+    2. Prepare updated documents
+    3. Contact us at jaydeep@edumeetup.com to resubmit
+- "We look forward to welcoming you to edUmeetup."
+
+==============================================
+EMAIL 5: STUDENT INTEREST NOTIFICATION (to university)
+==============================================
+Trigger:   When new Interest record is created
+To:        University admissions email (or contact email)
+Subject:   "New student interested in [institution_name] 👋"
+
+Body:
+- "A student has expressed interest in your institution!"
+- Student details box:
+    Name:              [student_full_name]
+    From:              [student nationality/country]
+    Studying:          [current_study_status]
+    Field of interest: [field_of_interest]
+    Preferred degree:  [preferred_degree]
+    Budget:            [budget_range]
+    Target intake:     [preferred_intake]
+- Button: "View Student Profile" → /university/students/[student_id]
+- Button: "Schedule a Meeting" → /university/meetings
+- "Tip: Students who receive a response within 24 hours are 5x more likely to apply!"
+
+==============================================
+EMAIL 6: MEETING REQUEST SUBMITTED (to university)
+==============================================
+Trigger:   When Meeting Request is created with status = "pending"
+To:        Rep's email (rep_user email)
+Subject:   "New meeting request from [student_full_name] 📅"
+
+Body:
+- "You have a new meeting request!"
+- Meeting details box:
+    Student:   [student_full_name] from [country]
+    Purpose:   [meeting_purpose]
+    Requested: [proposed_datetime in rep_timezone]
+    Duration:  [duration_minutes] minutes
+    Questions: [student_questions — if provided]
+- Button: "Accept Meeting" → /university/meetings (highlight this request)
+- Button: "View Student Profile" → /university/students/[student_id]
+- "Please respond within 24 hours."
+
+==============================================
+EMAIL 7: MEETING CONFIRMED (to student)
+==============================================
+Trigger:   When Meeting Request status changes to "confirmed"
+To:        Student's email
+Subject:   "Meeting confirmed with [institution_name] ✅"
+
+Body:
+- "Your meeting is confirmed!"
+- Meeting details box:
+    University:  [institution_name]
+    Rep:         [rep_name]
+    Date:        [confirmed_datetime formatted as "Monday, 15 Jan 2025"]
+    Time:        [confirmed_datetime in student_timezone] ([rep_timezone] for rep)
+    Duration:    [duration_minutes] minutes
+    Platform:    [video_provider]
+    Join Link:   [video_link]
+    Booking Ref: [meeting_id_code]
+- "Your questions for this meeting:"
+  [student_questions — if provided]
+- Button: "Join Meeting" → [video_link]
+- "Add to Calendar" → generate .ics file link
+- Tip: "Join 2-3 minutes early to test your connection."
+- Button: "View in Dashboard" → /student/meetings
+
+==============================================
+EMAIL 8: MEETING CONFIRMED (to university rep)
+==============================================
+Trigger:   When Meeting Request status changes to "confirmed"
+To:        Rep's email
+Subject:   "Meeting confirmed: [student_full_name] on [date] ✅"
+
+Body:
+- "Meeting confirmed!"
+- Meeting details box:
+    Student:    [student_full_name] from [country]
+    Purpose:    [meeting_purpose]
+    Date:       [confirmed_datetime formatted]
+    Time:       [confirmed_datetime in rep_timezone]
+    Duration:   [duration_minutes] minutes
+    Join Link:  [video_link]
+- "Student's questions:"
+  [student_questions — if provided]
+- Button: "Join Meeting" → [video_link]
+- Button: "View Student Profile" → /university/students/[student_id]
+
+==============================================
+EMAIL 9: MEETING REMINDER — 24 HOURS (both parties)
+==============================================
+Trigger:   Backend workflow — 24 hours before confirmed_datetime
+           Only when reminder_24h_sent = false
+           Set reminder_24h_sent = true after sending
+
+TO STUDENT:
+Subject:   "Tomorrow: Your meeting with [institution_name] 🔔"
+Body:
+- "Your meeting is tomorrow!"
+- Meeting details (date, time in student timezone, join link)
+- "Your questions:" [student_questions]
+- Button: "Join Meeting" → [video_link]
+- Checklist:
+    ✓ Test your internet connection
+    ✓ Find a quiet place
+    ✓ Have your questions ready
+    ✓ Join 2-3 minutes early
+
+TO UNIVERSITY REP:
+Subject:   "Tomorrow: Meeting with [student_full_name] 🔔"
+Body:
+- "You have a student meeting tomorrow!"
+- Meeting details (date, time in rep timezone, join link)
+- "Student's purpose: [meeting_purpose]"
+- "Student's questions:" [student_questions]
+- Button: "Join Meeting" → [video_link]
+
+==============================================
+EMAIL 10: MEETING REMINDER — 1 HOUR (both parties)
+==============================================
+Trigger:   Backend workflow — 1 hour before confirmed_datetime
+           Only when reminder_1h_sent = false
+           Set reminder_1h_sent = true after sending
+
+TO STUDENT:
+Subject:   "Starting in 1 hour: [institution_name] meeting ⏰"
+Body:
+- "Your meeting starts in 1 hour!"
+- Time: [confirmed_datetime in student_timezone]
+- Button: "Join Meeting" → [video_link] (large, prominent button)
+- "Meeting ID/details:" [video_link]
+
+TO UNIVERSITY REP:
+Subject:   "Starting in 1 hour: Meeting with [student_full_name] ⏰"
+Body:
+- "Student meeting in 1 hour!"
+- Student: [student_full_name]
+- Time: [confirmed_datetime in rep_timezone]
+- Button: "Join Meeting" → [video_link]
+
+==============================================
+EMAIL 11: MEETING REMINDER — 10 MINUTES (both parties)
+==============================================
+Trigger:   Backend workflow — 10 minutes before confirmed_datetime
+           Only when reminder_10min_sent = false
+           Set reminder_10min_sent = true after sending
+
+TO STUDENT:
+Subject:   "🚀 Your meeting starts in 10 minutes!"
+Body:
+- "Time to join your meeting!"
+- University: [institution_name]
+- BIG button: "JOIN MEETING NOW" → [video_link]
+  (button background: #10B981 green, large padding)
+
+TO UNIVERSITY REP:
+Subject:   "🚀 Student meeting in 10 minutes!"
+Body:
+- "Student meeting starting soon!"
+- Student: [student_full_name]
+- BIG button: "JOIN MEETING NOW" → [video_link]
+
+==============================================
+EMAIL 12: MEETING CANCELLED — BY STUDENT (to university)
+==============================================
+Trigger:   When Meeting Request status = "cancelled" AND cancelled_by = "student"
+To:        Rep's email
+Subject:   "Meeting cancelled by student — [original date]"
+
+Body:
+- "[student_full_name] has cancelled their meeting."
+- Original meeting: [confirmed_datetime in rep_timezone]
+- Reason: [cancellation_reason — if provided]
+- If is_late_cancel = true: "(Note: This was cancelled within 2 hours of the meeting)"
+- "The time slot is now available for other students."
+- Button: "View Your Calendar" → /university/meetings
+
+==============================================
+EMAIL 13: MEETING CANCELLED — BY UNIVERSITY (to student)
+==============================================
+Trigger:   When Meeting Request status = "cancelled" AND cancelled_by = "university"
+To:        Student's email
+Subject:   "Meeting update from [institution_name]"
+
+Body:
+- "Hi [student_full_name],"
+- "Unfortunately, [institution_name] has had to cancel your meeting."
+- Original meeting: [confirmed_datetime in student_timezone]
+- Reason: [cancellation_reason — if provided]
+- "Don't be discouraged! You can:"
+- Button: "Book a New Meeting" → /universities
+- Button: "Browse Other Universities" → /universities
+- "We're sorry for the inconvenience."
+
+==============================================
+EMAIL 14: RESCHEDULE PROPOSED (to other party)
+==============================================
+Trigger:   When Meeting Request status = "reschedule_proposed"
+
+IF reschedule_proposed_by = "student" → send to university rep:
+Subject:   "[student_full_name] proposed a new meeting time"
+Body:
+- "A student wants to reschedule their meeting."
+- Original: [confirmed_datetime in rep_timezone]
+- Proposed new time: [reschedule_proposed_datetime in rep_timezone]
+- Reason: [reschedule_reason — if provided]
+- Button: "Accept New Time" → /university/meetings (accept action)
+- Button: "Suggest Another Time" → /university/meetings (reschedule action)
+
+IF reschedule_proposed_by = "university" → send to student:
+Subject:   "[institution_name] proposed a new meeting time"
+Body:
+- "[institution_name] would like to reschedule your meeting."
+- Original: [confirmed_datetime in student_timezone]
+- Proposed new time: [reschedule_proposed_datetime in student_timezone]
+- Reason: [reschedule_reason — if provided]
+- Button: "Accept New Time" → /student/meetings (accept action)
+- Button: "Suggest Another Time" → /student/meetings (reschedule action)
+
+==============================================
+EMAIL 15: MEETING COMPLETED — FEEDBACK REQUEST
+==============================================
+Trigger:   When Meeting Request status changes to "completed"
+           Send 15 minutes after meeting end
+
+TO STUDENT:
+Subject:   "How was your meeting with [institution_name]? ⭐"
+Body:
+- "Hi [student_full_name], your meeting just ended!"
+- "We'd love your feedback:"
+- Star rating prompt: "Rate your experience: ★★★★★"
+- Button: "Leave Feedback" → /student/meetings/[meeting_id]/feedback
+- "Your feedback helps us improve for everyone."
+
+TO UNIVERSITY REP:
+Subject:   "Meeting completed — add your notes for [student_full_name]"
+Body:
+- "Your meeting with [student_full_name] has been marked complete."
+- Button: "Add Meeting Notes" → /university/meetings/[meeting_id]
+- Button: "Send Follow-up to Student" → /university/meetings/[meeting_id]
+- Reminder: "Consider sending the student next steps or application links."
+
+==============================================
+EMAIL 16: DAILY ADMIN SUMMARY
+==============================================
+Trigger:   Backend workflow — every day at 6:00 PM server time
+To:        jaydeep@edumeetup.com
+Subject:   "[DAILY] edUmeetup Summary — [today's date]"
+
+Body:
+- "Platform Summary for [date]"
+- Stats table:
+    New students registered today:        [count]
+    New universities registered today:    [count]
+    Pending university verifications:     [count]
+    New meeting requests today:           [count]
+    Meetings confirmed today:             [count]
+    Meetings completed today:             [count]
+    Meetings cancelled today:             [count]
+    No-shows today:                       [count]
+    Total students (all time):            [count]
+    Total verified universities:          [count]
+- "Pending Actions:"
+    - Pending verifications: [count] → Button: "Review Now" → /admin/universities
+    - Open support requests: [count] (if applicable)
+- "Have a great evening! 🌙"
+
+==============================================
+EMAIL 17: NO-SHOW ALERT (to admin)
+==============================================
+Trigger:   When Meeting Request status changes to "no_show"
+To:        jaydeep@edumeetup.com
+Subject:   "[ALERT] No-show: [student_full_name] + [institution_name]"
+
+Body:
+- "A meeting was marked as no-show."
+- Details:
+    Student:      [student_full_name] — [student email]
+    University:   [institution_name]
+    Scheduled:    [confirmed_datetime]
+    Meeting Ref:  [meeting_id_code]
+- "No action required — logged for tracking."
+- Button: "View Meeting Details" → /admin/meetings/[meeting_id]
+
+==============================================
+BACKEND REMINDER WORKFLOWS
+==============================================
+Create 3 scheduled jobs that run every 15 minutes:
+
+JOB 1: Send Reminders
+Query meeting_requests where:
+  status = 'confirmed'
+  AND confirmed_datetime > NOW()
+
+For each result:
+  IF confirmed_datetime BETWEEN NOW()+23h50m AND NOW()+24h10m
+     AND reminder_24h_sent = false:
+     → Send Email 9 (24h reminder) to student AND rep
+     → Set reminder_24h_sent = true
+
+  IF confirmed_datetime BETWEEN NOW()+50m AND NOW()+70m
+     AND reminder_1h_sent = false:
+     → Send Email 10 (1h reminder) to student AND rep
+     → Set reminder_1h_sent = true
+
+  IF confirmed_datetime BETWEEN NOW()-1m AND NOW()+11m
+     AND reminder_10min_sent = false:
+     → Send Email 11 (10min reminder) to student AND rep
+     → Set reminder_10min_sent = true
+
+JOB 2: Auto-Complete Meetings
+Query meeting_requests where:
+  status = 'confirmed'
+  AND confirmed_datetime + (duration_minutes * interval '1 minute') + interval '15 minutes' < NOW()
+
+For each result:
+  → Update status = 'completed'
+  → Send Email 15 (feedback request) to student AND rep
+  → Log in notification_logs
+
+JOB 3: Flag No-Shows
+Query meeting_requests where:
+  status = 'confirmed'
+  AND confirmed_datetime + interval '15 minutes' < NOW()
+
+For each result:
+  → Update status = 'no_show'
+  → Send Email 17 (no-show alert) to jaydeep@edumeetup.com
+  → Log in notification_logs
+
+==============================================
+TESTING CHECKLIST
+==============================================
+After building, test every email:
+
+[ ] Email 1:  Register new student → welcome email received
+[ ] Email 2:  Register new university → pending email received
+[ ] Email 3:  Admin approves university → verified email received
+[ ] Email 4:  Admin rejects university → rejection email received
+[ ] Email 5:  Student expresses interest → university gets notification
+[ ] Email 6:  Student books meeting → rep gets request email
+[ ] Email 7:  Rep accepts meeting → student gets confirmation with video link
+[ ] Email 8:  Rep accepts meeting → rep gets confirmation with video link
+[ ] Email 9:  Set meeting 24h from now → reminder fires correctly
+[ ] Email 10: Set meeting 1h from now → reminder fires correctly
+[ ] Email 11: Set meeting 10min from now → reminder fires correctly
+[ ] Email 12: Student cancels → rep gets cancellation email
+[ ] Email 13: Rep cancels → student gets cancellation email
+[ ] Email 14: Either party reschedules → other party gets email
+[ ] Email 15: Meeting marked complete → both get feedback email
+[ ] Email 16: Wait for 6pm → admin gets daily summary
+[ ] Email 17: Meeting flagged no-show → admin gets alert
+
+Also verify:
+[ ] All emails render correctly in Gmail (primary target)
+[ ] No emails land in spam folder
+[ ] All variable placeholders are replaced (no [brackets] visible)
+[ ] All buttons/links are clickable and go to correct pages
+[ ] Plain text fallback exists for each email
+[ ] Daily summary job runs at 6pm server time
+[ ] Reminder jobs run every 15 minutes without errors
+[ ] No duplicate emails sent (check reminder_sent flags)

@@ -48,7 +48,8 @@ interface UniversityRegistrationData {
     certAccountability: boolean
 }
 
-export async function registerStudent(formData: FormData) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function registerStudent(prevState: any, formData: FormData) {
     const rawData = Object.fromEntries(formData.entries())
     const validation = registerStudentSchema.safeParse({
         ...rawData,
@@ -569,7 +570,8 @@ export async function updateUniversityProfile(formData: FormData) {
     }
 }
 
-export async function submitPublicInquiry(formData: FormData) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function submitPublicInquiry(prevState: any, formData: FormData) {
     const rawData = Object.fromEntries(formData.entries())
 
     // RATE LIMIT (IP Based)
@@ -588,7 +590,7 @@ export async function submitPublicInquiry(formData: FormData) {
 
     try {
         // Send email to Admin
-        await sendEmail({
+        const emailResult = await sendEmail({
             to: process.env.INFO_EMAIL || 'info@edumeetup.com',
             subject: `[Public Inquiry] ${subject} — ${fullName} (${role})`,
             html: EmailTemplates.publicInquiryNotification({
@@ -602,6 +604,10 @@ export async function submitPublicInquiry(formData: FormData) {
                 orgName
             })
         })
+
+        if (emailResult?.error) {
+            return { error: "Failed to submit inquiry: " + emailResult.error }
+        }
 
         // Auto-reply
         await sendEmail({

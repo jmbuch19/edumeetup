@@ -14,6 +14,8 @@ import {
     DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
 import { Menu } from "lucide-react"
+import { AuthButtons } from "./auth-buttons"
+import { MobileLoginButton, MobileSignUpItem } from "./mobile-auth-buttons"
 
 export async function Header() {
     const user = await getSession()
@@ -131,11 +133,7 @@ export async function Header() {
                         </Link>
                     </div>
                 ) : (
-                    <Link href="/login">
-                        <Button variant="ghost" size="sm">
-                            Log in
-                        </Button>
-                    </Link>
+                    <MobileLoginButton />
                 )}
 
                 <DropdownMenu>
@@ -181,7 +179,7 @@ export async function Header() {
                             <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem asChild>
-                                    <Link href="/student/register" className="w-full cursor-pointer font-semibold text-primary">Sign up</Link>
+                                    <MobileSignUpItem />
                                 </DropdownMenuItem>
                             </>
                         )}
