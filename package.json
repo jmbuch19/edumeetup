@@ -2,9 +2,7 @@
   "name": "edumeetup-mvp",
   "version": "0.1.0",
   "private": true,
-  "prisma": {
-    "schema": "prisma/schema.prisma"
-  },
+  "private": true,
   "scripts": {
     "dev": "next dev",
     "lint": "eslint",
@@ -62,6 +60,7 @@
     "typescript": "^5"
   },
   "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
+    "schema": "prisma/schema.prisma"
   }
 }
