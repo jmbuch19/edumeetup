@@ -19,10 +19,20 @@ export default async function StudentDashboard() {
         // Redirect or show simple error/cta
         // Ideally redirect to profile creation
         return (
-            <div className="container mx-auto px-4 py-8 text-center bg-white rounded-lg shadow mt-10">
-                <h2 className="text-2xl font-bold mb-4">Profile Incomplete</h2>
-                <p>Please complete your profile registration to access the dashboard.</p>
-                {/* Link to register would go here */}
+            <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
+                <div className="max-w-md w-full bg-white p-8 rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/50">
+                    <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span className="text-3xl">👋</span>
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-3">Welcome to edUmeetup!</h2>
+                    <p className="text-slate-600 mb-8 leading-relaxed">
+                        To match you with your dream university, we need a few details about your interests and background.
+                    </p>
+                    {/* Link to register would go here - for now just informative */}
+                    <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 text-sm text-slate-500">
+                        Please complete your registration flow to continue.
+                    </div>
+                </div>
             </div>
         )
     }

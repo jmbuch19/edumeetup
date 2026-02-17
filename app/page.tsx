@@ -18,77 +18,101 @@ export default function Home() {
     }
   };
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col min-h-screen bg-slate-50">
       {/* Hero Section */}
-      <section className="w-full py-16 md:py-24 bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex flex-col items-center text-center px-4 relative">
-        <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-primary mb-4">
-          WHERE DREAMS MEET DESTINATIONS
-        </h1>
-        <h2 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-6">
-          Guidance. Exposure. Direction.
-        </h2>
-        <p className="text-xl md:text-2xl text-gray-600 max-w-2xl mb-10">
-          edUmeetup brings students, mentors & institutions together — online & on ground.
-        </p>
+      <section className="w-full flex-1 grid md:grid-cols-2 gap-8 items-center container mx-auto px-4 py-12 md:py-24">
 
-        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
-          <Button
-            size="lg"
-            className="w-full text-lg h-14 gap-2"
-            onClick={() => scrollToHowItWorks('student')}
-          >
-            <User className="h-5 w-5" />
-            I&apos;m a Student
-          </Button>
+        {/* Left Column: Content */}
+        <div className="flex flex-col items-start text-left space-y-8 animate-in slide-in-from-left-5 duration-500">
+          <div className="space-y-4">
+            <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-sm font-medium text-primary">
+              <span className="flex h-2 w-2 rounded-full bg-primary mr-2"></span>
+              The Future of Campus Recruitment
+            </div>
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-slate-900 leading-[1.1]">
+              Where Dreams Meet <span className="text-primary">Destinations</span>.
+            </h1>
+            <p className="text-xl text-slate-600 max-w-lg leading-relaxed">
+              edUmeetup brings students, mentors, and top-tier institutions together.
+              Guidance, exposure, and direction—all in one place.
+            </p>
+          </div>
 
-          <Button
-            size="lg"
-            variant="outline"
-            className="w-full text-lg h-14 gap-2"
-            onClick={() => scrollToHowItWorks('university')}
-          >
-            <School className="h-5 w-5" />
-            I&apos;m a University
-          </Button>
-        </div>
-
-        <div className="mt-8 flex flex-col gap-2 items-center">
-          <Link href="/universities">
-            <Button variant="link" className="text-primary text-lg font-medium">
-              🔍 Browse All Universities &rarr;
+          <div className="flex flex-col sm:flex-row gap-4 w-full max-w-lg">
+            <Button
+              size="lg"
+              className="text-lg h-14 px-8 gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+              onClick={() => scrollToHowItWorks('student')}
+            >
+              <User className="h-5 w-5" />
+              I&apos;m a Student
             </Button>
-          </Link>
-        </div>
-      </section >
 
-      {/* Fixed Admin Login Button (Bottom Right, left of Chat Widget) */}
-      <div className="fixed bottom-6 right-24 z-40 hidden md:block">
-        <Link href="/admin/dashboard">
-          <Button variant="ghost" size="sm" className="text-muted-foreground opacity-50 hover:opacity-100 transition-opacity">
-            🔐 Admin Login
-          </Button>
-        </Link>
-      </div>
+            <Button
+              size="lg"
+              variant="outline"
+              className="text-lg h-14 px-8 gap-2 bg-white hover:bg-slate-50 border-slate-200"
+              onClick={() => scrollToHowItWorks('university')}
+            >
+              <School className="h-5 w-5" />
+              I&apos;m a University
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Link href="/universities" className="hover:text-primary transition-colors flex items-center gap-1">
+              Browse Universities <span aria-hidden="true">&rarr;</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* Right Column: Visual (Abstract Illustration Placeholder) */}
+        <div className="relative h-full min-h-[400px] w-full hidden md:flex items-center justify-center animate-in fade-in duration-700 delay-200">
+          {/* Abstract Decorative Elements */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
+          <div className="relative z-10 grid grid-cols-2 gap-4 p-4">
+            <div className="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 flex flex-col gap-3 -rotate-6 hover:rotate-0 transition-transform duration-500">
+              <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <User className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <div className="h-2 w-24 bg-slate-100 rounded mb-2"></div>
+                <div className="h-2 w-16 bg-slate-100 rounded"></div>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 flex flex-col gap-3 translate-y-12 rotate-3 hover:rotate-0 transition-transform duration-500">
+              <div className="h-10 w-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <School className="h-6 w-6 text-orange-600" />
+              </div>
+              <div>
+                <div className="h-2 w-24 bg-slate-100 rounded mb-2"></div>
+                <div className="h-2 w-16 bg-slate-100 rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section >
 
       <HowItWorks activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Context-Aware Sticky Bar (Fix 5) */}
+      {/* Context-Aware Sticky Bar (Refined) */}
       {
         activeTab === 'university' && (
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg z-50 animate-in slide-in-from-bottom-5">
-            <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary/10 p-2 rounded-full hidden sm:block">
-                  <School className="h-5 w-5 text-primary" />
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl bg-white/90 backdrop-blur-lg border border-slate-200/60 p-4 rounded-2xl shadow-2xl z-50 animate-in slide-in-from-bottom-10 fade-in duration-500">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="bg-primary/10 p-2.5 rounded-xl">
+                  <School className="h-6 w-6 text-primary" />
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-900">Viewing as University</p>
-                  <p className="text-sm text-gray-500">Join verified institutions recruiting directly.</p>
+                <div className="text-left">
+                  <p className="font-semibold text-slate-900">University Portal</p>
+                  <p className="text-sm text-slate-500">Connect with future students directly.</p>
                 </div>
               </div>
               <Link href="/university/register">
-                <Button size="lg" className="w-full sm:w-auto gap-2 shadow-sm">
-                  Register Your University <span className="ml-2">&rarr;</span>
+                <Button size="lg" className="w-full sm:w-auto shadow-lg shadow-primary/20">
+                  Register Now
                 </Button>
               </Link>
             </div>

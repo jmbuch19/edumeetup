@@ -36,38 +36,39 @@ export async function Header() {
                 </Link>
 
                 {/* Desktop Nav */}
-                <nav className="hidden md:flex items-center gap-6">
-                    <Link href="/universities" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
+                <nav className="hidden md:flex items-center gap-8">
+                    <Link href="/universities" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
                         Browse Universities
                     </Link>
                     {user?.role === 'STUDENT' && (
-                        <Link href="/student/dashboard" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
+                        <Link href="/student/dashboard" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
                             Dashboard
                         </Link>
                     )}
                     {user?.role === 'UNIVERSITY' && (
-                        <Link href="/university/dashboard" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
+                        <Link href="/university/dashboard" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
                             Dashboard
                         </Link>
                     )}
                     {user?.role === 'ADMIN' && (
-                        <Link href="/admin/dashboard" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
+                        <Link href="/admin/dashboard" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
                             Admin
                         </Link>
                     )}
 
-                    <Link href="/about" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
+                    <Link href="/about" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
                         About
                     </Link>
-                    <Link href="/contact" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
+                    <Link href="/contact" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
                         Contact
                     </Link>
 
                 </nav>
 
-                <div className="hidden md:flex items-center gap-3">
+                <div className="hidden md:flex items-center gap-4">
                     {/* Admin Demo Link - Always Visible */}
-                    <Link href="/admin/dashboard" className="text-sm font-bold text-red-600 hover:text-red-700 transition-colors border border-red-200 bg-red-50 px-3 py-1 rounded-full whitespace-nowrap">
+                    {/* Admin Demo Link - Subtle Outline */}
+                    <Link href="/admin/dashboard" className="text-xs font-medium text-slate-500 border border-dashed border-slate-300 px-3 py-1.5 rounded-md hover:text-slate-900 hover:border-slate-400 transition-all">
                         Admin Demo
                     </Link>
                     {user ? (

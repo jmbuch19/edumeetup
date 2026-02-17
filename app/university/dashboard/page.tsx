@@ -40,17 +40,30 @@ export default async function UniversityDashboard() {
     })
 
     // If no mock uni, show empty state or handle gracefully
-    if (!uni) return <div>University not found (Seed data missing?)</div>
+    if (!uni) return (
+        <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
+            <div className="bg-red-50 p-6 rounded-full mb-4">
+                <School className="h-10 w-10 text-red-500" />
+            </div>
+            <h1 className="text-2xl font-bold text-slate-900">University Profile Not Found</h1>
+            <p className="text-slate-500 mt-2 max-w-md">
+                We couldn&apos;t find a profile associated with your account. Please contact support if you believe this is an error.
+            </p>
+        </div>
+    )
 
     if (uni.verificationStatus === 'PENDING') {
         return (
-            <div className="container mx-auto px-4 py-12 text-center">
-                <div className="max-w-md mx-auto bg-yellow-50 p-8 rounded-xl border border-yellow-200">
-                    <Clock className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Verification Pending</h1>
-                    <p className="text-gray-600">
-                        Your profile is currently under review by our team. You will be notified via email once approved.
+            <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
+                <div className="max-w-lg w-full bg-white p-8 rounded-2xl border border-amber-100 shadow-xl shadow-amber-500/10">
+                    <div className="bg-amber-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Clock className="h-8 w-8 text-amber-600" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-slate-900 mb-3">Verification Pending</h1>
+                    <p className="text-slate-600 leading-relaxed mb-6">
+                        Your profile is currently under review by our team. We verify all institutions to ensure the quality of our platform. You will be notified via email once approved.
                     </p>
+                    <Button variant="outline" disabled className="w-full">Check Status Again</Button>
                 </div>
             </div>
         )
@@ -90,13 +103,22 @@ export default async function UniversityDashboard() {
     })
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex justify-between items-center mb-8">
+        <div className="container max-w-7xl mx-auto px-4 py-10">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">University Dashboard</h1>
-                    <p className="text-gray-600">{uni.institutionName}</p>
+                    <h1 className="text-3xl font-bold text-slate-900">University Dashboard</h1>
+                    <div className="flex items-center gap-2 mt-1">
+                        <School className="h-4 w-4 text-slate-400" />
+                        <p className="text-slate-600 font-medium">{uni.institutionName}</p>
+                    </div>
                 </div>
-                <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">Verified</div>
+                <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-full text-sm font-semibold border border-emerald-100">
+                    <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    Verified Institution
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
