@@ -99,12 +99,20 @@ export function ChatWidget() {
 
                     {/* Input */}
                     <div className="p-4 bg-white border-t border-gray-100">
-                        <form onSubmit={handleSubmit} className="flex gap-2">
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                if (!input.trim()) return;
+                                handleSubmit(e);
+                            }}
+                            className="flex gap-2"
+                        >
                             <input
                                 className="flex-1 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                                 value={input}
                                 onChange={handleInputChange}
                                 placeholder="Type your question..."
+                                disabled={isLoading}
                             />
                             <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className="rounded-full h-9 w-9 shrink-0">
                                 <Send className="h-4 w-4" />
