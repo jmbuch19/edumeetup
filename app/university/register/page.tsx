@@ -195,6 +195,8 @@ export default function UniversityRegisterPage() {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Institution Name *</label>
                                     <Input name="institutionName" value={formData.institutionName} onChange={handleInputChange} placeholder="University of Example" required />
+                                    {/* Honeypot */}
+                                    <input type="text" name="website_url" value={formData.website_url} onChange={handleInputChange} className="hidden" tabIndex={-1} autoComplete="off" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Country *</label>

@@ -33,6 +33,7 @@ model User {
   notifications     Notification[]
 
   auditLogs         AuditLog[]
+  systemReports     SystemReport[]
   availabilityProfiles AvailabilityProfile[] @relation("RepAvailability")
   meetings          Meeting[]             @relation("RepMeetings")
   meetingNotifications MeetingNotification[]
@@ -688,4 +689,22 @@ model SystemLog {
   
   @@index([type])
   @@index([level])
+}
+
+model SystemReport {
+  id        String   @id @default(cuid())
+  type      String   // BUG, FEEDBACK, UI_ISSUE
+  message   String
+  userId    String?
+  path      String?
+  screenshotUrl String?
+  createdAt DateTime @default(now())
+  
+  user      User?    @relation(fields: [userId], references: [id])
+}
+
+model BotMisses {
+  id        String   @id @default(cuid())
+  question  String
+  createdAt DateTime @default(now())
 }

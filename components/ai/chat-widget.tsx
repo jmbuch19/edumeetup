@@ -14,6 +14,13 @@ export function ChatWidget() {
 
     const { messages = [], append, isLoading } = useChat({
         api: '/api/chat',
+        initialMessages: [
+            {
+                id: 'welcome',
+                role: 'assistant',
+                content: "Welcome to EdUmeetup Beta! I'm here to help you navigate our verified university network. Found a bug? Let me know!"
+            }
+        ],
         onError: (e) => {
             console.error("Chat error:", e);
         }

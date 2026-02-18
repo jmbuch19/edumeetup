@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma"
 
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR'
-export type LogType = 'EMAIL_FAILURE' | 'APP_CRASH' | 'AUTH_FAILURE' | 'SYSTEM_EVENT'
+export type LogType = 'EMAIL_FAILURE' | 'APP_CRASH' | 'AUTH_FAILURE' | 'SYSTEM_EVENT' | 'EMAIL_SENT'
 
 export async function logSystemEvent({
     level,

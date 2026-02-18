@@ -69,6 +69,9 @@ export async function Header() {
                     <Link href="/contact" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
                         Contact
                     </Link>
+                    <Link href="mailto:support@edumeetup.com?subject=Report%20Issue" className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors">
+                        Report Issue
+                    </Link>
 
                 </nav>
 
@@ -172,6 +175,9 @@ export async function Header() {
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                             <Link href="/contact" className="w-full cursor-pointer">Contact</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <Link href="mailto:support@edumeetup.com?subject=Report%20Issue" className="w-full cursor-pointer text-red-600">Report Issue</Link>
                         </DropdownMenuItem>
 
 

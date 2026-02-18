@@ -25,6 +25,9 @@ export default function Error({
                 <Button variant="outline" onClick={() => window.location.href = '/'}>
                     Return Home
                 </Button>
+                <Button variant="secondary" onClick={() => window.open(`mailto:support@edumeetup.com?subject=Crash Report&body=Error: ${error.message}%0D%0ADigest: ${error.digest || 'N/A'}`, '_blank')}>
+                    Report Issue
+                </Button>
             </div>
         </div>
     )

@@ -157,6 +157,14 @@ export async function registerStudent(prevState: any, formData: FormData) {
         // await signIn("email", { email, redirect: false })
         // Note: signIn needs to be imported from 'auth'. user provided 'lib/auth' but standard is 'auth' or '@/auth'.
 
+        await logAudit({
+            action: 'REGISTER_STUDENT',
+            entityType: 'USER',
+            entityId: email, // Use email as ID initially
+            actorId: 'SYSTEM',
+            metadata: { ip, email, role: 'STUDENT' }
+        })
+
         return { success: true, email, message: "Account created! Checking for Magic Link..." }
 
     } catch (error) {
@@ -210,6 +218,14 @@ export async function registerUniversity(formData: FormData) {
         })
 
         console.log(`New university registered: ${institutionName}`)
+
+        await logAudit({
+            action: 'REGISTER_UNIVERSITY',
+            entityType: 'USER',
+            entityId: email,
+            actorId: 'SYSTEM',
+            metadata: { ip, email, institutionName, role: 'UNIVERSITY' }
+        })
 
         // Trigger Magic Link on Client or via SignIn
         return { success: true, message: "Registered. Please check your email to login." }

@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Toaster } from "sonner";
 import { ChatWidget } from "@/components/ai/chat-widget";
+import { BugReporter } from "@/components/bug-reporter";
 import { ThemeProvider } from "@/components/theme-provider";
 
 const inter = Inter({ subsets: ["latin"] }); // id: 7
@@ -45,6 +46,7 @@ export default async function RootLayout({
             {children}
           </main>
           <ChatWidget />
+          <BugReporter />
           <Toaster richColors position="top-center" />
           <Footer />
         </ThemeProvider>
