@@ -60,7 +60,7 @@ export async function Header() {
                     )}
 
                     <Link href="/host-a-fair" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
-                        Host a Fair
+                        Host a Campus Fair
                     </Link>
 
                     <Link href="/about" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
@@ -73,11 +73,6 @@ export async function Header() {
                 </nav>
 
                 <div className="hidden md:flex items-center gap-4">
-                    {/* Admin Demo Link - Always Visible */}
-                    {/* Admin Demo Link - Subtle Outline */}
-                    <Link href="/admin/dashboard" className="text-xs font-medium text-slate-500 border border-dashed border-slate-300 px-3 py-1.5 rounded-md hover:text-slate-900 hover:border-slate-400 transition-all">
-                        Admin Demo
-                    </Link>
                     {user ? (
                         <div className="flex items-center gap-3">
                             <NotificationBell notifications={notifications} />
@@ -169,7 +164,7 @@ export async function Header() {
                         )}
 
                         <DropdownMenuItem asChild>
-                            <Link href="/host-a-fair" className="w-full cursor-pointer">Host a Fair</Link>
+                            <Link href="/host-a-fair" className="w-full cursor-pointer">Host a Campus Fair</Link>
                         </DropdownMenuItem>
 
                         <DropdownMenuItem asChild>
@@ -179,10 +174,6 @@ export async function Header() {
                             <Link href="/contact" className="w-full cursor-pointer">Contact</Link>
                         </DropdownMenuItem>
 
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                            <Link href="/admin/dashboard" className="w-full cursor-pointer font-bold text-red-600">Admin Demo Panel</Link>
-                        </DropdownMenuItem>
 
                         {!user && (
                             <>
