@@ -33,7 +33,9 @@ export default auth((req) => {
     const isUniversityRoute = nextUrl.pathname.startsWith('/university')
     const isAdminRoute = nextUrl.pathname.startsWith('/admin')
 
-    if (!isLoggedIn && (isStudentRoute || isUniversityRoute || isAdminRoute)) {
+    const isRegistrationPage = nextUrl.pathname === '/student/register' || nextUrl.pathname === '/university/register'
+
+    if (!isLoggedIn && !isRegistrationPage && (isStudentRoute || isUniversityRoute || isAdminRoute)) {
         let callbackUrl = nextUrl.pathname
         if (nextUrl.search) {
             callbackUrl += nextUrl.search
