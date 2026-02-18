@@ -10,8 +10,9 @@ export const authConfig = {
     },
     providers: [], // Providers configured in auth.ts
     callbacks: {
-        authorized({ auth, request: nextUrl }) {
+        authorized({ auth, request }) {
             const isLoggedIn = !!auth?.user
+            const { nextUrl } = request
             const isOnDashboard = nextUrl.pathname.startsWith('/student/dashboard') || nextUrl.pathname.startsWith('/university/dashboard') || nextUrl.pathname.startsWith('/admin')
 
             // We handle granular redirects in middleware.ts, so we return true here to let middleware chain proceed
