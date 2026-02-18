@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -16,10 +17,10 @@ export async function GET(request: Request) {
         // For MVP/small scale: Fetch CONFIRMED meetings in the past, then filter by duration.
         // Optimization: Fetch meetings where proposedDatetime < now - max_duration (e.g. 2 hours) to be safe.
 
-        const potentialMeetings = await prisma.meetingRequest.findMany({
+        const potentialMeetings = await prisma.meeting.findMany({
             where: {
                 status: 'CONFIRMED',
-                proposedDatetime: {
+                startTime: {
                     lt: now // Started in the past
                 }
             }
@@ -28,26 +29,25 @@ export async function GET(request: Request) {
         let completedCount = 0
 
         for (const mtg of potentialMeetings) {
-            const entTime = new Date(mtg.proposedDatetime.getTime() + mtg.durationMinutes * 60000)
+            const entTime = new Date(mtg.startTime.getTime() + mtg.durationMinutes * 60000)
 
             if (entTime < now) {
                 // Determine who is the "system" user? Or just leave byUserId null?
                 // Schema allows byUserId in AuditLog? Let's check.
 
-                await prisma.$transaction(async (tx) => {
-                    await tx.meetingRequest.update({
+                await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+                    await tx.meeting.update({
                         where: { id: mtg.id },
                         data: { status: 'COMPLETED' }
                     })
 
-                    await (tx as any).meetingAuditLog.create({
+                    await tx.auditLog.create({
                         data: {
-                            meetingId: mtg.id,
                             action: 'STATUS_CHANGE',
-                            oldStatus: 'CONFIRMED',
-                            newStatus: 'COMPLETED',
-                            byUserId: 'SYSTEM',
-                            metadata: { reason: 'Auto-completed by Cron' } as any
+                            entityType: 'MEETING',
+                            entityId: mtg.id,
+                            actorId: 'SYSTEM', // Assuming user exists or needs mapping
+                            metadata: { reason: 'Auto-completed by Cron', oldStatus: 'CONFIRMED', newStatus: 'COMPLETED' }
                         }
                     })
                 })

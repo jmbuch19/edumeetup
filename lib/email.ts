@@ -46,6 +46,39 @@ const transporter = nodemailer.createTransport({
     socketTimeout: 10000      // 10 seconds
 })
 
+export const EMAIL_STYLES = `
+    body { font-family: 'Inter', sans-serif; color: #1e293b; line-height: 1.6; }
+    h2 { color: #0f172a; margin-top: 0; }
+    p { margin-bottom: 16px; }
+    .btn { display: inline-block; background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: 500; }
+    .info-box { background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 20px 0; }
+    .info-row { margin-bottom: 8px; display: flex; }
+    .info-label { font-weight: 600; width: 100px; color: #64748b; }
+    hr { border: none; border-top: 1px solid #e2e8f0; margin: 24px 0; }
+    blockquote { border-left: 4px solid #e2e8f0; padding-left: 16px; margin: 0; color: #475569; }
+`
+
+export function generateEmailHtml(title: string, content: string) {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>${title}</title>
+    <style>${EMAIL_STYLES}</style>
+</head>
+<body style="margin: 0; padding: 24px; background-color: #f1f5f9;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 32px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        ${content}
+        <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;">
+            <p>© ${new Date().getFullYear()} Edumeetup. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
+    `
+}
+
 export async function sendEmail({ to, subject, html }: EmailPayload) {
     // Fallback to simulation if credentials are missing
     if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
@@ -207,5 +240,28 @@ export const EmailTemplates = {
         </div>
         <p>Log in to your dashboard to express interest.</p>
         <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/university/campus-fairs" class="btn">View Opportunity</a></p>
+    `,
+
+    adminNotification: (institution: string, location: string, refNumber: string, contact: string, email: string) => `
+        <h2>New Campus Fair Request</h2>
+        <p>A new request has been submitted.</p>
+        <div class="info-box">
+             <div class="info-row"><span class="info-label">Institution:</span> <span>${institution}</span></div>
+             <div class="info-row"><span class="info-label">Location:</span> <span>${location}</span></div>
+             <div class="info-row"><span class="info-label">Reference:</span> <span>${refNumber}</span></div>
+             <div class="info-row"><span class="info-label">Contact:</span> <span>${contact} (${email})</span></div>
+        </div>
+        <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/admin/host-requests" class="btn">Review in Admin Dashboard</a></p>
+    `,
+
+    universityResponse: (universityName: string, institutionName: string, refNumber: string, status: 'INTERESTED' | 'NOT_INTERESTED', note?: string) => `
+        <h2>University Response Received</h2>
+        <p><strong>${universityName}</strong> has responded to the campus fair request from <strong>${institutionName}</strong>.</p>
+        <div class="info-box">
+            <div class="info-row"><span class="info-label">Reference:</span> <span>${refNumber}</span></div>
+            <div class="info-row"><span class="info-label">Response:</span> <span style="font-weight:bold; color:${status === 'INTERESTED' ? 'green' : 'red'}">${status}</span></div>
+            ${note ? `<div class="info-row"><span class="info-label">Note:</span> <span>${note}</span></div>` : ''}
+        </div>
+        <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/admin/host-requests" class="btn">View Details</a></p>
     `
 }

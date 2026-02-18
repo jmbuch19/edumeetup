@@ -8,15 +8,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { HostRequestActions } from "@/components/admin/host-request-actions"
+import { OutreachManager } from "@/components/admin/outreach-manager"
+import { getVerifiedUniversities } from "@/app/actions/admin/outreach"
 
 export default async function HostRequestDetailPage({ params }: { params: { id: string } }) {
     const request = await prisma.hostRequest.findUnique({
-        where: { id: params.id }
+        where: { id: params.id },
+        include: {
+            outreach: {
+                include: {
+                    university: { select: { institutionName: true } }
+                }
+            }
+        }
     })
 
     if (!request) {
         notFound()
     }
+
+    const universities = await getVerifiedUniversities()
 
     return (
         <div className="space-y-8 max-w-5xl mx-auto">
@@ -133,6 +144,13 @@ export default async function HostRequestDetailPage({ params }: { params: { id: 
                             )}
                         </CardContent>
                     </Card>
+
+                    {/* Outreach Manager (Only if verified/approved? Or always for admins?) */}
+                    <OutreachManager
+                        requestId={request.id}
+                        universities={universities}
+                        existingOutreach={request.outreach}
+                    />
                 </div>
 
                 {/* Sidebar - 1 Column */}

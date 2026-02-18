@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { auth } from '@/auth'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -8,8 +9,8 @@ import { redirect } from 'next/navigation'
 // --- Public Actions ---
 
 export async function getPublicEvents() {
-    // Casting to any due to persistent schema type mismatch in environment
-    return await (prisma.event as any).findMany({
+    // Casting removed as model exists
+    return await prisma.event.findMany({
         where: {
             isPublished: true,
             status: 'UPCOMING',
@@ -25,8 +26,8 @@ export async function getPublicEvents() {
 }
 
 export async function getEventDetails(eventId: string) {
-    // Casting to any due to persistent schema type mismatch in environment
-    const event = await (prisma.event as any).findUnique({
+    // Casting removed as model exists
+    const event = await prisma.event.findUnique({
         where: { id: eventId },
         include: {
             university: true,
@@ -52,8 +53,8 @@ export async function registerForEvent(eventId: string) {
     if (!student) return { error: 'Student profile not found.' }
 
     try {
-        await prisma.$transaction(async (tx) => {
-            const event = await (tx.event as any).findUnique({
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            const event = await tx.event.findUnique({
                 where: { id: eventId },
                 include: { _count: { select: { registrations: true } } }
             })
@@ -115,8 +116,8 @@ export async function getUniversityEvents() {
     if (!universityId) return []
 
     // Ensure we are using valid fields from schema
-    // Casting to any to bypass persistent stale type generation in this environment
-    return await (prisma.event as any).findMany({
+    // Casting removed as model exists
+    return await prisma.event.findMany({
         where: { universityId },
         orderBy: { dateTime: 'desc' },
         include: {
@@ -152,7 +153,7 @@ export async function createEvent(formData: FormData) {
     const capacity = formData.get('capacity') ? parseInt(formData.get('capacity') as string) : null
     const isPublished = formData.get('isPublished') === 'on'
 
-    await (prisma.event as any).create({
+    await prisma.event.create({
         data: {
             universityId,
             title,

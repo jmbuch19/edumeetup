@@ -24,8 +24,8 @@ export async function getUniversityMetrics() {
     if (profile) universityId = profile.id
     // If rep?
     if (!universityId) {
-        const user = await prisma.user.findUnique({ where: { id: userId }, select: { universityId: true } })
-        if (user) universityId = user.universityId
+        // Logic for Reps would go here if schema supported it (e.g. check AvailabilitySlots)
+        // For now, if not main uni account, return null
     }
 
     if (!universityId) return null
@@ -44,30 +44,30 @@ export async function getUniversityMetrics() {
         upcomingToday,
         past30DaysMeetings
     ] = await Promise.all([
-        prisma.meetingRequest.count({
+        prisma.meeting.count({
             where: {
                 universityId,
-                proposedDatetime: { gte: weekStart, lte: weekEnd },
+                startTime: { gte: weekStart, lte: weekEnd },
                 status: 'CONFIRMED'
             }
         }),
-        prisma.meetingRequest.count({
+        prisma.meeting.count({
             where: {
                 universityId,
                 status: 'PENDING'
             }
         }),
-        prisma.meetingRequest.count({
+        prisma.meeting.count({
             where: {
                 universityId,
                 status: 'CONFIRMED',
-                proposedDatetime: { gte: todayStart, lte: todayEnd }
+                startTime: { gte: todayStart, lte: todayEnd }
             }
         }),
-        prisma.meetingRequest.findMany({
+        prisma.meeting.findMany({
             where: {
                 universityId,
-                proposedDatetime: { gte: thirtyDaysAgo },
+                startTime: { gte: thirtyDaysAgo },
                 status: { in: ['COMPLETED', 'CANCELLED', 'NO_SHOW'] } // Added NO_SHOW concept if we use it, otherwise strictly cancelled
             },
             select: { status: true }

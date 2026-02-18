@@ -13,8 +13,19 @@ import {
 } from "@/components/ui/table"
 import { format } from "date-fns"
 
-export default async function HostRequestsPage() {
+export default async function HostRequestsPage({ searchParams }: { searchParams: { status?: string, type?: string } }) {
+    const where: any = {}
+
+    if (searchParams.status && searchParams.status !== 'ALL') {
+        where.status = searchParams.status
+    }
+
+    if (searchParams.type && searchParams.type !== 'ALL') {
+        where.institutionType = searchParams.type
+    }
+
     const requests = await prisma.hostRequest.findMany({
+        where,
         orderBy: { createdAt: 'desc' }
     })
 

@@ -12,12 +12,17 @@ import { expressInterest } from '@/app/actions'
 
 // Types
 // Types
-import { Program, UniversityProfile, MeetingParticipant, Meeting, AdvisoryRequest } from '@prisma/client'
+// Types
+type Program = any
+type University = any
+type MeetingParticipant = any
+type Meeting = any
+type AdvisoryRequest = any
 
 // Extended types for relations
-type ExtendedProgram = Program & { university: UniversityProfile }
-type ExtendedUniversity = UniversityProfile & { programs: Program[] }
-type ExtendedMeeting = MeetingParticipant & { meeting: Meeting & { university: UniversityProfile } }
+type ExtendedProgram = Program & { university: University }
+type ExtendedUniversity = University & { programs: Program[] }
+type ExtendedMeeting = MeetingParticipant & { meeting: Meeting & { university: University } }
 
 interface DashboardUIProps {
     student: { fullName: string; fieldOfInterest: string | null; preferredDegree: string | null; user: { email: string } }

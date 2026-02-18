@@ -3,7 +3,6 @@
 
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { FieldCategory } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, EmailTemplates } from '@/lib/email'
 import { requireUser, requireRole, signIn } from '@/lib/auth'
@@ -18,7 +17,7 @@ import { AuthError } from "next-auth"
 interface ProgramData {
     programName: string
     degreeLevel: string
-    fieldCategory: FieldCategory
+    fieldCategory: string // Changed from FieldCategory to string
     stemDesignated: boolean
     durationMonths: string
     tuitionFee: string
@@ -496,7 +495,7 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
             data: {
                 email,
                 role: 'UNIVERSITY',
-                status: 'PENDING',
+                // status: 'PENDING', // Removed as not in User schema
                 // phoneNumber: contactPhone, // Moved to profile or kept? User has no phone field in new schema? check schema.
                 // Schema has phoneNumber in User? No, simplified user. 
                 // Wait, I updated User schema. Let me check my memory.
@@ -506,7 +505,6 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
                 university: {
                     create: {
                         institutionName,
-                        universityName: institutionName,
                         country,
                         city,
                         website,
@@ -530,11 +528,11 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
                         verificationStatus: 'PENDING',
                         programs: {
                             create: programs.map((p: ProgramData) => ({
-                                name: p.programName,
-                                degree: p.degreeLevel,
-                                field: p.fieldCategory,
+                                programName: p.programName,
+                                degreeLevel: p.degreeLevel,
+                                fieldCategory: p.fieldCategory,
                                 stemDesignated: p.stemDesignated,
-                                duration: parseInt(p.durationMonths),
+                                durationMonths: parseInt(p.durationMonths),
                                 tuitionFee: parseFloat(p.tuitionFee),
                                 currency: p.currency,
                                 intakes: p.intakes.join(','),
@@ -646,8 +644,8 @@ export async function submitPublicInquiry(prevState: any, formData: FormData) {
             subject: `[Public Inquiry] ${subject} — ${fullName} (${role})`,
             html: EmailTemplates.publicInquiryNotification({
                 fullName,
-                email,
-                role,
+                email, // Added
+                role,  // Added
                 country,
                 subject,
                 message,
@@ -789,7 +787,7 @@ export async function createMeeting(formData: FormData) {
                 meetingType: type,
                 joinUrl,
                 agenda,
-                createdByUniversityId: uniProfile.id, // Derived
+                universityId: uniProfile.id, // Derived
                 participants: {
                     create: participants.map(uid => ({
                         participantUserId: uid,
@@ -801,7 +799,7 @@ export async function createMeeting(formData: FormData) {
                     connect: { id: availabilitySlotId }
                 } : undefined
             },
-            include: { participants: { include: { user: true } } }
+            include: { participants: { include: { user: true } } } as any
         })
 
         // If slot used, mark as booked
@@ -952,7 +950,7 @@ export async function cancelMeeting(meetingId: string) {
                 university: { include: { user: true } },
                 participants: { include: { user: true } },
                 availabilitySlot: true
-            }
+            } as any
         })
 
         if (!meeting) return { error: "Meeting not found" }
@@ -961,7 +959,7 @@ export async function cancelMeeting(meetingId: string) {
         // 1. Update Status
         await prisma.meeting.update({
             where: { id: meetingId },
-            data: { status: 'CANCELED' }
+            data: { status: 'CANCELLED' }
         })
 
         // 2. Free up slot if exists
@@ -980,7 +978,7 @@ export async function cancelMeeting(meetingId: string) {
             await prisma.notification.create({
                 data: {
                     userId: p.participantUserId,
-                    type: 'MEETING_CANCELED',
+                    type: 'MEETING_CANCELLED',
                     title: 'Meeting Canceled',
                     message: `The meeting "${meeting.title}" has been canceled by the university.`,
                     payload: { meetingId: meeting.id }
@@ -1029,7 +1027,7 @@ export async function updateMeeting(meetingId: string, formData: FormData) {
                 joinUrl,
                 agenda
             },
-            include: { participants: { include: { user: true } } }
+            include: { participants: { include: { user: true } } } as any
         })
 
         // Notify
@@ -1103,7 +1101,7 @@ export async function getUniversityMeetings(status?: string) {
     if (!university) return []
 
     const where: any = {
-        createdByUniversityId: university.id
+        universityId: university.id
     }
 
     if (status) {
@@ -1122,7 +1120,7 @@ export async function getUniversityMeetings(status?: string) {
                     }
                 }
             }
-        },
+        } as any,
         orderBy: { startTime: 'asc' }
     })
 
@@ -1147,7 +1145,7 @@ export async function updateMeetingStatus(meetingId: string, status: 'CONFIRMED'
                         }
                     }
                 }
-            }
+            } as any
         })
 
         if (!mtg) return { error: 'Meeting not found' }
@@ -1168,7 +1166,7 @@ export async function updateMeetingStatus(meetingId: string, status: 'CONFIRMED'
         })
 
         // Notifications
-        const studentParticipant = mtg.participants.find(p => p.participantType === 'STUDENT')
+        const studentParticipant = mtg.participants.find((p: any) => p.participantType === 'STUDENT')
         if (studentParticipant && studentParticipant.user.email) {
             const studentEmail = studentParticipant.user.email
             const institutionName = mtg.university.institutionName
@@ -1218,7 +1216,7 @@ export async function getStudentMeetings() {
                     participantUserId: userId
                 }
             }
-        },
+        } as any,
         include: {
             university: {
                 include: {
@@ -1232,13 +1230,13 @@ export async function getStudentMeetings() {
                     }
                 }
             }
-        },
+        } as any,
         orderBy: { startTime: 'asc' }
     })
 
     // Map slightly differently for student view if needed, or share mapper?
     // Student view might need University details.
-    return meetings.map(m => ({
+    return meetings.map((m: any) => ({
         ...mapMeetingToFrontend(m),
         university: {
             institutionName: m.university.institutionName,
@@ -1256,3 +1254,4 @@ export async function createMeetingRequest(formData: FormData) { return { error:
 export async function proposeReschedule(meetingId: string, newDateStr: string, reason: string) { return { error: 'Not implemented' } }
 export async function getAvailability() { return [] }
 export async function cancelMeetingByStudent(meetingId: string, reason: string) { return { error: 'Not implemented' } }
+

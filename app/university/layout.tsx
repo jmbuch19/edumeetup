@@ -19,7 +19,7 @@ export default async function UniversityLayout({
         { href: '/university/analytics', label: 'Analytics', icon: BarChart3 },
         { href: '/university/availability', label: 'Availability', icon: Clock },
         { href: '/university/meetings', label: 'Meetings', icon: Users },
-        // { href: '/university/events', label: 'Events', icon: Calendar }, // Events might not be fully implemented yet as a route
+        { href: '/university/fairs', label: 'Campus Fairs', icon: Calendar },
     ]
 
     return (
