@@ -11,9 +11,8 @@ export async function GET() {
             update: {},
             create: {
                 email: adminEmail,
-                email: adminEmail,
                 role: 'ADMIN',
-                status: 'ACTIVE',
+                isActive: true,
             },
         })
 
@@ -25,7 +24,7 @@ export async function GET() {
             create: {
                 email: adminEmail2,
                 role: 'ADMIN',
-                status: 'ACTIVE'
+                isActive: true
             }
         })
 
@@ -36,9 +35,8 @@ export async function GET() {
             update: {},
             create: {
                 email: studentEmail,
-                email: studentEmail,
                 role: 'STUDENT',
-                status: 'ACTIVE',
+                isActive: true,
                 student: {
                     create: {
                         fullName: 'John Doe',
@@ -67,9 +65,8 @@ export async function GET() {
             update: {},
             create: {
                 email: uniEmail,
-                email: uniEmail,
                 role: 'UNIVERSITY',
-                status: 'ACTIVE',
+                isActive: true,
                 university: {
                     create: {
                         institutionName: 'Harvard University',
@@ -78,11 +75,11 @@ export async function GET() {
                         website: 'https://harvard.edu',
                         contactEmail: 'admissions@harvard.edu',
                         verificationStatus: 'VERIFIED',
-                        verifiedDate: new Date(),
+                        verifiedAt: new Date(),
                         programs: {
                             create: [
                                 {
-                                    programName: 'Computer Science', // ...
+                                    programName: 'Computer Science',
                                     degreeLevel: "Master's",
                                     fieldCategory: 'Engineering',
                                     tuitionFee: 50000,
@@ -102,7 +99,6 @@ export async function GET() {
             update: {},
             create: {
                 email: pendingUniEmail,
-                email: pendingUniEmail,
                 role: 'UNIVERSITY',
                 isActive: true,
                 university: {
@@ -120,7 +116,7 @@ export async function GET() {
                                 {
                                     programName: 'Data Science',
                                     degreeLevel: "Master's",
-                                    fieldCategory: 'Engineering', // Science is not in enum, using Engineering or similar
+                                    fieldCategory: 'Engineering',
                                     tuitionFee: 60000,
                                     intakes: 'Fall 2026',
                                 },
