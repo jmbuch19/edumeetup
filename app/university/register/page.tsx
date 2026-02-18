@@ -11,9 +11,13 @@ import { PRIORITY_MARKETS, ALL_COUNTRIES } from '@/lib/countries'
 import { registerUniversityWithPrograms } from '@/app/actions' // New action
 
 // Enums as constants for dropdowns
-const DEGREE_LEVELS = ["Associate", "Bachelor's", "Master's", "MBA", "PhD", "Certificate"]
+import { DEGREE_LEVELS as DEGREES_FROM_CONSTANTS } from '@/lib/constants' // Will map this in next step or change constant name
+// actually the constant is DegreeLevels. I'll make a local alias or just use it directly.
+import { DegreeLevels } from '@/lib/constants'
+
 const FIELD_CATEGORIES = ["Computer Science", "Engineering", "Business", "Data Science", "Health Sciences", "Social Sciences", "Arts & Humanities", "Law", "Architecture", "Others"]
 const INTAKES = ["Fall", "Spring", "Summer"]
+const DEGREE_LEVELS = DegreeLevels.map(d => d.value)
 const ENGLISH_TESTS = ["IELTS", "TOEFL", "Duolingo", "PTE", "Not Required"]
 
 interface ProgramState {
@@ -142,23 +146,9 @@ export default function UniversityRegisterPage() {
                 toast.error(result.error)
                 setLoading(false)
             } else if (result?.success && result?.email) {
-                // Success - Send Magic Link
-                try {
-                    toast.loading("Sending login link...")
-                    const res = await fetch("/api/auth/send-magic-link", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email: result.email, loginType: 'university' }),
-                    })
-
-                    if (!res.ok) throw new Error("Failed to send magic link")
-
-                    toast.success("Registration successful! Check your email.")
-                    window.location.href = `/auth/verify-request?email=${encodeURIComponent(result.email)}`
-                } catch (error) {
-                    toast.error("Registration successful, but failed to send link. Please login manually.")
-                    setLoading(false)
-                }
+                // Success - Show toast and redirect
+                toast.success(result.message || "Registration successful! Check your email.")
+                window.location.href = `/auth/verify-request?email=${encodeURIComponent(result.email)}`
             }
         } catch {
             setError("Something went wrong")

@@ -17,6 +17,7 @@ export async function updateUniversitySettings(formData: FormData) {
     const contactEmail = formData.get('contactEmail') as string
     const description = formData.get('description') as string
     const logo = formData.get('logo') as string
+    const brandColor = formData.get('brandColor') as string
 
     // Extract Rules Fields
     const approvalMode = formData.get('approvalMode') as string
@@ -33,8 +34,9 @@ export async function updateUniversitySettings(formData: FormData) {
             data: {
                 website,
                 contactEmail,
-                description,
-                logo,
+                about: description,
+                logo: logo && /^https:\/\/.*\.(jpg|jpeg|png|svg|webp)$/i.test(logo) ? logo : undefined,
+                brandColor,
                 approvalMode,
                 defaultDuration,
                 dailyCapPerRep,

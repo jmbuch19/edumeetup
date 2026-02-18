@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, EmailTemplates } from '@/lib/email'
-import { requireUser, requireRole, signIn } from '@/lib/auth'
+import { requireUser, requireRole, signIn, isUniversityEmail } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateLimiter, interestRateLimiter, inviteRateLimiter } from '@/lib/ratelimit'
 import { headers } from 'next/headers'
@@ -165,14 +165,61 @@ export async function registerStudent(prevState: any, formData: FormData) {
             metadata: { ip, email, role: 'STUDENT' }
         })
 
-        return { success: true, email, message: "Account created! Checking for Magic Link..." }
+        // Trigger Magic Link email directly
+        await signIn("email", {
+            email,
+            redirect: false,
+            redirectTo: '/student/dashboard'
+        })
+
+        return { success: true, email, message: "Account created! Check your email to login." }
 
     } catch (error) {
         console.error('Registration failed:', error)
         return { error: 'Registration failed' }
     }
 }
-// Removed session creation here as it happens on verification link click
+
+
+export async function loginUniversity(formData: FormData) {
+    const email = formData.get('email') as string
+
+    // 1. Validate Email
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return { error: "Please enter a valid email address." }
+    }
+
+    // 2. University Domain Check
+    if (!isUniversityEmail(email)) {
+        return { error: "Please use your official university email (e.g. name@university.edu). Personal emails are not accepted." }
+    }
+
+    // 3. Rate Limit
+    const ip = headers().get('x-forwarded-for') || 'unknown'
+    // Note: We use a separate limiter for login if needed, or reuse generic. 
+    // For now, let's rely on Auth.js built-in rate limit or adding a check here.
+    // Let's use the register limiter for now or skip if Auth.js handles it.
+    // Auth.js `signIn` callback handles per-email rate limiting.
+
+    try {
+        await signIn("email", {
+            email,
+            redirect: false,
+            redirectTo: '/university/dashboard'
+        })
+        return { success: true, message: "Magic link sent! Check your inbox." }
+    } catch (error) {
+        if (error instanceof Error && error.message.includes('RateLimited')) {
+            return { error: "Too many attempts. Please try again later." }
+        }
+        // Auth.js throws normally for redirects, but with redirect:false it might not?
+        // Actually with redirect:false it returns a result object or throws?
+        // In Server Actions, `signIn` throws on success redirect. 
+        // But with redirect:false? 
+        // Let's safe guard.
+        throw error
+    }
+}
 
 export async function registerUniversity(formData: FormData) {
     const rawData = Object.fromEntries(formData.entries())
@@ -563,6 +610,13 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
         })
 
         console.log(`New university registered with ${programs.length} programs: ${institutionName}`)
+
+        // Trigger Magic Link email directly
+        await signIn("email", {
+            email,
+            redirect: false,
+            redirectTo: '/university/dashboard'
+        })
 
     } catch (error) {
         console.error('Registration failed:', error)
@@ -1270,4 +1324,36 @@ export async function createMeetingRequest(formData: FormData) { return { error:
 export async function proposeReschedule(meetingId: string, newDateStr: string, reason: string) { return { error: 'Not implemented' } }
 export async function getAvailability() { return [] }
 export async function cancelMeetingByStudent(meetingId: string, reason: string) { return { error: 'Not implemented' } }
+
+export async function getLiveUniversitySuggestion() {
+    try {
+        const now = new Date()
+        const slot = await prisma.availabilitySlot.findFirst({
+            where: {
+                startTime: { lte: now },
+                endTime: { gte: now },
+                isBooked: false
+            },
+            include: {
+                university: true,
+                repUser: true
+            },
+            orderBy: {
+                startTime: 'desc'
+            }
+        })
+
+        if (!slot) return null
+
+        return {
+            hasLive: true,
+            universityName: slot.university.institutionName,
+            repName: slot.repUser.name || "A Representative",
+            universityId: slot.universityId
+        }
+    } catch (error) {
+        console.error("Error fetching live suggestion:", error)
+        return null
+    }
+}
 

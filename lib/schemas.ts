@@ -8,7 +8,7 @@ export const registerStudentSchema = z.object({
     email: z.string().email(),
     fullName: z.string().min(2, "Name too short"),
     country: z.string().min(2),
-    gender: z.string(),
+    gender: z.string().min(1, "Gender is required"),
     ageGroup: z.string(),
     // Optional/nullable fields
     phoneNumber: z.string().optional(),

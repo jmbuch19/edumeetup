@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { StudentProfile } from '@prisma/client'
+import { DegreeLevels } from '@/lib/constants'
+
 import { updateStudentProfile } from '@/app/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -138,11 +140,11 @@ export function ProfileForm({ initialData, fieldCategories }: ProfileFormProps) 
                             <Select name="preferredDegree" defaultValue={initialData.preferredDegree || undefined}>
                                 <SelectTrigger><SelectValue placeholder="Select Degree" /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Bachelor's">Bachelor&apos;s</SelectItem>
-                                    <SelectItem value="Master's">Master&apos;s</SelectItem>
-                                    <SelectItem value="MBA">MBA</SelectItem>
-                                    <SelectItem value="PhD">PhD</SelectItem>
-                                    <SelectItem value="Certificate">Certificate</SelectItem>
+                                    {DegreeLevels.map((level) => (
+                                        <SelectItem key={level.value} value={level.value}>
+                                            {level.label}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>

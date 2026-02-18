@@ -7,6 +7,7 @@ import { signIn } from "next-auth/react"
 import { SubmitButton } from "@/components/SubmitButton"
 import { Input } from "@/components/ui/input"
 import { Building2, AlertCircle, Clock, CheckCircle2, Info } from "lucide-react"
+import { loginUniversity } from "@/app/actions"
 
 function UniversityLoginForm() {
     const searchParams = useSearchParams()
@@ -97,27 +98,22 @@ function UniversityLoginForm() {
         setIsLoading(true)
 
         try {
-            const res = await fetch("/api/auth/send-magic-link", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, loginType: 'university' }),
-            })
+            const formData = new FormData()
+            formData.append('email', email)
 
-            const data = await res.json()
+            const result = await loginUniversity(formData)
 
-            if (res.status === 429) {
-                setRateLimitEnds(Date.now() + 60000)
-                setError(data.error || "Too many attempts. Please wait.")
-                setIsLoading(false)
-                return
+            if (result?.error) {
+                if (result.error.includes('Too many attempts')) {
+                    setRateLimitEnds(Date.now() + 60000)
+                }
+                throw new Error(result.error)
             }
 
-            if (!res.ok) {
-                throw new Error(data.error || "Something went wrong")
+            if (result?.success) {
+                setIsSuccess(true)
+                setEmail("")
             }
-
-            setIsSuccess(true)
-            setEmail("")
         } catch (error: any) {
             setError(error.message)
         } finally {

@@ -31,7 +31,7 @@ interface AvailabilitySlot {
     isBooked: boolean
 }
 
-export function InterestedStudentsTable({ interests, availabilitySlots = [] }: { interests: any[], availabilitySlots?: any[] }) {
+export function InterestedStudentsTable({ interests, availabilitySlots = [], programs = [], compact = false }: { interests: any[], availabilitySlots?: any[], programs?: any[], compact?: boolean }) {
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)

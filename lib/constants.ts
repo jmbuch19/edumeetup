@@ -18,9 +18,12 @@ export const VideoProviders = [
 ] as const
 
 export const DegreeLevels = [
-    { value: 'UG', label: 'Undergraduate' },
-    { value: 'Grad', label: 'Graduate' },
-    { value: 'PhD', label: 'PhD' },
+    { value: "Associate", label: "Associate" },
+    { value: "Bachelor's", label: "Bachelor's" },
+    { value: "Master's", label: "Master's" },
+    { value: "MBA", label: "MBA" },
+    { value: "PhD", label: "PhD" },
+    { value: "Certificate", label: "Certificate" },
 ] as const
 
 export const MeetingPurposes = [

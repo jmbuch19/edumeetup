@@ -8,6 +8,7 @@ import { GraduationCap, Loader2 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import { toast } from 'sonner'
+import { DegreeLevels } from '@/lib/constants'
 
 
 interface State {
@@ -44,31 +45,14 @@ export default function StudentRegisterPage() {
     const formRef = useRef<HTMLFormElement>(null)
 
     useEffect(() => {
-        const handleSuccess = async (email: string) => {
-            try {
-                toast.loading("Sending login link...")
-                const res = await fetch("/api/auth/send-magic-link", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email, loginType: 'student' }),
-                })
-
-                if (!res.ok) throw new Error("Failed to send magic link")
-
-                toast.success("Account created! Check your email to login.")
-                // Redirect to verify request page
-                window.location.href = `/auth/verify-request?email=${encodeURIComponent(email)}`
-            } catch (error) {
-                toast.error("Account created, but failed to send link. Please login manually.")
-            }
-        }
-
         if (state?.error) {
             // Handle specific field errors or general errors
             const msg = typeof state.error === 'string' ? state.error : "Please check the form for errors."
             toast.error(msg)
         } else if (state?.success && state?.email) {
-            handleSuccess(state.email)
+            toast.success(state.message || "Account created! Check your email to login.")
+            // Redirect to verify request page
+            window.location.href = `/auth/verify-request?email=${encodeURIComponent(state.email)}`
         }
     }, [state])
 
@@ -388,11 +372,11 @@ export default function StudentRegisterPage() {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Desired Degree Level</label>
                                 <select name="preferredDegree" className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                                     <option value="">Select Degree</option>
-                                    <option value="Bachelor's">Bachelor’s</option>
-                                    <option value="Master's">Master’s</option>
-                                    <option value="MBA">MBA</option>
-                                    <option value="PhD">PhD</option>
-                                    <option value="Certificate">Certificate</option>
+                                    {DegreeLevels.map((level) => (
+                                        <option key={level.value} value={level.value}>
+                                            {level.label}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
 

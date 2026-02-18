@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { University } from '@prisma/client'
 import { InteractiveCard } from '@/components/ui/interactive-card'
+import { UniversityLogo } from '@/components/university/university-logo'
 import { cn } from '@/lib/utils'
 
 // Use a type that matches what the search action returns
@@ -34,15 +35,14 @@ export function UniversityCard({ university, userRole }: UniversityCardProps) {
                 animate={{ scale: isHovered ? 1.02 : 1 }}
             >
                 <div className="h-32 bg-muted/30 flex items-center justify-center border-b border-border relative -m-6 mb-6 group-hover:bg-primary/5 transition-colors">
-                    {/* Logo Placeholder */}
-                    <GraduationCap className={cn("h-12 w-12 transition-colors duration-300", isHovered ? "text-primary" : "text-muted-foreground")} />
-
-                    {university.verificationStatus === 'VERIFIED' && (
-                        <span className="absolute top-4 right-4 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1">
-                            <ShieldCheck className="w-3 h-3" />
-                            Verified
-                        </span>
-                    )}
+                    {/* Logo */}
+                    <UniversityLogo
+                        src={university.logo}
+                        alt={university.institutionName}
+                        size="lg"
+                        isVerified={university.verificationStatus === 'VERIFIED'}
+                        className="shadow-md"
+                    />
 
                     {/* Admin Action Badge */}
                     {isAdmin && (

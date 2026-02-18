@@ -3,16 +3,18 @@
 
 import { useChat } from '@ai-sdk/react';
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, User, Bot } from 'lucide-react';
+import { MessageCircle, X, Send, User, Bot, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { getLiveUniversitySuggestion } from '@/app/actions';
+import { toast } from 'sonner';
 
 export function ChatWidget() {
     const [isOpen, setIsOpen] = useState(false);
     // Use local state for input to guarantee responsiveness
     const [localInput, setLocalInput] = useState('');
 
-    const { messages = [], append, isLoading } = useChat({
+    const { messages, append, isLoading } = useChat({
         api: '/api/chat',
         initialMessages: [
             {
@@ -36,6 +38,38 @@ export function ChatWidget() {
             scrollToBottom();
         }
     }, [messages, isOpen]);
+
+    // Proactive Engagement
+    useEffect(() => {
+        const checkLive = async () => {
+            const suggestion = await getLiveUniversitySuggestion()
+            if (suggestion && suggestion.hasLive) {
+                // 1. Show Toast
+                toast.info(`${suggestion.universityName} is live!`, {
+                    description: "A representative is available for a chat right now.",
+                    action: {
+                        label: "Chat Now",
+                        onClick: () => {
+                            setIsOpen(true)
+                            append({
+                                role: 'user',
+                                content: `I see ${suggestion.universityName} is live. Can I speak to ${suggestion.repName}?`
+                            })
+                        }
+                    }
+                })
+
+                // 2. Add badge to icon (handled in render)
+                setLiveUni(suggestion.universityName)
+            }
+        }
+
+        // Short delay to not block hydration
+        const timer = setTimeout(checkLive, 2000)
+        return () => clearTimeout(timer)
+    }, [])
+
+    const [liveUni, setLiveUni] = useState<string | null>(null)
 
     const handleLocalSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -146,6 +180,12 @@ export function ChatWidget() {
                 className="h-14 w-14 rounded-full shadow-xl bg-primary hover:bg-primary/90 transition-all hover:scale-105"
             >
                 {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
+                {liveUni && !isOpen && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500"></span>
+                    </span>
+                )}
             </Button>
         </div>
     );

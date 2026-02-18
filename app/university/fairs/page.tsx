@@ -11,7 +11,23 @@ export default async function UniversityFairsPage() {
         redirect('/login')
     }
 
-    const outreachItems = await getUniversityOutreach()
+    const outreachItemsRaw = await getUniversityOutreach()
+
+    // Serialize dates for Client Component
+    const outreachItems = outreachItemsRaw.map(item => ({
+        ...item,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString(),
+        sentAt: item.sentAt.toISOString(),
+        respondedAt: item.respondedAt ? item.respondedAt.toISOString() : null,
+        hostRequest: {
+            ...item.hostRequest,
+            createdAt: item.hostRequest.createdAt.toISOString(),
+            updatedAt: item.hostRequest.updatedAt.toISOString(),
+            preferredDateStart: item.hostRequest.preferredDateStart.toISOString(),
+            preferredDateEnd: item.hostRequest.preferredDateEnd.toISOString(),
+        }
+    }))
 
     const pending = outreachItems.filter(i => i.status === 'SENT')
     const history = outreachItems.filter(i => i.status !== 'SENT')

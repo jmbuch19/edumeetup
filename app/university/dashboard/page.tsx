@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { createProgram, updateUniversityProfile } from '@/app/actions'
 import { InterestedStudentsTable } from '@/components/university/interested-students-table'
 import ProgramList from './program-list'
-import { MeetingList } from '@/components/university/MeetingList'
+import MeetingList from '@/components/university/MeetingList'
 import { FairOutreachList } from '@/components/university/FairOutreachList'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,6 +13,8 @@ import { DashboardStats } from "@/components/university/DashboardStats"
 import { School, Download, BookOpen, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
+import { DegreeLevels } from '@/lib/constants'
+import { UniversityLogo } from '@/components/university/university-logo'
 
 export const dynamic = 'force-dynamic'
 
@@ -129,12 +131,23 @@ export default async function UniversityDashboard() {
     const pendingInterestsCount = uni.interests.filter(i => i.status === 'PENDING').length
     const recentInterests = uni.interests.slice(0, 5)
 
+
+
     return (
         <div className="space-y-8 container max-w-7xl mx-auto px-4 py-10">
             <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">University Dashboard</h1>
-                    <p className="text-slate-500">{uni.institutionName}</p>
+                <div className="flex items-center gap-4">
+                    <UniversityLogo
+                        src={uni.logo}
+                        alt={uni.institutionName}
+                        size="lg"
+                        isVerified={uni.verificationStatus === 'VERIFIED'}
+                        className="shadow-sm border border-gray-100"
+                    />
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">University Dashboard</h1>
+                        <p className="text-slate-500">{uni.institutionName}</p>
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline">
@@ -148,18 +161,20 @@ export default async function UniversityDashboard() {
             </div>
 
             <Tabs defaultValue="overview" className="space-y-6">
-                <TabsList>
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="interests">Student Interests</TabsTrigger>
-                    <TabsTrigger value="meetings">Meetings</TabsTrigger>
-                    <TabsTrigger value="programs">Programs</TabsTrigger>
-                    <TabsTrigger value="fairs" className="relative">
-                        Campus Fairs
-                        {fairOutreach.filter(o => o.status === 'SENT').length > 0 && (
-                            <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
-                        )}
-                    </TabsTrigger>
-                </TabsList>
+                <div className="w-full overflow-x-auto pb-2 -mb-2">
+                    <TabsList className="w-full justify-start min-w-max">
+                        <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="interests">Student Interests</TabsTrigger>
+                        <TabsTrigger value="meetings">Meetings</TabsTrigger>
+                        <TabsTrigger value="programs">Programs</TabsTrigger>
+                        <TabsTrigger value="fairs" className="relative">
+                            Campus Fairs
+                            {fairOutreach.filter(o => o.status === 'SENT').length > 0 && (
+                                <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                            )}
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
 
                 <TabsContent value="overview" className="space-y-6">
                     <DashboardStats
@@ -192,7 +207,6 @@ export default async function UniversityDashboard() {
                             <CardContent>
                                 <MeetingList
                                     meetings={JSON.parse(JSON.stringify(upcomingMeetings))}
-                                    userRole="UNIVERSITY_REP"
                                     compact
                                 />
                             </CardContent>
@@ -252,7 +266,7 @@ export default async function UniversityDashboard() {
                             <CardDescription>Manage your upcoming and past video consultations</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <MeetingList meetings={JSON.parse(JSON.stringify(allMeetings))} userRole="UNIVERSITY_REP" />
+                            <MeetingList meetings={JSON.parse(JSON.stringify(allMeetings))} />
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -277,10 +291,11 @@ export default async function UniversityDashboard() {
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Degree Level</label>
                                             <select name="degreeLevel" className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm">
-                                                <option value="Bachelor's">Bachelor&apos;s</option>
-                                                <option value="Master's">Master&apos;s</option>
-                                                <option value="MBA">MBA</option>
-                                                <option value="PhD">PhD</option>
+                                                {DegreeLevels.map((level) => (
+                                                    <option key={level.value} value={level.value}>
+                                                        {level.label}
+                                                    </option>
+                                                ))}
                                             </select>
                                         </div>
                                         <div>
@@ -313,7 +328,7 @@ export default async function UniversityDashboard() {
                         <div className="lg:col-span-2">
                             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                                 <h2 className="text-xl font-bold text-gray-900 mb-4">My Programs</h2>
-                                <ProgramList programs={JSON.parse(JSON.stringify(uni.programs))} />
+                                <ProgramList programs={JSON.parse(JSON.stringify(uni.programs))} universityId={uni.id} />
                             </div>
                         </div>
                     </div>

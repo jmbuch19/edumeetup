@@ -10,8 +10,12 @@ import { Switch } from '@/components/ui/switch'
 import { updateUniversitySettings } from './actions'
 // import { useToast } from '@/hooks/use-toast' // Removed as it likely doesn't exist
 
+import ImageUpload from '@/components/ui/image-upload'
+
 export default function SettingsForm({ settings }: { settings: any }) {
     const [isLoading, setIsLoading] = useState(false)
+    const [logoUrl, setLogoUrl] = useState(settings?.logo || '')
+    const [brandColor, setBrandColor] = useState(settings?.brandColor || '')
 
     async function handleSubmit(formData: FormData) {
         setIsLoading(true)
@@ -50,8 +54,26 @@ export default function SettingsForm({ settings }: { settings: any }) {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="logo">Logo URL</Label>
-                        <Input id="logo" name="logo" defaultValue={settings?.logo || ''} placeholder="https://..." />
+                        <Label htmlFor="logo">University Logo</Label>
+                        <Input type="hidden" name="logo" value={logoUrl} />
+                        <Input type="hidden" name="brandColor" value={brandColor} />
+                        <ImageUpload
+                            value={logoUrl ? [logoUrl] : []}
+                            onChange={(url, colors) => {
+                                setLogoUrl(url)
+                                if (colors && colors.length > 0) setBrandColor(colors[0])
+                            }}
+                            onRemove={() => {
+                                setLogoUrl('')
+                                setBrandColor('')
+                            }}
+                        />
+                        {brandColor && (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: brandColor }} />
+                                <span>Detected Brand Color: {brandColor}</span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid gap-2">
