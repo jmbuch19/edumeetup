@@ -1,4 +1,31 @@
-import nodemailer from 'nodemailer'
+
+import { logSystemEvent } from './system-log'
+
+// ... (existing code)
+
+try {
+    await transporter.sendMail({
+        from: `"EduMeetup" <${process.env.GMAIL_USER}>`,
+        to,
+        subject,
+        html
+    })
+    console.log(`[EMAIL SENT] To: ${to} | Subject: ${subject}`)
+    return { success: true }
+} catch (error) {
+    console.error("Failed to send email:", error)
+
+    await logSystemEvent({
+        level: 'ERROR',
+        type: 'EMAIL_FAILURE',
+        message: error instanceof Error ? error.message : "Unknown email error",
+        metadata: { to, subject, error: JSON.stringify(error) }
+    })
+
+    // Fallback to simulation on error so flow doesn't break
+    return { error: "Failed to send email" }
+}
+
 
 /**
  * Unified Email Utility
@@ -105,6 +132,14 @@ export async function sendEmail({ to, subject, html }: EmailPayload) {
         return { success: true }
     } catch (error) {
         console.error("Failed to send email:", error)
+
+        await logSystemEvent({
+            level: 'ERROR',
+            type: 'EMAIL_FAILURE',
+            message: error instanceof Error ? error.message : "Unknown email error",
+            metadata: { to, subject, error: JSON.stringify(error) }
+        })
+
         // Fallback to simulation on error so flow doesn't break
         return { error: "Failed to send email" }
     }

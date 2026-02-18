@@ -677,3 +677,15 @@ model EventRegistration {
   
   @@unique([eventId, studentId])
 }
+
+model SystemLog {
+  id        String   @id @default(cuid())
+  level     String   // ERROR, WARN, INFO
+  type      String   // EMAIL_FAILURE, APP_CRASH, etc.
+  message   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  
+  @@index([type])
+  @@index([level])
+}

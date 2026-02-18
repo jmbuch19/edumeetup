@@ -9,7 +9,10 @@ import { cn } from '@/lib/utils';
 
 export function ChatWidget() {
     const [isOpen, setIsOpen] = useState(false);
-    const { messages = [], input = '', handleInputChange, handleSubmit, isLoading } = useChat({
+    // Use local state for input to guarantee responsiveness
+    const [localInput, setLocalInput] = useState('');
+
+    const { messages = [], append, isLoading } = useChat({
         api: '/api/chat',
         onError: (e) => {
             console.error("Chat error:", e);
@@ -26,6 +29,19 @@ export function ChatWidget() {
             scrollToBottom();
         }
     }, [messages, isOpen]);
+
+    const handleLocalSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!localInput.trim() || isLoading) return;
+
+        const content = localInput;
+        setLocalInput(''); // Clear immediately for better UX
+
+        await append({
+            role: 'user',
+            content,
+        });
+    };
 
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end space-y-4">
@@ -99,22 +115,16 @@ export function ChatWidget() {
 
                     {/* Input */}
                     <div className="p-4 bg-white border-t border-gray-100">
-                        <form
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                if (!input.trim()) return;
-                                handleSubmit(e);
-                            }}
-                            className="flex gap-2"
-                        >
+                        <form onSubmit={handleLocalSubmit} className="flex gap-2">
                             <input
                                 className="flex-1 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                                value={input}
-                                onChange={handleInputChange}
+                                value={localInput}
+                                onChange={(e) => setLocalInput(e.target.value)}
                                 placeholder="Type your question..."
                                 disabled={isLoading}
+                                autoFocus
                             />
-                            <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className="rounded-full h-9 w-9 shrink-0">
+                            <Button type="submit" size="icon" disabled={isLoading || !localInput.trim()} className="rounded-full h-9 w-9 shrink-0">
                                 <Send className="h-4 w-4" />
                             </Button>
                         </form>

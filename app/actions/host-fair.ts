@@ -72,6 +72,17 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
             }
         })
 
+        // Log Audit (Using generic SYSTEM actor since public form has no user ID)
+        await prisma.auditLog.create({
+            data: {
+                action: "HOST_REQUEST_SUBMITTED",
+                entityType: "HostRequest",
+                entityId: newRequest.id,
+                actorId: "SYSTEM_PUBLIC_FORM",
+                metadata: JSON.stringify({ referenceNumber, institutionName })
+            }
+        })
+
         // Send Confirmation Email to Institution
         await sendEmail({
             to: contactEmail,

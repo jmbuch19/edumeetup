@@ -72,6 +72,17 @@ export async function createOutreach(requestId: string, universityIds: string[])
                 }
             })
 
+            // Log Audit
+            await prisma.auditLog.create({
+                data: {
+                    action: "OUTREACH_SENT",
+                    entityType: "HostRequestOutreach",
+                    entityId: `${requestId}-${uniId}`, // Composite ID logic
+                    actorId: session.user.id,
+                    metadata: JSON.stringify({ hostRequestId: requestId, universityId: uniId })
+                }
+            })
+
             // Send Email
             await sendEmail({
                 to: targetEmail,
