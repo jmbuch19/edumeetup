@@ -7,7 +7,7 @@ import { Trash2, Users } from 'lucide-react'
 import { deleteProgram } from '@/app/actions'
 import { InterestPanel } from '@/components/university/interest-panel'
 
-import { ProgramImportModal } from './program-import-modal'
+import { ProgramImportModal } from '@/components/university/program-import-modal'
 import { Upload } from 'lucide-react'
 
 // ...
