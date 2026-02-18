@@ -3,7 +3,7 @@ import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Users, School, LogOut, Ticket, LucideIcon } from "lucide-react"
+import { LayoutDashboard, Users, School, LogOut, Ticket, LucideIcon, Globe } from "lucide-react"
 import { logout } from "@/app/actions"
 import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
 
@@ -35,6 +35,7 @@ export default async function AdminLayout({
                     <NavItem href="/admin/users" icon={Users} label="Users" />
                     <NavItem href="/admin/tickets" icon={Ticket} label="Support Tickets" />
                     <NavItem href="/admin/advisory" icon={Users} label="Advisory Requests" />
+                    <NavItem href="/admin/host-requests" icon={Globe} label="Host Requests" />
                     {/* <NavItem href="/admin/settings" icon={Settings} label="Settings" /> */}
                 </nav>
 

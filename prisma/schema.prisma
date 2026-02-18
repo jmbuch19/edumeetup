@@ -31,8 +31,11 @@ model User {
   // Relations to Features
   supportTickets    SupportTicket[]
   notifications     Notification[]
-  meetingParticipants MeetingParticipant[]
+
   auditLogs         AuditLog[]
+  availabilityProfiles AvailabilityProfile[] @relation("RepAvailability")
+  meetings          Meeting[]             @relation("RepMeetings")
+  meetingNotifications MeetingNotification[]
   advisedRequests   AdvisoryRequest[] @relation("AdviserRequests")
 }
 
@@ -117,6 +120,8 @@ model Student {
   // Relations
   interests         Interest[]
   advisoryRequests  AdvisoryRequest[]
+  meetings          Meeting[]
+  bookmarks         Bookmark[]
 }
 
 model University {
@@ -168,8 +173,10 @@ model University {
   // Relations
   programs          Program[]
   interests         Interest[]
-  meetingsCreated   Meeting[]
-  availabilitySlots AvailabilitySlot[]
+  meetings          Meeting[]
+  availabilityProfiles AvailabilityProfile[]
+  hostOutreach      HostRequestOutreach[]
+  bookmarkedBy      Bookmark[]
 }
 
 model Program {
@@ -196,6 +203,7 @@ model Program {
   updatedAt      DateTime    @updatedAt
 
   interests      Interest[]
+  meetings       Meeting[]
 }
 
 // Enums
@@ -226,44 +234,9 @@ model Interest {
   @@unique([studentId, universityId, programId])
 }
 
-model Meeting {
-  id                    String      @id @default(cuid())
-  createdByUniversityId String
-  university            University  @relation(fields: [createdByUniversityId], references: [id], onDelete: Cascade)
 
-  meetingType    String
-  title          String
-  agenda         String?
-  startTime      DateTime
-  endTime        DateTime
-  timezone       String      @default("UTC")
-  locationType   String      @default("VIDEO")
-  joinUrl        String?
 
-  status         String      @default("SCHEDULED")
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
 
-  participants   MeetingParticipant[]
-  availabilitySlot AvailabilitySlot?
-}
-
-model MeetingParticipant {
-  id             String      @id @default(cuid())
-  meetingId      String
-  meeting        Meeting     @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  participantUserId String
-  user           User        @relation(fields: [participantUserId], references: [id], onDelete: Cascade)
-
-  participantType String     @default("STUDENT")
-  rsvpStatus     String      @default("INVITED")
-  role           String      @default("ATTENDEE")
-
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-
-  @@unique([meetingId, participantUserId])
-}
 
 model Notification {
   id             String      @id @default(cuid())
@@ -279,24 +252,7 @@ model Notification {
   createdAt      DateTime    @default(now())
 }
 
-model AvailabilitySlot {
-  id             String      @id @default(cuid())
-  universityId   String
-  university     University  @relation(fields: [universityId], references: [id], onDelete: Cascade)
-  
-  startTime      DateTime
-  endTime        DateTime
-  isBooked       Boolean     @default(false)
-  
-  meetingId      String?     @unique
-  meeting        Meeting?    @relation(fields: [meetingId], references: [id])
 
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-
-  @@index([universityId])
-  @@index([startTime])
-}
 
 model AuditLog {
   id        String   @id @default(cuid())
@@ -400,4 +356,243 @@ enum AdvisoryStatus {
   SCHEDULED
   COMPLETED
   FOLLOW_UP
+}
+
+// Host Campus Fair Features
+
+model HostRequest {
+  id                String   @id @default(cuid())
+  referenceNumber   String   @unique // HCF-YYYY-XXX
+
+  // Institution Information
+  institutionName   String
+  institutionType   String   // UNIVERSITY, COLLEGE, SCHOOL
+  city              String
+  state             String
+  websiteUrl        String
+
+  // Contact Information
+  contactName       String
+  contactDesignation String
+  contactEmail      String
+  contactPhone      String
+
+  // Event Requirements
+  preferredDateStart DateTime
+  preferredDateEnd   DateTime
+  expectedStudentCount String // 50-100, 100-250, etc.
+
+  // Preferences (Stored as JSON for flexibility)
+  preferredCountries Json     // ["USA", "UK"]
+  fieldsOfStudy      Json     // ["Engineering", "Business"]
+  additionalRequirements String? @db.Text
+
+  // Workflow Status
+  status            String   @default("SUBMITTED") // SUBMITTED, APPROVED, OUTREACH_SENT, COMPLETED, CANCELLED
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  outreach          HostRequestOutreach[]
+}
+
+model HostRequestOutreach {
+  id                String      @id @default(cuid())
+  
+  hostRequestId     String
+  hostRequest       HostRequest @relation(fields: [hostRequestId], references: [id], onDelete: Cascade)
+
+  universityId      String
+  university        University  @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  status            String      @default("SENT") // SENT, INTERESTED, NOT_INTERESTED
+  
+  sentAt            DateTime    @default(now())
+  respondedAt       DateTime?
+  responseNote      String?     @db.Text
+  
+  @@unique([hostRequestId, universityId])
+  @@index([hostRequestId])
+  @@index([universityId])
+}
+
+// -----------------------------------------------------------------------------
+// MEETING SYSTEM MODELS (New Implementation)
+// -----------------------------------------------------------------------------
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum VideoProvider {
+  GOOGLE_MEET
+  ZOOM
+  EXTERNAL_LINK
+}
+
+enum MeetingStatus {
+  DRAFT
+  PENDING
+  CONFIRMED
+  RESCHEDULE_PROPOSED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum MeetingPurpose {
+  ADMISSION_QUERY
+  PROGRAM_FIT
+  SCHOLARSHIP_INFO
+  DOCUMENT_HELP
+  APPLICATION_STATUS
+  OTHER
+}
+
+// Stores recurring availability rules (e.g., "Mondays 9am-5pm")
+model AvailabilityProfile {
+  id             String        @id @default(cuid())
+  
+  universityId   String
+  university     University    @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  
+  repId          String        // The specific user (rep) this schedule belongs to
+  repUser        User          @relation("RepAvailability", fields: [repId], references: [id], onDelete: Cascade)
+
+  // Schedule Rules
+  dayOfWeek      DayOfWeek
+  startTime      String        // "09:00" (24h format)
+  endTime        String        // "17:00" (24h format)
+  isActive       Boolean       @default(true)
+
+  // Configuration
+  meetingDurationOptions Int[] // [10, 15, 20]
+  bufferMinutes          Int   @default(10)
+  minLeadTimeHours       Int   @default(12)
+  dailyCap               Int   @default(8)
+
+  // Video Settings
+  videoProvider      VideoProvider @default(GOOGLE_MEET)
+  externalLink       String?       // Used if provider is EXTERNAL_LINK
+
+  // Filters
+  eligibleDegreeLevels String[]    // ["UG", "Grad", "PhD"]
+  eligibleCountries    String[]    // ["India", "USA", etc.]
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([universityId])
+  @@index([repId])
+}
+
+model Meeting {
+  id              String        @id @default(cuid())
+  
+  // Participants
+  studentId       String
+  student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  universityId    String
+  university      University    @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  repId           String
+  rep             User          @relation("RepMeetings", fields: [repId], references: [id], onDelete: Cascade)
+
+  programId       String?
+  program         Program?      @relation(fields: [programId], references: [id])
+
+  // Content & Purpose
+  purpose         MeetingPurpose
+  studentQuestions String?      @db.Text // Bullet points, max 1000 chars
+  uploadedDocUrl   String?      // Logic handled via uploadthing or similar
+  
+  // Scheduling
+  durationMinutes Int           // 10, 15, 20
+  startTime       DateTime      // UTC
+  endTime         DateTime      // UTC
+  
+  studentTimezone String
+  repTimezone     String
+
+  // Status Workflow
+  status          MeetingStatus @default(PENDING)
+  
+  // Video & Access
+  videoProvider   VideoProvider
+  videoLink       String?
+  meetingCode     String        // "EDU-2025-XXXXX"
+
+  // Cancellation / Reschedule
+  cancellationReason     String?
+  cancelledBy            String? // "STUDENT", "UNIVERSITY", "SYSTEM"
+  cancelledAt            DateTime?
+  isLateCancel           Boolean   @default(false)
+  
+  rescheduleProposedBy   String? // "STUDENT", "UNIVERSITY"
+  rescheduleProposedTime DateTime? 
+
+  // Post-Meeting
+  universityNotes       String?   @db.Text // Private
+  studentNotes          String?   @db.Text // Private to student
+  studentRating         Int?
+  universityRating      Int?
+
+  // Notifications
+  reminder24hSent       Boolean   @default(false)
+  reminder1hSent        Boolean   @default(false)
+  reminder10minSent     Boolean   @default(false)
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  notifications   MeetingNotification[]
+
+  @@index([studentId])
+  @@index([universityId])
+  @@index([repId])
+  @@index([status])
+}
+
+model MeetingNotification {
+  id              String   @id @default(cuid())
+  
+  meetingId       String
+  meeting         Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  
+  recipientId     String
+  recipient       User     @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  type            String   // "BOOKED", "CONFIRMED", "REMINDER_1H", etc.
+  channel         String   // "EMAIL", "IN_APP"
+  
+  sentAt          DateTime @default(now())
+  delivered       Boolean  @default(false)
+  contentPreview  String?
+
+  @@index([meetingId])
+  @@index([recipientId])
+}
+
+model Bookmark {
+  id             String      @id @default(cuid())
+  
+  studentId      String
+  student        Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  universityId   String
+  university     University  @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  note           String?
+  
+  createdAt      DateTime    @default(now())
+  
+  @@unique([studentId, universityId])
 }

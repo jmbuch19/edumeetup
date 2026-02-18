@@ -166,5 +166,46 @@ export const EmailTemplates = {
         <h1 style="font-size: 32px; letter-spacing: 5px; color: #4F46E5;">${otp}</h1>
         <p>This code will expire in 15 minutes.</p>
         <p>If you did not request this, please ignore this email.</p>
+    `,
+
+    hostRequestConfirmation: (refNumber: string, contactName: string) => `
+        <h2>Campus Fair Request Received</h2>
+        <p>Dear ${contactName},</p>
+        <p>Thank you for your interest in hosting a campus fair through edUmeetup.</p>
+        <div class="info-box">
+            <p><strong>Reference Number:</strong> ${refNumber}</p>
+            <p>Your request is currently under review. Expected review time: 48 hours.</p>
+        </div>
+        <p>We will contact you regarding the next steps once verified.</p>
+    `,
+
+    hostRequestAlert: (refNumber: string, institution: string, city: string) => `
+        <h2>New Campus Fair Request</h2>
+        <div class="info-box">
+            <div class="info-row"><span class="info-label">Institution:</span> <span>${institution}</span></div>
+            <div class="info-row"><span class="info-label">Location:</span> <span>${city}</span></div>
+            <div class="info-row"><span class="info-label">Reference:</span> <span>${refNumber}</span></div>
+        </div>
+        <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/admin/host-requests" class="btn">Review Request</a></p>
+    `,
+
+    hostRequestApproved: (refNumber: string, contactName: string) => `
+        <h2>Request Approved!</h2>
+        <p>Dear ${contactName},</p>
+        <p>We are pleased to inform you that your request to host a campus fair (Ref: ${refNumber}) has been <strong>approved</strong>.</p>
+        <p>Our team is now initiating outreach to our partner universities.</p>
+        <p>You will receive updates as universities express interest.</p>
+    `,
+
+    hostRequestOpportunity: (institutionName: string, city: string, dateRange: string) => `
+        <h2>New Campus Fair Opportunity</h2>
+        <p><strong>${institutionName}</strong> in <strong>${city}</strong> is hosting a specific recruitment fair.</p>
+        <div class="info-box">
+             <div class="info-row"><span class="info-label">Institution:</span> <span>${institutionName}</span></div>
+             <div class="info-row"><span class="info-label">Location:</span> <span>${city}</span></div>
+             <div class="info-row"><span class="info-label">Dates:</span> <span>${dateRange}</span></div>
+        </div>
+        <p>Log in to your dashboard to express interest.</p>
+        <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/university/campus-fairs" class="btn">View Opportunity</a></p>
     `
 }
