@@ -59,6 +59,10 @@ export async function Header() {
                         </Link>
                     )}
 
+                    <Link href="/host-a-fair" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
+                        Host a Fair
+                    </Link>
+
                     <Link href="/about" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
                         About
                     </Link>
@@ -163,6 +167,10 @@ export async function Header() {
                                 <Link href="/admin/dashboard" className="w-full cursor-pointer">Admin Panel</Link>
                             </DropdownMenuItem>
                         )}
+
+                        <DropdownMenuItem asChild>
+                            <Link href="/host-a-fair" className="w-full cursor-pointer">Host a Fair</Link>
+                        </DropdownMenuItem>
 
                         <DropdownMenuItem asChild>
                             <Link href="/about" className="w-full cursor-pointer">About</Link>

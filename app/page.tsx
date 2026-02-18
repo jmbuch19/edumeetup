@@ -105,6 +105,19 @@ export default function Home() {
                 <div className="h-2 w-16 bg-slate-100 rounded"></div>
               </div>
             </div>
+
+            <Link href="/host-a-fair" className="col-span-2 mx-auto">
+              <div className="bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-purple-100 flex items-center gap-4 hover:scale-105 transition-transform cursor-pointer">
+                <div className="h-10 w-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <span className="text-xl">🇮🇳</span>
+                </div>
+                <div>
+                  <p className="font-bold text-slate-800 text-sm">Host a Fair in India</p>
+                  <p className="text-xs text-slate-500">For Indian Institutions</p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-purple-600 ml-2" />
+              </div>
+            </Link>
           </div>
         </div>
 
