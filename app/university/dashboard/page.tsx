@@ -5,11 +5,11 @@ import { Input } from '@/components/ui/input'
 import { createProgram, updateUniversityProfile } from '@/app/actions'
 import { InterestedStudentsTable } from '@/components/university/interested-students-table'
 import ProgramList from './program-list'
-import { MeetingList } from '@/components/university/meeting-list'
+import { MeetingList } from '@/components/university/MeetingList'
 import { FairOutreachList } from '@/components/university/FairOutreachList'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { DashboardStats } from "@/components/university/dashboard-stats"
+import { DashboardStats } from "@/components/university/DashboardStats"
 import { School, Download, BookOpen, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
