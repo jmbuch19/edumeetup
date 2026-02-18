@@ -55,7 +55,7 @@ export async function searchUniversities({
                 include: {
                     user: { select: { email: true } }, // Minimal user info
                     programs: {
-                        select: { fieldCategory: true } // Fetch fields for display badges
+                        select: { fieldCategory: true, programName: true, degreeLevel: true } // Fetch fields for display badges
                     }
                 },
                 skip,

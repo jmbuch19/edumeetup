@@ -1,4 +1,5 @@
 import { searchUniversities } from '@/app/actions/university'
+import { auth } from '@/lib/auth'
 import { UniversityCard } from '@/components/university-card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -27,10 +28,14 @@ export default async function UniversitiesPage({
         page
     })
 
+    const session = await auth()
+    const userRole = session?.user?.role
+
     return (
         <div className="container mx-auto px-4 py-8">
             {/* Header & Search Section */}
             <div className="mb-8 space-y-4">
+                {/* ... (Header content unchanged) ... */}
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Explore Universities</h1>
                     <p className="text-muted-foreground">Discover top institutions matching your ambitions.</p>
@@ -101,7 +106,7 @@ export default async function UniversitiesPage({
                         <UniversityCard
                             key={uni.id}
                             university={uni}
-
+                            userRole={userRole}
                         />
                     ))}
                 </div>

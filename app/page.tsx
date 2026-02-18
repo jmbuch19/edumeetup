@@ -4,8 +4,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { User, School } from "lucide-react";
+import { User, School, ArrowRight } from "lucide-react";
 import { HowItWorks } from "@/components/home/how-it-works";
+import { HeroFeatures } from "@/components/hero-features";
+import { motion } from "framer-motion";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'student' | 'university'>('student');
@@ -60,8 +62,22 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2 text-sm text-slate-500">
-            <Link href="/universities" className="hover:text-primary transition-colors flex items-center gap-1">
-              Browse Universities <span aria-hidden="true">&rarr;</span>
+            <Link href="/universities">
+              <motion.div
+                className="flex items-center gap-2 px-4 py-2 rounded-full border border-transparent hover:border-slate-200 hover:bg-white hover:shadow-sm transition-all cursor-pointer"
+                initial={{ width: "auto" }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <span className="font-medium text-slate-600 group-hover:text-primary">Browse Universities</span>
+                <motion.span
+                  initial={{ opacity: 0, x: -10, width: 0 }}
+                  whileHover={{ opacity: 1, x: 0, width: "auto" }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <ArrowRight className="h-4 w-4 text-primary" />
+                </motion.span>
+              </motion.div>
             </Link>
           </div>
         </div>
@@ -93,6 +109,11 @@ export default function Home() {
         </div>
 
       </section >
+
+      {/* Hero Features Accordion */}
+      <section className="w-full pb-12 md:pb-24">
+        <HeroFeatures />
+      </section>
 
       <HowItWorks activeTab={activeTab} onTabChange={setActiveTab} />
 
