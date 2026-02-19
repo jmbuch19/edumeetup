@@ -3,8 +3,11 @@ import nodemailer from 'nodemailer'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
+        const { searchParams } = new URL(request.url)
+        const customTo = searchParams.get('to')
+
         // Use the EXACT same variables as lib/auth.ts
         const host = process.env.EMAIL_SERVER_HOST
         const port = Number(process.env.EMAIL_SERVER_PORT)
@@ -45,13 +48,14 @@ export async function GET() {
         await transporter.verify()
 
         // 2. Send
-        console.log("Sending email to:", user)
+        const recipient = customTo || user
+        console.log("Sending email to:", recipient)
         const info = await transporter.sendMail({
             from,
-            to: user, // Send to the sender account itself to verify delivery
+            to: recipient, // Send to the sender account itself to verify delivery
             subject: "EduMeetup DIAGNOSTIC Test",
-            text: "If you see this, your SMTP settings are 100% correct.",
-            html: "<h1>Success!</h1><p>SMTP Check Passed.</p>"
+            text: `This is a test email sent to ${recipient}. If you see this, SMTP is working.`,
+            html: `<h1>Success!</h1><p>SMTP Check Passed for ${recipient}.</p>`
         })
 
         return NextResponse.json({
