@@ -76,10 +76,23 @@ export async function GET(request: Request) {
             logWriteResult = `Failed: ${e.message}`
         }
 
+        // 4. Inspect User Record (to verify Role/Status)
+        let userRecord = null
+        try {
+            const u = await prisma.user.findUnique({
+                where: { email: recipient },
+                select: { id: true, email: true, role: true, isActive: true, emailVerified: true }
+            })
+            userRecord = u || "User not found in DB"
+        } catch (e: any) {
+            userRecord = `Error fetching user: ${e.message}`
+        }
+
         return NextResponse.json({
             success: true,
             message: "Email sent successfully!",
-            dbCheck: logWriteResult, // Report DB status
+            dbCheck: logWriteResult,
+            userCheck: userRecord, // Critical debugging info
             details: {
                 messageId: info.messageId,
                 response: info.response,
