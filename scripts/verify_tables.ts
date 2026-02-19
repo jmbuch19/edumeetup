@@ -5,6 +5,15 @@ const prisma = new PrismaClient()
 async function verify() {
     console.log('Verifying schema and table names...')
     try {
+        // 0. Verify Admin Users
+        const admins = await prisma.user.findMany({
+            where: { role: 'ADMIN' },
+            select: { email: true, role: true, isActive: true }
+        })
+        console.log('--- ADMIN USERS ---')
+        console.log(admins)
+        console.log('-------------------')
+
         // 1. List actual table names in the database
         const tables: any[] = await prisma.$queryRaw`
       SELECT table_name 
