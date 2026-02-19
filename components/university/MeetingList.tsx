@@ -27,7 +27,7 @@ interface Meeting {
     }
 }
 
-export default function MeetingList({ meetings }: { meetings: Meeting[] }) {
+export default function MeetingList({ meetings, compact }: { meetings: Meeting[], compact?: boolean }) {
     const router = useRouter()
     const [processingId, setProcessingId] = useState<string | null>(null)
     const [meetingLink, setMeetingLink] = useState<string>('')

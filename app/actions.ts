@@ -13,6 +13,7 @@ import { registerStudentSchema, registerUniversitySchema, loginSchema, createPro
 import { createNotification } from '@/lib/notifications'
 import { getIpFromHeaders, getIpGeoInfo } from '@/lib/getIpInfo'
 import { AuthError } from "next-auth"
+import { Meeting, MeetingParticipant, User, MeetingStatus } from "@prisma/client"
 
 interface ProgramData {
     programName: string
@@ -879,44 +880,43 @@ export async function createMeeting(formData: FormData) {
                 // Link slot if provided
                 availabilitySlot: availabilitySlotId ? {
                     connect: { id: availabilitySlotId }
-                } : undefined
+                } : undefined,
             },
-        },
             include: { participants: { include: { user: true } } }
         }) as unknown as (Meeting & { participants: (MeetingParticipant & { user: User })[] })
 
-    // If slot used, mark as booked
-    if (availabilitySlotId) {
-        await prisma.availabilitySlot.update({
-            where: { id: availabilitySlotId },
-            data: { isBooked: true }
-        })
-    }
+        // If slot used, mark as booked
+        if (availabilitySlotId) {
+            await prisma.availabilitySlot.update({
+                where: { id: availabilitySlotId },
+                data: { isBooked: true }
+            })
+        }
 
-    // Send Notifications (Email + DB)
-    for (const p of meeting.participants) {
-        // DB & Email Notification
-        await createNotification({
-            userId: p.participantUserId,
-            type: 'MEETING_INVITE',
-            title: 'New Meeting Invitation',
-            message: `You have been invited to: ${title} `,
-            payload: { meetingId: meeting.id },
-            emailTo: p.user.email,
-            emailSubject: `Invitation: ${title} `,
-            emailHtml: `<p>You have been invited to a meeting with ${uniProfile.institutionName}.</p>
+        // Send Notifications (Email + DB)
+        for (const p of meeting.participants) {
+            // DB & Email Notification
+            await createNotification({
+                userId: p.participantUserId,
+                type: 'MEETING_INVITE',
+                title: 'New Meeting Invitation',
+                message: `You have been invited to: ${title} `,
+                payload: { meetingId: meeting.id },
+                emailTo: p.user.email,
+                emailSubject: `Invitation: ${title} `,
+                emailHtml: `<p>You have been invited to a meeting with ${uniProfile.institutionName}.</p>
         <p><strong>Topic: </strong> ${title}</p>
             <p><strong>Time: </strong> ${start.toLocaleString()}</p>
                 <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/student/dashboard?tab=meetings" > View Details & RSVP </a></p> `
-        })
-    }
+            })
+        }
 
-    revalidatePath('/university/dashboard')
-    return { success: true }
-} catch (error) {
-    console.error("Failed to create meeting:", error)
-    return { error: "Failed to create meeting" }
-}
+        revalidatePath('/university/dashboard')
+        return { success: true }
+    } catch (error) {
+        console.error("Failed to create meeting:", error)
+        return { error: "Failed to create meeting" }
+    }
 }
 
 export async function updateRSVP(formData: FormData) {
@@ -1032,10 +1032,11 @@ export async function cancelMeeting(meetingId: string) {
                 university: { include: { user: true } },
                 participants: { include: { user: true } },
                 availabilitySlot: true
-            } as any
+            }
         })
 
         if (!meeting) return { error: "Meeting not found" }
+        if (!meeting.university) return { error: "University not found" }
         if (meeting.university.user.id !== user.id) return { error: "Unauthorized" }
 
         // 1. Update Status
@@ -1095,6 +1096,7 @@ export async function updateMeeting(meetingId: string, formData: FormData) {
         })
 
         if (!meeting) return { error: "Meeting not found" }
+        if (!meeting.university) return { error: "University not found" }
         if (meeting.university.user.id !== user.id) return { error: "Unauthorized" }
 
         const title = formData.get('title') as string
@@ -1109,7 +1111,7 @@ export async function updateMeeting(meetingId: string, formData: FormData) {
                 joinUrl,
                 agenda
             },
-            include: { participants: { include: { user: true } } } as any
+            include: { participants: { include: { user: true } } }
         })
 
         // Notify
@@ -1155,7 +1157,7 @@ function mapMeetingToFrontend(meeting: any) {
         studentQuestions: meeting.agenda,
         meetingIdCode: meeting.id.slice(-6).toUpperCase(),
         meetingLink: meeting.joinUrl,
-        videoProvider: meeting.locationType,
+        videoProvider: meeting.videoProvider,
         student: {
             fullName: student?.fullName || studentUser?.name || 'Unknown Student',
             country: student?.country || null,
@@ -1227,10 +1229,11 @@ export async function updateMeetingStatus(meetingId: string, status: 'CONFIRMED'
                         }
                     }
                 }
-            } as any
+            }
         })
 
         if (!mtg) return { error: 'Meeting not found' }
+        if (!mtg.university) return { error: 'University not found' }
 
         // Authorization Check
         if (mtg.university.userId !== session.user.id) {
@@ -1238,12 +1241,16 @@ export async function updateMeetingStatus(meetingId: string, status: 'CONFIRMED'
         }
 
         // Update
+        const dbStatus = status === 'REJECTED' ? 'CANCELLED' : status
+        const cancellationDetails = status === 'REJECTED' ? { cancellationReason: 'Declined by University', cancelledBy: 'UNIVERSITY', cancelledAt: new Date() } : {}
+
         await prisma.meeting.update({
             where: { id: meetingId },
             data: {
-                status,
+                status: dbStatus as MeetingStatus,
                 joinUrl: meetingLink || mtg.joinUrl,
-                locationType: meetingLink ? 'Manual Link' : mtg.locationType
+                videoProvider: meetingLink ? 'EXTERNAL_LINK' : mtg.videoProvider,
+                ...cancellationDetails
             }
         })
 
@@ -1298,7 +1305,7 @@ export async function getStudentMeetings() {
                     participantUserId: userId
                 }
             }
-        } as any,
+        },
         include: {
             university: {
                 include: {
@@ -1312,7 +1319,7 @@ export async function getStudentMeetings() {
                     }
                 }
             }
-        } as any,
+        },
         orderBy: { startTime: 'asc' }
     })
 

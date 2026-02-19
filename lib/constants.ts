@@ -34,3 +34,16 @@ export const MeetingPurposes = [
     { value: 'APPLICATION_STATUS', label: 'Application Status' },
     { value: 'OTHER', label: 'Other' },
 ] as const
+
+export const FIELD_CATEGORIES = [
+    "Computer Science",
+    "Engineering",
+    "Business",
+    "Data Science",
+    "Health Sciences",
+    "Social Sciences",
+    "Arts & Humanities",
+    "Law",
+    "Architecture",
+    "Others"
+] as const

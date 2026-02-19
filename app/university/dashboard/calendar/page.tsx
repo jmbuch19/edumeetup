@@ -13,9 +13,17 @@ export default async function CalendarPage() {
 
     // Fetch Meetings
     const meetings = await prisma.meeting.findMany({
-        where: { createdByUniversityId: university.id },
+        where: { universityId: university.id },
         orderBy: { startTime: 'asc' }
     })
+
+    const formattedMeetings = meetings.map(m => ({
+        ...m,
+        title: m.title || 'Untitled Meeting',
+        meetingType: m.meetingType || 'ONE_TO_ONE',
+        agenda: m.agenda || '',
+        joinUrl: m.joinUrl || '',
+    }))
 
     // Fetch Availability Slots
     const slots = await prisma.availabilitySlot.findMany({
@@ -28,7 +36,7 @@ export default async function CalendarPage() {
             <h1 className="text-2xl font-bold">Meeting Calendar</h1>
             <p className="text-gray-600">View your scheduled meetings and open availability slots.</p>
 
-            <CalendarView meetings={meetings} slots={slots} />
+            <CalendarView meetings={formattedMeetings} slots={slots} />
         </div>
     )
 }

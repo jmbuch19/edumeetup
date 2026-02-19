@@ -89,14 +89,14 @@ export async function getInterestedStudents(programId: string): Promise<Interest
             where: {
                 participantUserId: i.student.userId,
                 meeting: {
-                    createdByUniversityId: uni.id
+                    universityId: uni.id
                 }
             }
         })
 
         return {
             id: i.studentId,
-            fullName: i.student.fullName,
+            fullName: i.student.fullName || 'Unknown Student',
             country: i.student.country,
             currentStatus: i.student.currentStatus,
             fieldOfInterest: i.student.fieldOfInterest,

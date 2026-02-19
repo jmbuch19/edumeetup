@@ -16,16 +16,15 @@ export default async function UniversityFairsPage() {
     // Serialize dates for Client Component
     const outreachItems = outreachItemsRaw.map(item => ({
         ...item,
-        createdAt: item.createdAt.toISOString(),
-        updatedAt: item.updatedAt.toISOString(),
-        sentAt: item.sentAt.toISOString(),
-        respondedAt: item.respondedAt ? item.respondedAt.toISOString() : null,
+
+        sentAt: new Date(item.sentAt as any).toISOString(),
+        respondedAt: item.respondedAt ? new Date(item.respondedAt as any).toISOString() : null,
         hostRequest: {
             ...item.hostRequest,
-            createdAt: item.hostRequest.createdAt.toISOString(),
-            updatedAt: item.hostRequest.updatedAt.toISOString(),
-            preferredDateStart: item.hostRequest.preferredDateStart.toISOString(),
-            preferredDateEnd: item.hostRequest.preferredDateEnd.toISOString(),
+            createdAt: new Date(item.hostRequest.createdAt as any).toISOString(),
+            updatedAt: new Date(item.hostRequest.updatedAt as any).toISOString(),
+            preferredDateStart: new Date(item.hostRequest.preferredDateStart as any).toISOString(),
+            preferredDateEnd: new Date(item.hostRequest.preferredDateEnd as any).toISOString(),
         }
     }))
 

@@ -37,7 +37,7 @@ export async function getBookingData(universityId: string) {
                 where: { isActive: true },
                 include: {
                     repUser: {
-                        select: { id: true, name: true, image: true, repDesignation: true } // Fetch specific rep details
+                        select: { id: true, name: true, image: true } // Fetch specific rep details
                     }
                 }
             },

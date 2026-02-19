@@ -21,6 +21,7 @@ export async function setAvailability(slots: { startTime: Date, endTime: Date }[
         await prisma.availabilitySlot.createMany({
             data: slots.map(slot => ({
                 universityId: university.id,
+                repId: user.id,
                 startTime: slot.startTime,
                 endTime: slot.endTime,
                 isBooked: false
@@ -97,7 +98,7 @@ export async function requestFollowUp(meetingId: string) {
 
     // 2. Create a notification for the university
     const uniProfile = await prisma.university.findUnique({
-        where: { id: meeting.createdByUniversityId }
+        where: { id: meeting.universityId }
     })
 
     if (!uniProfile) return { error: "University not found" }

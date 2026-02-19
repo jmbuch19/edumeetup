@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { FieldCategory } from '@prisma/client'
+import { FIELD_CATEGORIES } from '@/lib/constants'
 import { requireUser } from '@/lib/auth'
 import { DashboardUI } from '@/components/student/dashboard-ui'
 import { getStudentAdvisoryStatus } from '@/app/actions/advisory-actions'
@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 export default async function StudentDashboard() {
     const user = await requireUser()
     const email = user.email
+    if (!email) return <div>User email required</div>
 
     const student = await prisma.student.findFirst({
         where: { user: { email } },
@@ -36,8 +37,8 @@ export default async function StudentDashboard() {
     }
 
     // 2. Matching Logic
-    const interest = student.fieldOfInterest as FieldCategory | null
-    const fieldFilter = interest && Object.values(FieldCategory).includes(interest)
+    const interest = student.fieldOfInterest
+    const fieldFilter = interest && (FIELD_CATEGORIES as readonly string[]).includes(interest)
         ? { equals: interest }
         : undefined
 
@@ -90,9 +91,11 @@ export default async function StudentDashboard() {
     const cleanMeetings = JSON.parse(JSON.stringify(myMeetings))
     const cleanAdvisory = JSON.parse(JSON.stringify(advisoryStatus))
 
+    const cleanStudent = JSON.parse(JSON.stringify(student))
+
     return (
         <DashboardUI
-            student={student}
+            student={cleanStudent}
             matchedPrograms={cleanPrograms}
             recommendedUniversities={cleanUniversities}
             myMeetings={cleanMeetings}

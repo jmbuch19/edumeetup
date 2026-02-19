@@ -13,8 +13,16 @@ export async function respondToOutreach(outreachId: string, status: RespondOptio
         const user = await requireUser()
 
         // precise permissions check: ensure this outreach belongs to the user's university
-        if (user.role !== "UNIVERSITY_REP" || !user.universityId) {
+        if (user.role !== "UNIVERSITY") {
             return { success: false, message: "Unauthorized" }
+        }
+
+        const uni = await prisma.university.findUnique({
+            where: { userId: user.id }
+        })
+
+        if (!uni) {
+            return { success: false, message: "University profile not found" }
         }
 
         const outreach = await prisma.hostRequestOutreach.findUnique({
@@ -29,7 +37,7 @@ export async function respondToOutreach(outreachId: string, status: RespondOptio
             return { success: false, message: "Outreach request not found" }
         }
 
-        if (outreach.universityId !== user.universityId) {
+        if (outreach.universityId !== uni.id) {
             return { success: false, message: "Unauthorized access to this request" }
         }
 
@@ -54,7 +62,7 @@ export async function respondToOutreach(outreachId: string, status: RespondOptio
                 status,
                 hostRequestId: outreach.hostRequestId,
                 hostRequestRef: outreach.hostRequest.referenceNumber,
-                universityId: user.universityId
+                universityId: uni.id
             }
         })
 

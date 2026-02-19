@@ -40,7 +40,7 @@ export async function GET() {
                     select: {
                         email: true,
                         createdAt: true,
-                        status: true
+
                     }
                 }
             },
@@ -53,7 +53,7 @@ export async function GET() {
             name: s.fullName,
             email: s.user.email,
             createdAt: s.user.createdAt,
-            status: s.user.status,
+
 
             // What they typed
             input: {

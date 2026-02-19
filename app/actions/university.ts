@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { FieldCategory, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 
 export type SearchParams = {
     query?: string
@@ -42,7 +42,7 @@ export async function searchUniversities({
         if (field && field !== 'All') {
             where.programs = {
                 some: {
-                    fieldCategory: field as FieldCategory
+                    fieldCategory: field
                 }
             }
         }

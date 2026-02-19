@@ -11,8 +11,7 @@ import { PRIORITY_MARKETS, ALL_COUNTRIES } from '@/lib/countries'
 import { registerUniversityWithPrograms } from '@/app/actions' // New action
 
 // Enums as constants for dropdowns
-import { DEGREE_LEVELS as DEGREES_FROM_CONSTANTS } from '@/lib/constants' // Will map this in next step or change constant name
-// actually the constant is DegreeLevels. I'll make a local alias or just use it directly.
+
 import { DegreeLevels } from '@/lib/constants'
 
 const FIELD_CATEGORIES = ["Computer Science", "Engineering", "Business", "Data Science", "Health Sciences", "Social Sciences", "Arts & Humanities", "Law", "Architecture", "Others"]

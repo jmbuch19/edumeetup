@@ -1,7 +1,7 @@
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { ProfileForm } from '@/components/student/profile-form'
-import { FieldCategory } from '@prisma/client'
+import { FIELD_CATEGORIES } from '@/lib/constants'
 import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
@@ -32,7 +32,7 @@ export default async function StudentProfilePage() {
     }
 
     // Convert Enum to array for dropdown
-    const fieldCategories = Object.values(FieldCategory)
+    const fieldCategories = [...FIELD_CATEGORIES]
 
     return (
         <div className="container mx-auto px-4 py-8">
