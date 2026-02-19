@@ -63,7 +63,7 @@ function UniversityLoginForm() {
 
     const validateEmail = (email: string) => {
         const domain = email.split('@')[1]?.toLowerCase()
-        if (!domain) return true // Let HTML validation handle empty/invalid format first
+        if (!domain) return null // Let HTML validation handle empty/invalid format first
 
         if (BLOCKED_DOMAINS.includes(domain)) {
             return "Please use your official university email (e.g. name@university.edu or name@college.ac.in). Gmail, Yahoo and other personal emails are not accepted."
