@@ -860,6 +860,12 @@ export async function createMeeting(formData: FormData) {
                 title,
                 startTime: start,
                 endTime: end,
+                durationMinutes: duration,
+                meetingCode: `EDU-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`,
+                videoProvider: 'GOOGLE_MEET', // Default
+                purpose: 'ADMISSION_QUERY',   // Default
+                studentTimezone: 'UTC',       // Default
+                repTimezone: 'UTC',           // Default
                 meetingType: type,
                 joinUrl,
                 agenda,
