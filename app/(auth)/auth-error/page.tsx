@@ -38,7 +38,7 @@ function AuthErrorContent() {
         Verification: {
             title: "Link already used",
             message: "This sign-in link has already been used. Please request a new one to sign in.",
-            icon: CheckCircle2, // Using AlertTriangle effectively or specific icon? Let's use AlertTriangle for general issue or maybe specific? Prompt said same as above.
+            icon: AlertTriangle,
             color: "text-orange-600 bg-orange-100"
         },
         OAuthAccountNotLinked: {
