@@ -201,10 +201,10 @@ function UniversityLoginForm() {
                     className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white"
                     isLoading={isLoading}
                     disabled={!!rateLimitEnds}
-                    idleText="Send Sign-in Link"
-                    loadingText="Sending Link..."
-                    successText="Link Sent!"
-                    errorText="Try Again"
+                    idleLabel="Send Sign-in Link"
+                    loadingLabel="Sending Link..."
+                    successLabel="Link Sent!"
+                    errorLabel="Try Again"
                 />
             </form>
 
