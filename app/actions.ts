@@ -252,7 +252,6 @@ export async function registerUniversity(formData: FormData) {
                 university: {
                     create: {
                         institutionName,
-                        universityName: institutionName, // Sync for new schema
                         country,
                         city: '',
                         website,
