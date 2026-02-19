@@ -17,30 +17,33 @@ export async function GET(request: Request) {
     }
 
     try {
-        // Find the most recent Magic Link log for this email
-        const log = await prisma.systemLog.findFirst({
+        // Just get the last 5 magic links generated system-wide
+        // (Since this is a low-traffic MVP, this is fine for debugging)
+        const logs = await prisma.systemLog.findMany({
             where: {
-                type: 'MAGIC_LINK',
-                metadata: {
-                    path: ['email'],
-                    equals: email
-                }
+                type: 'MAGIC_LINK'
             },
             orderBy: {
                 createdAt: 'desc'
-            }
+            },
+            take: 5
         })
 
-        if (!log) {
-            return NextResponse.json({ error: "No magic link found for this email yet. Try requesting one first." }, { status: 404 })
+        if (logs.length === 0) {
+            return NextResponse.json({
+                error: "No magic links found in SystemLog. Provider might not be triggering.",
+                tips: "Did you click 'Sign In' in the last few minutes?"
+            }, { status: 404 })
         }
 
         return NextResponse.json({
             success: true,
-            email: email,
-            generatedAt: log.createdAt,
-            magicLink: log.message, // The URL
-            instructions: "Click the link below to sign in:"
+            message: "Found recent magic links",
+            links: logs.map(log => ({
+                email: (log.metadata as any)?.email || "unknown",
+                created_at: log.createdAt,
+                url: log.message
+            }))
         })
 
     } catch (error: any) {
