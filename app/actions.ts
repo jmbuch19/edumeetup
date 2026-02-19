@@ -336,7 +336,7 @@ export async function expressInterest(universityId: string, studentEmail?: strin
             emailTo: university.contactEmail || university.user.email,
             emailSubject: `New Interest from ${student.fullName}`,
             emailHtml: EmailTemplates.universityInterest(
-                student.fullName,
+                student.fullName || "Student",
                 student.user.email,
                 "I am interested in your programs."
             )
@@ -387,9 +387,9 @@ export async function createProgram(formData: FormData) {
         await prisma.program.create({
             data: {
                 universityId: university.id,
-                name: data.programName,
-                degree: data.degreeLevel,
-                field: data.fieldCategory,
+                programName: data.programName,
+                degreeLevel: data.degreeLevel,
+                fieldCategory: data.fieldCategory,
                 stemDesignated: data.stemDesignated,
                 duration: data.durationMonths,
                 tuitionFee: data.tuitionFee,
