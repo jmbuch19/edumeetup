@@ -20,14 +20,14 @@ export async function getAdminOverviewMetrics() {
         prisma.student.count(),
         prisma.meeting.count(),
         prisma.meeting.groupBy({
-            by: ['createdByUniversityId'],
+            by: ['universityId'],
             _count: {
                 _all: true
             },
             take: 10,
             orderBy: {
                 _count: {
-                    createdByUniversityId: 'desc'
+                    universityId: 'desc'
                 }
             }
         })
@@ -36,7 +36,7 @@ export async function getAdminOverviewMetrics() {
     // Enrich uni names
     const topUnis = await Promise.all(meetingsByUni.map(async (item) => {
         const uni = await prisma.university.findUnique({
-            where: { id: item.createdByUniversityId },
+            where: { id: item.universityId },
             select: { institutionName: true }
         })
         return {
