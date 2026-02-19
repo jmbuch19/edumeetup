@@ -49,3 +49,8 @@ next-env.d.ts
 
 .vercel
 .env*.local
+
+# PWA
+public/sw.js
+public/workbox-*.js
+public/worker-*.js

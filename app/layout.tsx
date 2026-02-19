@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
@@ -12,10 +12,12 @@ const inter = Inter({ subsets: ["latin"] }); // id: 7
 
 export const metadata: Metadata = {
   title: "edUmeetup",
-  description: "Connect with verified universities and mentors.",
+  description: "Connect universities and students seamlessly.",
+  manifest: "/manifest.json",
 };
 
-export const viewport = {
+export const viewport: Viewport = {
+  themeColor: "#1B5E7E",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
