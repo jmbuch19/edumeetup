@@ -113,14 +113,19 @@ async function sendMagicLinkEmail(to: string, url: string) {
         : "Your edUmeetup sign-in link"
 
     // Transport
+    // Transport
+    const debug = process.env.NODE_ENV !== 'production'
+    const port = Number(process.env.EMAIL_SERVER_PORT)
     const transporter = nodemailer.createTransport({
         host: process.env.EMAIL_SERVER_HOST,
-        port: Number(process.env.EMAIL_SERVER_PORT),
+        port,
         auth: {
             user: process.env.EMAIL_SERVER_USER,
             pass: process.env.EMAIL_SERVER_PASSWORD,
         },
-        secure: process.env.NODE_ENV === "production", // simple logic
+        secure: port === 465 || process.env.NODE_ENV === "production",
+        debug: true, // Enable debug logs in production to trace this issue
+        logger: true
     })
 
     // Content
