@@ -391,7 +391,7 @@ export async function createProgram(formData: FormData) {
                 degreeLevel: data.degreeLevel,
                 fieldCategory: data.fieldCategory,
                 stemDesignated: data.stemDesignated,
-                duration: data.durationMonths,
+                durationMonths: data.durationMonths,
                 tuitionFee: data.tuitionFee,
                 currency: data.currency,
                 intakes: data.intakes,
