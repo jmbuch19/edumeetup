@@ -1,6 +1,5 @@
 'use client'
 
-import { signIn } from 'next-auth/react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,26 +7,26 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Mail } from 'lucide-react'
 import { toast } from 'sonner'
+import { login } from '@/app/actions' // Import Server Action
 
 export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false)
-    const [email, setEmail] = useState('')
 
-    async function handleLogin(e: React.FormEvent) {
-        e.preventDefault()
+    async function handleLogin(formData: FormData) {
         setIsLoading(true)
 
         try {
-            const result = await signIn('email', {
-                email,
-                redirect: false,
-                callbackUrl: '/student/dashboard' // Default redirect
-            })
+            const result = await login(formData)
 
             if (result?.error) {
-                toast.error('Failed to send login email. Please try again.')
-            } else {
-                toast.success('Check your email for the magic link!')
+                // Handle different error shapes (string or object)
+                const errorMessage = typeof result.error === 'string'
+                    ? result.error
+                    : Object.values(result.error).flat().join(', ')
+
+                toast.error(errorMessage)
+            } else if (result?.success) {
+                toast.success(result.message)
             }
         } catch (error) {
             toast.error('An unexpected error occurred.')
@@ -46,16 +45,15 @@ export default function LoginPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleLogin} className="space-y-4">
+                    <form action={handleLogin} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
                             <Input
                                 id="email"
+                                name="email" // Added name for FormData
                                 type="email"
                                 placeholder="name@example.com"
                                 required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
                                 disabled={isLoading}
                             />
                         </div>
