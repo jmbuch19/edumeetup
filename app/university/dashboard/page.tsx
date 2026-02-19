@@ -15,6 +15,7 @@ import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { DegreeLevels } from '@/lib/constants'
 import { UniversityLogo } from '@/components/university/university-logo'
+import { NotificationsCenter } from '@/components/notifications-center'
 
 export const dynamic = 'force-dynamic'
 
@@ -158,6 +159,10 @@ export default async function UniversityDashboard() {
                         <Button>Manage Profile</Button>
                     </Link>
                 </div>
+            </div>
+
+            <div className="mb-8">
+                <NotificationsCenter userRole="UNIVERSITY" />
             </div>
 
             <Tabs defaultValue="overview" className="space-y-6">

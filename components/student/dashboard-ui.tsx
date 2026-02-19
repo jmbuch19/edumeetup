@@ -9,6 +9,7 @@ import { StudentMeetingsTable } from '@/components/student/student-meetings-tabl
 import { AdvisoryBanner } from '@/components/student/advisory-banner'
 import { AdvisoryForm } from '@/components/student/advisory-form'
 import { expressInterest } from '@/app/actions'
+import { NotificationsCenter } from '@/components/notifications-center'
 
 // Types
 // Types
@@ -63,6 +64,10 @@ export function DashboardUI({
                         </Button>
                     </Link>
                 </div>
+            </div>
+
+            <div className="mb-8">
+                <NotificationsCenter userRole="STUDENT" />
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">

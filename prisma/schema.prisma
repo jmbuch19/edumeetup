@@ -131,6 +131,7 @@ model Student {
   meetings          Meeting[]
   bookmarks         Bookmark[]
   eventRegistrations EventRegistration[]
+  notifications     StudentNotification[]
 }
 
 model University {
@@ -203,6 +204,7 @@ model University {
   availabilitySlots AvailabilitySlot[]
   events            Event[]
   reps              User[]    @relation("UniversityReps")
+  notifications     UniversityNotification[]
 }
 
 model Program {
@@ -729,3 +731,91 @@ model BotMisses {
   question  String
   createdAt DateTime @default(now())
 }
+
+// -----------------------------------------------------------------------------
+// ADMIN ENGAGEMENT FEATURES (Added Feb 2026)
+// -----------------------------------------------------------------------------
+
+model StudentNotification {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  title     String
+  message   String   @db.Text
+  type      String   @default("INFO") // INFO, ALERT, PROMO
+  isRead    Boolean  @default(false)
+  
+  actionUrl String?  
+  
+  createdAt DateTime @default(now())
+  
+  @@index([studentId])
+}
+
+model UniversityNotification {
+  id           String     @id @default(cuid())
+  universityId String
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  
+  title        String
+  message      String     @db.Text
+  type         String     @default("INFO")
+  isRead       Boolean    @default(false)
+  
+  actionUrl    String?
+  
+  createdAt    DateTime   @default(now())
+  
+  @@index([universityId])
+}
+
+model AdminAnnouncement {
+  id             String   @id @default(cuid())
+  title          String
+  content        String   @db.Text
+  
+  targetAudience String   @default("ALL") // ALL, STUDENT, UNIVERSITY
+  isActive       Boolean  @default(true)
+  
+  priority       String   @default("NORMAL") // NORMAL, HIGH
+  
+  // v2 Fields
+  announcementType String  @default("GENERAL") // NEW_UNIVERSITY, CHECK_IN
+  filters          Json?   // Stores targeting criteria
+  emailSent        Boolean @default(false)
+  sentBy           String? // Admin ID
+  
+  startsAt       DateTime @default(now())
+  expiresAt      DateTime?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model SponsoredContent {
+  id          String   @id @default(cuid())
+  title       String
+  partnerName String
+  
+  imageUrl    String
+  targetUrl   String
+  
+  // v2 Fields
+  sponsorType    String   @default("UNIVERSITY") // UNIVERSITY, PROGRAM, PARTNER
+  mobileImageUrl String?
+  priority       Int      @default(5)
+  startDate      DateTime @default(now())
+  endDate        DateTime? // Made optional to avoid migration failure on existing data, though logic enforces it
+  status         String   @default("DRAFT") // DRAFT, SCHEDULED, ACTIVE, EXPIRED
+  
+  placement   String   // SIDEBAR, FEED, BANNER
+  isActive    Boolean  @default(true)
+  
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
