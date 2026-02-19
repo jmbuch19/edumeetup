@@ -126,7 +126,7 @@ export async function registerStudent(prevState: any, formData: FormData) {
                         preferredIntake,
                         preferredCountries: preferredCountries || 'USA, UK, Canada',
                         profileComplete: true,
-                        firstName: fullName.split(' ')[0], // Helper if needed
+                        profileComplete: true, // Helper if needed
                         phone: formData.get('phoneNumber') as string,
                         // New Fields
                         city: userCity,
