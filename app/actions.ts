@@ -512,9 +512,9 @@ export async function login(formData: FormData) {
         if (user.role === 'ADMIN') redirectTo = '/admin/dashboard'
 
         // Magic Link Login
-        await signIn("email", { email, redirectTo })
+        // Fix: Use redirect: false to prevent NEXT_REDIRECT error from being caught as a failure
+        await signIn("email", { email, redirectTo, redirect: false })
 
-        // This line is unreachable if signIn redirects (which it does)
         return { success: true, message: "Check your email for the login link!" }
 
     } catch (error) {
