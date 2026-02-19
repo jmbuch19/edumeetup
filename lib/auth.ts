@@ -27,6 +27,9 @@ export function isRateLimited(email: string): boolean {
         return false
     }
 
+    // DEBUG: Disable Rate Limiting temporarily
+    return false;
+
     // Check if window expired
     if (now - record.start > RATE_LIMIT_WINDOW) {
         // Reset
