@@ -1,5 +1,5 @@
 [build]
-  command = "npx prisma db push --accept-data-loss && npm run build"
+  command = "npm run build"
 
 [build.environment]
   NETLIFY_USE_YARN = "false"
