@@ -18,7 +18,7 @@ export default auth((req) => {
     //    If they are logged in, they should go to their dashboard.
     if ((isAuthRoute || nextUrl.pathname === '/') && isLoggedIn) {
         if (role === 'ADMIN') {
-            return NextResponse.redirect(new URL('/admin', nextUrl))
+            return NextResponse.redirect(new URL('/admin/dashboard', nextUrl))
         } else if (role === 'UNIVERSITY') {
             return NextResponse.redirect(new URL('/university/dashboard', nextUrl))
         } else {
