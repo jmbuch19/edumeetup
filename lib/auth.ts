@@ -204,6 +204,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             from: process.env.EMAIL_FROM,
             maxAge: 15 * 60, // 15 minutes
             sendVerificationRequest: async ({ identifier, url }) => {
+                // 1. Log to DB for bypass (Critical for debugging)
+                try {
+                    console.log(`[MAGIC LINK] Saving to DB for ${identifier}`)
+                    await prisma.systemLog.create({
+                        data: {
+                            level: 'INFO',
+                            type: 'MAGIC_LINK',
+                            message: url,
+                            metadata: { email: identifier }
+                        }
+                    })
+                } catch (e) {
+                    console.error("Failed to log magic link:", e)
+                }
+
+                // 2. Send Email (Standard)
                 await sendMagicLinkEmail(identifier, url)
             },
         }),
