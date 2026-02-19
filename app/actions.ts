@@ -431,7 +431,8 @@ export async function verifyUniversity(formData: FormData) {
             where: { id: universityId },
             data: {
                 verificationStatus: status,
-                verifiedDate: status === 'VERIFIED' ? new Date() : null,
+                verifiedAt: status === 'VERIFIED' ? new Date() : null,
+                isVerified: status === 'VERIFIED',
 
             },
             include: { user: true }
