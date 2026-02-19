@@ -14,6 +14,11 @@ export default auth((req) => {
     const isPublicRoute = nextUrl.pathname === '/' || nextUrl.pathname.startsWith('/about') || nextUrl.pathname.startsWith('/contact')
     const isApiRoute = nextUrl.pathname.startsWith('/api')
 
+    // 0. Redirect /admin to /admin/dashboard explicitly (since /admin folder has no page.tsx)
+    if (nextUrl.pathname === '/admin') {
+        return NextResponse.redirect(new URL('/admin/dashboard', nextUrl))
+    }
+
     // 1. Redirect logged-in users away from auth pages (login/register) AND Root (Landing)
     //    If they are logged in, they should go to their dashboard.
     if ((isAuthRoute || nextUrl.pathname === '/') && isLoggedIn) {
