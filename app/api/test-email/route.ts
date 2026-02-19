@@ -58,9 +58,27 @@ export async function GET(request: Request) {
             html: `<h1>Success!</h1><p>SMTP Check Passed for ${recipient}.</p>`
         })
 
+        // 3. Test SystemLog Write (to verify DB schema sync)
+        let logWriteResult = "Skipped"
+        try {
+            await prisma.systemLog.create({
+                data: {
+                    level: 'INFO',
+                    type: 'DIAGNOSTIC_TEST',
+                    message: "Test log from /api/test-email",
+                    metadata: { user: recipient }
+                }
+            })
+            logWriteResult = "Success - SystemLog exists and is writable"
+        } catch (e: any) {
+            console.error("SystemLog Write Failed:", e)
+            logWriteResult = `Failed: ${e.message}`
+        }
+
         return NextResponse.json({
             success: true,
             message: "Email sent successfully!",
+            dbCheck: logWriteResult, // Report DB status
             details: {
                 messageId: info.messageId,
                 response: info.response,
