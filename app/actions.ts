@@ -434,7 +434,7 @@ export async function verifyUniversity(formData: FormData) {
                 verifiedDate: status === 'VERIFIED' ? new Date() : null,
                 user: {
                     update: {
-                        status: status === 'VERIFIED' ? 'ACTIVE' : 'SUSPENDED'
+                        isActive: status === 'VERIFIED' // SUSPENDED -> isActive: false
                     }
                 }
             },
