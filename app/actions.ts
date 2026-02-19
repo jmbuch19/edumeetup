@@ -767,6 +767,8 @@ export async function createSupportTicket(formData: FormData) {
 
     const sessionEmail = user.email
 
+    if (!sessionEmail) return { error: "Not authenticated" }
+
     try {
         const user = await prisma.user.findUnique({
             where: { email: sessionEmail },
