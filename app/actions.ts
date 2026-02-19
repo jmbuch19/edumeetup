@@ -881,42 +881,42 @@ export async function createMeeting(formData: FormData) {
                     connect: { id: availabilitySlotId }
                 } : undefined
             },
-            include: { participants: { include: { user: true } } } as any
+        },
+            include: { participants: { include: { user: true } } }
+        }) as unknown as (Meeting & { participants: (MeetingParticipant & { user: User })[] })
+
+    // If slot used, mark as booked
+    if (availabilitySlotId) {
+        await prisma.availabilitySlot.update({
+            where: { id: availabilitySlotId },
+            data: { isBooked: true }
         })
+    }
 
-        // If slot used, mark as booked
-        if (availabilitySlotId) {
-            await prisma.availabilitySlot.update({
-                where: { id: availabilitySlotId },
-                data: { isBooked: true }
-            })
-        }
-
-        // Send Notifications (Email + DB)
-        for (const p of meeting.participants) {
-            // DB Notification
-            // DB & Email Notification
-            await createNotification({
-                userId: p.participantUserId,
-                type: 'MEETING_INVITE',
-                title: 'New Meeting Invitation',
-                message: `You have been invited to: ${title} `,
-                payload: { meetingId: meeting.id },
-                emailTo: p.user.email,
-                emailSubject: `Invitation: ${title} `,
-                emailHtml: `<p>You have been invited to a meeting with ${uniProfile.institutionName}.</p>
+    // Send Notifications (Email + DB)
+    for (const p of meeting.participants) {
+        // DB & Email Notification
+        await createNotification({
+            userId: p.participantUserId,
+            type: 'MEETING_INVITE',
+            title: 'New Meeting Invitation',
+            message: `You have been invited to: ${title} `,
+            payload: { meetingId: meeting.id },
+            emailTo: p.user.email,
+            emailSubject: `Invitation: ${title} `,
+            emailHtml: `<p>You have been invited to a meeting with ${uniProfile.institutionName}.</p>
         <p><strong>Topic: </strong> ${title}</p>
             <p><strong>Time: </strong> ${start.toLocaleString()}</p>
                 <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/student/dashboard?tab=meetings" > View Details & RSVP </a></p> `
-            })
-        }
-
-        revalidatePath('/university/dashboard')
-        return { success: true }
-    } catch (error) {
-        console.error("Failed to create meeting:", error)
-        return { error: "Failed to create meeting" }
+        })
     }
+
+    revalidatePath('/university/dashboard')
+    return { success: true }
+} catch (error) {
+    console.error("Failed to create meeting:", error)
+    return { error: "Failed to create meeting" }
+}
 }
 
 export async function updateRSVP(formData: FormData) {
