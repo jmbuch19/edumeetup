@@ -1,5 +1,5 @@
 import { getEventDetails } from '../actions'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'

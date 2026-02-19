@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
 export async function updateUniversitySettings(formData: FormData) {

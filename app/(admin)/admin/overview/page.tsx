@@ -1,4 +1,4 @@
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getAdminOverviewMetrics } from './actions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'

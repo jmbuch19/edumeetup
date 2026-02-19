@@ -1,4 +1,4 @@
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getUniversityReps } from './actions'
 import AddRepForm from './AddRepForm'

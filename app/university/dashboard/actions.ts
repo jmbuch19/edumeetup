@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { startOfWeek, endOfWeek, startOfDay, endOfDay, subDays } from 'date-fns'
 
 export async function getUniversityMetrics() {

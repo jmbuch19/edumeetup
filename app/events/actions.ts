@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 

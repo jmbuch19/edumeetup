@@ -1,4 +1,4 @@
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import BookingWizard from "@/components/booking/BookingWizard"
 import { getBookingData } from "./actions"

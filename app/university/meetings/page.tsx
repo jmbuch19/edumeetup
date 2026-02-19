@@ -1,6 +1,6 @@
 import { getUniversityMeetings } from '@/app/actions'
 import MeetingList from '@/components/university/MeetingList'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 

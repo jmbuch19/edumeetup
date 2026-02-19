@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { verifyUniversity } from '@/app/actions'
 import { CheckCircle, XCircle, Globe, Mail } from 'lucide-react'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
 // Dashboard is server component

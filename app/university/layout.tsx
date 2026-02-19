@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { LayoutDashboard, Calendar, BarChart3, Clock, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
 export default async function UniversityLayout({
