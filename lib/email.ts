@@ -34,12 +34,12 @@ interface SupportTicketData {
 }
 
 const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // true for 465, false for other ports
+    host: process.env.EMAIL_SERVER_HOST || 'smtp.gmail.com',
+    port: Number(process.env.EMAIL_SERVER_PORT) || 465,
+    secure: process.env.EMAIL_SERVER_PORT === '465' || process.env.NODE_ENV === 'production',
     auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD
+        user: process.env.EMAIL_SERVER_USER,
+        pass: process.env.EMAIL_SERVER_PASSWORD
     },
     // Fail fast if connection hangs
     connectionTimeout: 10000, // 10 seconds
@@ -97,7 +97,7 @@ export async function sendEmail({ to, subject, html }: EmailPayload) {
     }
 
     // Fallback to simulation if credentials are missing
-    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    if (!process.env.EMAIL_SERVER_USER || !process.env.EMAIL_SERVER_PASSWORD) {
         console.log(`
     ==================================================
     [EMAIL SIMULATION - MISSING CREDS]
@@ -111,8 +111,10 @@ export async function sendEmail({ to, subject, html }: EmailPayload) {
     }
 
     try {
+        const fromAddress = process.env.EMAIL_FROM || `"EduMeetup" <${process.env.EMAIL_SERVER_USER}>`
+
         await transporter.sendMail({
-            from: `"EduMeetup" <${process.env.GMAIL_USER}>`,
+            from: fromAddress,
             to,
             subject,
             html
