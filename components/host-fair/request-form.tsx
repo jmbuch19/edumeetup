@@ -264,7 +264,7 @@ export function HostFairRequestForm() {
                             <div key={country} className="flex items-center space-x-2">
                                 <Checkbox
                                     id={`country-${country}`}
-                                    onCheckedChange={(checked) => handleCheckboxChange("preferredCountries", country, checked as boolean)}
+                                    onChange={(e) => handleCheckboxChange("preferredCountries", country, e.target.checked)}
                                 />
                                 <Label htmlFor={`country-${country}`} className="font-normal cursor-pointer">{country}</Label>
                             </div>
@@ -280,7 +280,7 @@ export function HostFairRequestForm() {
                             <div key={field} className="flex items-center space-x-2">
                                 <Checkbox
                                     id={`field-${field}`}
-                                    onCheckedChange={(checked) => handleCheckboxChange("fieldsOfStudy", field, checked as boolean)}
+                                    onChange={(e) => handleCheckboxChange("fieldsOfStudy", field, e.target.checked)}
                                 />
                                 <Label htmlFor={`field-${field}`} className="font-normal cursor-pointer">{field}</Label>
                             </div>

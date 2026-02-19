@@ -14,6 +14,7 @@ model User {
   name          String?
   email         String    @unique
   emailVerified DateTime?
+  password      String?
   image         String?
   role          UserRole  @default(STUDENT)
   isActive      Boolean   @default(true)
@@ -40,6 +41,10 @@ model User {
   advisedRequests   AdvisoryRequest[] @relation("AdviserRequests")
   meetingParticipations MeetingParticipant[]
   availabilitySlots     AvailabilitySlot[]
+  
+  // University Rep Support
+  universityId          String?
+  representedUniversity University? @relation("UniversityReps", fields: [universityId], references: [id])
 }
 
 model Account {
@@ -197,6 +202,7 @@ model University {
   bookmarkedBy      Bookmark[]
   availabilitySlots AvailabilitySlot[]
   events            Event[]
+  reps              User[]    @relation("UniversityReps")
 }
 
 model Program {
@@ -231,6 +237,7 @@ model Program {
 enum UserRole {
   STUDENT
   UNIVERSITY
+  UNIVERSITY_REP
   ADMIN
 }
 

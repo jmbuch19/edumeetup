@@ -39,7 +39,11 @@ export default async function StudentProfilePage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-8">Edit Profile</h1>
             <div className="max-w-3xl mx-auto">
                 <ProfileForm
-                    initialData={student}
+                    initialData={{
+                        ...student,
+                        fullName: user.name ?? null,
+                        phoneNumber: student.phone
+                    }}
                     fieldCategories={fieldCategories}
                 />
             </div>

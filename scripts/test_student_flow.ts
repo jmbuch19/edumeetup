@@ -17,7 +17,7 @@ async function main() {
             data: {
                 email,
                 role: 'STUDENT',
-                status: 'ACTIVE',
+                isActive: true,
                 student: {
                     create: {
                         fullName: 'Test Student',

@@ -27,12 +27,12 @@ type Outreach = {
     sentAt: Date
 }
 
-export function OutreachManager({ 
-    requestId, 
-    universities, 
-    existingOutreach 
-}: { 
-    requestId: string, 
+export function OutreachManager({
+    requestId,
+    universities,
+    existingOutreach
+}: {
+    requestId: string,
     universities: University[],
     existingOutreach: Outreach[]
 }) {
@@ -44,7 +44,7 @@ export function OutreachManager({
     const availableUniversities = universities.filter(u => !contactedUniIds.has(u.id))
 
     const handleToggle = (uniId: string) => {
-        setSelectedUnis(prev => 
+        setSelectedUnis(prev =>
             prev.includes(uniId) ? prev.filter(id => id !== uniId) : [...prev, uniId]
         )
     }
@@ -95,13 +95,13 @@ export function OutreachManager({
                                 <div className="space-y-3">
                                     {availableUniversities.map(uni => (
                                         <div key={uni.id} className="flex items-center space-x-2">
-                                            <Checkbox 
-                                                id={`uni-${uni.id}`} 
+                                            <Checkbox
+                                                id={`uni-${uni.id}`}
                                                 checked={selectedUnis.includes(uni.id)}
-                                                onCheckedChange={() => handleToggle(uni.id)}
+                                                onChange={() => handleToggle(uni.id)}
                                             />
-                                            <label 
-                                                htmlFor={`uni-${uni.id}`} 
+                                            <label
+                                                htmlFor={`uni-${uni.id}`}
                                                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                                             >
                                                 {uni.institutionName} <span className="text-slate-400 font-normal">({uni.city}, {uni.country})</span>
@@ -110,9 +110,9 @@ export function OutreachManager({
                                     ))}
                                 </div>
                             </ScrollArea>
-                            
-                            <Button 
-                                onClick={handleSendOutreach} 
+
+                            <Button
+                                onClick={handleSendOutreach}
                                 disabled={isPending || selectedUnis.length === 0}
                                 className="w-full"
                             >

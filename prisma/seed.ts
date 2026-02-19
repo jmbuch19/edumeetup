@@ -13,7 +13,7 @@ async function main() {
             email: adminEmail,
             password: await hash('password123', 12),
             role: 'ADMIN',
-            status: 'ACTIVE',
+            isActive: true,
         },
     })
     console.log({ admin })
@@ -27,7 +27,7 @@ async function main() {
             email: adminEmail2,
             password: await hash('admin123', 12),
             role: 'ADMIN',
-            status: 'ACTIVE'
+            isActive: true
         }
     })
     console.log({ admin: admin2 }) // Log with a distinct name
@@ -41,8 +41,8 @@ async function main() {
             email: studentEmail,
             password: await hash('password123', 12),
             role: 'STUDENT',
-            status: 'ACTIVE',
-            studentProfile: {
+            isActive: true,
+            student: {
                 create: {
                     fullName: 'John Doe',
                     country: 'India',
@@ -67,8 +67,8 @@ async function main() {
             email: uniEmail,
             password: await hash('password123', 12),
             role: 'UNIVERSITY',
-            status: 'ACTIVE',
-            universityProfile: {
+            isActive: true,
+            university: {
                 create: {
                     institutionName: 'Harvard University',
                     country: 'USA',
@@ -76,7 +76,7 @@ async function main() {
                     website: 'https://harvard.edu',
                     contactEmail: 'admissions@harvard.edu',
                     verificationStatus: 'VERIFIED',
-                    verifiedDate: new Date(),
+                    verifiedAt: new Date(),
                     programs: {
                         create: [
                             {

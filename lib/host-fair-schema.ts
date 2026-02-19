@@ -9,9 +9,7 @@ const GENERIC_EMAIL_DOMAINS = [
 export const hostRequestSchema = z.object({
     // Institution Info
     institutionName: z.string().min(3, "Institution Name must be at least 3 characters"),
-    institutionType: z.enum(["UNIVERSITY", "COLLEGE", "SCHOOL", "OTHER"], {
-        required_error: "Please select an institution type"
-    }),
+    institutionType: z.enum(["UNIVERSITY", "COLLEGE", "SCHOOL", "OTHER"] as const),
     city: z.string().min(2, "City is required"),
     state: z.string().min(2, "State is required"),
     websiteUrl: z.string().url("Please enter a valid URL (e.g., https://university.edu.in)"),
@@ -29,9 +27,7 @@ export const hostRequestSchema = z.object({
     contactPhone: z.string().regex(/^(\+91[\-\s]?)?[0]?(91)?[6789]\d{9}$/, "Please enter a valid Indian phone number"),
 
     // Event Details
-    preferredDateStart: z.date({
-        required_error: "Start date is required",
-    }).refine((date) => {
+    preferredDateStart: z.date().refine((date) => {
         const minDate = new Date();
         minDate.setDate(minDate.getDate() + 45); // 45 days from today
         return date >= minDate;
@@ -39,13 +35,9 @@ export const hostRequestSchema = z.object({
         message: "Event date must be at least 45 days from today for planning."
     }),
 
-    preferredDateEnd: z.date({
-        required_error: "End date is required",
-    }),
+    preferredDateEnd: z.date(),
 
-    expectedStudentCount: z.enum(["50-100", "100-250", "250-500", "500+"], {
-        required_error: "Please select expected student count"
-    }),
+    expectedStudentCount: z.enum(["50-100", "100-250", "250-500", "500+"] as const),
 
     preferredCountries: z.array(z.string()).min(1, "Select at least one preferred country"),
     fieldsOfStudy: z.array(z.string()).min(1, "Select at least one field of study"),

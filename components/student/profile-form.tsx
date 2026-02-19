@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { StudentProfile } from '@prisma/client'
+import { Student } from '@prisma/client'
 import { DegreeLevels } from '@/lib/constants'
 
 import { updateStudentProfile } from '@/app/actions'
@@ -13,8 +13,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
+// Use a custom interface extending Student to include User fields if needed for display
+interface ProfileData extends Student {
+    // fullName is already in Student
+    phoneNumber?: string | null // component uses phoneNumber, schema uses phone. We should align.
+}
+
 interface ProfileFormProps {
-    initialData: StudentProfile
+    initialData: ProfileData
     fieldCategories: string[]
 }
 
@@ -58,7 +64,7 @@ export function ProfileForm({ initialData, fieldCategories }: ProfileFormProps) 
                     <CardContent className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
                             <Label htmlFor="id_full_name">Full Name</Label>
-                            <Input id="id_full_name" name="fullName" defaultValue={initialData.fullName} required />
+                            <Input id="id_full_name" name="fullName" defaultValue={initialData.fullName || ''} required />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="id_country">Country of Residence <span className="text-red-500">*</span></Label>
@@ -74,7 +80,7 @@ export function ProfileForm({ initialData, fieldCategories }: ProfileFormProps) 
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="id_phone">Phone Number</Label>
-                            <Input id="id_phone" name="phoneNumber" defaultValue={initialData.phoneNumber || ''} placeholder="+1234567890" />
+                            <Input id="id_phone" name="phoneNumber" defaultValue={initialData.phone || initialData.phoneNumber || ''} placeholder="+1234567890" />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="id_gender">Gender <span className="text-red-500">*</span></Label>

@@ -56,7 +56,7 @@ export default function Step2Format({ data, updateData, onNext, onBack }: StepPr
                 </div>
                 <Switch
                     checked={data.audioOnly}
-                    onCheckedChange={(checked) => updateData({ audioOnly: checked })}
+                    onChange={(e) => updateData({ audioOnly: e.target.checked })}
                 />
             </div>
 

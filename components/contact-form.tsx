@@ -7,9 +7,25 @@ import { useEffect, useRef } from "react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
-const initialState = {
+interface ContactState {
+    success?: boolean;
+    error?: string | null;
+    message?: string | null;
+    errors?: {
+        fullName?: string[];
+        email?: string[];
+        role?: string[];
+        country?: string[];
+        subject?: string[];
+        message?: string[];
+    } | null;
+}
+
+const initialState: ContactState = {
     message: null,
     errors: null,
+    success: false,
+    error: null,
 }
 
 export function ContactForm() {

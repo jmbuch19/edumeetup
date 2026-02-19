@@ -7,7 +7,7 @@ const GLOBAL_TRANSITION = {
     type: "spring",
     stiffness: 260,
     damping: 20,
-};
+} as const;
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return (

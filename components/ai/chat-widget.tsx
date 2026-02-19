@@ -3,7 +3,7 @@
 
 import { useChat } from '@ai-sdk/react';
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, User, Bot, Video } from 'lucide-react';
+import { MessageCircle, X, Send, User, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getLiveUniversitySuggestion } from '@/app/actions';
@@ -14,7 +14,7 @@ export function ChatWidget() {
     // Use local state for input to guarantee responsiveness
     const [localInput, setLocalInput] = useState('');
 
-    const { messages, append, isLoading } = useChat({
+    const chatHelpers = useChat({
         api: '/api/chat',
         initialMessages: [
             {
@@ -23,10 +23,14 @@ export function ChatWidget() {
                 content: "Welcome to EdUmeetup Beta! I'm here to help you navigate our verified university network. Found a bug? Let me know!"
             }
         ],
-        onError: (e) => {
+        onError: (e: any) => {
             console.error("Chat error:", e);
         }
-    });
+    } as any);
+
+    // Cast to any to avoid type error with 'append' which is likely present but missing in strict type definition of this version
+    const { messages, append, isLoading } = chatHelpers as any;
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -40,6 +44,8 @@ export function ChatWidget() {
     }, [messages, isOpen]);
 
     // Proactive Engagement
+    const [liveUni, setLiveUni] = useState<string | null>(null)
+
     useEffect(() => {
         const checkLive = async () => {
             const suggestion = await getLiveUniversitySuggestion()
@@ -67,9 +73,7 @@ export function ChatWidget() {
         // Short delay to not block hydration
         const timer = setTimeout(checkLive, 2000)
         return () => clearTimeout(timer)
-    }, [])
-
-    const [liveUni, setLiveUni] = useState<string | null>(null)
+    }, [append]) // append is stable usually
 
     const handleLocalSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

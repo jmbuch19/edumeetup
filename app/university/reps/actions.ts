@@ -29,20 +29,8 @@ export async function getUniversityReps() {
         select: {
             id: true,
             email: true,
-            status: true,
+            isActive: true,
             createdAt: true
-            // note: user model doesn't have 'name' yet, we might need to add it or store in a separate profile?
-            // The prompt asked for "Fields: name...". 
-            // Our User model only has email/password.
-            // We should probably add 'name' to User or created a RepProfile? 
-            // For MVP, checking if I can add 'name' to User quickly or use a workaround.
-            // PROMPT said: "Fields: name, email, role=university_rep..."
-            // I'll stick to Email for now and maybe add Name to User if I didn't already.
-            // Looking at schema... User has no name. StudentProfile has fullName. UniversityProfile has institutionName.
-            // I should ADD 'name' to User model or just use email for now to avoid another schema change.
-            // detailed requirements said "Fields: name, email..."
-            // I'll add 'name' to User model in a quick schema push if needed, OR just use email as name for MVP.
-            // Let's check schema again.
         }
     })
 }
@@ -54,8 +42,7 @@ export async function createRep(formData: FormData) {
     }
 
     const email = formData.get('email') as string
-    const password = formData.get('password') as string // In real app, send invite. Here, set initial password.
-    // name? - We'll skip name column for now and just use email as identifier to avoid schema churn unless strict.
+    const password = formData.get('password') as string
 
     if (!email || !password) {
         return { error: 'Email and Password required' }
@@ -78,7 +65,7 @@ export async function createRep(formData: FormData) {
                 password: hashedPassword,
                 role: 'UNIVERSITY_REP',
                 universityId: profile.id,
-                status: 'ACTIVE'
+                isActive: true
             }
         })
 
@@ -110,11 +97,10 @@ export async function toggleRepStatus(repId: string, currentStatus: string) {
 
     if (!rep) return { error: 'Rep not found or unauthorized' }
 
-    const newStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'
-
+    // Toggle isActive
     await prisma.user.update({
         where: { id: repId },
-        data: { status: newStatus }
+        data: { isActive: !rep.isActive }
     })
 
     revalidatePath('/university/reps')

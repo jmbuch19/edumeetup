@@ -101,9 +101,9 @@ export default function AvailabilityForm({ initialProfiles }: AvailabilityFormPr
                         <div className="flex items-center gap-4 mb-4">
                             <Switch
                                 checked={profile.isActive}
-                                onCheckedChange={(checked) => handleProfileChange(profile.dayOfWeek, 'isActive', checked)}
+                                onChange={(e) => handleProfileChange(profile.dayOfWeek, 'isActive', e.target.checked)}
                             />
-                            <span className="font-medium w-24">{DaysOfWeek.find(d => d.value === profile.dayOfWeek)?.label}</span>
+                            <span className="font-medium w-24">{DaysOfWeek.find(d => d.value === profile.dayOfWeek)?.label || ''}</span>
 
                             {profile.isActive && (
                                 <div className="flex items-center gap-2">
@@ -147,9 +147,9 @@ export default function AvailabilityForm({ initialProfiles }: AvailabilityFormPr
                                     <Checkbox
                                         id={`dur-${duration}`}
                                         checked={profiles[0].meetingDurationOptions.includes(duration)}
-                                        onCheckedChange={(checked) => {
+                                        onChange={(e) => {
                                             const current = profiles[0].meetingDurationOptions
-                                            const newVal = checked
+                                            const newVal = e.target.checked
                                                 ? [...current, duration]
                                                 : current.filter(d => d !== duration)
                                             applyToAll('meetingDurationOptions', newVal)
