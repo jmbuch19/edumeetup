@@ -432,13 +432,17 @@ export async function verifyUniversity(formData: FormData) {
             data: {
                 verificationStatus: status,
                 verifiedDate: status === 'VERIFIED' ? new Date() : null,
-                user: {
-                    update: {
-                        isActive: status === 'VERIFIED' // SUSPENDED -> isActive: false
-                    }
-                }
+
             },
             include: { user: true }
+        })
+
+        // Update User Status separately to avoid nested type issues
+        await prisma.user.update({
+            where: { id: uniProfile.userId },
+            data: {
+                isActive: status === 'VERIFIED'
+            }
         })
 
         // Notification (Email + In-App)
