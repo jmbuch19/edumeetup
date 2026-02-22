@@ -62,9 +62,9 @@ export async function registerStudent(prevState: any, formData: FormData) {
 
     const {
         email, fullName, gender, ageGroup,
-        country, currentStatus, fieldOfInterest, preferredDegree,
+        country, city, pincode, currentStatus, fieldOfInterest, preferredDegree,
         budgetRange, englishTestType, englishScore, preferredIntake,
-        preferredCountries
+        preferredCountries, greScore, gmatScore
     } = validation.data
 
     // HONEYPOT & SPAM CHECK (from schema)
@@ -83,15 +83,12 @@ export async function registerStudent(prevState: any, formData: FormData) {
         const ipInfo = await getIpGeoInfo(ip)
 
         // Mismatch Detection
-        const userCity = (formData.get('city') as string)?.trim() || ''
-        const userPincode = (formData.get('pincode') as string)?.trim() || ''
-
-        const cityMismatch = userCity && ipInfo.city
-            ? userCity.toLowerCase() !== ipInfo.city.toLowerCase()
+        const cityMismatch = city && ipInfo.city
+            ? city.toLowerCase() !== ipInfo.city.toLowerCase()
             : false
 
-        const pincodeMismatch = userPincode && ipInfo.pincode
-            ? userPincode !== ipInfo.pincode
+        const pincodeMismatch = pincode && ipInfo.pincode
+            ? pincode !== ipInfo.pincode
             : false
 
         // Check if user exists
@@ -130,9 +127,12 @@ export async function registerStudent(prevState: any, formData: FormData) {
                         profileComplete: true,
 
                         phone: formData.get('phoneNumber') as string,
-                        // New Fields
-                        city: userCity,
-                        pincode: userPincode,
+                        // Location
+                        city: city || '',
+                        pincode: pincode || '',
+                        // GRE / GMAT
+                        greScore: greScore || null,
+                        gmatScore: gmatScore || null,
                         // IP Tracking
                         ipAddress: ipInfo.ip,
                         ipCity: ipInfo.city,

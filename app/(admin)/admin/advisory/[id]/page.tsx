@@ -98,8 +98,12 @@ export default async function AdvisoryDetailPage({ params }: { params: { id: str
                                 <p>{request.englishScore || 'Not provided'}</p>
                             </div>
                             <div>
-                                <Label className="text-muted-foreground">GRE/GMAT</Label>
-                                <p>{request.greGmatScore || 'Not provided'}</p>
+                                <Label className="text-muted-foreground">GRE Score</Label>
+                                <p>{request.student.greScore || 'Not taken / Not provided'}</p>
+                            </div>
+                            <div>
+                                <Label className="text-muted-foreground">GMAT Score</Label>
+                                <p>{request.student.gmatScore || 'Not taken / Not provided'}</p>
                             </div>
                         </CardContent>
                     </Card>

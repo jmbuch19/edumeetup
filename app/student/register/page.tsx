@@ -39,7 +39,9 @@ function SubmitButton() {
 }
 
 export default function StudentRegisterPage() {
-    const [phone, setPhone] = useState({ code: '+1', number: '' })
+    const [phone, setPhone] = useState({ code: '+91', number: '' })
+    const [greTaken, setGreTaken] = useState(false)
+    const [gmatTaken, setGmatTaken] = useState(false)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [state, formAction] = useFormState(registerStudent as any, initialState)
     const formRef = useRef<HTMLFormElement>(null)
@@ -91,7 +93,7 @@ export default function StudentRegisterPage() {
 
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Gender *</label>
                                 <div className="flex gap-4 flex-wrap">
                                     <label className="flex items-center space-x-2 cursor-pointer">
                                         <input type="radio" name="gender" value="Male" required className="accent-primary h-4 w-4" />
@@ -323,6 +325,16 @@ export default function StudentRegisterPage() {
                             </div>
 
                             <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
+                                <Input name="city" type="text" required placeholder="e.g. Mumbai" />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code *</label>
+                                <Input name="pincode" type="text" required placeholder="e.g. 400001" maxLength={10} />
+                            </div>
+
+                            <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
                                 <div className="flex gap-2">
                                     <select
@@ -432,6 +444,50 @@ export default function StudentRegisterPage() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">English Score (If taken)</label>
                                 <Input name="englishScore" type="number" step="0.5" placeholder="e.g. 7.5 or 100" />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">GRE Taken?</label>
+                                <div className="flex gap-4 flex-wrap">
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input type="radio" name="greTaken" value="yes" className="accent-primary h-4 w-4"
+                                            onChange={() => setGreTaken(true)} />
+                                        <span className="text-sm text-gray-700">Yes</span>
+                                    </label>
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input type="radio" name="greTaken" value="no" defaultChecked className="accent-primary h-4 w-4"
+                                            onChange={() => setGreTaken(false)} />
+                                        <span className="text-sm text-gray-700">No</span>
+                                    </label>
+                                </div>
+                                {greTaken && (
+                                    <div className="mt-3">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">GRE Score (out of 340)</label>
+                                        <Input name="greScore" type="number" min="260" max="340" placeholder="e.g. 320" />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">GMAT Taken?</label>
+                                <div className="flex gap-4 flex-wrap">
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input type="radio" name="gmatTaken" value="yes" className="accent-primary h-4 w-4"
+                                            onChange={() => setGmatTaken(true)} />
+                                        <span className="text-sm text-gray-700">Yes</span>
+                                    </label>
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input type="radio" name="gmatTaken" value="no" defaultChecked className="accent-primary h-4 w-4"
+                                            onChange={() => setGmatTaken(false)} />
+                                        <span className="text-sm text-gray-700">No</span>
+                                    </label>
+                                </div>
+                                {gmatTaken && (
+                                    <div className="mt-3">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">GMAT Score (out of 800)</label>
+                                        <Input name="gmatScore" type="number" min="200" max="800" placeholder="e.g. 680" />
+                                    </div>
+                                )}
                             </div>
 
                             <div className="col-span-1 md:col-span-2">

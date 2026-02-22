@@ -10,6 +10,8 @@ export const registerStudentSchema = z.object({
     country: z.string().min(2),
     gender: z.string().min(1, "Gender is required"),
     ageGroup: z.string(),
+    city: z.string().min(2, "City is required"),
+    pincode: z.string().min(4, "PIN Code must be at least 4 digits"),
     // Optional/nullable fields
     phoneNumber: z.string().optional(),
     currentStatus: z.string().optional(),
@@ -20,6 +22,11 @@ export const registerStudentSchema = z.object({
     englishScore: z.string().optional(),
     preferredIntake: z.string().optional(),
     preferredCountries: z.string().optional(),
+    // GRE / GMAT (conditional, not mandatory)
+    greTaken: z.string().optional(),
+    greScore: z.string().optional(),
+    gmatTaken: z.string().optional(),
+    gmatScore: z.string().optional(),
     // Honeypot
     website_url: z.string().max(0, "Spam detected").optional().or(z.literal(''))
 })

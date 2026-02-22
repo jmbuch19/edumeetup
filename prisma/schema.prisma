@@ -119,6 +119,8 @@ model Student {
   budgetRange       String?
   englishTestType   String?
   englishScore      String?
+  greScore          String?
+  gmatScore         String?
   preferredIntake   String?
   profileComplete   Boolean  @default(false)
   
