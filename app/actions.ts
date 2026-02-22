@@ -211,7 +211,6 @@ export async function expressInterest(universityId: string, studentEmail?: strin
 
     const sessionEmail = user.email
     const emailToUse = sessionEmail || studentEmail
-    // const ip = headers().get('x-forwarded-for') || 'unknown'
 
     try {
         const student = await prisma.studentProfile.findFirst({
