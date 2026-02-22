@@ -25,28 +25,23 @@ export async function bulkCreatePrograms(universityId: string, data: ProgramImpo
         const uniProfile = await prisma.universityProfile.findUnique({ where: { userId: user.id } })
         if (!uniProfile || uniProfile.id !== universityId) return { error: "Unauthorized" }
 
-        let createdCount = 0
-
-        for (const item of data) {
-            await prisma.program.create({
-                data: {
-                    universityId,
-                    programName: item.programName,
-                    degreeLevel: item.degreeLevel,
-                    fieldCategory: mapFieldCategory(item.fieldCategory),
-                    tuitionFee: item.tuitionFee,
-                    durationMonths: item.durationMonths,
-                    intakes: item.intakes,
-                    stemDesignated: false, // Default
-                    currency: 'USD',
-                    englishTests: null // Fixed: expect string or null, not array
-                }
-            })
-            createdCount++
-        }
+        const result = await prisma.program.createMany({
+            data: data.map(item => ({
+                universityId,
+                programName: item.programName,
+                degreeLevel: item.degreeLevel,
+                fieldCategory: mapFieldCategory(item.fieldCategory),
+                tuitionFee: item.tuitionFee,
+                durationMonths: item.durationMonths,
+                intakes: item.intakes,
+                stemDesignated: false, // Default
+                currency: 'USD',
+                englishTests: null // Fixed: expect string or null, not array
+            }))
+        })
 
         revalidatePath('/university/dashboard')
-        return { success: true, count: createdCount }
+        return { success: true, count: result.count }
     } catch (error) {
         console.error("Bulk create error:", error)
         return { error: "Failed to import programs" }
