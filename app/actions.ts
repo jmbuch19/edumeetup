@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, EmailTemplates } from '@/lib/email'
 import { requireUser, requireRole, signIn, isUniversityEmail } from '@/lib/auth'
+import { sendMagicLink } from '@/lib/magic-link'
 import { logAudit } from '@/lib/audit'
 import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateLimiter, interestRateLimiter, inviteRateLimiter } from '@/lib/ratelimit'
 import { headers } from 'next/headers'
@@ -166,12 +167,8 @@ export async function registerStudent(prevState: any, formData: FormData) {
             metadata: { ip, email, role: 'STUDENT' }
         })
 
-        // Trigger Magic Link email directly
-        await signIn("email", {
-            email,
-            redirect: false,
-            redirectTo: '/student/dashboard'
-        })
+        // Send magic link directly (bypasses Auth.js signIn which silently fails in Netlify serverless)
+        await sendMagicLink(email, '/student/dashboard')
 
         return { success: true, email, message: "Account created! Check your email to login." }
 
@@ -511,8 +508,8 @@ export async function login(formData: FormData) {
         if (user.role === 'UNIVERSITY') redirectTo = '/university/dashboard'
         if (user.role === 'ADMIN') redirectTo = '/admin/dashboard'
 
-        // Magic Link Login
-        await signIn("email", { email, redirectTo, redirect: false })
+        // Send magic link directly (bypasses Auth.js signIn which silently fails in Netlify serverless)
+        await sendMagicLink(email, redirectTo)
 
         return { success: true, message: "Check your email for the login link!" }
 
@@ -615,12 +612,8 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
 
         console.log(`New university registered with ${programs.length} programs: ${institutionName}`)
 
-        // Trigger Magic Link email directly
-        await signIn("email", {
-            email,
-            redirect: false,
-            redirectTo: '/university/dashboard'
-        })
+        // Send magic link directly (bypasses Auth.js signIn which silently fails in Netlify serverless)
+        await sendMagicLink(email, '/university/dashboard')
 
     } catch (error) {
         console.error('Registration failed:', error)
