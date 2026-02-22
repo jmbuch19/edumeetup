@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import { logger } from '@/lib/logger'
 
 /**
  * Unified Email Utility
@@ -62,10 +63,10 @@ export async function sendEmail({ to, subject, html }: EmailPayload) {
             subject,
             html
         })
-        console.log(`[EMAIL SENT] To: ${to} | Subject: ${subject}`)
+        logger.info(`[EMAIL SENT] To: ${to} | Subject: ${subject}`)
         return { success: true }
     } catch (error) {
-        console.error("Failed to send email:", error)
+        logger.error("Failed to send email:", error)
         // Fallback to simulation on error so flow doesn't break
         return { error: "Failed to send email" }
     }
