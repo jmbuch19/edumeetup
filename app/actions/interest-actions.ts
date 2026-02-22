@@ -76,8 +76,19 @@ export async function getInterestedStudents(programId: string): Promise<Interest
 
     const interests = await prisma.interest.findMany({
         where: { programId },
-        include: {
-            student: true
+        select: {
+            studentId: true,
+            createdAt: true,
+            student: {
+                select: {
+                    userId: true,
+                    fullName: true,
+                    country: true,
+                    currentStatus: true,
+                    fieldOfInterest: true,
+                    preferredDegree: true
+                }
+            }
         },
         orderBy: { createdAt: 'desc' }
     })
