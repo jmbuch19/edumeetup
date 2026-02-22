@@ -1,4 +1,7 @@
-export class RateLimiter {
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+class InMemoryRateLimiter {
     private requests: Map<string, number[]> = new Map()
     private windowMs: number
     private maxRequests: number
@@ -22,13 +25,62 @@ export class RateLimiter {
         validTimestamps.push(now)
         this.requests.set(key, validTimestamps)
 
-        // Cleanup periodically could be added here or via separate process
-        // For MVP, simple memory map is fine. 
-        // In serverless/Vercel, memory is not shared across lambdas, 
-        // so this is per-lambda instance.
-        // For strict global rate limiting, use Redis/Upstash.
-
         return true
+    }
+}
+
+export class RateLimiter {
+    private inMemoryLimiter?: InMemoryRateLimiter
+    private upstashLimiter?: Ratelimit
+    private useRedis: boolean = false
+
+    constructor(windowMs: number, maxRequests: number) {
+        // Check for Upstash credentials
+        if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+            try {
+                const redis = new Redis({
+                    url: process.env.UPSTASH_REDIS_REST_URL,
+                    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+                })
+
+                // Convert windowMs to seconds
+                const windowSeconds = Math.ceil(windowMs / 1000);
+                // Ensure at least 1 second
+                const duration = Math.max(1, windowSeconds);
+
+                this.upstashLimiter = new Ratelimit({
+                    redis: redis,
+                    limiter: Ratelimit.slidingWindow(maxRequests, `${duration} s`),
+                    analytics: true,
+                    prefix: "@upstash/ratelimit",
+                });
+                this.useRedis = true;
+            } catch (error) {
+                console.warn('Failed to initialize Upstash Redis, falling back to in-memory rate limiting', error);
+                this.useRedis = false;
+            }
+        }
+
+        if (!this.useRedis) {
+            this.inMemoryLimiter = new InMemoryRateLimiter(windowMs, maxRequests);
+        }
+    }
+
+    async check(key: string): Promise<boolean> {
+        if (this.useRedis && this.upstashLimiter) {
+            try {
+                const { success } = await this.upstashLimiter.limit(key);
+                return success;
+            } catch (error) {
+                console.error('Rate limiting error, allowing request:', error);
+                // If Redis fails, allow request to avoid blocking legitimate users
+                return true;
+            }
+        } else if (this.inMemoryLimiter) {
+            return this.inMemoryLimiter.check(key);
+        }
+
+        return true;
     }
 }
 
