@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { updateRSVP } from '@/app/actions'
+import { requestFollowUp } from '@/app/actions/availability'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Clock, Video, Check, X } from 'lucide-react'
@@ -157,8 +158,6 @@ export function StudentMeetingsTable({ meetings }: { meetings: MeetingParticipan
                                     onClick={async () => {
                                         if (!confirm("Request a 1:1 follow-up with this university?")) return
                                         setLoadingId(meeting.id)
-                                        // Dynamic import for action to avoid client-side bundling issues if any
-                                        const { requestFollowUp } = await import('@/app/actions/availability')
                                         const res = await requestFollowUp(meeting.id)
                                         if (res.success) {
                                             alert("Follow-up request sent!")
