@@ -72,7 +72,7 @@ export async function registerStudent(formData: FormData) {
 
     // RATE LIMIT (By IP)
     const ip = headers().get('x-forwarded-for') || 'unknown'
-    if (!registerRateLimiter.check(ip)) {
+    if (!(await registerRateLimiter.check(ip))) {
         return { error: 'Too many registration attempts. Please try again later.' }
     }
 
@@ -149,7 +149,7 @@ export async function registerUniversity(formData: FormData) {
     if (validation.data.website_url) return { error: 'Spam detected' }
 
     const ip = headers().get('x-forwarded-for') || 'unknown'
-    if (!registerRateLimiter.check(ip)) {
+    if (!(await registerRateLimiter.check(ip))) {
         return { error: 'Too many attempts. Please wait.' }
     }
 
@@ -202,7 +202,7 @@ export async function expressInterest(universityId: string, studentEmail?: strin
     const user = await requireUser()
 
     // RATE LIMIT
-    if (!interestRateLimiter.check(user.id)) {
+    if (!(await interestRateLimiter.check(user.id))) {
         return { error: "Too many interest requests. Please try again later." }
     }
 
@@ -387,7 +387,7 @@ export async function login(formData: FormData) {
 
     const ip = headers().get('x-forwarded-for') || 'unknown'
     const limitKey = `${ip}:${email}`
-    if (!loginRateLimiter.check(limitKey)) {
+    if (!(await loginRateLimiter.check(limitKey))) {
         return { error: 'Too many login attempts. Please try again in a minute.' }
     }
 
@@ -438,7 +438,7 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
 
     // RATE LIMIT
     const ip = headers().get('x-forwarded-for') || 'unknown'
-    if (!registerRateLimiter.check(ip)) {
+    if (!(await registerRateLimiter.check(ip))) {
         return { error: 'Too many attempts. Please verify you are human.' }
     }
 
@@ -574,7 +574,7 @@ export async function submitPublicInquiry(formData: FormData) {
 
     // RATE LIMIT (IP Based)
     const ip = headers().get('x-forwarded-for') || 'unknown'
-    if (!contactRateLimiter.check(ip)) {
+    if (!(await contactRateLimiter.check(ip))) {
         return { error: "Too many inquiries. Please try again later." }
     }
 
@@ -621,7 +621,7 @@ export async function createSupportTicket(formData: FormData) {
     const user = await requireUser()
 
     // RATE LIMIT
-    if (!supportRateLimiter.check(user.id)) {
+    if (!(await supportRateLimiter.check(user.id))) {
         return { error: "Too many support tickets. Please wait a moment." }
     }
 
@@ -687,7 +687,7 @@ export async function createMeeting(formData: FormData) {
     const user = await requireUser()
 
     // RATE LIMIT
-    if (!inviteRateLimiter.check(user.id)) {
+    if (!(await inviteRateLimiter.check(user.id))) {
         return { error: "You are sending too many meeting invites. Please slow down." }
     }
 
