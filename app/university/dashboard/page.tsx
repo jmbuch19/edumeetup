@@ -6,7 +6,7 @@ import { createProgram, updateUniversityProfile } from '@/app/actions'
 import { InterestedStudentsTable } from '@/components/university/interested-students-table'
 import ProgramList from './program-list'
 
-import { BookOpen, Clock } from 'lucide-react'
+import { BookOpen, Clock, School } from 'lucide-react'
 
 import { requireUser } from '@/lib/auth'
 
@@ -18,26 +18,60 @@ export default async function UniversityDashboard() {
     const user = await requireUser()
     const email = user.email
 
-    const uni = await prisma.universityProfile.findFirst({
+    const uniPromise = prisma.universityProfile.findFirst({
         where: { user: { email } },
         include: {
             programs: {
                 orderBy: { createdAt: 'desc' },
-                include: {
+                select: {
+                    id: true,
+                    programName: true,
+                    degreeLevel: true,
+                    fieldCategory: true,
+                    tuitionFee: true,
                     _count: {
                         select: { interests: true }
                     }
                 }
-            },
-            interests: {
-                include: {
-                    student: { include: { user: true } },
-                    program: true
-                },
-                orderBy: { createdAt: 'desc' }
             }
         }
     })
+
+    const interestsPromise = prisma.interest.findMany({
+        where: {
+            university: {
+                user: { email }
+            }
+        },
+        select: {
+            id: true,
+            status: true,
+            createdAt: true,
+            student: {
+                select: {
+                    id: true,
+                    fullName: true,
+                    country: true,
+                    user: {
+                        select: {
+                            id: true,
+                            email: true
+                        }
+                    }
+                }
+            },
+            program: {
+                select: {
+                    programName: true
+                }
+            }
+        },
+        orderBy: { createdAt: 'desc' }
+    })
+
+    const [uniData, interests] = await Promise.all([uniPromise, interestsPromise])
+
+    const uni = uniData ? { ...uniData, interests } : null
 
     // If no mock uni, show empty state or handle gracefully
     if (!uni) return (
