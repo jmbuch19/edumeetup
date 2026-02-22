@@ -13,6 +13,7 @@ import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateL
 import { headers } from 'next/headers'
 import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema, studentProfileSchema } from '@/lib/schemas'
 import { createNotification } from '@/lib/notifications'
+import { cancelMeetingLogic } from '@/lib/meeting-service'
 
 interface ProgramData {
     programName: string
@@ -911,66 +912,16 @@ export async function updateStudentProfile(formData: FormData) {
 }
 
 export async function cancelMeeting(meetingId: string) {
-    try {
-        const user = await requireUser()
+    const user = await requireUser()
 
-        const meeting = await prisma.meeting.findUnique({
-            where: { id: meetingId },
-            include: {
-                university: { include: { user: true } },
-                participants: { include: { user: true } },
-                availabilitySlot: true
-            }
-        })
+    const result = await cancelMeetingLogic(user, meetingId)
 
-        if (!meeting) return { error: "Meeting not found" }
-        if (meeting.university.user.id !== user.id) return { error: "Unauthorized" }
-
-        // 1. Update Status
-        await prisma.meeting.update({
-            where: { id: meetingId },
-            data: { status: 'CANCELED' }
-        })
-
-        // 2. Free up slot if exists
-        if (meeting.availabilitySlot) {
-            await prisma.availabilitySlot.update({
-                where: { id: meeting.availabilitySlot.id },
-                data: { isBooked: false }
-            })
-        }
-
-        // 3. Notify Participants
-        for (const p of meeting.participants) {
-            if (p.participantUserId === user.id) continue
-
-            // DB Notification
-            await prisma.notification.create({
-                data: {
-                    userId: p.participantUserId,
-                    type: 'MEETING_CANCELED',
-                    title: 'Meeting Canceled',
-                    message: `The meeting "${meeting.title}" has been canceled by the university.`,
-                    payload: { meetingId: meeting.id }
-                }
-            })
-
-            // Email
-            await sendEmail({
-                to: p.user.email,
-                subject: `Canceled: ${meeting.title}`,
-                html: `<p>The meeting <strong>${meeting.title}</strong> scheduled for ${new Date(meeting.startTime).toLocaleString()} has been canceled.</p>`
-            })
-        }
-
+    if (result.success) {
         revalidatePath('/university/dashboard')
         revalidatePath('/student/dashboard')
-        return { success: true }
-
-    } catch (error) {
-        console.error("Failed to cancel meeting:", error)
-        return { error: "Failed to cancel meeting" }
     }
+
+    return result
 }
 
 export async function updateMeeting(meetingId: string, formData: FormData) {
