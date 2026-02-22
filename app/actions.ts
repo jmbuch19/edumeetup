@@ -11,7 +11,7 @@ import { logAudit } from '@/lib/audit'
 import { generateOTP } from '@/lib/otp'
 import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateLimiter, interestRateLimiter, inviteRateLimiter } from '@/lib/ratelimit'
 import { headers } from 'next/headers'
-import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema, studentProfileSchema } from '@/lib/schemas'
+import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema, studentProfileSchema, passwordSchema } from '@/lib/schemas'
 import { createNotification } from '@/lib/notifications'
 
 interface ProgramData {
@@ -431,6 +431,11 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
 
     if (!email || !password || !institutionName) {
         return { error: 'Missing required fields' }
+    }
+
+    const passwordValidation = passwordSchema.safeParse(password)
+    if (!passwordValidation.success) {
+        return { error: passwordValidation.error.issues[0].message }
     }
 
     // HONEYPOT

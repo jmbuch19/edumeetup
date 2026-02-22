@@ -1,5 +1,12 @@
 import { z } from 'zod'
 
+export const passwordSchema = z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character")
+
 export const loginSchema = z.object({
     email: z.string().email("Invalid email address"),
     password: z.string().min(1, "Password is required")
@@ -7,7 +14,7 @@ export const loginSchema = z.object({
 
 export const registerStudentSchema = z.object({
     email: z.string().email(),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    password: passwordSchema,
     fullName: z.string().min(2, "Name too short"),
     country: z.string().min(2),
     gender: z.string(),
@@ -28,7 +35,7 @@ export const registerStudentSchema = z.object({
 
 export const registerUniversitySchema = z.object({
     email: z.string().email(),
-    password: z.string().min(8),
+    password: passwordSchema,
     institutionName: z.string().min(2),
     country: z.string().min(2),
     website: z.string().url().optional().or(z.literal('')),
