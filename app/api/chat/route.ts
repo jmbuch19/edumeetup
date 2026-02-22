@@ -1,9 +1,16 @@
 import { google } from '@/lib/ai';
 import { streamText } from 'ai';
+import { getSession } from '@/lib/auth';
 
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
+    const session = await getSession();
+
+    if (!session) {
+        return new Response('Unauthorized', { status: 401 });
+    }
+
     const { messages } = await req.json();
 
     const result = streamText({
