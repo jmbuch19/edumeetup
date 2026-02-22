@@ -1,9 +1,23 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
+        const setupKey = process.env.ADMIN_SETUP_KEY
+
+        // 1. Check if Server Configured
+        if (!setupKey) {
+            console.error("ADMIN_SETUP_KEY is not set in environment variables.")
+            return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 })
+        }
+
+        // 2. Check Request Authorization
+        const key = req.nextUrl.searchParams.get('key')
+        if (!key || key !== setupKey) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
+
         // Create Admin
         const adminEmail = 'jaydeep@edumeetup.com'
         await prisma.user.upsert({
