@@ -2,6 +2,7 @@
 import type { NextAuthConfig } from "next-auth"
 
 export const authConfig = {
+    trustHost: true,
     pages: {
         signIn: '/login',
         verifyRequest: '/auth/verify-request',
