@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { MapPin, Globe, Mail, CheckCircle, Calendar } from 'lucide-react'
 import { notFound } from 'next/navigation'
-import { expressInterest } from '@/app/actions'
+import { expressInterest } from '@/app/actions/student'
 
 export default async function UniversityDetailPage({
     params

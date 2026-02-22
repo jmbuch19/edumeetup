@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { StudentProfile } from '@prisma/client'
-import { updateStudentProfile } from '@/app/actions'
+import { updateStudentProfile } from '@/app/actions/student'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

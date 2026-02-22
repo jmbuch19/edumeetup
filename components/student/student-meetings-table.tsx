@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { updateRSVP } from '@/app/actions'
+import { updateRSVP } from '@/app/actions/meeting'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Clock, Video, Check, X } from 'lucide-react'

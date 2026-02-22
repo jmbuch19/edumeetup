@@ -2,11 +2,11 @@ import React from 'react'
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { createProgram, updateUniversityProfile } from '@/app/actions'
+import { createProgram, updateUniversityProfile } from '@/app/actions/university-management'
 import { InterestedStudentsTable } from '@/components/university/interested-students-table'
 import ProgramList from './program-list'
 
-import { BookOpen, Clock } from 'lucide-react'
+import { BookOpen, Clock, School } from 'lucide-react'
 
 import { requireUser } from '@/lib/auth'
 

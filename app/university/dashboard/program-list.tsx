@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Trash2, Users } from 'lucide-react'
-import { deleteProgram } from '@/app/actions'
+import { deleteProgram } from '@/app/actions/university-management'
 import { InterestPanel } from '@/components/university/interest-panel'
 
 interface Program {

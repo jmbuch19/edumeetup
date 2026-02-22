@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { createMeeting } from "@/app/actions"
+import { createMeeting } from "@/app/actions/meeting"
 
 interface InterestWithStudent {
     id: string

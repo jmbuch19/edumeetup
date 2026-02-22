@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { createSupportTicket } from "@/app/actions"
+import { createSupportTicket } from "@/app/actions/support"
 import { redirect } from "next/navigation"
 import { getSession } from "@/lib/auth"
 import Link from 'next/link'

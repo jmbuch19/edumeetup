@@ -1,6 +1,6 @@
 'use client'
 
-import { verifyUniversity } from '@/app/actions'
+import { verifyUniversity } from '@/app/actions/admin'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, XCircle } from 'lucide-react'
