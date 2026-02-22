@@ -183,6 +183,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     providers: [
         Email({
+            // NextAuth requires `server` to exist for validation even when
+            // sendVerificationRequest fully overrides sending (via Resend below).
+            server: {
+                host: 'localhost',
+                port: 25,
+                auth: { user: 'placeholder', pass: 'placeholder' }
+            },
             from: process.env.EMAIL_FROM || 'EduMeetup <noreply@edumeetup.com>',
             maxAge: 15 * 60, // 15 minutes
             sendVerificationRequest: async ({ identifier, url }) => {
