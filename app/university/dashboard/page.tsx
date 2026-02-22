@@ -77,30 +77,31 @@ export default async function UniversityDashboard() {
     const programFields = uni.programs.map(p => p.fieldCategory).filter(Boolean)
     const uniqueFields = Array.from(new Set(programFields))
 
-    const matchedStudents = await prisma.studentProfile.findMany({
-        where: {
-            fieldOfInterest: { in: uniqueFields },
-            // Exclude if already interested? Maybe, or just mark them. 
-            // For MVP simpler to just show them in a separate list or filtered. 
-            // Let's exclude those who have already expressed interest to keep lists clean.
-            interests: {
-                none: {
-                    universityId: uni.id
+    const [matchedStudents, availabilitySlots] = await Promise.all([
+        prisma.studentProfile.findMany({
+            where: {
+                fieldOfInterest: { in: uniqueFields },
+                // Exclude if already interested? Maybe, or just mark them.
+                // For MVP simpler to just show them in a separate list or filtered.
+                // Let's exclude those who have already expressed interest to keep lists clean.
+                interests: {
+                    none: {
+                        universityId: uni.id
+                    }
                 }
-            }
-        },
-        include: { user: true }
-    })
-
-    // 4. Fetch Availability Slots for Scheduling
-    const availabilitySlots = await prisma.availabilitySlot.findMany({
-        where: {
-            universityId: uni.id,
-            isBooked: false,
-            startTime: { gte: new Date() }
-        },
-        orderBy: { startTime: 'asc' }
-    })
+            },
+            include: { user: true }
+        }),
+        // 4. Fetch Availability Slots for Scheduling
+        prisma.availabilitySlot.findMany({
+            where: {
+                universityId: uni.id,
+                isBooked: false,
+                startTime: { gte: new Date() }
+            },
+            orderBy: { startTime: 'asc' }
+        })
+    ])
 
     return (
         <div className="container max-w-7xl mx-auto px-4 py-10">
