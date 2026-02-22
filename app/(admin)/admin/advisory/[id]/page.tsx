@@ -4,10 +4,11 @@ import { notFound } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea' // We created this
-import { Label } from '@/components/ui/label' // We created this
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import { updateAdvisoryNotes } from '@/app/actions/admin-advisory-actions'
-import { SelectStatus } from './select-status' // We'll create a client component for interactivity
+import { SelectStatus } from './select-status'
+import { ScheduleSession } from './schedule-session'
 import { ArrowLeft, Mail, Calendar, MapPin, GraduationCap, DollarSign } from 'lucide-react'
 import Link from 'next/link'
 
@@ -16,10 +17,17 @@ export const dynamic = 'force-dynamic'
 export default async function AdvisoryDetailPage({ params }: { params: { id: string } }) {
     await requireRole('ADMIN')
 
-    const request = await prisma.advisoryRequest.findUnique({
-        where: { id: params.id },
-        include: { student: { include: { user: true } } }
-    })
+    const [request, admins] = await Promise.all([
+        prisma.advisoryRequest.findUnique({
+            where: { id: params.id },
+            include: { student: { include: { user: true } } }
+        }),
+        prisma.user.findMany({
+            where: { role: 'ADMIN', isActive: true },
+            select: { id: true, name: true, email: true },
+            orderBy: { name: 'asc' }
+        })
+    ])
 
     if (!request) notFound()
 
@@ -160,6 +168,13 @@ export default async function AdvisoryDetailPage({ params }: { params: { id: str
                             </div>
                         </CardContent>
                     </Card>
+
+                    <ScheduleSession
+                        requestId={request.id}
+                        advisers={admins}
+                        currentAdviserId={request.adviserId}
+                        currentSessionLink={request.sessionLink}
+                    />
                 </div>
             </div>
         </div>
