@@ -1,6 +1,6 @@
 
 import { ContactSubmitButton } from "@/components/contact-submit-button"
-import { submitPublicInquiry } from "@/app/actions"
+import { submitPublicInquiry } from "@/app/actions/support"
 import { redirect } from "next/navigation"
 
 export default function ContactPage() {

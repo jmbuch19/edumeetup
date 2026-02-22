@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { LayoutDashboard, Users, School, LogOut, Ticket, LucideIcon } from "lucide-react"
-import { logout } from "@/app/actions"
+import { logout } from "@/app/actions/auth"
 import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
 
 export default async function AdminLayout({

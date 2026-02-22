@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StudentMeetingsTable } from '@/components/student/student-meetings-table'
 import { AdvisoryBanner } from '@/components/student/advisory-banner'
 import { AdvisoryForm } from '@/components/student/advisory-form'
-import { expressInterest } from '@/app/actions'
+import { expressInterest } from '@/app/actions/student'
 
 // Types
 // Types

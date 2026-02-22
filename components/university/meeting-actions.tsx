@@ -9,7 +9,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { cancelMeeting, updateMeeting } from '@/app/actions'
+import { cancelMeeting, updateMeeting } from '@/app/actions/meeting'
 import { toast } from 'sonner'
 import {
     Dialog,

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { School, ChevronRight, Plus, Trash2, CheckCircle, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { PRIORITY_MARKETS, ALL_COUNTRIES } from '@/lib/countries'
-import { registerUniversityWithPrograms } from '@/app/actions' // New action
+import { registerUniversityWithPrograms } from '@/app/actions/auth'
 
 // Enums as constants for dropdowns
 const DEGREE_LEVELS = ["Associate", "Bachelor's", "Master's", "MBA", "PhD", "Certificate"]

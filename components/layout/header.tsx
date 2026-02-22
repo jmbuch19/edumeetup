@@ -3,7 +3,7 @@ import Link from "next/link"
 import { GraduationCap, LogOut, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getSession } from "@/lib/auth"
-import { logout } from "@/app/actions"
+import { logout } from "@/app/actions/auth"
 import { prisma } from "@/lib/prisma"
 import { NotificationBell } from "@/components/notifications/notification-bell"
 import {

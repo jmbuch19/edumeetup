@@ -11,7 +11,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { markNotificationAsRead } from '@/app/actions'
+import { markNotificationAsRead } from '@/app/actions/notification'
 import { cn } from '@/lib/utils'
 
 interface Notification {
