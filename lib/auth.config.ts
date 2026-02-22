@@ -1,7 +1,19 @@
 
 import type { NextAuthConfig } from "next-auth"
 
+// Dev-only startup warning: reminds engineers that trustHost must be set in code,
+// not just via the AUTH_TRUST_HOST env var, to ensure consistent behaviour.
+if (process.env.NODE_ENV === "development" && process.env.AUTH_TRUST_HOST) {
+    console.warn(
+        "[auth.config] ⚠️  AUTH_TRUST_HOST env var is set, but trustHost is also hardcoded in " +
+        "auth.config.ts (preferred). The code value takes precedence in all environments."
+    )
+}
+
 export const authConfig = {
+    // Required for production deployments behind reverse proxies (Netlify, Vercel, etc.)
+    // Without this, Auth.js v5 rejects all /api/auth/* callbacks with UntrustedHost error.
+    // See: https://authjs.dev/getting-started/deployment#trust-host
     trustHost: true,
     pages: {
         signIn: '/login',
@@ -16,10 +28,8 @@ export const authConfig = {
             const { nextUrl } = request
             const isOnDashboard = nextUrl.pathname.startsWith('/student/dashboard') || nextUrl.pathname.startsWith('/university/dashboard') || nextUrl.pathname.startsWith('/admin')
 
-            // We handle granular redirects in middleware.ts, so we return true here to let middleware chain proceed
-            // unless we want to block strictly here. 
-            // My middleware.ts has extensive logic, so I will let it handle the heavy lifting.
-            // Returning true here allows the request to pass to the middleware logic I wrote.
+            // Granular redirect logic is handled in middleware.ts.
+            // Return true here so the request passes through to middleware.
             return true
         }
     }
