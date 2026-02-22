@@ -4,7 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import Email from "next-auth/providers/email"
 import Google from "next-auth/providers/google"
-import nodemailer from "nodemailer"
+import { Resend } from "resend"
 import { redirect } from "next/navigation"
 import { authConfig } from "./auth.config"
 
@@ -111,30 +111,12 @@ export function isAnyValidEmail(email: string): boolean {
 // ==============================================================================
 
 async function sendMagicLinkEmail(to: string, url: string) {
-    // Determine Subject
     const isUniLogin = url.includes("loginType=university") || decodeURIComponent(url).includes("loginType=university")
     const subject = isUniLogin
         ? "Your edUmeetup university portal sign-in link"
         : "Your edUmeetup sign-in link"
 
-    // Transport
-    // Transport
-    const debug = process.env.NODE_ENV !== 'production'
-    const port = Number(process.env.EMAIL_SERVER_PORT)
-    const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_SERVER_HOST,
-        port,
-        auth: {
-            user: process.env.EMAIL_SERVER_USER,
-            pass: process.env.EMAIL_SERVER_PASSWORD,
-        },
-        secure: port === 465 || process.env.NODE_ENV === "production",
-        debug: true, // Enable debug logs in production to trace this issue
-        logger: true
-    })
-
-    // Content
-    const brandColor = "#4F46E5" // Indigo-600
+    const brandColor = "#4F46E5"
     const html = `
     <!DOCTYPE html>
     <html>
@@ -154,19 +136,14 @@ async function sendMagicLinkEmail(to: string, url: string) {
     <body>
         <div class="container">
             <div class="logo"><span>edU</span>meetup</div>
-            
             <h1>Sign in to ${isUniLogin ? "University Portal" : "EduMeetup"}</h1>
             <p>Click the button below to sign in. This link is valid for <strong>15 minutes</strong> and can only be used once.</p>
-            
             <a href="${url}" class="button" target="_blank">Sign in</a>
-            
             <p class="warning">If you did not request this email, you can safely ignore it.</p>
-            
             <div class="fallback">
                 <p>Or copy and paste this link into your browser:</p>
                 <p>${url}</p>
             </div>
-            
             <div class="footer">
                 <p>© ${new Date().getFullYear()} IAES (International Academic & Education Services). All rights reserved.</p>
                 <p>EduMeetup is an initiative by IAES.</p>
@@ -176,13 +153,21 @@ async function sendMagicLinkEmail(to: string, url: string) {
     </html>
     `
 
-    await transporter.sendMail({
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const { error } = await resend.emails.send({
+        from: process.env.EMAIL_FROM || 'EduMeetup <noreply@edumeetup.com>',
         to,
-        from: process.env.EMAIL_FROM,
         subject,
         html,
         text: `Sign in to EduMeetup: ${url}`
     })
+
+    if (error) {
+        console.error('[RESEND ERROR] Magic link email failed:', error)
+        throw new Error(error.message)
+    }
+
+    console.log(`[RESEND] Magic link sent to: ${to}`)
 }
 
 // ==============================================================================
@@ -235,35 +220,50 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     ],
     callbacks: {
         async signIn({ user }) {
+            console.log(`[AUTH DEBUG] SignIn attempt for: ${user.email}`)
             const email = user.email
-            if (!email) return false
+            if (!email) {
+                console.log(`[AUTH DEBUG] No email provided`)
+                return false
+            }
 
             // 1. Rate Limiter
             if (isRateLimited(email)) {
+                console.log(`[AUTH DEBUG] Rate limited: ${email}`)
                 return `/auth/error?error=RateLimited`
             }
 
             // 2. Database Checks
-            const dbUser = await prisma.user.findUnique({
-                where: { email },
-                include: { university: true }
-            })
+            try {
+                const dbUser = await prisma.user.findUnique({
+                    where: { email },
+                    include: { university: true }
+                })
+                console.log(`[AUTH DEBUG] DB User found: ${!!dbUser} | Role: ${dbUser?.role} | Active: ${dbUser?.isActive}`)
 
-            if (dbUser && !dbUser.isActive) {
-                return `/auth/error?error=AccountDeactivated`
-            }
+                if (dbUser && !dbUser.isActive) {
+                    console.log(`[AUTH DEBUG] User deactivated`)
+                    return `/auth/error?error=AccountDeactivated`
+                }
 
-            if (dbUser) {
-                if (dbUser.role === 'UNIVERSITY') {
-                    if (!isUniversityEmail(email)) {
-                        return `/auth/error?error=NotUniversityEmail`
-                    }
-                    if (dbUser.university && !dbUser.university.isVerified) {
-                        return `/auth/error?error=PendingVerification`
+                if (dbUser) {
+                    if (dbUser.role === 'UNIVERSITY') {
+                        if (!isUniversityEmail(email)) {
+                            console.log(`[AUTH DEBUG] Invalid university email domain`)
+                            return `/auth/error?error=NotUniversityEmail`
+                        }
+                        if (dbUser.university && !dbUser.university.isVerified) {
+                            console.log(`[AUTH DEBUG] University pending verification`)
+                            return `/auth/error?error=PendingVerification`
+                        }
                     }
                 }
+                console.log(`[AUTH DEBUG] Login Allowed`)
+                return true
+            } catch (error) {
+                console.error(`[AUTH DEBUG] Error in signIn callback:`, error)
+                return false
             }
-            return true
         },
 
         async jwt({ token, user }) {

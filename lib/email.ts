@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 import { logSystemEvent } from './system-log'
 
 /**
@@ -33,19 +33,7 @@ interface SupportTicketData {
     message: string
 }
 
-const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_SERVER_HOST || 'smtp.gmail.com',
-    port: Number(process.env.EMAIL_SERVER_PORT) || 465,
-    secure: process.env.EMAIL_SERVER_PORT === '465' || process.env.NODE_ENV === 'production',
-    auth: {
-        user: process.env.EMAIL_SERVER_USER,
-        pass: process.env.EMAIL_SERVER_PASSWORD
-    },
-    // Fail fast if connection hangs
-    connectionTimeout: 10000, // 10 seconds
-    greetingTimeout: 5000,    // 5 seconds
-    socketTimeout: 10000      // 10 seconds
-})
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export const EMAIL_STYLES = `
     body { font-family: 'Inter', sans-serif; color: #1e293b; line-height: 1.6; }
@@ -96,32 +84,34 @@ export async function sendEmail({ to, subject, html }: EmailPayload) {
         return { error: "Too many requests. Please try again later." }
     }
 
-    // Fallback to simulation if credentials are missing
-    if (!process.env.EMAIL_SERVER_USER || !process.env.EMAIL_SERVER_PASSWORD) {
+    // Fallback simulation if Resend API key is missing
+    if (!process.env.RESEND_API_KEY) {
         console.log(`
     ==================================================
-    [EMAIL SIMULATION - MISSING CREDS]
+    [EMAIL SIMULATION - MISSING RESEND_API_KEY]
     To: ${to}
     Subject: ${subject}
-    --------------------------------------------------
-    ${html}
     ==================================================
         `)
         return { success: true }
     }
 
     try {
-        const fromAddress = process.env.EMAIL_FROM || `"EduMeetup" <${process.env.EMAIL_SERVER_USER}>`
+        const fromAddress = process.env.EMAIL_FROM || 'EduMeetup <noreply@edumeetup.com>'
 
-        await transporter.sendMail({
+        const { error } = await resend.emails.send({
             from: fromAddress,
             to,
             subject,
             html
         })
-        console.log(`[EMAIL SENT] To: ${to} | Subject: ${subject}`)
 
-        // Log Success
+        if (error) {
+            throw new Error(error.message)
+        }
+
+        console.log(`[RESEND] Email sent to: ${to} | Subject: ${subject}`)
+
         await logSystemEvent({
             level: 'INFO',
             type: 'EMAIL_SENT',
@@ -131,7 +121,7 @@ export async function sendEmail({ to, subject, html }: EmailPayload) {
 
         return { success: true }
     } catch (error) {
-        console.error("Failed to send email:", error)
+        console.error("[RESEND] Failed to send email:", error)
 
         await logSystemEvent({
             level: 'ERROR',
@@ -140,7 +130,6 @@ export async function sendEmail({ to, subject, html }: EmailPayload) {
             metadata: { to, subject, error: JSON.stringify(error) }
         })
 
-        // Fallback to simulation on error so flow doesn't break
         return { error: "Failed to send email" }
     }
 }
