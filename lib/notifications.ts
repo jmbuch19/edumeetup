@@ -1,12 +1,13 @@
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
+import { Prisma } from '@prisma/client'
 
 interface NotificationPayload {
     userId: string
     type: string
     title: string
     message: string
-    payload?: any
+    payload?: Prisma.InputJsonValue
     emailTo?: string
     emailSubject?: string
     emailHtml?: string
@@ -21,7 +22,7 @@ export async function createNotification(data: NotificationPayload) {
                 type: data.type,
                 title: data.title,
                 message: data.message,
-                payload: data.payload || {}
+                payload: data.payload ?? {}
             }
         })
 
