@@ -33,18 +33,21 @@ export async function getProgramInterestStats(programId: string): Promise<Intere
     })
     if (!program) throw new Error("Program not found or unauthorized")
 
-    const interests = await prisma.interest.findMany({
-        where: { programId },
-        include: { student: true }
+    const total = await prisma.interest.count({
+        where: { programId }
     })
 
-    const total = interests.length
-
     // Aggregate by Country
+    const countryGroups = await prisma.studentProfile.groupBy({
+        by: ['country'],
+        where: { interests: { some: { programId } } },
+        _count: { _all: true },
+    })
+
     const countryMap = new Map<string, number>()
-    interests.forEach(i => {
-        const country = i.student.country || 'Unknown'
-        countryMap.set(country, (countryMap.get(country) || 0) + 1)
+    countryGroups.forEach(g => {
+        const country = g.country || 'Unknown'
+        countryMap.set(country, (countryMap.get(country) || 0) + g._count._all)
     })
     const byCountry = Array.from(countryMap.entries())
         .map(([name, value]) => ({ name, value }))
@@ -52,10 +55,16 @@ export async function getProgramInterestStats(programId: string): Promise<Intere
         .slice(0, 5) // Top 5
 
     // Aggregate by Status
+    const statusGroups = await prisma.studentProfile.groupBy({
+        by: ['currentStatus'],
+        where: { interests: { some: { programId } } },
+        _count: { _all: true },
+    })
+
     const statusMap = new Map<string, number>()
-    interests.forEach(i => {
-        const status = i.student.currentStatus || 'Unknown'
-        statusMap.set(status, (statusMap.get(status) || 0) + 1)
+    statusGroups.forEach(g => {
+        const status = g.currentStatus || 'Unknown'
+        statusMap.set(status, (statusMap.get(status) || 0) + g._count._all)
     })
     const byStatus = Array.from(statusMap.entries())
         .map(([name, value]) => ({ name, value }))
