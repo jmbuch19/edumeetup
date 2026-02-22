@@ -166,16 +166,17 @@ export async function registerStudent(prevState: any, formData: FormData) {
             metadata: { ip, email, role: 'STUDENT' }
         })
 
-        // Trigger Magic Link email directly
+        // Trigger Magic Link — do NOT use redirect:false in server actions
+        // Auth.js v5 skips sendVerificationRequest when redirect:false is set
         await signIn("email", {
             email,
-            redirect: false,
             redirectTo: '/student/dashboard'
         })
 
-        return { success: true, email, message: "Account created! Check your email to login." }
-
     } catch (error) {
+        // Re-throw NEXT_REDIRECT so Next.js navigates to /auth/verify-request
+        if ((error as any)?.digest?.startsWith('NEXT_REDIRECT')) throw error
+        if (error instanceof AuthError) return { error: 'Authentication failed' }
         console.error('Registration failed:', error)
         return { error: 'Registration failed' }
     }
@@ -511,16 +512,14 @@ export async function login(formData: FormData) {
         if (user.role === 'UNIVERSITY') redirectTo = '/university/dashboard'
         if (user.role === 'ADMIN') redirectTo = '/admin/dashboard'
 
-        // Magic Link Login
-        // Fix: Use redirect: false to prevent NEXT_REDIRECT error from being caught as a failure
-        await signIn("email", { email, redirectTo, redirect: false })
-
-        return { success: true, message: "Check your email for the login link!" }
+        // Magic Link Login — do NOT use redirect:false in server actions
+        // Auth.js v5 skips sendVerificationRequest when redirect:false is set
+        await signIn("email", { email, redirectTo })
 
     } catch (error) {
-        if (error instanceof AuthError) {
-            return { error: "Authentication failed" }
-        }
+        // Re-throw NEXT_REDIRECT so Next.js navigates to /auth/verify-request
+        if ((error as any)?.digest?.startsWith('NEXT_REDIRECT')) throw error
+        if (error instanceof AuthError) return { error: "Authentication failed" }
         console.error('Login error:', error)
         return { error: 'Failed to login' }
     }
@@ -616,14 +615,14 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
 
         console.log(`New university registered with ${programs.length} programs: ${institutionName}`)
 
-        // Trigger Magic Link email directly
+        // Trigger Magic Link — do NOT use redirect:false in server actions
         await signIn("email", {
             email,
-            redirect: false,
             redirectTo: '/university/dashboard'
         })
 
     } catch (error) {
+        if ((error as any)?.digest?.startsWith('NEXT_REDIRECT')) throw error
         console.error('Registration failed:', error)
         return { error: 'Registration failed: ' + (error as Error).message }
     }
