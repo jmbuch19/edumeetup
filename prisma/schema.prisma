@@ -124,6 +124,7 @@ model Student {
   gmatScore         String?
   preferredIntake   String?
   profileComplete   Boolean  @default(false)
+  profileVersion    Int      @default(1)
   
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -135,6 +136,19 @@ model Student {
   bookmarks         Bookmark[]
   eventRegistrations EventRegistration[]
   notifications     StudentNotification[]
+  changeLogs        ProfileChangeLog[]
+}
+
+model ProfileChangeLog {
+  id            String   @id @default(cuid())
+  studentId     String
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  version       Int      // sequential version: 1, 2, 3, ...
+  changedFields Json     // { "englishTestType": { "from": "IELTS", "to": "TOEFL" }, ... }
+  snapshot      Json     // full profile values at save time
+  changedAt     DateTime @default(now())
+
+  @@index([studentId])
 }
 
 model University {

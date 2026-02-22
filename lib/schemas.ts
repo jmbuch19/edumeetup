@@ -85,10 +85,10 @@ export const publicInquirySchema = z.object({
 
 export const studentProfileSchema = z.object({
     fullName: z.string().min(2, "Name is required"),
-    country: z.string().min(2, "Country is required"),
+    country: z.string().optional().default('India'),
     gender: z.string().min(1, "Gender is required"),
     ageGroup: z.string().optional(),
-    phoneNumber: z.string().optional(),
+    phone: z.string().optional(),
     city: z.string().min(2, "City is required"),
     pincode: z.string().min(4, "PIN Code is required"),
 
@@ -101,4 +101,9 @@ export const studentProfileSchema = z.object({
     englishScore: z.string().optional(),
     preferredIntake: z.string().optional(),
     preferredCountries: z.string().optional(),
+    // Contact updates
+    whatsappNumber: z.string().optional(),
+    // Test scores
+    greScore: z.string().optional(),
+    gmatScore: z.string().optional(),
 })

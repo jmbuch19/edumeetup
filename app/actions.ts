@@ -1001,14 +1001,59 @@ export async function updateStudentProfile(formData: FormData) {
     }
 
     try {
-        await prisma.student.update({
-            where: { id: student.id },
-            data: validation.data
-        })
+        const newData = validation.data
+
+        // ── Build diff: only record fields that actually changed ──
+        const TRACKED_FIELDS = [
+            'fullName', 'city', 'pincode', 'phone', 'whatsappNumber',
+            'ageGroup', 'currentStatus', 'fieldOfInterest', 'preferredDegree',
+            'budgetRange', 'englishTestType', 'englishScore',
+            'greScore', 'gmatScore', 'preferredIntake', 'preferredCountries',
+        ] as const
+
+        const changedFields: Record<string, { from: string | null; to: string | null }> = {}
+
+        for (const key of TRACKED_FIELDS) {
+            const oldVal = (student[key as keyof typeof student] as string | null) ?? null
+            const newVal = (newData[key as keyof typeof newData] as string | undefined) ?? null
+            if (oldVal !== newVal) {
+                changedFields[key] = { from: oldVal, to: newVal }
+            }
+        }
+
+        // ── Full snapshot of profile after applying changes ──
+        const snapshot: Record<string, string | null | boolean | number | undefined> = {}
+        for (const key of TRACKED_FIELDS) {
+            snapshot[key] = (newData[key as keyof typeof newData] as string | undefined)
+                ?? (student[key as keyof typeof student] as string | null | undefined)
+                ?? null
+        }
+
+        const nextVersion = student.profileVersion + 1
+
+        // ── Atomic transaction: update student + create changelog ──
+        await prisma.$transaction([
+            prisma.student.update({
+                where: { id: student.id },
+                data: {
+                    ...newData,
+                    profileVersion: nextVersion,
+                }
+            }),
+            prisma.profileChangeLog.create({
+                data: {
+                    studentId: student.id,
+                    version: nextVersion,
+                    changedFields,
+                    snapshot,
+                }
+            }),
+        ])
 
         revalidatePath('/student/profile')
+        revalidatePath('/student/profile/history')
         revalidatePath('/student/dashboard')
-        return { success: true }
+        return { success: true, version: nextVersion, changedCount: Object.keys(changedFields).length }
     } catch (error) {
         console.error("Failed to update profile:", error)
         return { error: "Failed to update profile" }
