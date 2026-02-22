@@ -62,7 +62,7 @@ export async function registerStudent(prevState: any, formData: FormData) {
 
     const {
         email, fullName, gender, ageGroup,
-        country, city, pincode, currentStatus, fieldOfInterest, preferredDegree,
+        city, pincode, currentStatus, fieldOfInterest, preferredDegree,
         budgetRange, englishTestType, englishScore, preferredIntake,
         preferredCountries, greScore, gmatScore
     } = validation.data
@@ -115,7 +115,6 @@ export async function registerStudent(prevState: any, formData: FormData) {
                         fullName,
                         gender,
                         ageGroup,
-                        country,
                         currentStatus,
                         fieldOfInterest,
                         preferredDegree,
@@ -127,7 +126,9 @@ export async function registerStudent(prevState: any, formData: FormData) {
                         profileComplete: true,
 
                         phone: formData.get('phoneNumber') as string,
-                        // Location
+                        whatsappNumber: (formData.get('whatsappNumber') as string)?.trim() || null,
+                        // Location (India-only)
+                        country: 'India',
                         city: city || '',
                         pincode: pincode || '',
                         // GRE / GMAT

@@ -14,6 +14,7 @@ export const registerStudentSchema = z.object({
     pincode: z.string().min(4, "PIN Code must be at least 4 digits"),
     // Optional/nullable fields
     phoneNumber: z.string().optional(),
+    whatsappNumber: z.string().optional(),
     currentStatus: z.string().optional(),
     fieldOfInterest: z.string().optional(),
     preferredDegree: z.string().optional(),

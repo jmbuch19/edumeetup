@@ -91,6 +91,7 @@ model Student {
   
   // Contact & Location
   phone             String?
+  whatsappNumber    String?
   city              String?
   pincode           String?
   country           String?  @default("India")
