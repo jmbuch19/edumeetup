@@ -125,6 +125,12 @@ model Student {
   preferredIntake   String?
   profileComplete   Boolean  @default(false)
   profileVersion    Int      @default(1)
+
+  // CV / Resume upload
+  cvData         Bytes?    // raw PDF bytes stored in DB
+  cvFileName     String?   // e.g. "john_doe_cv.pdf"
+  cvUploadedAt   DateTime?
+  cvSizeBytes    Int?      // stored size for display
   
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

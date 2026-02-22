@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { updateAdvisoryNotes } from '@/app/actions/admin-advisory-actions'
 import { SelectStatus } from './select-status'
 import { ScheduleSession } from './schedule-session'
-import { ArrowLeft, Mail, Calendar, MapPin, GraduationCap, DollarSign } from 'lucide-react'
+import { ArrowLeft, Mail, Calendar, MapPin, GraduationCap, DollarSign, FileText } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -54,6 +54,23 @@ export default async function AdvisoryDetailPage({ params }: { params: { id: str
                             <div>
                                 <Label className="text-muted-foreground">Name</Label>
                                 <p className="font-medium">{request.student.fullName}</p>
+                            </div>
+                            {/* CV / Resume */}
+                            <div>
+                                <Label className="text-muted-foreground">CV / Résumé</Label>
+                                {request.student.cvFileName ? (
+                                    <a
+                                        href={`/api/cv/${request.student.id}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline font-medium mt-0.5"
+                                    >
+                                        <FileText className="h-4 w-4" />
+                                        {request.student.cvFileName}
+                                    </a>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">Not uploaded</p>
+                                )}
                             </div>
                             <div>
                                 <Label className="text-muted-foreground">Email</Label>

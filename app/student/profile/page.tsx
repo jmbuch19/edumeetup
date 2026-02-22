@@ -1,6 +1,7 @@
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { ProfileForm } from '@/components/student/profile-form'
+import { CvUpload } from '@/components/student/cv-upload'
 import { FIELD_CATEGORIES } from '@/lib/constants'
 import { redirect } from 'next/navigation'
 
@@ -36,7 +37,7 @@ export default async function StudentProfilePage() {
             <p className="text-muted-foreground mb-8 text-sm">
                 You control your profile. Update any field at any time — universities and advisors always see your latest version.
             </p>
-            <div className="max-w-3xl mx-auto">
+            <div className="max-w-3xl mx-auto space-y-6">
                 <ProfileForm
                     initialData={{
                         ...student,
@@ -46,7 +47,14 @@ export default async function StudentProfilePage() {
                     fieldCategories={fieldCategories}
                     logCount={student._count.changeLogs}
                 />
+                <CvUpload
+                    studentId={student.id}
+                    initialFileName={student.cvFileName}
+                    initialUploadedAt={student.cvUploadedAt}
+                    initialSizeBytes={student.cvSizeBytes}
+                />
             </div>
         </div>
     )
 }
+

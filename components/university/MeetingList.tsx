@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Calendar, Clock, MapPin, Video, CheckCircle, XCircle, AlertCircle, User } from 'lucide-react'
+import { Calendar, Clock, MapPin, Video, CheckCircle, XCircle, AlertCircle, User, FileText } from 'lucide-react'
 import { updateMeetingStatus } from '@/app/actions'
 import { useRouter } from 'next/navigation'
 import { RescheduleModal } from '@/components/meeting/RescheduleModal'
@@ -19,8 +19,10 @@ interface Meeting {
     meetingLink?: string | null
     videoProvider?: string | null
     student: {
+        id?: string
         fullName: string
         country: string | null
+        cvFileName?: string | null
         user: {
             email: string
         }
@@ -95,9 +97,23 @@ export default function MeetingList({ meetings, compact }: { meetings: Meeting[]
                                     </div>
                                 </div>
                             </div>
-                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(meeting.status)}`}>
-                                {meeting.status}
-                            </span>
+                            <div className="flex items-center gap-2">
+                                {meeting.student.id && meeting.student.cvFileName && (
+                                    <a
+                                        href={`/api/cv/${meeting.student.id}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title="View Student CV"
+                                        className="inline-flex items-center gap-1 text-xs text-primary border border-primary/30 rounded-md px-2 py-1 hover:bg-primary/5 transition-colors"
+                                    >
+                                        <FileText className="h-3.5 w-3.5" />
+                                        View CV
+                                    </a>
+                                )}
+                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(meeting.status)}`}>
+                                    {meeting.status}
+                                </span>
+                            </div>
                         </div>
                     </CardHeader>
                     <CardContent className="pt-4 grid gap-3">
