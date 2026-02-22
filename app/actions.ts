@@ -1001,17 +1001,19 @@ export async function updateMeeting(meetingId: string, formData: FormData) {
         })
 
         // Notify
-        for (const p of updatedMeeting.participants) {
-            if (p.participantUserId === user.id) continue
+        const notifications = updatedMeeting.participants
+            .filter((p) => p.participantUserId !== user.id)
+            .map((p) => ({
+                userId: p.participantUserId,
+                type: 'MEETING_UPDATED',
+                title: 'Meeting Updated',
+                message: `Details for "${title}" have been updated.`,
+                payload: { meetingId: meeting.id },
+            }))
 
-            await prisma.notification.create({
-                data: {
-                    userId: p.participantUserId,
-                    type: 'MEETING_UPDATED',
-                    title: 'Meeting Updated',
-                    message: `Details for "${title}" have been updated.`,
-                    payload: { meetingId: meeting.id }
-                }
+        if (notifications.length > 0) {
+            await prisma.notification.createMany({
+                data: notifications,
             })
         }
 
