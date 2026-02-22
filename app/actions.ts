@@ -12,7 +12,7 @@ import { generateOTP } from '@/lib/otp'
 import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateLimiter, interestRateLimiter, inviteRateLimiter } from '@/lib/ratelimit'
 import { headers } from 'next/headers'
 import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema, studentProfileSchema } from '@/lib/schemas'
-import { createNotification } from '@/lib/notifications'
+import { createNotification, createNotifications } from '@/lib/notifications'
 
 interface ProgramData {
     programName: string
@@ -751,23 +751,20 @@ export async function createMeeting(formData: FormData) {
         }
 
         // Send Notifications (Email + DB)
-        for (const p of meeting.participants) {
-            // DB Notification
-            // DB & Email Notification
-            await createNotification({
-                userId: p.participantUserId,
-                type: 'MEETING_INVITE',
-                title: 'New Meeting Invitation',
-                message: `You have been invited to: ${title} `,
-                payload: { meetingId: meeting.id },
-                emailTo: p.user.email,
-                emailSubject: `Invitation: ${title} `,
-                emailHtml: `<p>You have been invited to a meeting with ${uniProfile.institutionName}.</p>
+        // Optimized: Batch DB insert + Parallel Email
+        await createNotifications(meeting.participants.map(p => ({
+            userId: p.participantUserId,
+            type: 'MEETING_INVITE',
+            title: 'New Meeting Invitation',
+            message: `You have been invited to: ${title} `,
+            payload: { meetingId: meeting.id },
+            emailTo: p.user.email,
+            emailSubject: `Invitation: ${title} `,
+            emailHtml: `<p>You have been invited to a meeting with ${uniProfile.institutionName}.</p>
         <p><strong>Topic: </strong> ${title}</p>
             <p><strong>Time: </strong> ${start.toLocaleString()}</p>
                 <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/student/dashboard?tab=meetings" > View Details & RSVP </a></p> `
-            })
-        }
+        })))
 
         revalidatePath('/university/dashboard')
         return { success: true }
