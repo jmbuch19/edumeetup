@@ -1,8 +1,22 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+    // Security: Use header instead of query param to avoid logging secrets
+    const secret = request.headers.get('x-seed-secret')
+    const SEED_SECRET = process.env.SEED_SECRET
+
+    // 1. Production Safety: Must have a secret configured.
+    if (process.env.NODE_ENV === 'production' && !SEED_SECRET) {
+        return NextResponse.json({ error: 'Seeding disabled in production' }, { status: 403 })
+    }
+
+    // 2. Secret Verification: If configured, must match.
+    if (SEED_SECRET && secret !== SEED_SECRET) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     try {
         // Create Admin
         const adminEmail = 'jaydeep@edumeetup.com'
