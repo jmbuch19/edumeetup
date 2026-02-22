@@ -142,14 +142,18 @@ export async function sendBulkNotification(programId: string, subject: string, m
         }))
     })
 
-    // Send Emails (Background or Batch)
-    // For MVP, simplistic loop (careful with rate limits if real)
-    for (const interest of interests) {
-        await sendEmail({
-            to: interest.student.user.email,
-            subject: `Message from ${uni.institutionName}: ${subject}`,
-            html: `<p>${message}</p><br/><p>Sent via EduMeetup regarding ${program.programName}</p>`
-        })
+    // Send Emails (Parallel with Concurrency Limit)
+    // Batching to respect rate limits while improving performance
+    const BATCH_SIZE = 5
+    for (let i = 0; i < interests.length; i += BATCH_SIZE) {
+        const batch = interests.slice(i, i + BATCH_SIZE)
+        await Promise.all(batch.map(interest =>
+            sendEmail({
+                to: interest.student.user.email,
+                subject: `Message from ${uni.institutionName}: ${subject}`,
+                html: `<p>${message}</p><br/><p>Sent via EduMeetup regarding ${program.programName}</p>`
+            })
+        ))
     }
 
     return { success: true, count: interests.length }
