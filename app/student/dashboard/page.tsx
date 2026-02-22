@@ -2,13 +2,29 @@ import { prisma } from '@/lib/prisma'
 import { FieldCategory } from '@prisma/client'
 import { requireUser } from '@/lib/auth'
 import { DashboardUI } from '@/components/student/dashboard-ui'
-import { getStudentAdvisoryStatus } from '@/app/actions/advisory-actions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function StudentDashboard() {
     const user = await requireUser()
     const email = user.email
+
+    // Start independent queries immediately
+    const recommendedUniversitiesPromise = prisma.universityProfile.findMany({
+        where: { verificationStatus: 'VERIFIED' },
+        take: 3,
+        include: { programs: true }
+    })
+
+    const myMeetingsPromise = prisma.meetingParticipant.findMany({
+        where: { participantUserId: user.id },
+        include: {
+            meeting: {
+                include: { university: true }
+            }
+        },
+        orderBy: { meeting: { startTime: 'asc' } }
+    })
 
     const student = await prisma.studentProfile.findFirst({
         where: { user: { email } },
@@ -43,7 +59,7 @@ export default async function StudentDashboard() {
         ? { equals: interest }
         : undefined
 
-    const matchedPrograms = await prisma.program.findMany({
+    const matchedProgramsPromise = prisma.program.findMany({
         where: {
             AND: [
                 { fieldCategory: fieldFilter },
@@ -56,33 +72,35 @@ export default async function StudentDashboard() {
         take: 10
     })
 
-    // Fallback: Recommended Universities
-    const recommendedUniversities = await prisma.universityProfile.findMany({
-        where: { verificationStatus: 'VERIFIED' },
-        take: 3,
-        include: { programs: true }
-    })
-
     // 3. User Interests for UI state
-    const userInterests = await prisma.interest.findMany({
+    const userInterestsPromise = prisma.interest.findMany({
         where: { studentId: student.id },
         select: { universityId: true }
     })
-    const interestedUniIds = new Set(userInterests.map(i => i.universityId))
 
-    // 4. My Meetings
-    const myMeetings = await prisma.meetingParticipant.findMany({
-        where: { participantUserId: user.id },
-        include: {
-            meeting: {
-                include: { university: true }
-            }
-        },
-        orderBy: { meeting: { startTime: 'asc' } }
+    // 5. Advisory Status (Inlined for parallel execution)
+    // We inline this query to avoid the redundant user/student fetches inside getStudentAdvisoryStatus
+    const advisoryStatusPromise = prisma.advisoryRequest.findFirst({
+        where: { studentId: student.id },
+        orderBy: { createdAt: 'desc' }
     })
 
-    // 5. Advisory Status
-    const advisoryStatus = await getStudentAdvisoryStatus()
+    // Await all parallel queries
+    const [
+        matchedPrograms,
+        userInterests,
+        recommendedUniversities,
+        myMeetings,
+        advisoryStatus
+    ] = await Promise.all([
+        matchedProgramsPromise,
+        userInterestsPromise,
+        recommendedUniversitiesPromise,
+        myMeetingsPromise,
+        advisoryStatusPromise
+    ])
+
+    const interestedUniIds = new Set(userInterests.map(i => i.universityId))
 
     return (
         <DashboardUI
