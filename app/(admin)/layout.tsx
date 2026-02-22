@@ -1,11 +1,12 @@
-
 import Link from "next/link"
 import { getSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Users, School, LogOut, Ticket, LucideIcon } from "lucide-react"
+import { LogOut, LucideIcon } from "lucide-react"
 import { logout } from "@/app/actions"
 import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
+import { adminNavItems } from "@/components/admin/nav-config"
+import { MobileHeader } from "@/components/admin/mobile-header"
 
 export default async function AdminLayout({
     children,
@@ -19,9 +20,9 @@ export default async function AdminLayout({
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 flex">
+        <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row">
             {/* Sidebar */}
-            <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col fixed inset-y-0">
+            <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col fixed inset-y-0 z-50">
                 <div className="p-6 border-b border-gray-200">
                     <Link href="/" className="flex items-center gap-2">
                         <span className="font-bold text-xl text-primary tracking-tight">edUmeetup</span>
@@ -30,12 +31,9 @@ export default async function AdminLayout({
                 </div>
 
                 <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-                    <NavItem href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
-                    <NavItem href="/admin/universities" icon={School} label="Universities" />
-                    <NavItem href="/admin/users" icon={Users} label="Users" />
-                    <NavItem href="/admin/tickets" icon={Ticket} label="Support Tickets" />
-                    <NavItem href="/admin/advisory" icon={Users} label="Advisory Requests" />
-                    {/* <NavItem href="/admin/settings" icon={Settings} label="Settings" /> */}
+                    {adminNavItems.map((item) => (
+                        <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} />
+                    ))}
                 </nav>
 
                 <div className="p-4 border-t border-gray-200">
@@ -57,7 +55,8 @@ export default async function AdminLayout({
                 </div>
             </aside>
 
-            {/* Mobile Header (TODO) */}
+            {/* Mobile Header */}
+            <MobileHeader userEmail={session.email} />
 
             {/* Main Content */}
             <main className="flex-1 md:ml-64 p-8">
