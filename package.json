@@ -7,7 +7,7 @@
     "dev": "next dev",
     "lint": "eslint",
     "postinstall": "prisma generate --schema=./prisma/schema.prisma",
-    "build": "prisma generate --schema=./prisma/schema.prisma && next build --no-lint",
+    "build": "prisma generate --schema=./prisma/schema.prisma && next build",
     "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
