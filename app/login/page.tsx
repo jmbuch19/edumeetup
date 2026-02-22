@@ -25,6 +25,8 @@ export default function LoginPage() {
                     : Object.values(result.error).flat().join(', ')
 
                 toast.error(errorMessage)
+            } else if (result?.success) {
+                toast.success(result.message)
             }
             // On success, signIn redirects to /auth/verify-request automatically
         } catch (error) {
