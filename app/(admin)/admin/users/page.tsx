@@ -14,7 +14,12 @@ import { format } from "date-fns"
 export default async function AdminUsersPage() {
     const users = await prisma.user.findMany({
         orderBy: { createdAt: 'desc' },
-        include: {
+        select: {
+            id: true,
+            email: true,
+            role: true,
+            status: true,
+            createdAt: true,
             studentProfile: { select: { fullName: true } },
             universityProfile: { select: { institutionName: true } }
         }
