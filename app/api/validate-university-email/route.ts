@@ -1,21 +1,16 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { extractDomain, getUniversityInfo, waitForCache } from '@/lib/university-domains'
+import {
+    extractDomain,
+    getUniversityInfo,
+    isDisposableDomain,
+    waitForCache,
+} from '@/lib/university-domains'
 
 export const dynamic = 'force-dynamic'
 
-// --- Generic / Disposable domain blocklist ---
-const BLOCKED_DOMAINS = new Set([
-    'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.in', 'yahoo.co.uk',
-    'hotmail.com', 'hotmail.co.uk', 'outlook.com', 'outlook.in', 'live.com',
-    'icloud.com', 'me.com', 'mac.com', 'proton.me', 'protonmail.com',
-    'yandex.com', 'yandex.ru', 'mail.ru', 'qq.com', '163.com', '126.com',
-    'sina.com', 'rediffmail.com', 'zoho.com', 'aol.com', 'gmx.com',
-    'mailinator.com', 'guerrillamail.com', 'tempmail.com', 'throwaway.email',
-    'sharklasers.com', 'trashmail.com', 'dispostable.com',
-])
+// ─── Rate limiter ─────────────────────────────────────────────────────────────
 
-// --- Simple IP rate limiter ---
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
 const RATE_LIMIT = 10
 const RATE_WINDOW_MS = 60_000
@@ -23,19 +18,16 @@ const RATE_WINDOW_MS = 60_000
 function checkRateLimit(ip: string): boolean {
     const now = Date.now()
     const entry = rateLimitMap.get(ip)
-
     if (!entry || now > entry.resetTime) {
         rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_WINDOW_MS })
-        return true // allowed
+        return true
     }
-
-    if (entry.count >= RATE_LIMIT) return false // blocked
-
+    if (entry.count >= RATE_LIMIT) return false
     entry.count++
     return true
 }
 
-// Cleanup stale entries every 5 minutes to prevent memory growth
+// Prune stale rate-limit entries every 5 minutes
 setInterval(() => {
     const now = Date.now()
     for (const [ip, entry] of rateLimitMap.entries()) {
@@ -43,9 +35,28 @@ setInterval(() => {
     }
 }, 5 * 60_000)
 
+// ─── Schema ───────────────────────────────────────────────────────────────────
+
 const Schema = z.object({
-    email: z.string().email('Invalid email format'),
+    email: z.string().email('Please enter a valid email address.'),
 })
+
+// ─── Messages ─────────────────────────────────────────────────────────────────
+
+const MSG_GENERIC_BLOCKED = [
+    'Personal, generic, or disposable email providers are not allowed for university registration.',
+    'Please use your official institutional email address (e.g. admissions@youruni.edu, staff@uni.ac.uk).',
+    'If you believe this is an error, contact support@edumeetup.com.',
+].join(' ')
+
+const MSG_NOT_RECOGNIZED = [
+    'This email domain is not recognized as an official university in our target regions',
+    '(USA, UK, Canada, Australia, NZ, Germany, UAE, India, Singapore, or EU member states).',
+    '\n\nValid examples: j@harvard.edu · admissions@ox.ac.uk · registrar@nus.edu.sg · info@iitb.ac.in · student@cs.tum.de',
+    '\n\nIf your institution should be listed, contact support@edumeetup.com with your official domain.',
+].join(' ')
+
+// ─── Handler ──────────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
     // Rate limiting
@@ -59,14 +70,18 @@ export async function POST(request: Request) {
         )
     }
 
-    // Parse and validate input
-    let body: { email: string }
+    // Parse body
+    let body: unknown
     try {
         body = await request.json()
     } catch {
-        return NextResponse.json({ valid: false, message: 'Invalid request body.' }, { status: 400 })
+        return NextResponse.json(
+            { valid: false, message: 'Invalid request body.' },
+            { status: 400 }
+        )
     }
 
+    // Validate schema
     const parsed = Schema.safeParse(body)
     if (!parsed.success) {
         return NextResponse.json(
@@ -82,19 +97,15 @@ export async function POST(request: Request) {
         return NextResponse.json({ valid: false, message: 'Could not extract domain from email.' })
     }
 
-    // 1. Block generic/disposable providers
-    if (BLOCKED_DOMAINS.has(domain)) {
-        return NextResponse.json({
-            valid: false,
-            message:
-                'Personal or generic email providers are not allowed for university registration. Please use your official institutional email.',
-        })
-    }
-
-    // 2. Ensure university domain cache is ready (handles cold start)
+    // Ensure caches are warm (handles cold start)
     await waitForCache()
 
-    // 3. Look up in university domain map
+    // 1. Block disposable / generic / personal providers
+    if (isDisposableDomain(domain)) {
+        return NextResponse.json({ valid: false, message: MSG_GENERIC_BLOCKED })
+    }
+
+    // 2. Look up in university domain map
     const info = getUniversityInfo(domain)
 
     if (info) {
@@ -105,10 +116,6 @@ export async function POST(request: Request) {
         })
     }
 
-    // 4. No match found
-    return NextResponse.json({
-        valid: false,
-        message:
-            'Email domain not recognized as an official university in our target countries (USA, UK, Canada, Australia, NZ, Germany, UAE, India, Singapore, or EU). Please use your institutional email (e.g. @harvard.edu, @ox.ac.uk, @iitb.ac.in).',
-    })
+    // 3. No match
+    return NextResponse.json({ valid: false, message: MSG_NOT_RECOGNIZED })
 }
