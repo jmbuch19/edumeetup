@@ -5,7 +5,7 @@ import SettingsForm from './SettingsForm'
 
 export default async function SettingsPage() {
     const session = await auth()
-    if (!session || !session.user || (session.user as any).role !== 'UNIVERSITY') {
+    if (!session || !session.user || ((session.user as any).role !== 'UNIVERSITY' && (session.user as any).role !== 'UNIVERSITY_REP')) {
         redirect('/login')
     }
 

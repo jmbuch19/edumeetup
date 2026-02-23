@@ -7,7 +7,7 @@ import { BarChart, Users, Calendar, TrendingUp } from 'lucide-react'
 export default async function UniversityAnalyticsPage() {
     const session = await auth()
 
-    if (!session || !session.user || (session.user as any).role !== 'UNIVERSITY') {
+    if (!session || !session.user || ((session.user as any).role !== 'UNIVERSITY' && (session.user as any).role !== 'UNIVERSITY_REP')) {
         redirect('/login')
     }
 

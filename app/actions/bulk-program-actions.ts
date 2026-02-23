@@ -19,7 +19,7 @@ export type ProgramImportData = {
 export async function bulkCreatePrograms(universityId: string, data: ProgramImportData[]) {
     try {
         const user = await requireUser()
-        if (user.role !== 'UNIVERSITY') return { error: "Unauthorized" }
+        if ((user.role !== 'UNIVERSITY' && user.role !== 'UNIVERSITY_REP')) return { error: "Unauthorized" }
 
         // Verify ownership
         const uniProfile = await prisma.university.findUnique({ where: { userId: user.id } })

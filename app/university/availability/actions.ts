@@ -23,7 +23,7 @@ export type AvailabilityProfileData = {
 export async function saveAvailabilityProfile(data: AvailabilityProfileData) {
     const session = await auth()
 
-    if (!session || !session.user || session.user.role !== 'UNIVERSITY') {
+    if (!session || !session.user || (session.user.role !== 'UNIVERSITY' && session.user.role !== 'UNIVERSITY_REP')) {
         return { error: "Unauthorized" }
     }
 
@@ -104,7 +104,7 @@ export async function saveAvailabilityProfile(data: AvailabilityProfileData) {
 export async function saveAllAvailabilityProfiles(profiles: AvailabilityProfileData[]) {
     const session = await auth()
 
-    if (!session || !session.user || session.user.role !== 'UNIVERSITY') {
+    if (!session || !session.user || (session.user.role !== 'UNIVERSITY' && session.user.role !== 'UNIVERSITY_REP')) {
         return { error: "Unauthorized" }
     }
 

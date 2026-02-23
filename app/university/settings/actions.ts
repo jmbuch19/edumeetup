@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache'
 
 export async function updateUniversitySettings(formData: FormData) {
     const session = await auth()
-    if (!session || !session.user || (session.user as any).role !== 'UNIVERSITY') {
+    if (!session || !session.user || ((session.user as any).role !== 'UNIVERSITY' && (session.user as any).role !== 'UNIVERSITY_REP')) {
         return { error: 'Unauthorized' }
     }
 

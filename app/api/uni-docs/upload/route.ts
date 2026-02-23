@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if (session.user.role !== 'UNIVERSITY') {
+    if ((session.user.role !== 'UNIVERSITY' && session.user.role !== 'UNIVERSITY_REP')) {
         return NextResponse.json({ error: 'Only universities can upload documents' }, { status: 403 })
     }
 

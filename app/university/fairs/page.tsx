@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 export default async function UniversityFairsPage() {
     const session = await auth()
 
-    if (!session || !session.user || session.user.role !== 'UNIVERSITY') {
+    if (!session || !session.user || (session.user.role !== 'UNIVERSITY' && session.user.role !== 'UNIVERSITY_REP')) {
         redirect('/login')
     }
 

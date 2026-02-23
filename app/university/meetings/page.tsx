@@ -9,7 +9,7 @@ import ExportButton from './ExportButton'
 export default async function UniversityMeetingsPage() {
     const session = await auth()
 
-    if (!session || !session.user || (session.user as any).role !== 'UNIVERSITY') {
+    if (!session || !session.user || ((session.user as any).role !== 'UNIVERSITY' && (session.user as any).role !== 'UNIVERSITY_REP')) {
         redirect('/login')
     }
 

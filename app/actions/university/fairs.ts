@@ -13,7 +13,7 @@ export async function respondToOutreach(outreachId: string, status: RespondOptio
         const user = await requireUser()
 
         // precise permissions check: ensure this outreach belongs to the user's university
-        if (user.role !== "UNIVERSITY") {
+        if ((user.role !== "UNIVERSITY" && user.role !== "UNIVERSITY_REP")) {
             return { success: false, message: "Unauthorized" }
         }
 

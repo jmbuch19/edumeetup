@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth'
 
 export async function exportMeetingsToCSV(filters?: any) {
     const session = await auth()
-    if (!session || !session.user || (session.user as any).role !== 'UNIVERSITY') {
+    if (!session || !session.user || ((session.user as any).role !== 'UNIVERSITY' && (session.user as any).role !== 'UNIVERSITY_REP')) {
         return { error: 'Unauthorized' }
     }
 

@@ -13,27 +13,18 @@ export async function GET(
 
     const { docId } = params
 
-    // All authenticated roles can download
+    // All authenticated roles can download university documents
     const doc = await prisma.universityDocument.findUnique({
         where: { id: docId },
-        select: { data: true, fileName: true, displayName: true, mimeType: true },
+        select: { fileUrl: true, fileName: true, displayName: true, mimeType: true },
     })
 
-    if (!doc?.data) {
+    if (!doc?.fileUrl) {
         return new NextResponse('Document not found', { status: 404 })
     }
 
-    const isImage = doc.mimeType.startsWith('image/')
-    // Images: inline display. PDFs: inline display (browser handles both)
-    // Always include content-disposition for download fallback
-    return new NextResponse(new Uint8Array(doc.data), {
-        status: 200,
-        headers: {
-            'Content-Type': doc.mimeType,
-            'Content-Disposition': `inline; filename="${doc.fileName}"`,
-            'Cache-Control': 'private, no-store',
-        },
-    })
+    // Redirect to the R2 URL — no binary served from DB
+    return NextResponse.redirect(doc.fileUrl)
 }
 
 export async function DELETE(
@@ -44,7 +35,9 @@ export async function DELETE(
     if (!session?.user?.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if (session.user.role !== 'UNIVERSITY') {
+
+    const role = session.user.role as string
+    if (role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP') {
         return NextResponse.json({ error: 'Only universities can delete their documents' }, { status: 403 })
     }
 
@@ -66,6 +59,7 @@ export async function DELETE(
         return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
+    // TODO: also delete the object from R2 using the fileUrl key
     await prisma.universityDocument.delete({ where: { id: docId } })
     return NextResponse.json({ success: true })
 }

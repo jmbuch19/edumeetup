@@ -96,7 +96,7 @@ export async function registerForEvent(eventId: string) {
 
 export async function getUniversityEvents() {
     const session = await auth()
-    if (!session || !session.user || (session.user as any).role !== 'UNIVERSITY') {
+    if (!session || !session.user || ((session.user as any).role !== 'UNIVERSITY' && (session.user as any).role !== 'UNIVERSITY_REP')) {
         return []
     }
 
@@ -130,7 +130,7 @@ export async function getUniversityEvents() {
 
 export async function createEvent(formData: FormData) {
     const session = await auth()
-    if (!session || !session.user || (session.user as any).role !== 'UNIVERSITY') {
+    if (!session || !session.user || ((session.user as any).role !== 'UNIVERSITY' && (session.user as any).role !== 'UNIVERSITY_REP')) {
         return { error: 'Unauthorized' }
     }
 

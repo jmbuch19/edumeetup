@@ -6,7 +6,7 @@ import { startOfWeek, endOfWeek, startOfDay, endOfDay, subDays } from 'date-fns'
 
 export async function getUniversityMetrics() {
     const session = await auth()
-    if (!session || !session.user || (session.user as any).role !== 'UNIVERSITY') {
+    if (!session || !session.user || ((session.user as any).role !== 'UNIVERSITY' && (session.user as any).role !== 'UNIVERSITY_REP')) {
         return null
     }
 

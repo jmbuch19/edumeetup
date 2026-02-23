@@ -10,7 +10,7 @@ export default async function UniversityAvailabilityPage() {
         redirect('/login')
     }
 
-    if (session.user.role !== 'UNIVERSITY') {
+    if ((session.user.role !== 'UNIVERSITY' && session.user.role !== 'UNIVERSITY_REP')) {
         redirect('/students/dashboard')
     }
 

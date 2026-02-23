@@ -7,7 +7,7 @@ import { sendEmail, EmailTemplates, generateEmailHtml } from "@/lib/email"
 
 export async function getUniversityOutreach() {
     const session = await auth()
-    if (!session || !session.user || session.user.role !== 'UNIVERSITY') return []
+    if (!session || !session.user || (session.user.role !== 'UNIVERSITY' && session.user.role !== 'UNIVERSITY_REP')) return []
 
     const university = await prisma.university.findUnique({
         where: { userId: session.user.id }
@@ -26,7 +26,7 @@ export async function getUniversityOutreach() {
 
 export async function respondToOutreach(outreachId: string, status: 'INTERESTED' | 'NOT_INTERESTED', note?: string) {
     const session = await auth()
-    if (!session || !session.user || session.user.role !== 'UNIVERSITY') {
+    if (!session || !session.user || (session.user.role !== 'UNIVERSITY' && session.user.role !== 'UNIVERSITY_REP')) {
         return { error: "Unauthorized" }
     }
 

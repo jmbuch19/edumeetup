@@ -861,7 +861,7 @@ export async function createMeeting(formData: FormData) {
     const { title, startTime, duration, type, joinUrl, participants, availabilitySlotId, agenda } = validation.data
 
     try {
-        if (user.role !== 'UNIVERSITY') return { error: "Unauthorized" }
+        if ((user.role !== 'UNIVERSITY' && user.role !== 'UNIVERSITY_REP')) return { error: "Unauthorized" }
 
         // Get university profile (DERIVED)
         const uniProfile = await prisma.university.findUnique({ where: { userId: user.id } })
@@ -1230,7 +1230,7 @@ function mapMeetingToFrontend(meeting: any) {
 
 export async function getUniversityMeetings(status?: string) {
     const session = await auth()
-    if (!session || !session.user || !session.user.id || (session.user as any).role !== 'UNIVERSITY') {
+    if (!session || !session.user || !session.user.id || ((session.user as any).role !== 'UNIVERSITY' && (session.user as any).role !== 'UNIVERSITY_REP')) {
         return null
     }
 
@@ -1278,7 +1278,7 @@ export async function updateMeetingStatus(
     rejectionReason?: string
 ) {
     const session = await auth()
-    if (!session || !session.user || (session.user as any).role !== 'UNIVERSITY') {
+    if (!session || !session.user || ((session.user as any).role !== 'UNIVERSITY' && (session.user as any).role !== 'UNIVERSITY_REP')) {
         return { error: 'Unauthorized' }
     }
 

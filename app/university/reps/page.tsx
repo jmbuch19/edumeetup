@@ -6,7 +6,7 @@ import RepList from './RepList'
 
 export default async function RepsPage() {
     const session = await auth()
-    if (!session || !session.user || (session.user as any).role !== 'UNIVERSITY') {
+    if (!session || !session.user || ((session.user as any).role !== 'UNIVERSITY' && (session.user as any).role !== 'UNIVERSITY_REP')) {
         redirect('/login')
     }
 
