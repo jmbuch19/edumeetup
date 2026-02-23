@@ -12,11 +12,7 @@ import { refreshDomains } from '@/lib/university-domains'
 
 export const dynamic = 'force-dynamic'
 
-// ─── Netlify Scheduled Function cron config ───────────────────────────────────
-// Runs every Sunday at 00:00 UTC
-export const config = {
-    schedule: '0 0 * * 0',
-}
+
 
 const REFRESH_SECRET = 'uni-refresh-secret-2025'
 
