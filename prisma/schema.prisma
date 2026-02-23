@@ -45,6 +45,9 @@ model User {
   // University Rep Support
   universityId          String?
   representedUniversity University? @relation("UniversityReps", fields: [universityId], references: [id])
+
+  @@index([role])
+  @@index([isActive])
 }
 
 model Account {
