@@ -19,10 +19,6 @@ const RATE_LIMIT_WINDOW = 10 * 60 * 1000 // 10 minutes in ms
 const RATE_LIMIT_MAX_REQUESTS = 3
 
 export function isRateLimited(email: string): boolean {
-    return false; // DEBUG: Rate limiting disabled for Admin debugging
-
-    /* 
-    // Original Logic (Disabled)
     const now = Date.now()
     const record = rateLimitMap.get(email)
 
@@ -31,22 +27,14 @@ export function isRateLimited(email: string): boolean {
         return false
     }
 
-    // Check if window expired
+    // Reset window if expired
     if (now - record.start > RATE_LIMIT_WINDOW) {
-        // Reset
         rateLimitMap.set(email, { count: 1, start: now })
         return false
     }
 
-    // Increment
     record.count += 1
-
-    if (record.count > RATE_LIMIT_MAX_REQUESTS) {
-        return true
-    }
-
-    return false
-    */
+    return record.count > RATE_LIMIT_MAX_REQUESTS
 }
 
 export function getRateLimitResetSeconds(email: string): number {
