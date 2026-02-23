@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { School, ChevronRight, Plus, Trash2, CheckCircle, ArrowLeft, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import { PRIORITY_MARKETS, ALL_COUNTRIES } from '@/lib/countries'
 import { registerUniversityWithPrograms } from '@/app/actions'
 import { DegreeLevels } from '@/lib/constants'
 
@@ -278,23 +277,22 @@ export default function UniversityRegisterPage() {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Country *</label>
                                     <select name="country" value={formData.country} onChange={handleInputChange} className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:outline-none">
                                         <option value="">Select Country</option>
-                                        {PRIORITY_MARKETS.map((tier) => (
-                                            <optgroup key={tier.label} label={tier.label}>
-                                                {tier.countries.map((country) => (
-                                                    <option key={country.code} value={country.name}>{country.name}</option>
-                                                ))}
-                                            </optgroup>
-                                        ))}
-                                        <optgroup label="Other Countries">
-                                            {ALL_COUNTRIES.map((country) => (
-                                                <option key={country} value={country}>{country}</option>
-                                            ))}
-                                        </optgroup>
+                                        <option value="Australia">Australia</option>
+                                        <option value="Canada">Canada</option>
+                                        <option value="France">France</option>
+                                        <option value="Germany">Germany</option>
+                                        <option value="India">India</option>
+                                        <option value="Ireland">Ireland</option>
+                                        <option value="New Zealand">New Zealand</option>
+                                        <option value="Singapore">Singapore</option>
+                                        <option value="UAE">UAE</option>
+                                        <option value="United Kingdom">United Kingdom</option>
+                                        <option value="USA">USA</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Official Website</label>
-                                    <Input name="website" value={formData.website} onChange={handleInputChange} placeholder="https://www.example.edu" type="url" />
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Official Website *</label>
+                                    <Input name="website" value={formData.website} onChange={handleInputChange} placeholder="https://www.example.edu" type="url" required />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Accreditation (Optional)</label>
@@ -369,17 +367,20 @@ export default function UniversityRegisterPage() {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Contact Phone *</label>
                                     <div className="flex gap-2">
                                         <select
-                                            className="h-10 w-24 rounded-md border border-gray-300 bg-background px-2 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                                            className="h-10 w-28 rounded-md border border-gray-300 bg-background px-2 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
                                             onChange={(e) => setFormData(prev => ({ ...prev, contactPhone: e.target.value + " " + (prev.contactPhone.split(' ')[1] || '') }))}
                                         >
-                                            <option value="+1">+1 (US/CA)</option>
-                                            <option value="+91">+91 (IN)</option>
-                                            <option value="+44">+44 (UK)</option>
-                                            <option value="+61">+61 (AU)</option>
-                                            <option value="+49">+49 (DE)</option>
-                                            <option value="+86">+86 (CN)</option>
-                                            <option value="+971">+971 (AE)</option>
-                                            <option value="">Other</option>
+                                            <option value="+61">+61 🇦🇺 AU</option>
+                                            <option value="+1">+1 🇨🇦 CA</option>
+                                            <option value="+33">+33 🇫🇷 FR</option>
+                                            <option value="+49">+49 🇩🇪 DE</option>
+                                            <option value="+91">+91 🇮🇳 IN</option>
+                                            <option value="+353">+353 🇮🇪 IE</option>
+                                            <option value="+64">+64 🇳🇿 NZ</option>
+                                            <option value="+65">+65 🇸🇬 SG</option>
+                                            <option value="+971">+971 🇦🇪 UAE</option>
+                                            <option value="+44">+44 🇬🇧 UK</option>
+                                            <option value="+1">+1 🇺🇸 US</option>
                                         </select>
                                         <Input
                                             name="contactPhone"
