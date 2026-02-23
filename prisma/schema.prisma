@@ -781,6 +781,8 @@ model BotMisses {
   id        String   @id @default(cuid())
   question  String
   createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 // -----------------------------------------------------------------------------
