@@ -236,6 +236,7 @@ model University {
   reps              User[]    @relation("UniversityReps")
   notifications     UniversityNotification[]
   documents         UniversityDocument[]
+  sponsoredContent  SponsoredContent[]
 }
 
 model UniversityDocument {
@@ -844,26 +845,33 @@ model AdminAnnouncement {
 model SponsoredContent {
   id          String   @id @default(cuid())
   title       String
-  partnerName String
-  
+  partnerName String   // Display label; kept for external/non-university sponsors
+
+  // Link to a verified University in the system (optional — external sponsors won't have one)
+  universityId String?
+  university   University? @relation(fields: [universityId], references: [id], onDelete: SetNull)
+
   imageUrl    String
   targetUrl   String
-  
+
   // v2 Fields
   sponsorType    String   @default("UNIVERSITY") // UNIVERSITY, PROGRAM, PARTNER
   mobileImageUrl String?
   priority       Int      @default(5)
   startDate      DateTime @default(now())
-  endDate        DateTime? // Made optional to avoid migration failure on existing data, though logic enforces it
+  endDate        DateTime?
   status         String   @default("DRAFT") // DRAFT, SCHEDULED, ACTIVE, EXPIRED
-  
+
   placement   String   // SIDEBAR, FEED, BANNER
   isActive    Boolean  @default(true)
-  
+
   impressions Int      @default(0)
   clicks      Int      @default(0)
-  
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([universityId])
+  @@index([isActive])
 }
 
