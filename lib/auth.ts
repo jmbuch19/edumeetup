@@ -253,11 +253,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
         },
 
-        async jwt({ token, user }) {
+        async jwt({ token, user, trigger }) {
+            // On initial sign-in, stamp the token with id and role
             if (user) {
                 token.id = user.id
                 token.role = user.role
+                token.lastRefreshed = Date.now()
             }
+
+            // Refresh role + active status from DB every 5 minutes.
+            // This ensures role changes and deactivations take effect quickly
+            // without hitting the DB on every single request.
+            const REFRESH_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
+            const shouldRefresh =
+                trigger === 'update' ||
+                !token.lastRefreshed ||
+                Date.now() - (token.lastRefreshed as number) > REFRESH_INTERVAL_MS
+
+            if (shouldRefresh && token.sub) {
+                const dbUser = await prisma.user.findUnique({
+                    where: { id: token.sub },
+                    select: { role: true, isActive: true }
+                })
+                if (dbUser) {
+                    token.role = dbUser.role as any
+                    token.lastRefreshed = Date.now()
+                    if (!dbUser.isActive) return null // Force logout immediately
+                }
+            }
+
             return token
         },
 
