@@ -1,28 +1,36 @@
+import type { DefaultSession } from "next-auth"
+import type { JWT as DefaultJWT } from "next-auth/jwt"
 
-import NextAuth, { DefaultSession } from "next-auth"
-import { UserRole } from "@prisma/client"
+// Define the role union locally — Prisma's UserRole enum doesn't include ADMIN
+// (role is stored as a plain String in the DB for the admin account).
+export type AppRole = "ADMIN" | "UNIVERSITY" | "STUDENT"
 
 declare module "next-auth" {
-    /**
-     * Returned by `useSession`, `getSession` and received as a prop on the `SessionProvider` React Context
-     */
     interface Session {
         user: {
             id: string
-            role: UserRole
+            role: AppRole
             emailVerified: string | null
         } & DefaultSession["user"]
     }
 
     interface User {
-        role: UserRole
+        role: AppRole
         emailVerified: Date | null
     }
 }
 
 declare module "next-auth/adapters" {
     interface AdapterUser {
-        role: UserRole
+        role: AppRole
         emailVerified: Date | null
+    }
+}
+
+// JWT augmentation — allows jwt() callback to set token.role without @ts-ignore
+declare module "next-auth/jwt" {
+    interface JWT extends DefaultJWT {
+        id?: string
+        role?: AppRole
     }
 }

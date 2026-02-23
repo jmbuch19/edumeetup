@@ -268,20 +268,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         async jwt({ token, user }) {
             if (user) {
                 token.id = user.id
-                // @ts-ignore
                 token.role = user.role
             }
-            // If strictly needed, fetch fresh role from DB here
-            // const dbUser = await prisma.user.findUnique({ where: { id: token.sub } })
-            // if (dbUser) token.role = dbUser.role
             return token
         },
 
         async session({ session, token }) {
             if (session.user && token.sub) {
                 session.user.id = token.sub
-                // @ts-ignore
-                session.user.role = token.role
+                session.user.role = token.role!
             }
             return session
         },
@@ -329,18 +324,11 @@ export async function requireUser() {
 
 export async function requireRole(role: string) {
     const user = await requireUser()
-    const userRole = (user as any).role
-    if (userRole !== role && userRole !== 'ADMIN') { // Allow ADMIN to access everything for now or strict?
-        // Strict for now based on middleware rules
-        if (role === 'STUDENT' && userRole !== 'ADMIN') {
-            redirect('/')
-        }
-        if (role === 'UNIVERSITY' && userRole !== 'ADMIN') {
-            redirect('/')
-        }
-        if (role === 'ADMIN' && userRole !== 'ADMIN') {
-            redirect('/')
-        }
+    const userRole = user.role
+    if (userRole !== role && userRole !== 'ADMIN') {
+        if (role === 'STUDENT' && userRole !== 'ADMIN') redirect('/')
+        if (role === 'UNIVERSITY' && userRole !== 'ADMIN') redirect('/')
+        if (role === 'ADMIN' && userRole !== 'ADMIN') redirect('/')
     }
     return user
 }
