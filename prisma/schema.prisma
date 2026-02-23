@@ -228,7 +228,25 @@ model University {
   events            Event[]
   reps              User[]    @relation("UniversityReps")
   notifications     UniversityNotification[]
+  documents         UniversityDocument[]
 }
+
+model UniversityDocument {
+  id           String     @id @default(cuid())
+  universityId String
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  displayName  String     // user-facing label e.g. "MSc CS Program Brochure 2025"
+  category     String     // BROCHURE | PROGRAM_INFO | LEAFLET | OTHER
+  fileName     String     // sanitized original filename
+  data         Bytes      // raw PDF/image bytes
+  mimeType     String     @default("application/pdf")
+  sizeBytes    Int
+  uploadedAt   DateTime   @default(now())
+
+  @@index([universityId])
+}
+
 
 model Program {
   id             String      @id @default(cuid())

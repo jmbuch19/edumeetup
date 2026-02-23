@@ -2,10 +2,28 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { MapPin, Globe, Mail, CheckCircle, Calendar } from 'lucide-react'
+import { MapPin, Globe, Mail, CheckCircle, Calendar, FileText, Image, Download } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { expressInterest } from '@/app/actions'
 import { UniversityLogo } from '@/components/university/university-logo'
+
+const CATEGORY_LABELS: Record<string, string> = {
+    BROCHURE: 'University Brochure',
+    PROGRAM_INFO: 'Program Information',
+    LEAFLET: 'Leaflet / Flyer',
+    OTHER: 'Document',
+}
+const CATEGORY_COLORS: Record<string, string> = {
+    BROCHURE: 'bg-blue-100 text-blue-700',
+    PROGRAM_INFO: 'bg-emerald-100 text-emerald-700',
+    LEAFLET: 'bg-amber-100 text-amber-700',
+    OTHER: 'bg-gray-100 text-gray-700',
+}
+function formatBytes(b: number) {
+    if (b < 1024) return `${b} B`
+    if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`
+    return `${(b / 1024 / 1024).toFixed(2)} MB`
+}
 
 export default async function UniversityDetailPage({
     params
@@ -20,7 +38,13 @@ export default async function UniversityDetailPage({
 
     const university = await prisma.university.findUnique({
         where: { id },
-        include: { programs: true }
+        include: {
+            programs: true,
+            documents: {
+                orderBy: { uploadedAt: 'desc' },
+                select: { id: true, displayName: true, category: true, fileName: true, mimeType: true, sizeBytes: true, uploadedAt: true }
+            }
+        }
     })
 
     if (!university) {
@@ -141,6 +165,56 @@ export default async function UniversityDetailPage({
                     )}
                 </div>
             </div>
+
+            {/* Downloads section — visible to all (login required to see files) */}
+            {university.documents.length > 0 && (
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+                    <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+                        <Download className="h-5 w-5 text-primary" />
+                        Downloads
+                    </h2>
+                    <p className="text-sm text-muted-foreground mb-5">
+                        Brochures, program guides, and leaflets shared by {university.institutionName}.
+                    </p>
+                    <div className="divide-y divide-gray-100">
+                        {university.documents.map(doc => (
+                            <div key={doc.id} className="flex items-center gap-4 py-3">
+                                {doc.mimeType.startsWith('image/')
+                                    ? <Image className="h-5 w-5 text-blue-400 flex-shrink-0" />
+                                    : <FileText className="h-5 w-5 text-red-400 flex-shrink-0" />
+                                }
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 truncate">{doc.displayName}</p>
+                                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${CATEGORY_COLORS[doc.category] ?? CATEGORY_COLORS.OTHER}`}>
+                                            {CATEGORY_LABELS[doc.category] ?? doc.category}
+                                        </span>
+                                        <span>{formatBytes(doc.sizeBytes)}</span>
+                                    </div>
+                                </div>
+                                {isLoggedIn ? (
+                                    <a
+                                        href={`/api/uni-docs/${doc.id}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex-shrink-0"
+                                    >
+                                        <Button variant="outline" size="sm" className="gap-1.5">
+                                            <Download className="h-3.5 w-3.5" />
+                                            Open
+                                        </Button>
+                                    </a>
+                                ) : (
+                                    <Link href="/login" className="flex-shrink-0">
+                                        <Button variant="outline" size="sm">Login to Download</Button>
+                                    </Link>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
+

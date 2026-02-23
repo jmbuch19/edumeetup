@@ -16,6 +16,7 @@ import { requireUser } from '@/lib/auth'
 import { DegreeLevels } from '@/lib/constants'
 import { UniversityLogo } from '@/components/university/university-logo'
 import { NotificationsCenter } from '@/components/notifications-center'
+import { UniDocManager } from '@/components/university/uni-doc-manager'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,6 +41,10 @@ export default async function UniversityDashboard() {
                     program: true
                 },
                 orderBy: { createdAt: 'desc' }
+            },
+            documents: {
+                orderBy: { uploadedAt: 'desc' },
+                select: { id: true, displayName: true, category: true, fileName: true, mimeType: true, sizeBytes: true, uploadedAt: true }
             }
         }
     })
@@ -178,6 +183,7 @@ export default async function UniversityDashboard() {
                                 <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
                             )}
                         </TabsTrigger>
+                        <TabsTrigger value="documents">Documents</TabsTrigger>
                     </TabsList>
                 </div>
 
@@ -349,6 +355,15 @@ export default async function UniversityDashboard() {
                         </div>
                         <FairOutreachList requests={JSON.parse(JSON.stringify(fairOutreach))} />
                     </div>
+                </TabsContent>
+
+                <TabsContent value="documents">
+                    <UniDocManager
+                        initialDocs={JSON.parse(JSON.stringify(uni.documents)).map((d: any) => ({
+                            ...d,
+                            uploadedAt: new Date(d.uploadedAt).toISOString(),
+                        }))}
+                    />
                 </TabsContent>
             </Tabs>
         </div>
