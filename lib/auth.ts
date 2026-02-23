@@ -192,9 +192,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             from: process.env.EMAIL_FROM || 'EduMeetup <noreply@edumeetup.com>',
             maxAge: 15 * 60, // 15 minutes
             sendVerificationRequest: async ({ identifier, url }) => {
-                // 1. Log to DB for bypass (Critical for debugging)
+                // Audit log — records that a link was sent, NOT the URL itself
                 try {
-                    console.log(`[MAGIC LINK] Sent to ${identifier}`)
                     await prisma.systemLog.create({
                         data: {
                             level: 'INFO',
@@ -204,7 +203,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         }
                     })
                 } catch (e) {
-                    console.error("Failed to log magic link:", e)
+                    console.error("Failed to write magic link audit log:", e)
                 }
 
                 // 2. Send Email (Standard)
