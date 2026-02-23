@@ -4,6 +4,24 @@ import { NextResponse } from "next/server"
 
 const { auth } = NextAuth(authConfig)
 
+// API routes that are genuinely public (no auth needed at the edge)
+const PUBLIC_API_ROUTES = new Set([
+    '/api/auth',                       // NextAuth internals
+    '/api/validate-university-email',  // Called from the public registration form
+    '/api/refresh-university-domains', // Has its own secret key check inside
+    '/api/cron',                       // Has its own cron secret check inside
+])
+
+// Dangerous internal/dev routes — only ADMIN may call these
+const ADMIN_ONLY_API_ROUTES = [
+    '/api/admin',
+    '/api/promote-admin',
+    '/api/setup-admin',
+    '/api/seed',
+    '/api/debug-login',
+    '/api/get-magic-link',
+]
+
 export default auth((req) => {
     const { nextUrl } = req
     const isLoggedIn = !!req.auth
@@ -15,6 +33,39 @@ export default auth((req) => {
     const isAdminRoute = nextUrl.pathname.startsWith('/admin')
     const isRegistrationPage = nextUrl.pathname === '/student/register' || nextUrl.pathname === '/university/register'
     const isUniversityLogin = nextUrl.pathname === '/university-login'
+    const isApiRoute = nextUrl.pathname.startsWith('/api')
+
+    // ── API ROUTE PROTECTION ────────────────────────────────────────────────
+    if (isApiRoute) {
+        // Allow truly public API routes through immediately
+        const isPublic = Array.from(PUBLIC_API_ROUTES).some(p => nextUrl.pathname.startsWith(p))
+        if (isPublic) return NextResponse.next()
+
+        // All other API routes require authentication
+        if (!isLoggedIn) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        // Admin-only API routes
+        const isAdminApi = ADMIN_ONLY_API_ROUTES.some(p => nextUrl.pathname.startsWith(p))
+        if (isAdminApi && role !== 'ADMIN') {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+
+        // University-scoped API routes
+        if (nextUrl.pathname.startsWith('/api/uni-docs') && role !== 'UNIVERSITY' && role !== 'ADMIN') {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+
+        // CV upload is student-only; CV read is open to authenticated users (uni reps need it)
+        if (nextUrl.pathname.startsWith('/api/cv/upload') && role !== 'STUDENT') {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+
+        return NextResponse.next()
+    }
+
+    // ── PAGE ROUTE PROTECTION ───────────────────────────────────────────────
 
     // Explicit /admin → /admin/dashboard redirect
     if (nextUrl.pathname === '/admin') {
@@ -51,5 +102,7 @@ export default auth((req) => {
 })
 
 export const config = {
-    matcher: ["/((?!api|_next/static|_next/image|favicon.ico|login|register).*)"],
+    // Now includes /api routes. NextAuth's own /api/auth/* is handled by the
+    // PUBLIC_API_ROUTES allowlist above, so no infinite loop risk.
+    matcher: ["/((?!_next/static|_next/image|favicon.ico|login|register).*)"],
 }
