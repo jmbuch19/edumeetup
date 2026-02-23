@@ -183,13 +183,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             sendVerificationRequest: async ({ identifier, url }) => {
                 // 1. Log to DB for bypass (Critical for debugging)
                 try {
-                    console.log(`[MAGIC LINK] Saving to DB for ${identifier}`)
+                    console.log(`[MAGIC LINK] Sent to ${identifier}`)
                     await prisma.systemLog.create({
                         data: {
                             level: 'INFO',
                             type: 'MAGIC_LINK',
-                            message: url,
-                            metadata: { email: identifier }
+                            message: `Magic link sent to ${identifier}`,
+                            metadata: { email: identifier, sentAt: new Date().toISOString() }
                         }
                     })
                 } catch (e) {
