@@ -41,10 +41,12 @@ model User {
   advisedRequests   AdvisoryRequest[] @relation("AdviserRequests")
   meetingParticipations MeetingParticipant[]
   availabilitySlots     AvailabilitySlot[]
-  
+
   // University Rep Support
   universityId          String?
   representedUniversity University? @relation("UniversityReps", fields: [universityId], references: [id])
+
+  announcements         AdminAnnouncement[] @relation("AnnouncementAuthor")
 
   @@index([role])
   @@index([isActive])
@@ -823,23 +825,28 @@ model AdminAnnouncement {
   id             String   @id @default(cuid())
   title          String
   content        String   @db.Text
-  
+
   targetAudience String   @default("ALL") // ALL, STUDENT, UNIVERSITY
   isActive       Boolean  @default(true)
-  
+
   priority       String   @default("NORMAL") // NORMAL, HIGH
-  
+
   // v2 Fields
   announcementType String  @default("GENERAL") // NEW_UNIVERSITY, CHECK_IN
   filters          Json?   // Stores targeting criteria
   emailSent        Boolean @default(false)
-  sentBy           String? // Admin ID
-  
+
+  // FK to the admin who created this — SetNull preserves the audit row if admin is deleted
+  sentById       String?
+  sentBy         User?    @relation("AnnouncementAuthor", fields: [sentById], references: [id], onDelete: SetNull)
+
   startsAt       DateTime @default(now())
   expiresAt      DateTime?
-  
+
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  @@index([sentById])
 }
 
 model SponsoredContent {
