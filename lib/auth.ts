@@ -64,26 +64,37 @@ const ALLOWED_SUFFIXES = [
     ".edu", ".ac.in", ".ac.uk", ".edu.au", ".ac.nz", ".edu.in", ".ac.za", ".edu.sg"
 ]
 
-const CUSTOM_UNIVERSITY_DOMAINS = new Set<string>([
-    // Add custom domains here in localdev or DB as needed
-])
 
-export function isUniversityEmail(email: string): boolean {
+// isUniversityEmail is async so it can fall back to the DB for verified
+// universities with non-standard domains (e.g. gtu.ac.in, mu.edu, etc.)
+export async function isUniversityEmail(email: string): Promise<boolean> {
     if (!email || !email.includes('@')) return false
 
     const domain = email.split('@')[1].toLowerCase()
 
-    // 1. Check blocked list
-    if (BLOCKED_DOMAINS.includes(domain)) {
-        return false
+    // 1. Block known personal / disposable email providers
+    if (BLOCKED_DOMAINS.includes(domain)) return false
+
+    // 2. Accept well-known academic TLD suffixes
+    if (ALLOWED_SUFFIXES.some(suffix => domain.endsWith(suffix))) return true
+
+    // 3. Fall back to DB: check if any *verified* university has this contact domain
+    try {
+        const match = await prisma.university.findFirst({
+            where: {
+                isVerified: true,
+                OR: [
+                    { contactEmail: { endsWith: `@${domain}` } },
+                    { repEmail: { endsWith: `@${domain}` } },
+                ]
+            },
+            select: { id: true }
+        })
+        if (match) return true
+    } catch {
+        // DB unavailable — fail open to avoid blocking legit users
+        console.warn(`[isUniversityEmail] DB lookup failed for domain: ${domain}`)
     }
-
-    // 2. Check allowed suffixes
-    const matchesSuffix = ALLOWED_SUFFIXES.some(suffix => domain.endsWith(suffix))
-    if (matchesSuffix) return true
-
-    // 3. Check custom domains
-    if (CUSTOM_UNIVERSITY_DOMAINS.has(domain)) return true
 
     return false
 }
@@ -235,7 +246,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
                 if (dbUser) {
                     if (dbUser.role === 'UNIVERSITY') {
-                        if (!isUniversityEmail(email)) {
+                        if (!await isUniversityEmail(email)) {
                             console.log(`[AUTH DEBUG] Invalid university email domain`)
                             return `/auth/error?error=NotUniversityEmail`
                         }
@@ -295,28 +306,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     events: {
         async signIn({ user, isNewUser }) {
-            if (!user.email) return
+            if (!user.email || !user.id) return
 
-            if (!user.emailVerified) {
+            // Single DB fetch — used for both emailVerified update and new-user setup
+            const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
+            if (!dbUser) return
+
+            // Only stamp emailVerified if it hasn't been set yet (avoids a write on every login)
+            if (!dbUser.emailVerified) {
                 await prisma.user.update({
                     where: { id: user.id },
                     data: { emailVerified: new Date() }
                 })
             }
 
-            const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
-
-            if (isNewUser && dbUser) {
-                if (dbUser.role === 'STUDENT') {
-                    await prisma.student.upsert({
-                        where: { userId: dbUser.id },
-                        create: {
-                            userId: dbUser.id,
-                            country: 'India',
-                        },
-                        update: {}
-                    })
-                }
+            // Provision a Student profile row on first login
+            if (isNewUser && dbUser.role === 'STUDENT') {
+                await prisma.student.upsert({
+                    where: { userId: dbUser.id },
+                    create: { userId: dbUser.id, country: 'India' },
+                    update: {}
+                })
             }
         }
     }

@@ -189,7 +189,7 @@ export async function loginUniversity(formData: FormData) {
     }
 
     // 2. University Domain Check
-    if (!isUniversityEmail(email)) {
+    if (!await isUniversityEmail(email)) {
         return { error: "Please use your official university email (e.g. name@university.edu). Personal emails are not accepted." }
     }
 
