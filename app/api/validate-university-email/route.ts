@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     const parsed = Schema.safeParse(body)
     if (!parsed.success) {
         return NextResponse.json(
-            { valid: false, message: parsed.error.errors[0]?.message ?? 'Invalid email.' },
+            { valid: false, message: parsed.error.issues[0]?.message ?? 'Invalid email.' },
             { status: 400 }
         )
     }
