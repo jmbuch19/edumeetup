@@ -49,6 +49,25 @@ export default auth((req) => {
         return NextResponse.redirect(new URL(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`, nextUrl))
     }
 
+    // 3. Cross-role protection — logged-in users can only access their own dashboard
+    if (isLoggedIn) {
+        if (isAdminRoute && role !== 'ADMIN') {
+            // Students and university users can't access /admin/*
+            const dest = role === 'UNIVERSITY' ? '/university/dashboard' : '/student/dashboard'
+            return NextResponse.redirect(new URL(dest, nextUrl))
+        }
+        if (isUniversityRoute && role !== 'UNIVERSITY' && !isRegistrationPage) {
+            // Students and admins can't access /university/* (except the public register page)
+            const dest = role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard'
+            return NextResponse.redirect(new URL(dest, nextUrl))
+        }
+        if (isStudentRoute && role !== 'STUDENT' && !isRegistrationPage) {
+            // University and admin users can't access /student/* (except the public register page)
+            const dest = role === 'ADMIN' ? '/admin/dashboard' : '/university/dashboard'
+            return NextResponse.redirect(new URL(dest, nextUrl))
+        }
+    }
+
     return NextResponse.next()
 })
 
