@@ -48,9 +48,9 @@ export const createProgramSchema = z.object({
     fieldCategory: z.string().min(1, "Field category is required"),
     tuitionFee: z.coerce.number().positive("Tuition fee must be positive"),
     durationMonths: z.coerce.number().int().positive("Duration must be positive"),
-    intakes: z.string().min(1, "At least one intake is required"),
+    intakes: z.array(z.string()).min(1, "At least one intake is required"),
     currency: z.string().default('USD'),
-    englishTests: z.string().optional(),
+    englishTests: z.array(z.string()).optional().default([]),
     minEnglishScore: z.string().optional(),
     stemDesignated: z.string().optional().transform(val => val === 'on' || val === 'true'),
 })

@@ -84,7 +84,7 @@ async function main() {
                                 degreeLevel: "Master's",
                                 fieldCategory: 'Engineering',
                                 tuitionFee: 50000,
-                                intakes: 'Fall 2025',
+                                intakes: ['Fall 2025'],
                             },
                         ],
                     },

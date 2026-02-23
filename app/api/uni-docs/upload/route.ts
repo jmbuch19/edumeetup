@@ -6,6 +6,34 @@ const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
 const VALID_CATEGORIES = ['BROCHURE', 'PROGRAM_INFO', 'LEAFLET', 'OTHER']
 
+async function uploadToR2(buffer: Buffer, key: string, mimeType: string): Promise<string> {
+    const accountId = process.env.R2_ACCOUNT_ID
+    const accessKey = process.env.R2_ACCESS_KEY_ID
+    const secretKey = process.env.R2_SECRET_ACCESS_KEY
+    const bucket = process.env.R2_BUCKET
+    const publicUrl = process.env.R2_PUBLIC_URL
+
+    if (!accountId || !accessKey || !secretKey || !bucket || !publicUrl) {
+        throw new Error('R2 environment variables not configured')
+    }
+
+    const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3')
+    const s3 = new S3Client({
+        region: 'auto',
+        endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+        credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
+    })
+
+    await s3.send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: buffer,
+        ContentType: mimeType,
+    }))
+
+    return `${publicUrl}/${key}`
+}
+
 export async function POST(req: NextRequest) {
     const session = await auth()
     if (!session?.user?.id) {
@@ -50,8 +78,17 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Maximum 20 documents allowed. Please delete some first.' }, { status: 429 })
     }
 
-    const bytes = Buffer.from(await file.arrayBuffer())
     const fileName = file.name.replace(/[^a-zA-Z0-9._\-]/g, '_')
+    const r2Key = `uni-docs/${university.id}/${Date.now()}_${fileName}`
+
+    let fileUrl: string
+    try {
+        const buffer = Buffer.from(await file.arrayBuffer())
+        fileUrl = await uploadToR2(buffer, r2Key, file.type)
+    } catch (err) {
+        console.error('R2 upload failed:', err)
+        return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 })
+    }
 
     const doc = await prisma.universityDocument.create({
         data: {
@@ -59,7 +96,7 @@ export async function POST(req: NextRequest) {
             displayName,
             category,
             fileName,
-            data: bytes,
+            fileUrl,
             mimeType: file.type,
             sizeBytes: file.size,
         },

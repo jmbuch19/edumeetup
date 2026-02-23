@@ -27,7 +27,7 @@ async function main() {
         u.programs.forEach(p => {
             if ((p.tuitionFee ?? 0) > 150000) highTuitionCount++
             if ((p.tuitionFee ?? 0) < 1000) lowTuitionCount++
-            if (!p.englishTests || p.englishTests === '') noEnglishCount++
+            if (!p.englishTests || p.englishTests.length === 0) noEnglishCount++
         })
     })
 
