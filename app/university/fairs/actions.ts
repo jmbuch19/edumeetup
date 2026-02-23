@@ -61,7 +61,8 @@ export async function respondToOutreach(outreachId: string, status: 'INTERESTED'
         })
 
         // Notify Admin
-        const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.GMAIL_USER || "info@edumeetup.com"
+        const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL
+        if (!ADMIN_EMAIL) throw new Error('ADMIN_NOTIFICATION_EMAIL not configured')
 
         await sendEmail({
             to: ADMIN_EMAIL,

@@ -68,7 +68,8 @@ export async function respondToOutreach(outreachId: string, status: RespondOptio
 
         // Notify Admin if Interested
         if (status === "INTERESTED") {
-            const ADMIN_EMAIL = process.env.GMAIL_USER || "jaydeep@edumeetup.com"
+            const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL
+            if (!ADMIN_EMAIL) throw new Error('ADMIN_NOTIFICATION_EMAIL not configured')
             await sendEmail({
                 to: ADMIN_EMAIL,
                 subject: `Uni Response: ${user.name || outreach.university.institutionName} is INTERESTED in Fair ${outreach.hostRequest.referenceNumber}`,

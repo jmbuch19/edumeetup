@@ -37,7 +37,8 @@ export async function submitBugReport(formData: FormData) {
         })
 
         // 2. Email Admin
-        const adminEmail = process.env.ADMIN_EMAIL || 'admin@edumeetup.com'
+        const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL
+        if (!adminEmail) throw new Error('ADMIN_NOTIFICATION_EMAIL not configured')
         await sendEmail({
             to: adminEmail,
             subject: `[URGENT] ${type} Reported on edumeetup.com`,

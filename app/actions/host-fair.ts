@@ -94,7 +94,8 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
         })
 
         // Send Alert Email to Admin
-        const ADMIN_EMAIL = process.env.GMAIL_USER || "jaydeep@edumeetup.com"
+        const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL
+        if (!ADMIN_EMAIL) throw new Error('ADMIN_NOTIFICATION_EMAIL not configured')
         await sendEmail({
             to: ADMIN_EMAIL,
             subject: `[ACTION REQUIRED] New Host Request: ${institutionName}`,
