@@ -578,7 +578,7 @@ model Meeting {
   student         Student?       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   
   universityId    String
-  university      University?    @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  university      University     @relation(fields: [universityId], references: [id], onDelete: Cascade)
 
   repId           String?
   rep             User?          @relation("RepMeetings", fields: [repId], references: [id], onDelete: Cascade)
