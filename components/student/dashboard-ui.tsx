@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { GraduationCap, MapPin, Search, Calendar, CheckCircle } from 'lucide-react'
+import { GraduationCap, MapPin, Search, Calendar, CheckCircle, LogOut } from 'lucide-react'
+import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StudentMeetingsTable } from '@/components/student/student-meetings-table'
@@ -53,7 +54,7 @@ export function DashboardUI({
                     <h1 className="text-3xl font-bold text-gray-900">Student Dashboard</h1>
                     <p className="text-gray-600">Welcome, {student.fullName}!</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                     <Link href="/student/profile">
                         <Button variant="outline">Edit Profile</Button>
                     </Link>
@@ -63,6 +64,14 @@ export function DashboardUI({
                             Browse All
                         </Button>
                     </Link>
+                    <Button
+                        variant="outline"
+                        className="gap-2 text-red-600 border-red-200 hover:bg-red-50"
+                        onClick={() => signOut({ callbackUrl: '/login' })}
+                    >
+                        <LogOut className="h-4 w-4" />
+                        Sign Out
+                    </Button>
                 </div>
             </div>
 

@@ -1271,7 +1271,12 @@ export async function getUniversityMeetings(status?: string) {
     return meetings.map(mapMeetingToFrontend)
 }
 
-export async function updateMeetingStatus(meetingId: string, status: 'CONFIRMED' | 'REJECTED' | 'CANCELLED', meetingLink?: string) {
+export async function updateMeetingStatus(
+    meetingId: string,
+    status: 'CONFIRMED' | 'REJECTED' | 'CANCELLED',
+    meetingLink?: string,
+    rejectionReason?: string
+) {
     const session = await auth()
     if (!session || !session.user || (session.user as any).role !== 'UNIVERSITY') {
         return { error: 'Unauthorized' }
@@ -1302,7 +1307,13 @@ export async function updateMeetingStatus(meetingId: string, status: 'CONFIRMED'
 
         // Update
         const dbStatus = status === 'REJECTED' ? 'CANCELLED' : status
-        const cancellationDetails = status === 'REJECTED' ? { cancellationReason: 'Declined by University', cancelledBy: 'UNIVERSITY', cancelledAt: new Date() } : {}
+        const cancellationDetails = status === 'REJECTED' || status === 'CANCELLED'
+            ? {
+                cancellationReason: rejectionReason || (status === 'REJECTED' ? 'Declined by University' : 'Cancelled by University'),
+                cancelledBy: 'UNIVERSITY',
+                cancelledAt: new Date()
+            }
+            : {}
 
         await prisma.meeting.update({
             where: { id: meetingId },
@@ -1337,7 +1348,7 @@ export async function updateMeetingStatus(meetingId: string, status: 'CONFIRMED'
                     'STUDENT',
                     institutionName,
                     mtg.startTime,
-                    "University updated status."
+                    rejectionReason || "University updated status."
                 )
             }
         }
