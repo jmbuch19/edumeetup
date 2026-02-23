@@ -344,13 +344,12 @@ export async function requireUser() {
     return session.user
 }
 
-export async function requireRole(role: string) {
+export async function requireRole(role: "ADMIN" | "UNIVERSITY" | "STUDENT") {
     const user = await requireUser()
-    const userRole = user.role
-    if (userRole !== role && userRole !== 'ADMIN') {
-        if (role === 'STUDENT' && userRole !== 'ADMIN') redirect('/')
-        if (role === 'UNIVERSITY' && userRole !== 'ADMIN') redirect('/')
-        if (role === 'ADMIN' && userRole !== 'ADMIN') redirect('/')
+    if (user.role !== role && user.role !== 'ADMIN') {
+        if (user.role === 'STUDENT') redirect('/student/dashboard')
+        if (user.role === 'UNIVERSITY') redirect('/university/dashboard')
+        redirect('/login')
     }
     return user
 }
