@@ -13,7 +13,7 @@ export type ProgramImportData = {
     fieldCategory: string
     tuitionFee: number
     durationMonths: number
-    intakes: string
+    intakes: string[]
 }
 
 export async function bulkCreatePrograms(universityId: string, data: ProgramImportData[]) {
@@ -36,10 +36,10 @@ export async function bulkCreatePrograms(universityId: string, data: ProgramImpo
                     fieldCategory: mapFieldCategory(item.fieldCategory),
                     tuitionFee: item.tuitionFee,
                     durationMonths: item.durationMonths,
-                    intakes: item.intakes,
-                    stemDesignated: false, // Default
+                    intakes: Array.isArray(item.intakes) ? item.intakes : [],
+                    stemDesignated: false,
                     currency: 'USD',
-                    englishTests: null // Fixed: expect string or null, not array
+                    englishTests: []
                 }
             })
             createdCount++

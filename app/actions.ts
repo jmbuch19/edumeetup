@@ -362,8 +362,8 @@ export async function createProgram(formData: FormData) {
         tuitionFee: formData.get('tuitionFee'),
         durationMonths: formData.get('durationMonths'),
         currency: formData.get('currency'),
-        intakes: formData.get('intakes'),
-        englishTests: formData.get('englishTests'),
+        intakes: formData.get('intakes') ? String(formData.get('intakes')).split(',').map(s => s.trim()).filter(Boolean) : [],
+        englishTests: formData.get('englishTests') ? String(formData.get('englishTests')).split(',').map(s => s.trim()).filter(Boolean) : [],
         minEnglishScore: formData.get('minEnglishScore'),
         stemDesignated: formData.get('stemDesignated')
     }
@@ -622,8 +622,8 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
                                 durationMonths: parseInt(p.durationMonths),
                                 tuitionFee: parseFloat(p.tuitionFee),
                                 currency: p.currency,
-                                intakes: p.intakes.join(','),
-                                englishTests: p.englishTests.join(','),
+                                intakes: Array.isArray(p.intakes) ? p.intakes : [],
+                                englishTests: Array.isArray(p.englishTests) ? p.englishTests : [],
                                 minEnglishScore: p.minEnglishScore ? parseFloat(p.minEnglishScore) : null,
                                 status: 'ACTIVE'
                             }))

@@ -273,9 +273,9 @@ model Program {
   // Preserved fields
   status         String      @default("ACTIVE")
   stemDesignated Boolean     @default(false)
-  englishTests   String?
+  englishTests   String[]
   minEnglishScore Float?
-  intakes        String?
+  intakes        String[]
   description    String?     @db.Text
   
   createdAt      DateTime    @default(now())
