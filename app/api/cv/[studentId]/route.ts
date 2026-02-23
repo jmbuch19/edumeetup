@@ -14,33 +14,25 @@ export async function GET(
     const { studentId } = params
     const role = session.user.role as string
 
-    // Access control: only admin, university, or the student themselves
+    // Access control: admin, university (+ reps), or the student themselves
     if (role === 'STUDENT') {
         const ownStudent = await prisma.student.findFirst({ where: { userId: session.user.id } })
         if (!ownStudent || ownStudent.id !== studentId) {
             return new NextResponse('Forbidden', { status: 403 })
         }
-    } else if (role !== 'ADMIN' && role !== 'UNIVERSITY') {
+    } else if (role !== 'ADMIN' && role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP') {
         return new NextResponse('Forbidden', { status: 403 })
     }
 
     const student = await prisma.student.findUnique({
         where: { id: studentId },
-        select: { cvData: true, cvFileName: true },
+        select: { cvUrl: true, cvFileName: true },
     })
 
-    if (!student?.cvData) {
+    if (!student?.cvUrl) {
         return new NextResponse('No CV found for this student', { status: 404 })
     }
 
-    const fileName = student.cvFileName ?? 'student_cv.pdf'
-
-    return new NextResponse(new Uint8Array(student.cvData), {
-        status: 200,
-        headers: {
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `inline; filename="${fileName}"`,
-            'Cache-Control': 'private, no-store',
-        },
-    })
+    // CV is now a redirect to the R2 URL — no binary data served from DB
+    return NextResponse.redirect(student.cvUrl)
 }

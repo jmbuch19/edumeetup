@@ -25,7 +25,7 @@ const ADMIN_ONLY_API_ROUTES = [
 export default auth((req) => {
     const { nextUrl } = req
     const isLoggedIn = !!req.auth
-    const role = req.auth?.user?.role as "ADMIN" | "UNIVERSITY" | "STUDENT" | undefined
+    const role = req.auth?.user?.role as "ADMIN" | "UNIVERSITY" | "UNIVERSITY_REP" | "STUDENT" | undefined
 
     const isAuthRoute = nextUrl.pathname.startsWith('/login') || nextUrl.pathname.startsWith('/register')
     const isStudentRoute = nextUrl.pathname.startsWith('/student')
@@ -52,8 +52,8 @@ export default auth((req) => {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
         }
 
-        // University-scoped API routes
-        if (nextUrl.pathname.startsWith('/api/uni-docs') && role !== 'UNIVERSITY' && role !== 'ADMIN') {
+        // University-scoped API routes — UNIVERSITY_REP also allowed
+        if (nextUrl.pathname.startsWith('/api/uni-docs') && role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP' && role !== 'ADMIN') {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
         }
 
@@ -76,6 +76,7 @@ export default auth((req) => {
     if ((isAuthRoute || nextUrl.pathname === '/') && isLoggedIn) {
         if (role === 'ADMIN') return NextResponse.redirect(new URL('/admin/dashboard', nextUrl))
         if (role === 'UNIVERSITY') return NextResponse.redirect(new URL('/university/dashboard', nextUrl))
+        if (role === 'UNIVERSITY_REP') return NextResponse.redirect(new URL('/university/dashboard', nextUrl))
         return NextResponse.redirect(new URL('/student/dashboard', nextUrl))
     }
 
@@ -88,13 +89,16 @@ export default auth((req) => {
     // Cross-role enforcement — prevent users accessing wrong dashboards
     if (isLoggedIn) {
         if (isAdminRoute && role !== 'ADMIN') {
+            const dest = (role === 'UNIVERSITY' || role === 'UNIVERSITY_REP') ? '/university/dashboard' : '/student/dashboard'
+            return NextResponse.redirect(new URL(dest, nextUrl))
+        }
+        // UNIVERSITY_REP shares /university/* access with UNIVERSITY
+        if (isUniversityRoute && role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP' && !isRegistrationPage) {
             return NextResponse.redirect(new URL('/student/dashboard', nextUrl))
         }
-        if (isUniversityRoute && role !== 'UNIVERSITY' && !isRegistrationPage) {
-            return NextResponse.redirect(new URL('/student/dashboard', nextUrl))
-        }
-        if (isStudentRoute && role === 'ADMIN') {
-            return NextResponse.redirect(new URL('/admin/dashboard', nextUrl))
+        if (isStudentRoute && (role === 'ADMIN' || role === 'UNIVERSITY' || role === 'UNIVERSITY_REP')) {
+            const dest = role === 'ADMIN' ? '/admin/dashboard' : '/university/dashboard'
+            return NextResponse.redirect(new URL(dest, nextUrl))
         }
     }
 
