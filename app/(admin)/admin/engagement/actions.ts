@@ -24,7 +24,7 @@ export async function createAnnouncement(formData: FormData) {
                 targetAudience: targetAudience || "ALL",
                 priority: priority || "NORMAL",
                 announcementType: announcementType || "GENERAL",
-                sentBy: session.user.id
+                sentById: session.user.id
             }
         })
         revalidatePath("/admin/engagement")
