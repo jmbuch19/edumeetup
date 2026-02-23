@@ -215,6 +215,10 @@ model University {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
+  // Email validation auto-detected fields
+  universityNameFromEmail  String?
+  countryFromEmail         String?
+
   // Relations
   programs          Program[]
   

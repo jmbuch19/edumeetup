@@ -10,3 +10,8 @@
 
 [functions]
   node_bundler = "esbuild"
+
+# Weekly cron: refreshes in-memory university domain cache
+# Calls GET /api/refresh-university-domains?secret=uni-refresh-secret-2025
+[functions."refresh-university-domains"]
+  schedule = "@weekly"

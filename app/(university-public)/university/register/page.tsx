@@ -1,17 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-
 import { Input } from '@/components/ui/input'
-
-import { School, ChevronRight, Plus, Trash2, CheckCircle, ArrowLeft } from 'lucide-react'
+import { School, ChevronRight, Plus, Trash2, CheckCircle, ArrowLeft, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { PRIORITY_MARKETS, ALL_COUNTRIES } from '@/lib/countries'
-import { registerUniversityWithPrograms } from '@/app/actions' // New action
-
-// Enums as constants for dropdowns
-
+import { registerUniversityWithPrograms } from '@/app/actions'
 import { DegreeLevels } from '@/lib/constants'
 
 const FIELD_CATEGORIES = ["Computer Science", "Engineering", "Business", "Data Science", "Health Sciences", "Social Sciences", "Arts & Humanities", "Law", "Architecture", "Others"]
@@ -33,14 +28,23 @@ interface ProgramState {
     id?: number
 }
 
+type EmailValidationState =
+    | { status: 'idle' }
+    | { status: 'validating' }
+    | { status: 'valid'; universityName: string; country: string }
+    | { status: 'invalid'; message: string }
+
 export default function UniversityRegisterPage() {
     const [step, setStep] = useState(1)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
+    // Email validation state
+    const [emailValidation, setEmailValidation] = useState<EmailValidationState>({ status: 'idle' })
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
     // Form State
     const [formData, setFormData] = useState({
-        // Step 1: Basic Info
         institutionName: '',
         email: '',
         country: '',
@@ -53,11 +57,13 @@ export default function UniversityRegisterPage() {
         accreditation: '',
         scholarshipsAvailable: false,
         website_url: '', // Honeypot
-        // Certification
         certAuthority: false,
         certLegitimacy: false,
         certPurpose: false,
         certAccountability: false,
+        // Auto-filled from email validation
+        detectedUniversityName: '',
+        detectedCountry: '',
     })
 
     // Programs State (Step 2)
@@ -67,7 +73,7 @@ export default function UniversityRegisterPage() {
         degreeLevel: '',
         fieldCategory: '',
         stemDesignated: false,
-        durationMonths: '12', // Default
+        durationMonths: '12',
         tuitionFee: '0',
         currency: 'USD',
         intakes: [] as string[],
@@ -76,6 +82,78 @@ export default function UniversityRegisterPage() {
     })
     const [isProgramModalOpen, setIsProgramModalOpen] = useState(false)
 
+    // --- Email Validation ---
+    const validateEmail = useCallback(async (email: string) => {
+        if (!email || !email.includes('@')) {
+            setEmailValidation({ status: 'idle' })
+            return
+        }
+
+        setEmailValidation({ status: 'validating' })
+
+        try {
+            const res = await fetch('/api/validate-university-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            })
+            const data = await res.json()
+
+            if (data.valid) {
+                setEmailValidation({
+                    status: 'valid',
+                    universityName: data.universityName,
+                    country: data.country,
+                })
+                // Auto-fill institution fields
+                setFormData(prev => ({
+                    ...prev,
+                    institutionName: prev.institutionName || data.universityName,
+                    country: prev.country || data.country,
+                    detectedUniversityName: data.universityName,
+                    detectedCountry: data.country,
+                }))
+            } else {
+                setEmailValidation({ status: 'invalid', message: data.message })
+            }
+        } catch {
+            setEmailValidation({
+                status: 'invalid',
+                message: 'Unable to validate email. Please check your connection.',
+            })
+        }
+    }, [])
+
+    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+        setFormData(prev => ({ ...prev, email: value }))
+
+        // Reset validation on change
+        setEmailValidation({ status: 'idle' })
+
+        // Debounce
+        if (debounceTimer.current) clearTimeout(debounceTimer.current)
+        debounceTimer.current = setTimeout(() => {
+            validateEmail(value)
+        }, 500)
+    }
+
+    // Also validate on blur
+    const handleEmailBlur = () => {
+        if (debounceTimer.current) clearTimeout(debounceTimer.current)
+        validateEmail(formData.email)
+    }
+
+    useEffect(() => {
+        return () => {
+            if (debounceTimer.current) clearTimeout(debounceTimer.current)
+        }
+    }, [])
+
+    const isEmailValid = emailValidation.status === 'valid'
+    const isEmailValidating = emailValidation.status === 'validating'
+
+    // --- Form helpers ---
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target
         setFormData(prev => ({ ...prev, [name]: value }))
@@ -85,13 +163,11 @@ export default function UniversityRegisterPage() {
         setFormData(prev => ({ ...prev, [name]: !prev[name as keyof typeof prev] }))
     }
 
-    // Program Helpers
     const handleProgramChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target
         setCurrentProgram(prev => ({ ...prev, [name]: value }))
     }
 
-    // Checkbox array handling
     const handleProgramArrayChange = (field: 'intakes' | 'englishTests', value: string) => {
         setCurrentProgram(prev => {
             const currentList = prev[field]
@@ -128,7 +204,19 @@ export default function UniversityRegisterPage() {
         setPrograms(programs.filter(p => p.id !== id))
     }
 
+    const handleNext = () => {
+        if (!isEmailValid) {
+            toast.error('Please use a valid official university email before proceeding.')
+            return
+        }
+        setStep(2)
+    }
+
     const handleSubmit = async () => {
+        if (!isEmailValid) {
+            setError('A valid institutional email is required.')
+            return
+        }
         setLoading(true)
         setError('')
         try {
@@ -139,13 +227,12 @@ export default function UniversityRegisterPage() {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 fieldCategory: p.fieldCategory as any
             }))
-            const result = await registerUniversityWithPrograms({ ...formData, programs: formattedPrograms }) // Call server action
+            const result = await registerUniversityWithPrograms({ ...formData, programs: formattedPrograms })
             if (result?.error) {
                 setError(result.error)
                 toast.error(result.error)
                 setLoading(false)
             } else if (result?.success && result?.email) {
-                // Success - Show toast and redirect
                 toast.success(result.message || "Registration successful! Check your email.")
                 window.location.href = `/auth/verify-request?email=${encodeURIComponent(result.email)}`
             }
@@ -225,9 +312,57 @@ export default function UniversityRegisterPage() {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Designation *</label>
                                     <Input name="repDesignation" value={formData.repDesignation} onChange={handleInputChange} placeholder="Director of Admissions" required />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Rep Email (Login) *</label>
-                                    <Input name="email" value={formData.email} onChange={handleInputChange} type="email" placeholder="john.doe@university.edu" required />
+
+                                {/* Email with validation */}
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Official Institutional Email (Login) *
+                                    </label>
+                                    <div className="relative">
+                                        <Input
+                                            name="email"
+                                            value={formData.email}
+                                            onChange={handleEmailChange}
+                                            onBlur={handleEmailBlur}
+                                            type="email"
+                                            placeholder="admissions@university.edu"
+                                            required
+                                            className={
+                                                emailValidation.status === 'valid'
+                                                    ? 'border-green-500 focus:ring-green-500 pr-10'
+                                                    : emailValidation.status === 'invalid'
+                                                        ? 'border-red-400 focus:ring-red-400 pr-10'
+                                                        : 'pr-10'
+                                            }
+                                        />
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            {isEmailValidating && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+                                            {emailValidation.status === 'valid' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                                            {emailValidation.status === 'invalid' && <XCircle className="h-4 w-4 text-red-400" />}
+                                        </div>
+                                    </div>
+
+                                    {/* Validation feedback */}
+                                    {emailValidation.status === 'valid' && (
+                                        <div className="mt-2 flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2">
+                                            <CheckCircle2 className="h-4 w-4 shrink-0" />
+                                            <span>
+                                                <strong>Official university email detected:</strong>{' '}
+                                                {emailValidation.universityName} – {emailValidation.country}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {emailValidation.status === 'invalid' && (
+                                        <div className="mt-2 flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                                            <XCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                                            <span>{emailValidation.message}</span>
+                                        </div>
+                                    )}
+                                    {emailValidation.status === 'idle' && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Must be an official university email from USA, UK, Canada, Australia, NZ, Germany, UAE, India, Singapore, or EU (e.g. @harvard.edu, @ox.ac.uk, @iitb.ac.in)
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -272,8 +407,16 @@ export default function UniversityRegisterPage() {
                             </div>
 
                             <div className="flex justify-end pt-6">
-                                <Button onClick={() => setStep(2)}>
-                                    Next: Add Programs <ChevronRight className="ml-2 h-4 w-4" />
+                                <Button
+                                    onClick={handleNext}
+                                    disabled={isEmailValidating || !isEmailValid}
+                                    title={!isEmailValid ? 'Please provide a valid institutional email first' : ''}
+                                >
+                                    {isEmailValidating ? (
+                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Validating email...</>
+                                    ) : (
+                                        <>Next: Add Programs <ChevronRight className="ml-2 h-4 w-4" /></>
+                                    )}
                                 </Button>
                             </div>
                         </div>
@@ -321,7 +464,7 @@ export default function UniversityRegisterPage() {
                                 </div>
                             )}
 
-                            {/* Add Program Modal (Inline for simplicity in this file) */}
+                            {/* Add Program Modal */}
                             {isProgramModalOpen && (
                                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                                     <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -447,6 +590,14 @@ export default function UniversityRegisterPage() {
                                     <div><span className="text-gray-500">Rep Name:</span> {formData.repName}</div>
                                     <div><span className="text-gray-500">Email:</span> {formData.email}</div>
                                     <div><span className="text-gray-500">Phone:</span> {formData.contactPhone}</div>
+                                    {formData.detectedUniversityName && (
+                                        <div className="col-span-2">
+                                            <span className="text-gray-500">Verified Institution:</span>{' '}
+                                            <span className="text-green-700 font-medium">
+                                                ✓ {formData.detectedUniversityName} ({formData.detectedCountry})
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -488,57 +639,27 @@ export default function UniversityRegisterPage() {
                             </div>
 
                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 space-y-4">
-                                <div className="flex items-start gap-3">
-                                    <input
-                                        type="checkbox"
-                                        id="certAuthority"
-                                        checked={formData.certAuthority}
-                                        onChange={() => handleToggleChange('certAuthority')}
-                                        className="mt-1 h-5 w-5 text-primary border-gray-300 rounded focus:ring-primary"
-                                    />
-                                    <label htmlFor="certAuthority" className="text-sm text-blue-900 leading-relaxed">
-                                        <strong>1. Authority:</strong> I, <span className="font-mono bg-blue-100 px-1 rounded">{formData.repName}</span>, am authorized by <span className="font-mono bg-blue-100 px-1 rounded">{formData.institutionName}</span> to act as its official representative on EduMeetup.
-                                    </label>
-                                </div>
-
-                                <div className="flex items-start gap-3">
-                                    <input
-                                        type="checkbox"
-                                        id="certLegitimacy"
-                                        checked={formData.certLegitimacy}
-                                        onChange={() => handleToggleChange('certLegitimacy')}
-                                        className="mt-1 h-5 w-5 text-primary border-gray-300 rounded focus:ring-primary"
-                                    />
-                                    <label htmlFor="certLegitimacy" className="text-sm text-blue-900 leading-relaxed">
-                                        <strong>2. Legitimacy:</strong> <span className="font-mono bg-blue-100 px-1 rounded">{formData.institutionName}</span> is a real, accredited higher education institution, not a coaching center or unauthorized agency.
-                                    </label>
-                                </div>
-
-                                <div className="flex items-start gap-3">
-                                    <input
-                                        type="checkbox"
-                                        id="certPurpose"
-                                        checked={formData.certPurpose}
-                                        onChange={() => handleToggleChange('certPurpose')}
-                                        className="mt-1 h-5 w-5 text-primary border-gray-300 rounded focus:ring-primary"
-                                    />
-                                    <label htmlFor="certPurpose" className="text-sm text-blue-900 leading-relaxed">
-                                        <strong>3. Purpose:</strong> I am registering solely for genuine student recruitment and academic collaboration, aligning with EduMeetup&apos;s core mission.
-                                    </label>
-                                </div>
-
-                                <div className="flex items-start gap-3">
-                                    <input
-                                        type="checkbox"
-                                        id="certAccountability"
-                                        checked={formData.certAccountability}
-                                        onChange={() => handleToggleChange('certAccountability')}
-                                        className="mt-1 h-5 w-5 text-primary border-gray-300 rounded focus:ring-primary"
-                                    />
-                                    <label htmlFor="certAccountability" className="text-sm text-blue-900 leading-relaxed">
-                                        <strong>4. Accountability:</strong> I understand this declaration is recorded with my IP address and timestamp. False representation may lead to account suspension and legal action.
-                                    </label>
-                                </div>
+                                {[
+                                    {
+                                        id: 'certAuthority', label: <>
+                                            <strong>1. Authority:</strong> I, <span className="font-mono bg-blue-100 px-1 rounded">{formData.repName}</span>, am authorized by <span className="font-mono bg-blue-100 px-1 rounded">{formData.institutionName}</span> to act as its official representative on EduMeetup.
+                                        </>
+                                    },
+                                    { id: 'certLegitimacy', label: <><strong>2. Legitimacy:</strong> <span className="font-mono bg-blue-100 px-1 rounded">{formData.institutionName}</span> is a real, accredited higher education institution, not a coaching center or unauthorized agency.</> },
+                                    { id: 'certPurpose', label: <><strong>3. Purpose:</strong> I am registering solely for genuine student recruitment and academic collaboration, aligning with EduMeetup&apos;s core mission.</> },
+                                    { id: 'certAccountability', label: <><strong>4. Accountability:</strong> I understand this declaration is recorded with my IP address and timestamp. False representation may lead to account suspension and legal action.</> },
+                                ].map(({ id, label }) => (
+                                    <div key={id} className="flex items-start gap-3">
+                                        <input
+                                            type="checkbox"
+                                            id={id}
+                                            checked={!!formData[id as keyof typeof formData]}
+                                            onChange={() => handleToggleChange(id)}
+                                            className="mt-1 h-5 w-5 text-primary border-gray-300 rounded focus:ring-primary"
+                                        />
+                                        <label htmlFor={id} className="text-sm text-blue-900 leading-relaxed">{label}</label>
+                                    </div>
+                                ))}
                             </div>
 
                             {error && (
@@ -555,7 +676,7 @@ export default function UniversityRegisterPage() {
                                     onClick={handleSubmit}
                                     size="lg"
                                     className="px-8 transition-all"
-                                    disabled={loading || !formData.certAuthority || !formData.certLegitimacy || !formData.certPurpose || !formData.certAccountability}
+                                    disabled={loading || !formData.certAuthority || !formData.certLegitimacy || !formData.certPurpose || !formData.certAccountability || !isEmailValid}
                                 >
                                     {loading ? "Registering..." : "Confirm & Register"}
                                 </Button>
@@ -564,6 +685,6 @@ export default function UniversityRegisterPage() {
                     )}
                 </div>
             </div>
-        </div >
+        </div>
     )
 }

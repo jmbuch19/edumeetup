@@ -534,8 +534,9 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
         email, institutionName, country, city, website,
         repName, repDesignation, contactPhone, accreditation, scholarshipsAvailable,
         programs,
-        certAuthority, certLegitimacy, certPurpose, certAccountability
-    } = data
+        certAuthority, certLegitimacy, certPurpose, certAccountability,
+        detectedUniversityName, detectedCountry,
+    } = data as any
 
     if (!email || !institutionName) {
         return { error: 'Missing required fields' }
@@ -548,6 +549,24 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
     const ip = headers().get('x-forwarded-for') || 'unknown'
     if (!registerRateLimiter.check(ip)) {
         return { error: 'Too many attempts. Please verify you are human.' }
+    }
+
+    // SERVER-SIDE EMAIL DOMAIN VALIDATION
+    try {
+        const { extractDomain, getUniversityInfo, waitForCache } = await import('@/lib/university-domains')
+        const BLOCKED = new Set(['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'proton.me', 'icloud.com', 'yandex.com', 'mail.ru', 'qq.com', '163.com', 'rediffmail.com'])
+        const domain = extractDomain(email)
+        if (!domain || BLOCKED.has(domain)) {
+            return { error: 'Personal or generic email providers are not allowed. Please use an official university email.' }
+        }
+        await waitForCache()
+        const info = getUniversityInfo(domain)
+        if (!info) {
+            return { error: 'Email domain not recognized as an official university in target countries. Please use your institutional email.' }
+        }
+    } catch (validationErr) {
+        console.warn('[registerUniversity] Email validation skipped due to error:', validationErr)
+        // In case of fetch failure we allow registration but log the warning
     }
 
     try {
@@ -591,6 +610,9 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
                         certIp: ip,
                         certTimestamp: new Date(),
                         verificationStatus: 'PENDING',
+                        // Email-validated institution info
+                        universityNameFromEmail: detectedUniversityName || null,
+                        countryFromEmail: detectedCountry || null,
                         programs: {
                             create: programs.map((p: ProgramData) => ({
                                 programName: p.programName,
