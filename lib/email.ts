@@ -33,7 +33,13 @@ interface SupportTicketData {
     message: string
 }
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazily initialised — do NOT instantiate at module load so the app
+// doesn't crash when RESEND_API_KEY is missing (e.g. local dev).
+let _resend: Resend | null = null
+function getResend() {
+    if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY!)
+    return _resend
+}
 
 export const EMAIL_STYLES = `
     body { font-family: 'Inter', sans-serif; color: #1e293b; line-height: 1.6; }
@@ -99,7 +105,7 @@ export async function sendEmail({ to, subject, html }: EmailPayload) {
     try {
         const fromAddress = process.env.EMAIL_FROM || 'EduMeetup <noreply@edumeetup.com>'
 
-        const { error } = await resend.emails.send({
+        const { error } = await getResend().emails.send({
             from: fromAddress,
             to,
             subject,

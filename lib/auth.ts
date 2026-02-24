@@ -264,18 +264,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
 
         async jwt({ token, user, trigger }) {
-            // On initial sign-in, stamp the token with id and role
+            // On initial sign-in, stamp the token id.
+            // NOTE: PrismaAdapter does NOT return custom fields (like `role`) in
+            // the NextAuth User object, so we must load role from DB immediately
+            // on sign-in — do NOT rely on user.role here.
             if (user) {
                 token.id = user.id
-                token.role = user.role
-                token.lastRefreshed = Date.now()
+                // token.lastRefreshed intentionally NOT set here so the DB
+                // refresh below runs immediately on the first sign-in call.
             }
 
-            // Refresh role + active status from DB every 5 minutes.
-            // This ensures role changes and deactivations take effect quickly
-            // without hitting the DB on every single request.
+            // Refresh role + active status from DB:
+            //   - Always on the first sign-in call (lastRefreshed not yet set)
+            //   - Every 5 minutes thereafter
+            //   - On explicit session update trigger
             const REFRESH_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
             const shouldRefresh =
+                !!user ||                          // ← always refresh on sign-in
                 trigger === 'update' ||
                 !token.lastRefreshed ||
                 Date.now() - (token.lastRefreshed as number) > REFRESH_INTERVAL_MS

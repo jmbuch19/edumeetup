@@ -2,11 +2,16 @@ import { randomBytes, createHash } from 'crypto'
 import { prisma } from './prisma'
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazily initialised — avoids crash on import when RESEND_API_KEY is absent (local dev)
+let _resend: Resend | null = null
+function getResend() {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY!)
+  return _resend
+}
 const brandColor = "#4F46E5"
 
 function buildEmailHtml(url: string, isUniversity = false): string {
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -50,56 +55,56 @@ function buildEmailHtml(url: string, isUniversity = false): string {
  * The URL contains the plain token; Auth.js hashes it on callback to verify.
  */
 export async function sendMagicLink(email: string, redirectTo: string): Promise<void> {
-    const secret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? ''
-    const baseUrl = (process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? 'https://edumeetup.com').replace(/\/$/, '')
+  const secret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? ''
+  const baseUrl = (process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? 'https://edumeetup.com').replace(/\/$/, '')
 
-    // 1. Generate random plain token
-    const plainToken = randomBytes(32).toString('hex')
+  // 1. Generate random plain token
+  const plainToken = randomBytes(32).toString('hex')
 
-    // 2. Hash using the same algorithm Auth.js uses: SHA256(token + secret)
-    const hashedToken = createHash('sha256')
-        .update(`${plainToken}${secret}`)
-        .digest('hex')
+  // 2. Hash using the same algorithm Auth.js uses: SHA256(token + secret)
+  const hashedToken = createHash('sha256')
+    .update(`${plainToken}${secret}`)
+    .digest('hex')
 
-    // 3. Clean up expired/old tokens, then store new one
-    await prisma.verificationToken.deleteMany({
-        where: { identifier: email }
-    })
-    await prisma.verificationToken.create({
-        data: {
-            identifier: email,
-            token: hashedToken,
-            expires: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
-        }
-    })
-
-    // 4. Build the magic link URL (same format Auth.js expects)
-    const params = new URLSearchParams({
-        callbackUrl: redirectTo,
-        token: plainToken,
-        email,
-    })
-    const magicLinkUrl = `${baseUrl}/api/auth/callback/email?${params.toString()}`
-
-    console.log(`[MAGIC LINK] Generated for ${email} → ${baseUrl}/api/auth/callback/email?...`)
-
-    // 5. Send via Resend
-    const isUniversity = redirectTo.includes('university')
-    const subject = isUniversity
-        ? 'Your edUmeetup university portal sign-in link'
-        : 'Your edUmeetup sign-in link'
-
-    const { error } = await resend.emails.send({
-        from: process.env.EMAIL_FROM ?? 'EduMeetup <noreply@edumeetup.com>',
-        to: email,
-        subject,
-        html: buildEmailHtml(magicLinkUrl, isUniversity),
-    })
-
-    if (error) {
-        console.error('[MAGIC LINK] Resend error:', error)
-        throw new Error(`Resend failed: ${(error as any).message ?? JSON.stringify(error)}`)
+  // 3. Clean up expired/old tokens, then store new one
+  await prisma.verificationToken.deleteMany({
+    where: { identifier: email }
+  })
+  await prisma.verificationToken.create({
+    data: {
+      identifier: email,
+      token: hashedToken,
+      expires: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
     }
+  })
 
-    console.log(`[MAGIC LINK] Email sent successfully to ${email}`)
+  // 4. Build the magic link URL (same format Auth.js expects)
+  const params = new URLSearchParams({
+    callbackUrl: redirectTo,
+    token: plainToken,
+    email,
+  })
+  const magicLinkUrl = `${baseUrl}/api/auth/callback/email?${params.toString()}`
+
+  console.log(`[MAGIC LINK] Generated for ${email} → ${baseUrl}/api/auth/callback/email?...`)
+
+  // 5. Send via Resend
+  const isUniversity = redirectTo.includes('university')
+  const subject = isUniversity
+    ? 'Your edUmeetup university portal sign-in link'
+    : 'Your edUmeetup sign-in link'
+
+  const { error } = await getResend().emails.send({
+    from: process.env.EMAIL_FROM ?? 'EduMeetup <noreply@edumeetup.com>',
+    to: email,
+    subject,
+    html: buildEmailHtml(magicLinkUrl, isUniversity),
+  })
+
+  if (error) {
+    console.error('[MAGIC LINK] Resend error:', error)
+    throw new Error(`Resend failed: ${(error as any).message ?? JSON.stringify(error)}`)
+  }
+
+  console.log(`[MAGIC LINK] Email sent successfully to ${email}`)
 }
