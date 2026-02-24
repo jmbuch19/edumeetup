@@ -101,6 +101,7 @@ export default async function StudentDashboard() {
             myMeetings={cleanMeetings}
             interestedUniIds={interestedUniIdsArray}
             advisoryStatus={cleanAdvisory}
+            hasCv={!!student.cvFileName}
         />
     )
 }

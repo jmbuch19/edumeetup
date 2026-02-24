@@ -33,6 +33,7 @@ interface DashboardUIProps {
     myMeetings: any[] // Serialized ExtendedMeeting
     interestedUniIds: string[] // Changed from Set to Array for serialization
     advisoryStatus: any // Serialized AdvisoryRequest
+    hasCv: boolean
 }
 
 export function DashboardUI({
@@ -41,7 +42,8 @@ export function DashboardUI({
     recommendedUniversities,
     myMeetings,
     interestedUniIds, // Now an Array
-    advisoryStatus
+    advisoryStatus,
+    hasCv
 }: DashboardUIProps) {
     // Re-create Set for internal use if needed, or just use includes
     const interestedSet = new Set(interestedUniIds)
@@ -98,6 +100,22 @@ export function DashboardUI({
                     {/* User requested non-intrusive banner */}
                     {!advisoryStatus && (
                         <AdvisoryBanner onOpen={() => setActiveTab('advisory')} />
+                    )}
+
+                    {/* CV Upload Nudge — shown only when no CV uploaded yet */}
+                    {!hasCv && (
+                        <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl">📄</span>
+                                <div>
+                                    <p className="text-sm font-semibold text-amber-900">Upload your CV to stand out</p>
+                                    <p className="text-xs text-amber-700 mt-0.5">Universities and advisors can review your profile faster with a CV attached.</p>
+                                </div>
+                            </div>
+                            <Link href="/student/profile" className="shrink-0">
+                                <Button size="sm" variant="outline" className="border-amber-300 text-amber-800 hover:bg-amber-100 whitespace-nowrap">Upload CV →</Button>
+                            </Link>
+                        </div>
                     )}
 
                     {/* My Meetings Section */}
