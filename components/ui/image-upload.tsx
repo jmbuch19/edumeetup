@@ -1,11 +1,9 @@
-
 'use client'
 
-import { CldUploadWidget } from 'next-cloudinary'
 import { Button } from '@/components/ui/button'
 import { ImagePlus, Trash, Loader2 } from 'lucide-react'
 import Image from 'next/image'
-import { useCallback, useState, useEffect } from 'react'
+import { useRef, useState, useEffect } from 'react'
 
 interface ImageUploadProps {
     disabled?: boolean
@@ -21,25 +19,48 @@ export default function ImageUpload({
     value
 }: ImageUploadProps) {
     const [isMounted, setIsMounted] = useState(false)
+    const [isUploading, setIsUploading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const inputRef = useRef<HTMLInputElement>(null)
 
-    useEffect(() => {
-        setIsMounted(true)
-    }, [])
+    useEffect(() => { setIsMounted(true) }, [])
 
-    const onUpload = useCallback((result: any) => {
-        // Result structure: { info: { secure_url: string, colors: [[hex, coverage], ...] } }
-        const url = result.info.secure_url
-        // Extract basic color if available (Cloudinary usually returns simplified color info in 'colors' field)
-        // Or user can use the 'e_theme' transformation later.
-        // For MVP, if colors array exists, we take the top one.
-        const extractedColors = result.info.colors?.map((c: any) => c[0])
+    async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0]
+        if (!file) return
 
-        onChange(url, extractedColors)
-    }, [onChange])
+        if (!file.type.startsWith('image/')) {
+            setError('Please select an image file.')
+            return
+        }
+        if (file.size > 2 * 1024 * 1024) {
+            setError('Image must be under 2 MB.')
+            return
+        }
 
-    if (!isMounted) {
-        return null;
+        setError(null)
+        setIsUploading(true)
+
+        try {
+            const form = new FormData()
+            form.append('file', file)
+
+            const res = await fetch('/api/upload/logo', { method: 'POST', body: form })
+            const data = await res.json()
+
+            if (!res.ok) throw new Error(data.error || 'Upload failed')
+
+            onChange(data.url)
+        } catch (err: any) {
+            setError(err.message || 'Upload failed. Please try again.')
+        } finally {
+            setIsUploading(false)
+            // Reset so the same file can be re-selected if needed
+            if (inputRef.current) inputRef.current.value = ''
+        }
     }
+
+    if (!isMounted) return null
 
     return (
         <div>
@@ -59,41 +80,36 @@ export default function ImageUpload({
                         <Image
                             fill
                             className="object-contain p-2"
-                            alt="Image"
+                            alt="University logo"
                             src={url}
                         />
                     </div>
                 ))}
             </div>
-            <CldUploadWidget
-                onSuccess={onUpload}
-                uploadPreset="edumeetup_unsigned"
-                options={{
-                    maxFiles: 1,
-                    sources: ['local', 'url'],
-                    clientAllowedFormats: ['image'],
-                    multiple: false
-                }}
+
+            <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+                disabled={disabled || isUploading}
+            />
+
+            <Button
+                type="button"
+                disabled={disabled || isUploading}
+                variant="secondary"
+                onClick={() => inputRef.current?.click()}
             >
-                {({ open }) => {
-                    return (
-                        <div className="space-y-2">
-                            <Button
-                                type="button"
-                                disabled={disabled}
-                                variant="secondary"
-                                onClick={() => open()}
-                            >
-                                <ImagePlus className="h-4 w-4 mr-2" />
-                                Upload Logo
-                            </Button>
-                            <p className="text-[10px] text-muted-foreground">
-                                Requires Cloudinary Upload Preset: <b>edumeetup_unsigned</b>
-                            </p>
-                        </div>
-                    )
-                }}
-            </CldUploadWidget>
+                {isUploading
+                    ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading…</>
+                    : <><ImagePlus className="h-4 w-4 mr-2" /> Upload Logo</>
+                }
+            </Button>
+
+            {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+            <p className="text-[10px] text-muted-foreground mt-1">PNG, JPG or SVG · max 2 MB</p>
         </div>
     )
 }

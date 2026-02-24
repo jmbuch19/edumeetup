@@ -11,9 +11,6 @@ if (process.env.NODE_ENV === "development" && process.env.AUTH_TRUST_HOST) {
 }
 
 export const authConfig = {
-    // Required for production deployments behind reverse proxies (Netlify, Vercel, etc.)
-    // Without this, Auth.js v5 rejects all /api/auth/* callbacks with UntrustedHost error.
-    // See: https://authjs.dev/getting-started/deployment#trust-host
     trustHost: true,
     pages: {
         signIn: '/login',
@@ -24,13 +21,18 @@ export const authConfig = {
     providers: [], // Providers configured in auth.ts
     callbacks: {
         authorized({ auth, request }) {
-            const isLoggedIn = !!auth?.user
-            const { nextUrl } = request
-            const isOnDashboard = nextUrl.pathname.startsWith('/student/dashboard') || nextUrl.pathname.startsWith('/university/dashboard') || nextUrl.pathname.startsWith('/admin')
-
             // Granular redirect logic is handled in middleware.ts.
-            // Return true here so the request passes through to middleware.
             return true
-        }
+        },
+        // IMPORTANT: This session callback runs in the middleware (edge runtime).
+        // It MUST NOT import Prisma or any Node-only module.
+        // Its sole job is to surface token.role so middleware can do role-based routing.
+        async session({ session, token }: any) {
+            if (session.user && token?.sub) {
+                session.user.id = token.sub
+                session.user.role = token.role
+            }
+            return session
+        },
     }
 } satisfies NextAuthConfig

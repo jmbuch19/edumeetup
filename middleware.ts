@@ -10,6 +10,7 @@ const PUBLIC_API_ROUTES = new Set([
     '/api/validate-university-email',  // Called from the public registration form
     '/api/refresh-university-domains', // Has its own secret key check inside
     '/api/cron',                       // Has its own cron secret check inside
+    '/api/dev-login',                  // Dev-only: returns magic link as JSON (disabled in prod)
 ])
 
 // Dangerous internal/dev routes — only ADMIN may call these

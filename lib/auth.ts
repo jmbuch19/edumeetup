@@ -307,6 +307,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
             return session
         },
+
+        async redirect({ url, baseUrl }) {
+            // Honour absolute same-origin callbackUrls (set by magic link / sign-in form)
+            if (url.startsWith(baseUrl)) return url
+            // Relative callbackUrls
+            if (url.startsWith('/')) return `${baseUrl}${url}`
+            return `${baseUrl}/student/dashboard`
+        },
     },
     events: {
         async signIn({ user, isNewUser }) {
