@@ -48,8 +48,8 @@ export const EMAIL_STYLES = `
     body { font-family: 'Inter', Arial, sans-serif; color: #1e293b; line-height: 1.6; margin: 0; padding: 0; }
     h1, h2 { color: #0f172a; margin-top: 0; }
     p { margin-bottom: 16px; }
-    a { color: #1B5E7E; }
-    .btn { display: inline-block; background-color: #1B5E7E; color: white !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 8px 0; }
+    a { color: #3333CC; }
+    .btn { display: inline-block; background-color: #3333CC; color: white !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 8px 0; }
     .info-box { background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 20px 0; }
     .info-row { margin-bottom: 8px; }
     .info-label { font-weight: 600; color: #64748b; display: inline-block; min-width: 110px; }
@@ -72,13 +72,13 @@ export function generateEmailHtml(title: string, content: string) {
 </head>
 <body style="margin:0;padding:24px;background-color:#f1f5f9;">
     <!-- Header -->
-    <div style="max-width:600px;margin:0 auto 0 auto;background-color:#1B5E7E;padding:24px 32px;border-radius:12px 12px 0 0;text-align:center;">
-        <span style="font-size:22px;font-weight:800;color:white;letter-spacing:-0.5px;">edU<span style="color:#7dd3fc;">meetup</span></span>
-        <p style="font-size:11px;color:#bfdbfe;margin:4px 0 0 0;letter-spacing:1px;text-transform:uppercase;">Where Dreams Meet Destinations</p>
+    <div style="max-width:600px;margin:0 auto 0 auto;background-color:#3333CC;padding:24px 32px;border-radius:12px 12px 0 0;text-align:center;">
+        <span style="font-size:22px;font-weight:800;color:white;letter-spacing:-0.5px;">edU<span style="color:#c7d2fe;">meetup</span></span>
+        <p style="font-size:11px;color:#c7d2fe;margin:4px 0 0 0;letter-spacing:1px;text-transform:uppercase;">Where Dreams Meet Destinations</p>
     </div>
     <!-- Body -->
     <div class="container" style="max-width:600px;margin:0 auto;background-color:white;padding:32px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.07);">
-        <h2 style="color:#1B5E7E;margin-top:0;">${title}</h2>
+        <h2 style="color:#3333CC;margin-top:0;">${title}</h2>
         ${content}
     </div>
     <!-- Footer -->

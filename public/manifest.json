@@ -4,21 +4,21 @@
     "description": "Connect universities and students seamlessly.",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#1B5E7E",
-    "theme_color": "#1B5E7E",
+    "background_color": "#3333CC",
+    "theme_color": "#3333CC",
     "orientation": "portrait",
     "icons": [
         {
             "src": "/icons/icon-192x192.png",
             "sizes": "192x192",
             "type": "image/png",
-            "purpose": "maskable"
+            "purpose": "maskable any"
         },
         {
             "src": "/icons/icon-512x512.png",
             "sizes": "512x512",
             "type": "image/png",
-            "purpose": "maskable"
+            "purpose": "maskable any"
         }
     ]
 }
