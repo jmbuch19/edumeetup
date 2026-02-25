@@ -1,5 +1,5 @@
 [build]
-  command = "prisma migrate deploy && npm run build"
+  command = "npm run build"
 
 [build.environment]
   NETLIFY_USE_YARN = "false"
