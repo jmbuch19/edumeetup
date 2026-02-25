@@ -199,6 +199,8 @@ model University {
   notifications           UniversityNotification[]
   reps                    User[]                   @relation("UniversityReps")
 
+  @@index([verificationStatus])
+  @@index([country])
 }
 
 model UniversityDocument {
@@ -253,6 +255,7 @@ model Interest {
   university     University @relation(fields: [universityId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, universityId, programId])
+  @@index([status])
 }
 
 model Notification {
