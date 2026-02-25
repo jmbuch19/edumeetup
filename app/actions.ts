@@ -1566,24 +1566,26 @@ export async function cancelMeetingByStudent(meetingId: string, reason: string) 
             })
         }
 
-        // 3. Notify university (in-app + email)
-        if (meeting.university?.user) {
-            const universityUserId = meeting.university.user.id
-            const universityEmail = meeting.university.contactEmail || meeting.university.user.email
-            const meetingTitle = meeting.title || `Meeting on ${new Date(meeting.startTime).toLocaleDateString()}`
+        // university & user always present — universityId is non-nullable and user is included above
+        if (!meeting.university?.user) {
+            throw new Error(`Meeting ${meetingId} missing university.user — data integrity issue`)
+        }
+        const universityUserId = meeting.university.user.id
+        const universityEmail = meeting.university.contactEmail || meeting.university.user.email
+        const meetingTitle = meeting.title || `Meeting on ${new Date(meeting.startTime).toLocaleDateString()}`
 
-            await createNotification({
-                userId: universityUserId,
-                type: 'MEETING_CANCELLED',
-                title: 'Meeting Cancelled by Student',
-                message: `A student has cancelled "${meetingTitle}". Reason: ${reason || 'Not specified'}`,
-                payload: { meetingId: meeting.id, cancelledBy: 'STUDENT' }
-            })
+        await createNotification({
+            userId: universityUserId,
+            type: 'MEETING_CANCELLED',
+            title: 'Meeting Cancelled by Student',
+            message: `A student has cancelled "${meetingTitle}". Reason: ${reason || 'Not specified'}`,
+            payload: { meetingId: meeting.id, cancelledBy: 'STUDENT' }
+        })
 
-            await sendEmail({
-                to: universityEmail,
-                subject: `Meeting Cancelled by Student: ${meetingTitle}`,
-                html: generateEmailHtml('Meeting Cancelled', `
+        await sendEmail({
+            to: universityEmail,
+            subject: `Meeting Cancelled by Student: ${meetingTitle}`,
+            html: generateEmailHtml('Meeting Cancelled', `
                     <p>A student has cancelled their meeting request.</p>
                     <div class="info-box">
                         <div class="info-row"><span class="info-label">Meeting:</span> <span>${meetingTitle}</span></div>
@@ -1592,8 +1594,7 @@ export async function cancelMeetingByStudent(meetingId: string, reason: string) 
                     </div>
                     <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/university/meetings" class="btn">View Meetings</a></p>
                 `)
-            })
-        }
+        })
 
         revalidatePath('/student/meetings')
         revalidatePath('/university/meetings')
