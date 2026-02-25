@@ -11,6 +11,11 @@ function getResend() {
 const brandColor = "#4F46E5"
 
 function buildEmailHtml(url: string, isUniversity = false): string {
+  // Wrap the real callback URL in /auth/confirm so Gmail/Yahoo link scanners
+  // hit the harmless confirm page rather than consuming the single-use token.
+  const baseUrl = (process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? 'https://edumeetup.com').replace(/\/$/, '')
+  const confirmUrl = `${baseUrl}/auth/confirm?url=${encodeURIComponent(url)}`
+
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -22,22 +27,17 @@ function buildEmailHtml(url: string, isUniversity = false): string {
     .logo span { color: ${brandColor}; }
     .button { display: inline-block; padding: 12px 24px; background: ${brandColor}; color: white !important; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; margin: 20px 0; }
     .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center; }
-    .fallback { margin-top: 30px; font-size: 12px; color: #9ca3af; word-break: break-all; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="logo"><span>edU</span>meetup</div>
-    <h1>Sign in to ${isUniversity ? 'University Portal' : 'EduMeetup'}</h1>
+    <h1>Sign in to ${isUniversity ? 'University Portal' : 'edUmeetup'}</h1>
     <p>Click the button below to sign in. This link is valid for <strong>15 minutes</strong> and can only be used once.</p>
-    <a href="${url}" class="button" target="_blank">Sign in to EduMeetup</a>
+    <a href="${confirmUrl}" class="button" target="_blank">Sign in to edUmeetup</a>
     <p style="font-size:14px;color:#6b7280;margin-top:20px;">If you did not request this email, you can safely ignore it.</p>
-    <div class="fallback">
-      <p>Or copy and paste this link into your browser:</p>
-      <p>${url}</p>
-    </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} IAES (International Academic &amp; Education Services). All rights reserved.</p>
+      <p>&copy; ${new Date().getFullYear()} IAES (International Academic &amp; Education Services). All rights reserved.</p>
       <p>EduMeetup is an initiative by IAES.</p>
     </div>
   </div>
