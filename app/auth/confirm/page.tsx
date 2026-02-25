@@ -28,9 +28,9 @@ function ConfirmContent() {
             <p style={styles.text}>
                 Click the button below to complete your sign-in. This link is single-use and expires in 15 minutes.
             </p>
-            <a href={url} style={styles.btn}>
+            <button onClick={() => { window.location.href = url! }} style={styles.btn}>
                 Sign In to edUmeetup →
-            </a>
+            </button>
             <p style={styles.warning}>
                 If you did not request this, you can safely ignore this page.
             </p>

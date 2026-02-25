@@ -55,7 +55,7 @@ function buildEmailHtml(url: string, isUniversity = false): string {
  * The URL contains the plain token; Auth.js hashes it on callback to verify.
  */
 export async function sendMagicLink(email: string, redirectTo: string): Promise<void> {
-  const secret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? ''
+  const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? ''
   const baseUrl = (process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? 'https://edumeetup.com').replace(/\/$/, '')
 
   // 1. Generate random plain token
