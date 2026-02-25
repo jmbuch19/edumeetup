@@ -150,7 +150,6 @@ model University {
   website                 String?
   accreditationNo         String?
   verificationStatus      String                   @default("PENDING")
-  isVerified              Boolean                  @default(false)
   verifiedAt              DateTime?
   verifiedByAdmin         String?
   verificationDocUrl      String?
@@ -200,7 +199,6 @@ model University {
   notifications           UniversityNotification[]
   reps                    User[]                   @relation("UniversityReps")
 
-  @@index([isVerified])
 }
 
 model UniversityDocument {
