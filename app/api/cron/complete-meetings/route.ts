@@ -3,9 +3,15 @@ import { Prisma } from '@prisma/client'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-    // 1. Verify Authentication (Vercel Cron usually sends a header, or we can use a secret)
-    // For MVP we can check a simple secret if provided, or just allow it if we assume Vercel protection.
-    // Ideally: if (request.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) ...
+    // --- Auth ---
+    const cronSecret = process.env.CRON_SECRET
+    if (!cronSecret) {
+        return NextResponse.json({ error: 'Not configured' }, { status: 503 })
+    }
+    const authHeader = request.headers.get('Authorization')
+    if (authHeader !== `Bearer ${cronSecret}`) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     try {
         const now = new Date()

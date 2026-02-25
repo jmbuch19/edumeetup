@@ -14,7 +14,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createRep } from './actions'
-import { Plus } from 'lucide-react'
+import { Plus, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function AddRepForm() {
     const [open, setOpen] = useState(false)
@@ -26,11 +27,13 @@ export default function AddRepForm() {
         setIsLoading(false)
 
         if (res.error) {
-            alert(res.error)
+            toast.error(res.error)
         } else {
+            toast.success('Representative added successfully.')
             setOpen(false)
         }
     }
+
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>

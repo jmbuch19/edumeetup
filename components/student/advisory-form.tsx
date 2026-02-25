@@ -63,7 +63,7 @@ export function AdvisoryForm({ onClose }: AdvisoryFormProps) {
                 </div>
             )}
 
-            <div className="p-8">
+            <div className="p-4 sm:p-8">
                 {step === 1 && (
                     <form onSubmit={handleNext} className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                         <div className="text-center mb-6">
@@ -183,7 +183,7 @@ export function AdvisoryForm({ onClose }: AdvisoryFormProps) {
                         </div>
 
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Preferred Time</Label>
                                     <select

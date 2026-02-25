@@ -1,8 +1,19 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export async function GET(request: NextRequest) {
+    // Only runnable with the admin secret (or in development without one configured)
+    const adminSecret = process.env.ADMIN_SECRET
+    if (adminSecret) {
+        const authHeader = request.headers.get('Authorization')
+        if (authHeader !== `Bearer ${adminSecret}`) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+    } else if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json({ error: 'ADMIN_SECRET not configured' }, { status: 503 })
+    }
 
-export async function GET() {
+
     try {
         // Create Admin
         const adminEmail = 'jaydeep@edumeetup.com'

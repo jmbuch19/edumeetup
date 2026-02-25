@@ -25,7 +25,7 @@ function UniversityLoginForm() {
         const errorType = searchParams.get('error')
         if (errorType === 'NotUniversityEmail') setError("Please use your official university email address")
         if (errorType === 'PendingVerification') setError("Your university account is pending admin verification. You'll receive an email once approved.")
-        if (errorType === 'AccountDeactivated') setError("Your account has been deactivated. Contact support@edumeetup.com.")
+        if (errorType === 'AccountDeactivated') setError(`Your account has been deactivated. Contact ${process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? 'support@edumeetup.com'}.`)
         if (errorType === 'EmailSignin') setError("The magic link has expired")
         if (errorType === 'Verification') setError("This link has already been used")
     }, [searchParams])

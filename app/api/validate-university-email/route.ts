@@ -46,14 +46,14 @@ const Schema = z.object({
 const MSG_GENERIC_BLOCKED = [
     'Personal, generic, or disposable email providers are not allowed for university registration.',
     'Please use your official institutional email address (e.g. admissions@youruni.edu, staff@uni.ac.uk).',
-    'If you believe this is an error, contact support@edumeetup.com.',
+    `If you believe this is an error, contact ${process.env.SUPPORT_EMAIL ?? 'support@edumeetup.com'}.`,
 ].join(' ')
 
 const MSG_NOT_RECOGNIZED = [
     'This email domain is not recognized as an official university in our target regions',
     '(USA, UK, Canada, Australia, NZ, Germany, UAE, India, Singapore, or EU member states).',
     '\n\nValid examples: j@harvard.edu · admissions@ox.ac.uk · registrar@nus.edu.sg · info@iitb.ac.in · student@cs.tum.de',
-    '\n\nIf your institution should be listed, contact support@edumeetup.com with your official domain.',
+    `\n\nIf your institution should be listed, contact ${process.env.SUPPORT_EMAIL ?? 'support@edumeetup.com'} with your official domain.`,
 ].join(' ')
 
 // ─── Handler ──────────────────────────────────────────────────────────────────

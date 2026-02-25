@@ -25,7 +25,7 @@ function AuthErrorContent() {
         },
         AccountDeactivated: {
             title: "Account deactivated",
-            message: "Your account has been deactivated. Please contact support@edumeetup.com for assistance.",
+            message: `Your account has been deactivated. Please contact ${process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? 'support@edumeetup.com'} for assistance.`,
             icon: Ban,
             color: "text-red-600 bg-red-100"
         },

@@ -29,7 +29,7 @@ export default async function AdminUsersPage() {
                 </div>
             </div>
 
-            <div className="border rounded-lg bg-white shadow-sm">
+            <div className="border rounded-lg bg-white shadow-sm overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow>

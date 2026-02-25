@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
+import { sendEmail, sendMarketingEmail, generateEmailHtml, EmailTemplates } from "@/lib/email"
 
 export async function sendNotification(formData: FormData) {
     const session = await auth()
@@ -47,6 +48,14 @@ export async function sendNotification(formData: FormData) {
         } else {
             return { error: "Invalid target type" }
         }
+
+        // Respects consentMarketing (notifications are marketing communications)
+        await sendMarketingEmail({
+            userEmail: user.email,
+            to: user.email,
+            subject: `[edUmeetup] ${title}`,
+            html: generateEmailHtml(title, EmailTemplates.announcement(title, message))
+        })
 
         return { success: true }
     } catch (error) {

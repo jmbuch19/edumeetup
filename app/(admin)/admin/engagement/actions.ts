@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
+import { sendEmail, sendMarketingEmail, generateEmailHtml, EmailTemplates } from "@/lib/email"
 
 export async function createAnnouncement(formData: FormData) {
     const session = await auth()
@@ -17,7 +18,7 @@ export async function createAnnouncement(formData: FormData) {
     if (!title || !content) return { error: "Missing required fields" }
 
     try {
-        await prisma.adminAnnouncement.create({
+        const announcement = await prisma.adminAnnouncement.create({
             data: {
                 title,
                 content,
@@ -27,8 +28,33 @@ export async function createAnnouncement(formData: FormData) {
                 sentById: session.user.id
             }
         })
+
+        // ── Email broadcast ──────────────────────────────────────────────
+        // Build role filter based on targetAudience
+        const roleFilter =
+            targetAudience === "STUDENT" ? { role: 'STUDENT' as const } :
+                targetAudience === "UNIVERSITY" ? { role: { in: ['UNIVERSITY', 'UNIVERSITY_REP'] as ('UNIVERSITY' | 'UNIVERSITY_REP')[] } } :
+                    {} // ALL — no filter
+
+        const recipients = await prisma.user.findMany({
+            where: { isActive: true, ...roleFilter },
+            select: { email: true, name: true }
+        })
+
+        const emailHtml = generateEmailHtml(title, EmailTemplates.announcement(title, content))
+
+        // Send in background — respects consentMarketing (announcements are marketing)
+        for (const recipient of recipients) {
+            await sendMarketingEmail({
+                userEmail: recipient.email,
+                to: recipient.email,
+                subject: `[edUmeetup] ${title}`,
+                html: emailHtml
+            })
+        }
+
         revalidatePath("/admin/engagement")
-        return { success: true }
+        return { success: true, emailedCount: recipients.length }
     } catch (error) {
         return { error: "Failed to create announcement" }
     }

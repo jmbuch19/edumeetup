@@ -9,7 +9,11 @@ export async function GET(request: Request) {
         const email = searchParams.get("email");
         const secret = searchParams.get("secret"); // fast security check
 
-        if (secret !== "edumeetup-fast-pass") {
+        const adminSecret = process.env.ADMIN_SECRET
+        if (!adminSecret) {
+            return NextResponse.json({ error: "Not configured" }, { status: 503 })
+        }
+        if (secret !== adminSecret) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 

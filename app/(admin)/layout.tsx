@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { LayoutDashboard, Users, School, LogOut, Ticket, LucideIcon, Globe } from "lucide-react"
 import { logout } from "@/app/actions"
 import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
+import { AdminMobileNav } from "@/components/admin/admin-mobile-nav"
 
 export default async function AdminLayout({
     children,
@@ -58,10 +59,11 @@ export default async function AdminLayout({
                 </div>
             </aside>
 
-            {/* Mobile Header (TODO) */}
+            {/* Mobile nav — hamburger + drawer */}
+            <AdminMobileNav adminEmail={session.user?.email} />
 
             {/* Main Content */}
-            <main className="flex-1 md:ml-64 p-8">
+            <main className="flex-1 md:ml-64 p-4 md:p-8 min-w-0">
                 <AdminBreadcrumbs />
                 {children}
             </main>

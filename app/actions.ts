@@ -4,7 +4,7 @@
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import { sendEmail, EmailTemplates } from '@/lib/email'
+import { sendEmail, EmailTemplates, generateEmailHtml } from '@/lib/email'
 import { requireUser, requireRole, signIn, isUniversityEmail } from '@/lib/auth'
 import { sendMagicLink } from '@/lib/magic-link'
 import { logAudit } from '@/lib/audit'
@@ -171,6 +171,23 @@ export async function registerStudent(prevState: any, formData: FormData) {
         // Send magic link directly (bypasses Auth.js signIn which silently fails in Netlify serverless)
         await sendMagicLink(email, '/student/dashboard')
 
+        // Welcome email to new student
+        await sendEmail({
+            to: email,
+            subject: 'Welcome to EduMeetup! 🎓',
+            html: generateEmailHtml('Welcome to EduMeetup!', EmailTemplates.welcomeStudent(fullName))
+        })
+
+        // Alert admin about new student
+        const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL
+        if (adminEmail) {
+            await sendEmail({
+                to: adminEmail,
+                subject: `New Student Registration: ${fullName}`,
+                html: generateEmailHtml('New Student Registration', EmailTemplates.adminNewStudent(fullName, email))
+            })
+        }
+
         return { success: true, email, message: "Account created! Check your email to login." }
 
     } catch (error) {
@@ -324,7 +341,10 @@ export async function expressInterest(universityId: string, studentEmail?: strin
             }
         })
 
-        // Notification for University
+        const studentMessage = programId
+            ? `I am interested in one of your programs.`
+            : `I am interested in your university.`
+
         // Notification for University
         await createNotification({
             userId: university.user.id,
@@ -334,11 +354,24 @@ export async function expressInterest(universityId: string, studentEmail?: strin
             payload: { studentId: student.id, programId },
             emailTo: university.contactEmail || university.user.email,
             emailSubject: `New Interest from ${student.fullName}`,
-            emailHtml: EmailTemplates.universityInterest(
-                student.fullName || "Student",
-                student.user.email,
-                "I am interested in your programs."
-            )
+            emailHtml: generateEmailHtml(
+                `New Interest from ${student.fullName}`,
+                EmailTemplates.universityInterest(
+                    student.fullName || 'Student',
+                    student.user.email,
+                    studentMessage
+                )
+            ),
+            replyTo: student.user.email
+        })
+
+        // Confirmation notification for Student
+        await createNotification({
+            userId: student.userId,
+            type: 'INTEREST_SENT',
+            title: 'Interest Sent!',
+            message: `Your interest in ${university.institutionName} has been sent. They will review your profile and reach out if there's a match.`,
+            payload: { universityId }
         })
 
         revalidatePath(`/universities/${universityId}`)
@@ -446,19 +479,26 @@ export async function verifyUniversity(formData: FormData) {
         })
 
         // Notification (Email + In-App)
+        const isVerified = status === 'VERIFIED'
         await createNotification({
-            userId: uniProfile.userId, // Notify the University User
+            userId: uniProfile.userId,
             type: 'VERIFICATION_UPDATE',
             title: `University Verification: ${status}`,
-            message: status === 'VERIFIED'
-                ? "Congratulations! Your university profile has been verified. You can now publish programs and accept meetings."
-                : "Your university verification was rejected. Please contact support for more details.",
+            message: isVerified
+                ? 'Congratulations! Your university profile has been verified. You can now publish programs and accept meetings.'
+                : 'Your university verification was not approved. Please contact support for more details.',
             emailTo: uni.contactEmail || uniProfile.user.email,
-            emailSubject: `University Verification Update: ${uni.verificationStatus}`,
-            emailHtml: EmailTemplates.verificationStatus(
-                uni.verificationStatus as 'VERIFIED' | 'REJECTED',
-                uni.institutionName
-            )
+            emailSubject: isVerified
+                ? `Your edUmeetup Profile Has Been Verified — ${uni.institutionName}`
+                : `Update on Your edUmeetup Verification — ${uni.institutionName}`,
+            emailHtml: generateEmailHtml(
+                isVerified ? 'Verification Approved! 🎉' : 'Verification Update',
+                EmailTemplates.verificationStatus(
+                    status as 'VERIFIED' | 'REJECTED',
+                    uni.institutionName
+                )
+            ),
+            ...(!isVerified ? { replyTo: process.env.SUPPORT_EMAIL } : {})
         })
 
         await logAudit({
@@ -637,6 +677,16 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
 
         // Send magic link directly (bypasses Auth.js signIn which silently fails in Netlify serverless)
         await sendMagicLink(email, '/university/dashboard')
+
+        // Alert admin about new university registration
+        const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL
+        if (adminEmail) {
+            await sendEmail({
+                to: adminEmail,
+                subject: `[ACTION REQUIRED] New University Registration: ${institutionName}`,
+                html: generateEmailHtml('New University Registration', EmailTemplates.adminNewUniversity(institutionName, email))
+            })
+        }
 
     } catch (error) {
         console.error('Registration failed:', error)
@@ -817,13 +867,30 @@ export async function createSupportTicket(formData: FormData) {
             html: EmailTemplates.supportTicketNotification(ticket, userName, user.email)
         })
 
-        // 3. Notify User (Confirmation)
+        // 3. Notify User (In-app + email confirmation)
         await createNotification({
             userId: user.id,
             type: 'TICKET_CREATED',
             title: 'Support Ticket Received',
             message: `We received your ticket #${ticket.id.slice(-6)}: "${category}". Our team will review it shortly.`,
             payload: { ticketId: ticket.id }
+        })
+
+        // Email confirmation back to the user
+        await sendEmail({
+            to: user.email,
+            subject: `Support Ticket Received #${ticket.id.slice(-6)}`,
+            html: generateEmailHtml('Support Ticket Received', `
+                <p>Hi ${userName},</p>
+                <p>We have received your support ticket. Here are the details:</p>
+                <div class="info-box">
+                    <div class="info-row"><span class="info-label">Ticket #:</span> <span>${ticket.id.slice(-6).toUpperCase()}</span></div>
+                    <div class="info-row"><span class="info-label">Category:</span> <span>${category}</span></div>
+                    <div class="info-row"><span class="info-label">Priority:</span> <span>${priority}</span></div>
+                </div>
+                <p>Our team typically responds within 24-48 hours. You will be notified by email when there is an update.</p>
+                <p>Best regards,<br/>The EduMeetup Support Team</p>
+            `)
         })
 
         return { success: true, ticketId: ticket.id }
@@ -1174,7 +1241,7 @@ export async function updateMeeting(meetingId: string, formData: FormData) {
             include: { participants: { include: { user: true } } }
         })
 
-        // Notify
+        // Notify participants: in-app + email
         for (const p of updatedMeeting.participants) {
             if (p.participantUserId === user.id) continue
 
@@ -1183,9 +1250,24 @@ export async function updateMeeting(meetingId: string, formData: FormData) {
                     userId: p.participantUserId,
                     type: 'MEETING_UPDATED',
                     title: 'Meeting Updated',
-                    message: `Details for "${title}" have been updated.`,
+                    message: `Details for "${title || meeting.title || 'your meeting'}" have been updated.`,
                     payload: { meetingId: meeting.id }
                 }
+            })
+
+            // Email participants about the update
+            await sendEmail({
+                to: p.user.email,
+                subject: `Meeting Updated: ${title || meeting.title || 'Your Meeting'}`,
+                html: generateEmailHtml('Meeting Details Updated', `
+                    <p>The details for your upcoming meeting have been updated.</p>
+                    <div class="info-box">
+                        <div class="info-row"><span class="info-label">Meeting:</span> <span>${title || meeting.title || 'Meeting'}</span></div>
+                        <div class="info-row"><span class="info-label">Time:</span> <span>${new Date(meeting.startTime).toLocaleString()}</span></div>
+                        ${joinUrl ? `<div class="info-row"><span class="info-label">Join Link:</span> <span>${joinUrl}</span></div>` : ''}
+                    </div>
+                    <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/student/dashboard?tab=meetings" class="btn">View Meeting</a></p>
+                `)
             })
         }
 
@@ -1199,7 +1281,7 @@ export async function updateMeeting(meetingId: string, formData: FormData) {
 
 // --- Consolidated Meeting Logic (from meeting-actions.ts) ---
 
-import { sendMeetingConfirmedEmailToStudent, sendMeetingCancelledEmail } from '@/lib/notifications'
+import { sendMeetingConfirmedEmailToStudent, sendMeetingConfirmedEmailToRep, sendMeetingCancelledEmail } from '@/lib/notifications'
 import { auth } from '@/lib/auth' // Use @/lib/auth which exports auth
 
 // Helper to map Prisma Meeting to Frontend Interface
@@ -1329,27 +1411,65 @@ export async function updateMeetingStatus(
         const studentParticipant = mtg.participants.find((p: any) => p.participantType === 'STUDENT')
         if (studentParticipant && studentParticipant.user.email) {
             const studentEmail = studentParticipant.user.email
+            const studentUserId = studentParticipant.participantUserId
             const institutionName = mtg.university.institutionName
+
+            // Fetch actual rep name
+            let repName = 'University Representative'
+            if (mtg.repId) {
+                const repUser = await prisma.user.findUnique({ where: { id: mtg.repId }, select: { name: true } })
+                if (repUser?.name) repName = repUser.name
+            }
 
             if (status === 'CONFIRMED') {
                 await sendMeetingConfirmedEmailToStudent(
                     studentEmail,
                     institutionName,
-                    "University Representative",
+                    repName,
                     mtg.startTime,
                     (new Date(mtg.endTime).getTime() - new Date(mtg.startTime).getTime()) / 60000,
-                    meetingLink || 'Google Meet',
+                    meetingLink || mtg.joinUrl || '',
                     mtg.id.slice(-6).toUpperCase(),
                     mtg.agenda || ''
                 )
+                // Also notify the rep
+                if (mtg.repId) {
+                    const repUser = await prisma.user.findUnique({ where: { id: mtg.repId }, select: { email: true } })
+                    if (repUser?.email) {
+                        const student = mtg.participants.find((p: any) => p.participantType === 'STUDENT')
+                        const studentName = student?.user?.name || 'Student'
+                        await sendMeetingConfirmedEmailToRep(
+                            repUser.email,
+                            studentName,
+                            mtg.startTime,
+                            (new Date(mtg.endTime).getTime() - new Date(mtg.startTime).getTime()) / 60000,
+                            meetingLink || mtg.joinUrl || undefined
+                        )
+                    }
+                }
+                // In-app notification to student
+                await createNotification({
+                    userId: studentUserId,
+                    type: 'MEETING_CONFIRMED',
+                    title: 'Meeting Confirmed!',
+                    message: `Your meeting with ${institutionName} on ${new Date(mtg.startTime).toLocaleDateString()} has been confirmed.`,
+                    payload: { meetingId: mtg.id }
+                })
             } else if (status === 'REJECTED' || status === 'CANCELLED') {
                 await sendMeetingCancelledEmail(
                     studentEmail,
-                    'STUDENT',
                     institutionName,
                     mtg.startTime,
-                    rejectionReason || "University updated status."
+                    rejectionReason || 'University updated status.'
                 )
+                // In-app notification to student
+                await createNotification({
+                    userId: studentUserId,
+                    type: 'MEETING_CANCELLED',
+                    title: 'Meeting Cancelled',
+                    message: `Your meeting with ${institutionName} on ${new Date(mtg.startTime).toLocaleDateString()} has been ${status.toLowerCase()}.${rejectionReason ? ' Reason: ' + rejectionReason : ''}`,
+                    payload: { meetingId: mtg.id }
+                })
             }
         }
 
@@ -1413,7 +1533,79 @@ export async function holdSlot(universityId: string, repId: string, dateStr: str
 export async function createMeetingRequest(formData: FormData) { return { error: 'Not implemented' } }
 export async function proposeReschedule(meetingId: string, newDateStr: string, reason: string) { return { error: 'Not implemented' } }
 export async function getAvailability() { return [] }
-export async function cancelMeetingByStudent(meetingId: string, reason: string) { return { error: 'Not implemented' } }
+export async function cancelMeetingByStudent(meetingId: string, reason: string) {
+    try {
+        const user = await requireUser()
+        if (user.role !== 'STUDENT') return { error: 'Unauthorized' }
+
+        const student = await prisma.student.findUnique({ where: { userId: user.id } })
+        if (!student) return { error: 'Student profile not found' }
+
+        const meeting = await prisma.meeting.findUnique({
+            where: { id: meetingId },
+            include: {
+                university: { include: { user: true } },
+                availabilitySlot: true
+            }
+        })
+
+        if (!meeting) return { error: 'Meeting not found' }
+        if (meeting.studentId !== student.id) return { error: 'Unauthorized' }
+        if (meeting.status === 'CANCELLED' || meeting.status === 'COMPLETED') {
+            return { error: 'This meeting cannot be cancelled.' }
+        }
+
+        // 1. Update status
+        await prisma.meeting.update({
+            where: { id: meetingId },
+            data: { status: 'CANCELLED', cancellationReason: reason }
+        })
+
+        // 2. Free up availability slot
+        if (meeting.availabilitySlot) {
+            await prisma.availabilitySlot.update({
+                where: { id: meeting.availabilitySlot.id },
+                data: { isBooked: false }
+            })
+        }
+
+        // 3. Notify university (in-app + email)
+        if (meeting.university?.user) {
+            const universityUserId = meeting.university.user.id
+            const universityEmail = meeting.university.contactEmail || meeting.university.user.email
+            const meetingTitle = meeting.title || `Meeting on ${new Date(meeting.startTime).toLocaleDateString()}`
+
+            await createNotification({
+                userId: universityUserId,
+                type: 'MEETING_CANCELLED',
+                title: 'Meeting Cancelled by Student',
+                message: `A student has cancelled "${meetingTitle}". Reason: ${reason || 'Not specified'}`,
+                payload: { meetingId: meeting.id, cancelledBy: 'STUDENT' }
+            })
+
+            await sendEmail({
+                to: universityEmail,
+                subject: `Meeting Cancelled by Student: ${meetingTitle}`,
+                html: generateEmailHtml('Meeting Cancelled', `
+                    <p>A student has cancelled their meeting request.</p>
+                    <div class="info-box">
+                        <div class="info-row"><span class="info-label">Meeting:</span> <span>${meetingTitle}</span></div>
+                        <div class="info-row"><span class="info-label">Date:</span> <span>${new Date(meeting.startTime).toLocaleString()}</span></div>
+                        <div class="info-row"><span class="info-label">Reason:</span> <span>${reason || 'Not specified'}</span></div>
+                    </div>
+                    <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/university/meetings" class="btn">View Meetings</a></p>
+                `)
+            })
+        }
+
+        revalidatePath('/student/meetings')
+        revalidatePath('/university/meetings')
+        return { success: true }
+    } catch (error) {
+        console.error('Failed to cancel meeting by student:', error)
+        return { error: 'Failed to cancel meeting' }
+    }
+}
 
 export async function getLiveUniversitySuggestion() {
     try {

@@ -18,7 +18,14 @@ model User {
   image         String?
   role          UserRole  @default(STUDENT)
   isActive      Boolean   @default(true)
-  
+
+  // GDPR / Manage My Data
+  consentMarketing     Boolean   @default(true)
+  consentAnalytics     Boolean   @default(true)
+  consentWithdrawnAt   DateTime?
+  deletionRequestedAt  DateTime?
+  deletionScheduledFor DateTime?
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -47,6 +54,7 @@ model User {
   representedUniversity University? @relation("UniversityReps", fields: [universityId], references: [id])
 
   announcements         AdminAnnouncement[] @relation("AnnouncementAuthor")
+  consentHistory        ConsentHistory[]
 
   @@index([role])
   @@index([isActive])
@@ -339,8 +347,8 @@ model AuditLog {
   action    String
   entityType String
   entityId  String
-  actorId   String
-  actor     User     @relation(fields: [actorId], references: [id])
+  actorId   String?  // Nullable: set to null when actor user is hard-deleted
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
   metadata  Json?
   createdAt DateTime @default(now())
 }
@@ -420,7 +428,7 @@ model PublicInquiry {
 model SupportTicket {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   type      TicketType
   category  String
   priority  TicketPriority
@@ -774,7 +782,7 @@ model SystemReport {
   screenshotUrl String?
   createdAt DateTime @default(now())
   
-  user      User?    @relation(fields: [userId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
 model BotMisses {
@@ -884,3 +892,19 @@ model SponsoredContent {
   @@index([isActive])
 }
 
+// -----------------------------------------------------------------------------
+// GDPR / MANAGE MY DATA (Added Feb 2026)
+// -----------------------------------------------------------------------------
+
+model ConsentHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  field     String   // "consentMarketing" or "consentAnalytics"
+  oldValue  Boolean
+  newValue  Boolean
+  changedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([changedAt])
+}

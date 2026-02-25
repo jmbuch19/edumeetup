@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { updateUniversitySettings } from './actions'
+import { toast } from 'sonner'
 // import { useToast } from '@/hooks/use-toast' // Removed as it likely doesn't exist
 
 import ImageUpload from '@/components/ui/image-upload'
@@ -23,9 +24,9 @@ export default function SettingsForm({ settings }: { settings: any }) {
         setIsLoading(false)
 
         if (res.error) {
-            alert(res.error)
+            toast.error(res.error)
         } else {
-            alert('Settings updated successfully')
+            toast.success('Settings saved successfully.')
         }
     }
 
@@ -96,27 +97,28 @@ export default function SettingsForm({ settings }: { settings: any }) {
                 <CardContent className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="defaultDuration">Default Duration (Minutes)</Label>
-                        <Input id="defaultDuration" name="defaultDuration" type="number" defaultValue={settings?.defaultDuration || 30} />
+                        <Input id="defaultDuration" name="defaultDuration" type="number" min={15} max={240} defaultValue={settings?.defaultDuration || 30} />
+                        <p className="text-xs text-muted-foreground">Between 15 and 240 minutes.</p>
                     </div>
 
                     <div className="grid gap-2">
                         <Label htmlFor="dailyCapPerRep">Daily Cap Per Rep (Meetings)</Label>
-                        <Input id="dailyCapPerRep" name="dailyCapPerRep" type="number" defaultValue={settings?.dailyCapPerRep || 8} />
+                        <Input id="dailyCapPerRep" name="dailyCapPerRep" type="number" min={1} max={50} defaultValue={settings?.dailyCapPerRep || 8} />
                     </div>
 
                     <div className="grid gap-2">
                         <Label htmlFor="minLeadTimeHours">Minimum Lead Time (Hours)</Label>
-                        <Input id="minLeadTimeHours" name="minLeadTimeHours" type="number" defaultValue={settings?.minLeadTimeHours || 12} />
+                        <Input id="minLeadTimeHours" name="minLeadTimeHours" type="number" min={0} max={168} defaultValue={settings?.minLeadTimeHours || 12} />
                     </div>
 
                     <div className="grid gap-2">
                         <Label htmlFor="bufferMinutes">Buffer Between Meetings (Minutes)</Label>
-                        <Input id="bufferMinutes" name="bufferMinutes" type="number" defaultValue={settings?.bufferMinutes || 15} />
+                        <Input id="bufferMinutes" name="bufferMinutes" type="number" min={0} max={120} defaultValue={settings?.bufferMinutes || 15} />
                     </div>
 
                     <div className="grid gap-2">
                         <Label htmlFor="cancellationWindowHours">Cancellation Window (Hours)</Label>
-                        <Input id="cancellationWindowHours" name="cancellationWindowHours" type="number" defaultValue={settings?.cancellationWindowHours || 24} />
+                        <Input id="cancellationWindowHours" name="cancellationWindowHours" type="number" min={0} max={168} defaultValue={settings?.cancellationWindowHours || 24} />
                     </div>
 
                     <div className="grid gap-2">

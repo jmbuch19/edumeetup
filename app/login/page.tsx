@@ -37,8 +37,8 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="container flex h-screen w-screen flex-col items-center justify-center">
-            <Card className="w-[350px]">
+        <div className="container flex min-h-screen w-screen flex-col items-center justify-center px-4">
+            <Card className="w-full max-w-sm">
                 <CardHeader className="text-center">
                     <CardTitle>Welcome Back</CardTitle>
                     <CardDescription>

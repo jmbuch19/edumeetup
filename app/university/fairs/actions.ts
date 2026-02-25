@@ -62,22 +62,41 @@ export async function respondToOutreach(outreachId: string, status: 'INTERESTED'
 
         // Notify Admin
         const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL
-        if (!ADMIN_EMAIL) throw new Error('ADMIN_NOTIFICATION_EMAIL not configured')
-
-        await sendEmail({
-            to: ADMIN_EMAIL,
-            subject: `University Response: ${updatedOutreach.university.institutionName}`,
-            html: generateEmailHtml(
-                "University Response",
-                EmailTemplates.universityResponse(
-                    updatedOutreach.university.institutionName,
-                    updatedOutreach.hostRequest.institutionName,
-                    updatedOutreach.hostRequest.referenceNumber,
-                    status,
-                    note
+        if (ADMIN_EMAIL) {
+            await sendEmail({
+                to: ADMIN_EMAIL,
+                subject: `University Response: ${updatedOutreach.university.institutionName}`,
+                html: generateEmailHtml(
+                    "University Response",
+                    EmailTemplates.universityResponse(
+                        updatedOutreach.university.institutionName,
+                        updatedOutreach.hostRequest.institutionName,
+                        updatedOutreach.hostRequest.referenceNumber,
+                        status,
+                        note
+                    )
                 )
-            )
-        })
+            })
+        } else {
+            console.warn('[respondToOutreach] ADMIN_NOTIFICATION_EMAIL not set — admin email skipped')
+        }
+
+        // Also notify the host institution about this university's response
+        if (updatedOutreach.hostRequest.contactEmail) {
+            await sendEmail({
+                to: updatedOutreach.hostRequest.contactEmail,
+                subject: `Update on your Campus Fair: ${updatedOutreach.hostRequest.referenceNumber}`,
+                html: generateEmailHtml(
+                    'Campus Fair Update',
+                    EmailTemplates.fairUpdateForHost(
+                        updatedOutreach.university.institutionName,
+                        status,
+                        updatedOutreach.hostRequest.referenceNumber,
+                        note
+                    )
+                )
+            })
+        }
 
         revalidatePath('/university/fairs')
         return { success: true }

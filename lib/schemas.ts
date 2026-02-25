@@ -1,16 +1,16 @@
 import { z } from 'zod'
 
 export const loginSchema = z.object({
-    email: z.string().email("Invalid email address"),
+    email: z.string().email("Please enter a valid email address"),
 })
 
 export const registerStudentSchema = z.object({
-    email: z.string().email(),
-    fullName: z.string().min(2, "Name too short"),
-    country: z.string().min(2),
-    gender: z.string().min(1, "Gender is required"),
-    ageGroup: z.string(),
-    city: z.string().min(2, "City is required"),
+    email: z.string().email("Please enter a valid email address"),
+    fullName: z.string().min(2, "Full name must be at least 2 characters"),
+    country: z.string().min(2, "Country is required"),
+    gender: z.string().min(1, "Please select a gender"),
+    ageGroup: z.string().min(1, "Please select an age group"),
+    city: z.string().min(2, "Please enter your city"),
     pincode: z.string().min(4, "PIN Code must be at least 4 digits"),
     // Optional/nullable fields
     phoneNumber: z.string().optional(),
@@ -33,22 +33,22 @@ export const registerStudentSchema = z.object({
 })
 
 export const registerUniversitySchema = z.object({
-    email: z.string().email(),
-    institutionName: z.string().min(2),
-    country: z.string().min(2),
-    website: z.string().url().optional().or(z.literal('')),
-    contactEmail: z.string().email().optional().or(z.literal('')),
+    email: z.string().email("Please enter a valid institutional email address"),
+    institutionName: z.string().min(2, "Institution name must be at least 2 characters"),
+    country: z.string().min(2, "Country is required"),
+    website: z.string().url("Please enter a valid URL (e.g. https://university.edu)").optional().or(z.literal('')),
+    contactEmail: z.string().email("Please enter a valid contact email").optional().or(z.literal('')),
     // Honeypot
     website_url: z.string().max(0, "Spam detected").optional().or(z.literal(''))
 })
 
 export const createProgramSchema = z.object({
     programName: z.string().min(2, "Program name is required"),
-    degreeLevel: z.string().min(1, "Degree level is required"),
-    fieldCategory: z.string().min(1, "Field category is required"),
-    tuitionFee: z.coerce.number().positive("Tuition fee must be positive"),
-    durationMonths: z.coerce.number().int().positive("Duration must be positive"),
-    intakes: z.array(z.string()).min(1, "At least one intake is required"),
+    degreeLevel: z.string().min(1, "Please select a degree level"),
+    fieldCategory: z.string().min(1, "Please select a field category"),
+    tuitionFee: z.coerce.number().positive("Tuition fee must be a positive number"),
+    durationMonths: z.coerce.number().int().positive("Duration must be a positive number of months"),
+    intakes: z.array(z.string()).min(1, "Please add at least one intake period"),
     currency: z.string().default('USD'),
     englishTests: z.array(z.string()).optional().default([]),
     minEnglishScore: z.string().optional(),
@@ -56,41 +56,43 @@ export const createProgramSchema = z.object({
 })
 
 export const createMeetingSchema = z.object({
-    title: z.string().min(2, "Title is required"),
-    startTime: z.string().refine((val) => !isNaN(Date.parse(val)), "Invalid start time"),
-    duration: z.coerce.number().int().min(15, "Minimum duration is 15 mins"),
+    title: z.string().min(2, "Meeting title is required"),
+    startTime: z.string().refine((val) => !isNaN(Date.parse(val)), "Please select a valid start time"),
+    duration: z.coerce.number().int().min(15, "Minimum meeting duration is 15 minutes"),
     type: z.enum(["ONE_TO_ONE", "GROUP"]),
-    joinUrl: z.string().url("Invalid meeting URL"),
-    participants: z.array(z.string()).min(1, "At least one participant required"),
+    joinUrl: z.string().url("Please enter a valid meeting URL (e.g. https://meet.google.com/...)"),
+    participants: z.array(z.string()).min(1, "Please add at least one participant"),
     availabilitySlotId: z.string().optional(),
     agenda: z.string().optional()
 })
 
 export const supportTicketSchema = z.object({
-    category: z.string().min(1, "Category is required"),
-    priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
-    message: z.string().min(10, "Message is too short")
+    category: z.string().min(1, "Please select a category"),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH"] as const, {
+        error: "Please select a priority level",
+    }),
+    message: z.string().min(10, "Please describe your issue in at least 10 characters")
 })
 
 export const publicInquirySchema = z.object({
-    fullName: z.string().min(2, "Name is required"),
-    email: z.string().email("Invalid email"),
-    role: z.string().min(1, "Role is required"),
-    country: z.string().min(2, "Country is required"),
-    subject: z.string().min(2, "Subject is required"),
-    message: z.string().min(10, "Message is too short"),
+    fullName: z.string().min(2, "Please enter your full name"),
+    email: z.string().email("Please enter a valid email address"),
+    role: z.string().min(1, "Please select your role"),
+    country: z.string().min(2, "Please select your country"),
+    subject: z.string().min(2, "Please enter a subject"),
+    message: z.string().min(10, "Message must be at least 10 characters"),
     phone: z.string().optional(),
     orgName: z.string().optional()
 })
 
 export const studentProfileSchema = z.object({
-    fullName: z.string().min(2, "Name is required"),
+    fullName: z.string().min(2, "Full name must be at least 2 characters"),
     country: z.string().optional().default('India'),
-    gender: z.string().min(1, "Gender is required"),
+    gender: z.string().min(1, "Please select a gender"),
     ageGroup: z.string().optional(),
     phone: z.string().optional(),
-    city: z.string().min(2, "City is required"),
-    pincode: z.string().min(4, "PIN Code is required"),
+    city: z.string().min(2, "Please enter your city"),
+    pincode: z.string().min(4, "PIN Code must be at least 4 digits"),
 
     // Preferences
     currentStatus: z.string().optional(),

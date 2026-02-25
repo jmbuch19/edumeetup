@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "prisma migrate deploy && npm run build"
 
 [build.environment]
   NETLIFY_USE_YARN = "false"
@@ -10,8 +10,30 @@
 
 [functions]
   node_bundler = "esbuild"
+  # Increase timeout for data-heavy routes (delete route cancels meetings + sends emails)
+  included_files = ["prisma/**"]
 
-# Weekly cron: refreshes in-memory university domain cache
-# Calls GET /api/refresh-university-domains?secret=uni-refresh-secret-2025
+[functions."process-deletions"]
+  schedule = "0 2 * * *"
+
 [functions."refresh-university-domains"]
   schedule = "@weekly"
+
+# ─── Required Environment Variables ─────────────────────────────────────────
+# Set all of the following in the Netlify dashboard → Site Settings → Env vars:
+#
+#   DATABASE_URL          Neon PostgreSQL connection string
+#   NEXTAUTH_URL          https://your-site.netlify.app
+#   NEXTAUTH_SECRET       (random 32-char secret)
+#   AUTH_GOOGLE_ID        Google OAuth client ID
+#   AUTH_GOOGLE_SECRET    Google OAuth client secret
+#   R2_ACCOUNT_ID         Cloudflare R2 account ID
+#   R2_ACCESS_KEY_ID      R2 access key
+#   R2_SECRET_ACCESS_KEY  R2 secret key
+#   R2_BUCKET             R2 bucket name
+#   R2_PUBLIC_URL         Public R2 domain (e.g. https://files.edumeetup.com)
+#   EMAIL_FROM            Sender address for transactional email
+#   RESEND_API_KEY        Resend API key (or SMTP vars if using nodemailer)
+#   CRON_SECRET           Random secret shared with the process-deletions function
+#   SUPPORT_EMAIL         support@edumeetup.com  ← used in deletion confirmation emails and server-side error messages
+#   NEXT_PUBLIC_SUPPORT_EMAIL support@edumeetup.com  ← same address, exposed to client error/auth pages

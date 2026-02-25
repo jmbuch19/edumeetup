@@ -1,11 +1,17 @@
 import { google } from '@/lib/ai';
-import { streamText, tool } from 'ai';
+import { streamText } from 'ai';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { auth } from '@/lib/auth';
 
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+  }
+
   const { messages } = await req.json();
 
   const result = streamText({

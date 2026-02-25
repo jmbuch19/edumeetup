@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { MeetingPurpose, VideoProvider, MeetingStatus } from "@prisma/client"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
+import { sendMeetingRequestEmail } from "@/lib/notifications"
+import { createNotification } from "@/lib/notifications"
 
 // --- Schema Validation ---
 
@@ -148,7 +150,42 @@ export async function createMeetingRequest(data: BookingData) {
             }
         })
 
-        // Send Email Notification (TODO in Phase D)
+        // ── Notifications ─────────────────────────────────────────────────────
+        // 1. Fetch rep details for email
+        const repUser = await prisma.user.findUnique({
+            where: { id: repId },
+            include: { university: true }
+        })
+
+        const universityRecord = await prisma.university.findUnique({
+            where: { id: universityId },
+            include: { user: true }
+        })
+
+        // 2. Email to rep
+        if (repUser?.email) {
+            await sendMeetingRequestEmail(
+                repUser.email,
+                student.fullName || 'Student',
+                student.country || 'N/A',
+                purpose,
+                start,
+                durationMinutes,
+                meeting.id,
+                studentQuestions
+            )
+        }
+
+        // 3. In-app notification to university owner
+        if (universityRecord?.user?.id) {
+            await createNotification({
+                userId: universityRecord.user.id,
+                type: 'MEETING_REQUEST',
+                title: 'New Meeting Request',
+                message: `${student.fullName || 'A student'} has requested a ${durationMinutes}-min meeting on ${start.toLocaleDateString()}`,
+                payload: { meetingId: meeting.id, studentId: student.id }
+            })
+        }
 
         revalidatePath('/student/meetings')
         revalidatePath('/university/meetings')

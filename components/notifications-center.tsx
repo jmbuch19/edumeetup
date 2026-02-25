@@ -42,7 +42,7 @@ export function NotificationsCenter({ userRole }: { userRole: string }) {
             {data.sponsored.filter(s => s.placement === "BANNER").map(s => (
                 <div key={s.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800 p-4 rounded-lg border flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        {s.imageUrl && <img src={s.imageUrl} alt={s.title} className="h-12 w-12 rounded object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />}
+                        {s.imageUrl && <img src={s.imageUrl} alt={s.title} className="h-12 w-12 rounded object-cover" loading="lazy" onError={(e) => (e.currentTarget.style.display = 'none')} />}
                         <div>
                             <div className="text-xs font-semibold text-blue-600 dark:text-blue-400">Sponsored by {s.partnerName}</div>
                             <div className="font-medium">{s.title}</div>
@@ -126,7 +126,7 @@ export function NotificationsCenter({ userRole }: { userRole: string }) {
                     {data.sponsored.filter(s => s.placement === "SIDEBAR").map(s => (
                         <Card key={s.id} className="overflow-hidden">
                             <div className="w-full h-32 bg-slate-100 relative">
-                                {s.imageUrl && <img src={s.imageUrl} alt={s.title} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />}
+                                {s.imageUrl && <img src={s.imageUrl} alt={s.title} className="w-full h-full object-cover" loading="lazy" onError={(e) => (e.currentTarget.style.display = 'none')} />}
                             </div>
                             <CardContent className="p-4">
                                 <div className="text-xs font-semibold text-muted-foreground mb-1">Sponsored by {s.partnerName}</div>

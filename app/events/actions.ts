@@ -5,6 +5,8 @@ import { Prisma } from '@prisma/client'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { sendEmail, generateEmailHtml, EmailTemplates } from "@/lib/email"
+import { createNotification } from '@/lib/notifications'
 
 // --- Public Actions ---
 
@@ -84,6 +86,52 @@ export async function registerForEvent(eventId: string) {
                 }
             })
         })
+
+        // ── Notifications ───────────────────────────────────────────────
+        // Re-fetch event with university for email content
+        const eventDetails = await prisma.event.findUnique({
+            where: { id: eventId },
+            include: { university: { include: { user: true } } }
+        })
+
+        if (eventDetails && session.user?.email) {
+            // 1. Confirmation email to student
+            const eventDateStr = new Date(eventDetails.dateTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+            await sendEmail({
+                to: session.user.email,
+                subject: `Registration Confirmed: ${eventDetails.title}`,
+                html: generateEmailHtml(
+                    'Event Registration Confirmed ✔️',
+                    EmailTemplates.eventRegistration(
+                        eventDetails.title,
+                        eventDateStr + ' IST',
+                        eventDetails.location || 'Online',
+                        eventDetails.university.institutionName
+                    )
+                )
+            })
+
+            // 2. In-app notification to student
+            await createNotification({
+                userId: session.user.id!,
+                type: 'EVENT_REGISTERED',
+                title: 'Event Registration Confirmed',
+                message: `You are registered for "${eventDetails.title}" on ${new Date(eventDetails.dateTime).toLocaleDateString()}.`,
+                payload: { eventId }
+            })
+
+            // 3. In-app notification to university
+            if (eventDetails.university.user?.id) {
+                await createNotification({
+                    userId: eventDetails.university.user.id,
+                    type: 'EVENT_REGISTRATION',
+                    title: 'New Event Registration',
+                    message: `A student has registered for "${eventDetails.title}".`,
+                    payload: { eventId, studentId: student.id }
+                })
+            }
+        }
+
         revalidatePath(`/events/${eventId}`)
         return { success: true }
     } catch (e: any) {

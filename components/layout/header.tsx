@@ -141,7 +141,7 @@ export async function Header() {
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" aria-label="Open navigation menu">
                             <Menu className="h-6 w-6" />
                         </Button>
                     </DropdownMenuTrigger>

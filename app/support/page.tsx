@@ -3,10 +3,12 @@ import { createSupportTicket } from "@/app/actions"
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import Link from 'next/link'
-
+import { AlertCircle } from 'lucide-react'
 import { prisma } from "@/lib/prisma"
 
-export default async function SupportPage() {
+export default async function SupportPage({ searchParams }: { searchParams: { error?: string } }) {
+    const errorMessage = searchParams?.error ? decodeURIComponent(searchParams.error) : null
+
     // 1. Check Session
     const session = await auth()
     const user = session?.user
@@ -27,8 +29,10 @@ export default async function SupportPage() {
         "use server"
         const result = await createSupportTicket(formData)
         if (result?.error) {
-            console.error(result.error)
-            return
+            const msg = encodeURIComponent(
+                typeof result.error === 'string' ? result.error : 'Something went wrong. Please try again.'
+            )
+            redirect(`/support?error=${msg}`)
         }
         redirect(`/support/success?ticketId=${result.ticketId}`)
     }
@@ -51,6 +55,12 @@ export default async function SupportPage() {
                 <div className="md:col-span-2 space-y-6">
                     <div className="bg-white p-6 rounded-xl border shadow-sm">
                         <h2 className="text-xl font-semibold mb-4">Submit a Ticket</h2>
+                        {errorMessage && (
+                            <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm">
+                                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                                <span>{errorMessage}</span>
+                            </div>
+                        )}
                         <form action={action} className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
                                 <div>

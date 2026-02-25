@@ -11,6 +11,7 @@ import { AdvisoryBanner } from '@/components/student/advisory-banner'
 import { AdvisoryForm } from '@/components/student/advisory-form'
 import { expressInterest } from '@/app/actions'
 import { NotificationsCenter } from '@/components/notifications-center'
+import { UniversityLogo } from '@/components/university/university-logo'
 
 // Types
 // Types
@@ -104,16 +105,16 @@ export function DashboardUI({
 
                     {/* CV Upload Nudge — shown only when no CV uploaded yet */}
                     {!hasCv && (
-                        <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
-                            <div className="flex items-center gap-3">
-                                <span className="text-2xl">📄</span>
-                                <div>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <span className="text-2xl shrink-0">📄</span>
+                                <div className="min-w-0">
                                     <p className="text-sm font-semibold text-amber-900">Upload your CV to stand out</p>
                                     <p className="text-xs text-amber-700 mt-0.5">Universities and advisors can review your profile faster with a CV attached.</p>
                                 </div>
                             </div>
-                            <Link href="/student/profile" className="shrink-0">
-                                <Button size="sm" variant="outline" className="border-amber-300 text-amber-800 hover:bg-amber-100 whitespace-nowrap">Upload CV →</Button>
+                            <Link href="/student/profile" className="sm:shrink-0">
+                                <Button size="sm" variant="outline" className="w-full sm:w-auto border-amber-300 text-amber-800 hover:bg-amber-100 whitespace-nowrap">Upload CV →</Button>
                             </Link>
                         </div>
                     )}
@@ -229,14 +230,11 @@ export function DashboardUI({
                                 {recommendedUniversities.map((uni) => (
                                     <div key={uni.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                                         <div className="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-100">
-                                            {uni.logo ? (
-                                                <>
-                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img src={uni.logo} alt={uni.institutionName} className="max-h-20 max-w-[80%]" />
-                                                </>
-                                            ) : (
-                                                <GraduationCap className="h-12 w-12 text-gray-400" />
-                                            )}
+                                            <UniversityLogo
+                                                src={uni.logo}
+                                                alt={uni.institutionName}
+                                                size="xl"
+                                            />
                                         </div>
                                         <div className="p-6">
                                             <h3 className="text-xl font-bold text-gray-900 mb-2">{uni.institutionName}</h3>

@@ -121,7 +121,7 @@ export default function BookingWizard({ universityId, universityName }: { univer
                         {!loadingSlots && slots.length > 0 && (
                             <div className="space-y-2">
                                 <Label>Select Time</Label>
-                                <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
                                     {slots.map(slot => (
                                         <Button
                                             key={slot}
