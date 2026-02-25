@@ -115,7 +115,11 @@ async function sendMagicLinkEmail(to: string, url: string) {
         ? "Your edUmeetup university portal sign-in link"
         : "Your edUmeetup sign-in link"
 
-    const brandColor = "#4F46E5"
+    const brandColor = "#3333CC"
+    // Wrap the real callback URL in /auth/confirm to prevent Gmail/Outlook
+    // link pre-fetching from consuming the single-use token before the user clicks.
+    const confirmUrl = `${process.env.NEXTAUTH_URL || 'https://edumeetup.com'}/auth/confirm?url=${encodeURIComponent(url)}`
+
     const html = `
     <!DOCTYPE html>
     <html>
@@ -129,7 +133,6 @@ async function sendMagicLinkEmail(to: string, url: string) {
             .button { display: inline-block; padding: 12px 24px; background-color: ${brandColor}; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; margin: 20px 0; }
             .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center; }
             .warning { font-size: 14px; color: #6b7280; margin-top: 20px; }
-            .fallback { margin-top: 30px; font-size: 12px; color: #9ca3af; word-break: break-all; }
         </style>
     </head>
     <body>
@@ -137,14 +140,10 @@ async function sendMagicLinkEmail(to: string, url: string) {
             <div class="logo"><span>edU</span>meetup</div>
             <h1>Sign in to ${isUniLogin ? "University Portal" : "EduMeetup"}</h1>
             <p>Click the button below to sign in. This link is valid for <strong>15 minutes</strong> and can only be used once.</p>
-            <a href="${url}" class="button" target="_blank">Sign in</a>
+            <a href="${confirmUrl}" class="button" target="_blank">Sign in to edUmeetup</a>
             <p class="warning">If you did not request this email, you can safely ignore it.</p>
-            <div class="fallback">
-                <p>Or copy and paste this link into your browser:</p>
-                <p>${url}</p>
-            </div>
             <div class="footer">
-                <p>© ${new Date().getFullYear()} IAES (International Academic & Education Services). All rights reserved.</p>
+                <p>&copy; ${new Date().getFullYear()} IAES (International Academic &amp; Education Services). All rights reserved.</p>
                 <p>EduMeetup is an initiative by IAES.</p>
             </div>
         </div>
@@ -158,7 +157,7 @@ async function sendMagicLinkEmail(to: string, url: string) {
         to,
         subject,
         html,
-        text: `Sign in to EduMeetup: ${url}`
+        text: `Sign in to edUmeetup — open this link in your browser to complete sign-in: ${confirmUrl}`
     })
 
     if (error) {
