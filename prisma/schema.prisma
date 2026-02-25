@@ -637,6 +637,8 @@ model SponsoredContent {
 
   @@index([universityId])
   @@index([isActive])
+  @@index([status])
+  @@index([startDate, endDate])
 }
 
 model ConsentHistory {
