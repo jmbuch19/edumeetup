@@ -300,6 +300,9 @@ model AdvisoryRequest {
   completedAt     DateTime?
   adviser         User?          @relation("AdviserRequests", fields: [adviserId], references: [id])
   student         Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([studentId])
 }
 
 model PublicInquiry {
