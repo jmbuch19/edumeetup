@@ -2,14 +2,14 @@ const { Jimp } = require('jimp');
 const fs = require('fs');
 const path = require('path');
 
-const INPUT_FILE = path.join(__dirname, '../public/fulllogo.jpg');
+const INPUT_FILE = path.join(__dirname, '../public/fulllogo.png');
 const OUTPUT_DIR = path.join(__dirname, '../public/icons');
 
 const sizes = [192, 512];
 
 async function generateIcons() {
     if (!fs.existsSync(INPUT_FILE)) {
-        console.error('Error: public/logo.png not found. Please save your logo image there.');
+        console.error('Error: public/fulllogo.png not found. Please save your logo there.');
         process.exit(1);
     }
 
