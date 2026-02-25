@@ -7,7 +7,7 @@ function ConfirmContent() {
     const params = useSearchParams()
     const url = params.get('url')
 
-    if (!url || !url.startsWith('/api/auth/callback/email')) {
+    if (!url || !url.includes('/api/auth/callback/email')) {
         return (
             <div style={styles.card}>
                 <div style={styles.icon}>⚠️</div>
