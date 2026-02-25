@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "rm -rf .next && npm run build"
 
 [build.environment]
   NETLIFY_USE_YARN = "false"
