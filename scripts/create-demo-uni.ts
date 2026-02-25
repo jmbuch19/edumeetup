@@ -25,7 +25,6 @@ async function main() {
                     repName: 'Demo Rep',
                     repEmail: 'demo@harvard.edu',
                     contactEmail: 'demo@harvard.edu',
-                    isVerified: true,
                     verificationStatus: 'VERIFIED',
                     verifiedAt: new Date(),
                 }

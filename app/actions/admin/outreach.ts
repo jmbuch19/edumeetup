@@ -11,7 +11,7 @@ export async function getVerifiedUniversities() {
     if (!session?.user || session.user.role !== 'ADMIN') return []
 
     return await prisma.university.findMany({
-        where: { isVerified: true },
+        where: { verificationStatus: 'VERIFIED' },
         select: {
             id: true,
             institutionName: true,

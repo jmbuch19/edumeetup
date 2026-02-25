@@ -82,7 +82,7 @@ export async function isUniversityEmail(email: string): Promise<boolean> {
     try {
         const match = await prisma.university.findFirst({
             where: {
-                isVerified: true,
+                verificationStatus: 'VERIFIED',
                 OR: [
                     { contactEmail: { endsWith: `@${domain}` } },
                     { repEmail: { endsWith: `@${domain}` } },
@@ -249,7 +249,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                             console.log(`[AUTH DEBUG] Invalid university email domain`)
                             return `/auth/error?error=NotUniversityEmail`
                         }
-                        if (dbUser.university && !dbUser.university.isVerified) {
+                        if (dbUser.university && dbUser.university.verificationStatus !== 'VERIFIED') {
                             console.log(`[AUTH DEBUG] University pending verification`)
                             return `/auth/error?error=PendingVerification`
                         }

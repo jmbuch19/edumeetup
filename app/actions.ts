@@ -272,7 +272,6 @@ export async function registerUniversity(formData: FormData) {
                         city: '',
                         website,
                         contactEmail, // Preserved
-                        isVerified: false,
                         verificationStatus: 'PENDING'
                     }
                 }
@@ -464,8 +463,6 @@ export async function verifyUniversity(formData: FormData) {
             data: {
                 verificationStatus: status,
                 verifiedAt: status === 'VERIFIED' ? new Date() : null,
-                isVerified: status === 'VERIFIED',
-
             },
             include: { user: true }
         })
