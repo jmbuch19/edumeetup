@@ -217,16 +217,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     ],
     callbacks: {
         async signIn({ user }) {
-            console.log(`[AUTH DEBUG] SignIn attempt for: ${user.email}`)
             const email = user.email
-            if (!email) {
-                console.log(`[AUTH DEBUG] No email provided`)
-                return false
-            }
+            if (!email) return false
 
             // 1. Rate Limiter
             if (isRateLimited(email)) {
-                console.log(`[AUTH DEBUG] Rate limited: ${email}`)
                 return `/auth/error?error=RateLimited`
             }
 
@@ -236,29 +231,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     where: { email },
                     include: { university: true }
                 })
-                console.log(`[AUTH DEBUG] DB User found: ${!!dbUser} | Role: ${dbUser?.role} | Active: ${dbUser?.isActive}`)
 
                 if (dbUser && !dbUser.isActive) {
-                    console.log(`[AUTH DEBUG] User deactivated`)
                     return `/auth/error?error=AccountDeactivated`
                 }
 
                 if (dbUser) {
                     if (dbUser.role === 'UNIVERSITY') {
                         if (!await isUniversityEmail(email)) {
-                            console.log(`[AUTH DEBUG] Invalid university email domain`)
                             return `/auth/error?error=NotUniversityEmail`
                         }
                         if (dbUser.university && dbUser.university.verificationStatus !== 'VERIFIED') {
-                            console.log(`[AUTH DEBUG] University pending verification`)
                             return `/auth/error?error=PendingVerification`
                         }
                     }
                 }
-                console.log(`[AUTH DEBUG] Login Allowed`)
                 return true
             } catch (error) {
-                console.error(`[AUTH DEBUG] Error in signIn callback:`, error)
+                console.error(`[AUTH] Error in signIn callback:`, error)
                 return false
             }
         },
