@@ -90,9 +90,24 @@ export function CalendarView({ meetings, slots }: CalendarViewProps) {
                                 return (
                                     <div
                                         key={day.toISOString()}
+                                        role="button"
+                                        tabIndex={0}
                                         onClick={() => setSelectedDate(day)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault()
+                                                setSelectedDate(day)
+                                            }
+                                        }}
+                                        aria-label={[
+                                            format(day, 'EEEE, MMMM d'),
+                                            hasMeeting ? 'has meetings' : null,
+                                            hasSlot ? 'has available slots' : null,
+                                            isSelected ? 'selected' : null,
+                                        ].filter(Boolean).join(', ')}
+                                        aria-pressed={isSelected}
                                         className={cn(
-                                            "h-24 p-2 border rounded-md cursor-pointer transition-colors relative flex flex-col justify-between hover:border-primary/50",
+                                            "h-24 p-2 border rounded-md cursor-pointer transition-colors relative flex flex-col justify-between hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1",
                                             isSelected ? "border-primary bg-blue-50/30 ring-1 ring-primary" : "border-gray-100",
                                             !isSameMonth(day, currentMonth) && "text-gray-300 bg-gray-50"
                                         )}

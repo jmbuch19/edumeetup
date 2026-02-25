@@ -90,13 +90,13 @@ export async function Header() {
                                     user.role === 'UNIVERSITY' ? '/university/dashboard' :
                                         '/admin/dashboard'
                             }>
-                                <Button variant="ghost" size="icon" title="Dashboard">
+                                <Button variant="ghost" size="icon" title="Dashboard" aria-label="Go to dashboard">
                                     <LayoutDashboard className="h-5 w-5 text-gray-600" />
                                 </Button>
                             </Link>
 
                             <form action={logout}>
-                                <Button variant="ghost" size="icon" title="Sign Out">
+                                <Button variant="ghost" size="icon" title="Sign Out" aria-label="Sign out">
                                     <LogOut className="h-5 w-5 text-red-500" />
                                 </Button>
                             </form>
