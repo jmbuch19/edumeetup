@@ -4,6 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import Email from "next-auth/providers/email"
 import Google from "next-auth/providers/google"
+import Credentials from "next-auth/providers/credentials"
 import { Resend } from "resend"
 import { redirect } from "next/navigation"
 import { authConfig } from "./auth.config"
@@ -191,6 +192,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             from: process.env.EMAIL_FROM || 'EduMeetup <noreply@edumeetup.com>',
             maxAge: 15 * 60, // 15 minutes
             sendVerificationRequest: async ({ identifier, url }) => {
+                // DEV: log magic link to terminal — no email needed for local testing
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('\n' + '='.repeat(60))
+                    console.log('🔗 MAGIC LINK (dev mode — click to login):')
+                    console.log(url)
+                    console.log('='.repeat(60) + '\n')
+                }
+
                 // Audit log — records that a link was sent, NOT the URL itself
                 try {
                     await prisma.systemLog.create({
@@ -205,14 +214,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     console.error("Failed to write magic link audit log:", e)
                 }
 
-                // 2. Send Email (Standard)
-                await sendMagicLinkEmail(identifier, url)
+                // Send Email (skipped in dev if no RESEND_API_KEY)
+                if (process.env.RESEND_API_KEY) {
+                    await sendMagicLinkEmail(identifier, url)
+                } else {
+                    console.warn('[dev] RESEND_API_KEY not set — email not sent. Use the URL above.')
+                }
             },
         }),
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        })
+        }),
+        // ⚠️ DEV ONLY — passwordless email login, disabled in production
+        ...(process.env.NODE_ENV === 'development' ? [
+            Credentials({
+                id: 'dev',
+                name: 'Dev Login',
+                credentials: { email: { label: 'Email', type: 'email' } },
+                async authorize(credentials): Promise<any> {
+                    if (!credentials?.email) return null
+                    const user = await prisma.user.findUnique({
+                        where: { email: String(credentials.email) },
+                        select: { id: true, email: true, name: true, isActive: true }
+                    })
+                    if (!user || !user.isActive) return null
+                    return { id: user.id, email: user.email, name: user.name }
+                }
+            })
+        ] : [])
     ],
     callbacks: {
         async signIn({ user }) {
