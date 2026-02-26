@@ -57,8 +57,8 @@ async function getDashboardData() {
         }), []),
     ])
 
-    const oldestPendingHours = (pendingList as any[]).length > 0
-        ? differenceInHours(now, (pendingList as any[])[0].createdAt)
+    const oldestPendingHours = (pendingList as any[]).length > 0 && (pendingList as any[])[0].createdAt
+        ? differenceInHours(now, new Date((pendingList as any[])[0].createdAt))
         : null
 
     return {
