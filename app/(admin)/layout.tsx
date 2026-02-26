@@ -1,6 +1,4 @@
 import Link from "next/link"
-import NextAuth from "next-auth"
-import { authConfig } from "@/lib/auth.config"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,9 +9,6 @@ import {
 import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav"
 import { ActiveNavItem } from "@/components/admin/active-nav-item"
-
-// Lightweight auth — same as middleware, no PrismaAdapter, safe at module level
-const { auth } = NextAuth(authConfig)
 
 async function logout() {
     'use server'
@@ -28,6 +23,9 @@ export default async function AdminLayout({
 }: {
     children: React.ReactNode
 }) {
+    // Dynamic import avoids module-level crash (PrismaAdapter init) while
+    // using the full auth instance that can read sessions correctly.
+    const { auth } = await import('@/lib/auth')
     let session
     try {
         session = await auth()
