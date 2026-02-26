@@ -158,13 +158,13 @@ export default async function AdminDashboard() {
                         label="Pending"
                         value={stats.pendingUniversities}
                         sub={
-                            stats.oldestPendingHours
+                            stats.oldestPendingHours != null
                                 ? stats.oldestPendingHours > 48
                                     ? `Oldest: ${Math.floor(stats.oldestPendingHours / 24)}d ⚠️`
                                     : `Oldest: ${stats.oldestPendingHours}h`
                                 : "None waiting"
                         }
-                        subColor={stats.oldestPendingHours && stats.oldestPendingHours > 48 ? "text-red-500" : "text-gray-500"}
+                        subColor={stats.oldestPendingHours != null && stats.oldestPendingHours > 48 ? "text-red-500" : "text-gray-500"}
                         valueColor="text-yellow-600"
                     />
 
