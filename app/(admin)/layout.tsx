@@ -12,12 +12,20 @@ import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav"
 import { ActiveNavItem } from "@/components/admin/active-nav-item"
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
-    const session = await auth()
+    let session
+    try {
+        session = await auth()
+    } catch (e) {
+        console.error('[AdminLayout] auth() threw:', e)
+        redirect('/login?error=SessionError')
+    }
 
     if (!session?.user || session.user.role !== "ADMIN") {
         redirect("/login")
