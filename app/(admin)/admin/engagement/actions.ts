@@ -5,6 +5,8 @@ import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { sendEmail, sendMarketingEmail, generateEmailHtml, EmailTemplates } from "@/lib/email"
 
+const ALLOWED_ANNOUNCEMENT_TYPES = ['GENERAL', 'NEW_UNIVERSITY', 'CHECK_IN', 'PHYSICAL_FAIR', 'SPONSOR_ONBOARD'] as const
+
 export async function createAnnouncement(formData: FormData) {
     const session = await auth()
     if (session?.user?.role !== "ADMIN") return { error: "Unauthorized" }
@@ -13,24 +15,28 @@ export async function createAnnouncement(formData: FormData) {
     const content = formData.get("content") as string
     const targetAudience = formData.get("targetAudience") as string
     const priority = formData.get("priority") as string
-    const announcementType = formData.get("announcementType") as string
+    const announcementType = (formData.get("announcementType") as string) || "GENERAL"
 
     if (!title || !content) return { error: "Missing required fields" }
 
+    // Server-side allowlist validation — prevents unknown types reaching the DB
+    if (!ALLOWED_ANNOUNCEMENT_TYPES.includes(announcementType as any)) {
+        return { error: "Invalid announcement type" }
+    }
+
     try {
-        const announcement = await prisma.adminAnnouncement.create({
+        await prisma.adminAnnouncement.create({
             data: {
                 title,
                 content,
                 targetAudience: targetAudience || "ALL",
                 priority: priority || "NORMAL",
-                announcementType: announcementType || "GENERAL",
+                announcementType,
                 sentById: session.user.id
             }
         })
 
         // ── Email broadcast ──────────────────────────────────────────────
-        // Build role filter based on targetAudience
         const roleFilter =
             targetAudience === "STUDENT" ? { role: 'STUDENT' as const } :
                 targetAudience === "UNIVERSITY" ? { role: { in: ['UNIVERSITY', 'UNIVERSITY_REP'] as ('UNIVERSITY' | 'UNIVERSITY_REP')[] } } :
@@ -43,7 +49,6 @@ export async function createAnnouncement(formData: FormData) {
 
         const emailHtml = generateEmailHtml(title, EmailTemplates.announcement(title, content))
 
-        // Send in background — respects consentMarketing (announcements are marketing)
         for (const recipient of recipients) {
             await sendMarketingEmail({
                 userEmail: recipient.email,

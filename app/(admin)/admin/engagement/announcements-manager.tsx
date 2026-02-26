@@ -9,13 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { createAnnouncement, deleteAnnouncement, getAnnouncements } from "./actions"
-import { Loader2, Trash2, Megaphone, AlertCircle } from "lucide-react"
+import { Loader2, Trash2, Megaphone, AlertCircle, CalendarDays, Sparkles } from "lucide-react"
 
 type Announcement = {
     id: string
     title: string
     content: string
     targetAudience: string
+    announcementType: string | null
     priority: string
     isActive: boolean
     createdAt: Date
@@ -97,9 +98,11 @@ export function AnnouncementsManager() {
                                     <SelectValue placeholder="Select type" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="GENERAL">General</SelectItem>
-                                    <SelectItem value="NEW_UNIVERSITY">New University</SelectItem>
-                                    <SelectItem value="CHECK_IN">Check-in</SelectItem>
+                                    <SelectItem value="GENERAL">📢 General</SelectItem>
+                                    <SelectItem value="NEW_UNIVERSITY">🏛️ New University</SelectItem>
+                                    <SelectItem value="CHECK_IN">✅ Check-in</SelectItem>
+                                    <SelectItem value="PHYSICAL_FAIR">🎪 Physical Fair</SelectItem>
+                                    <SelectItem value="SPONSOR_ONBOARD">🤝 Sponsor Onboard</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -132,29 +135,41 @@ export function AnnouncementsManager() {
                     <div className="text-muted-foreground">No announcements found.</div>
                 ) : (
                     <div className="space-y-4">
-                        {items.map((item) => (
-                            <Card key={item.id}>
-                                <CardContent className="p-4 flex gap-4 items-start">
-                                    <div className={`p-2 rounded-full ${item.priority === 'HIGH' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                                        {item.priority === 'HIGH' ? <AlertCircle className="h-5 w-5" /> : <Megaphone className="h-5 w-5" />}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex justify-between items-start">
-                                            <h4 className="font-bold">{item.title}</h4>
-                                            <span className="text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleDateString()}</span>
+                        {items.map((item) => {
+                            const typeConfig: Record<string, { icon: React.ReactNode; label: string; bg: string }> = {
+                                PHYSICAL_FAIR: { icon: <CalendarDays className="h-5 w-5" />, label: "Physical Fair", bg: "bg-purple-100 text-purple-600" },
+                                SPONSOR_ONBOARD: { icon: <Sparkles className="h-5 w-5" />, label: "Sponsor Onboard", bg: "bg-yellow-100 text-yellow-600" },
+                                NEW_UNIVERSITY: { icon: <Megaphone className="h-5 w-5" />, label: "New University", bg: "bg-green-100 text-green-600" },
+                                CHECK_IN: { icon: <Megaphone className="h-5 w-5" />, label: "Check-in", bg: "bg-blue-100 text-blue-600" },
+                                GENERAL: { icon: <Megaphone className="h-5 w-5" />, label: "General", bg: "bg-blue-100 text-blue-600" },
+                            }
+                            const type = typeConfig[item.announcementType ?? 'GENERAL'] ?? typeConfig.GENERAL
+                            const isHigh = item.priority === 'HIGH'
+                            return (
+                                <Card key={item.id}>
+                                    <CardContent className="p-4 flex gap-4 items-start">
+                                        <div className={`p-2 rounded-full ${isHigh ? 'bg-red-100 text-red-600' : type.bg}`}>
+                                            {isHigh ? <AlertCircle className="h-5 w-5" /> : type.icon}
                                         </div>
-                                        <p className="text-sm mt-1 whitespace-pre-wrap">{item.content}</p>
-                                        <div className="mt-2 flex gap-2 text-xs">
-                                            <span className="bg-slate-100 px-2 py-1 rounded">To: {item.targetAudience}</span>
-                                            {item.priority === 'HIGH' && <span className="bg-red-100 text-red-800 px-2 py-1 rounded">High Priority</span>}
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start">
+                                                <h4 className="font-bold">{item.title}</h4>
+                                                <span className="text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleDateString()}</span>
+                                            </div>
+                                            <p className="text-sm mt-1 whitespace-pre-wrap">{item.content}</p>
+                                            <div className="mt-2 flex gap-2 text-xs">
+                                                <span className="bg-slate-100 px-2 py-1 rounded">To: {item.targetAudience}</span>
+                                                <span className="bg-slate-100 px-2 py-1 rounded">{type.label}</span>
+                                                {isHigh && <span className="bg-red-100 text-red-800 px-2 py-1 rounded">High Priority</span>}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700">
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            )
+                        })}
                     </div>
                 )}
             </div>
