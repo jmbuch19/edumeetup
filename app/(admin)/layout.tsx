@@ -31,8 +31,11 @@ export default async function AdminLayout({
         redirect("/login")
     }
 
+    console.log('[AdminLayout] auth ok, role:', session?.user?.role)
+
     const adminName = session.user.name || session.user.email?.split("@")[0] || "Admin"
     const adminInitial = adminName.charAt(0).toUpperCase()
+    console.log('[AdminLayout] rendering for:', adminName)
 
     return (
         <div className="min-h-screen bg-gray-100 flex">
