@@ -9,13 +9,7 @@ import {
 import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav"
 import { ActiveNavItem } from "@/components/admin/active-nav-item"
-
-async function logout() {
-    'use server'
-    const { signOut } = await import('@/lib/auth')
-    await signOut({ redirectTo: '/' })
-}
-
+import { adminLogout } from "./admin-actions"
 export const dynamic = 'force-dynamic'
 
 export default async function AdminLayout({
@@ -23,9 +17,15 @@ export default async function AdminLayout({
 }: {
     children: React.ReactNode
 }) {
-    // Dynamic import avoids module-level crash (PrismaAdapter init) while
-    // using the full auth instance that can read sessions correctly.
-    const { auth } = await import('@/lib/auth')
+    // Dynamic import: loads lib/auth inside the request, not at module level
+    let auth
+    try {
+        const authModule = await import('@/lib/auth')
+        auth = authModule.auth
+    } catch (e) {
+        console.error('[AdminLayout] Failed to load auth module:', e)
+        redirect('/login?error=AuthModuleError')
+    }
     let session
     try {
         session = await auth()
@@ -96,7 +96,7 @@ export default async function AdminLayout({
                             <p className="text-xs text-gray-500 truncate">{session.user?.email}</p>
                         </div>
                     </div>
-                    <form action={logout}>
+                    <form action={adminLogout}>
                         <Button variant="outline" className="w-full justify-start gap-2" type="submit">
                             <LogOut className="h-4 w-4" />
                             Sign Out
