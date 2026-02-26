@@ -12,6 +12,7 @@ import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateL
 import { headers } from 'next/headers'
 import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema, studentProfileSchema } from '@/lib/schemas'
 import { createNotification } from '@/lib/notifications'
+import { notifyStudent, notifyUniversity } from '@/lib/notify'
 import { getIpFromHeaders, getIpGeoInfo } from '@/lib/getIpInfo'
 import { AuthError } from "next-auth"
 import { Meeting, MeetingParticipant, User, MeetingStatus } from "@prisma/client"
@@ -344,7 +345,7 @@ export async function expressInterest(universityId: string, studentEmail?: strin
             ? `I am interested in one of your programs.`
             : `I am interested in your university.`
 
-        // Notification for University
+        // Notification for University (generic)
         await createNotification({
             userId: university.user.id,
             type: 'INTEREST_RECEIVED',
@@ -364,13 +365,27 @@ export async function expressInterest(universityId: string, studentEmail?: strin
             replyTo: student.user.email
         })
 
-        // Confirmation notification for Student
+        // Confirmation notification for Student (generic)
         await createNotification({
             userId: student.userId,
             type: 'INTEREST_SENT',
             title: 'Interest Sent!',
             message: `Your interest in ${university.institutionName} has been sent. They will review your profile and reach out if there's a match.`,
             payload: { universityId }
+        })
+
+        // Role-specific bell notifications
+        await notifyUniversity(university.id, {
+            title: 'New Student Interest',
+            message: `${student.fullName} is interested in ${programId ? 'one of your programs' : 'your university'} — view their profile.`,
+            type: 'INFO',
+            actionUrl: '/university/dashboard'
+        })
+        await notifyStudent(student.id, {
+            title: 'Interest Sent!',
+            message: `Your interest in ${university.institutionName} was sent successfully. We'll notify you when they respond.`,
+            type: 'INFO',
+            actionUrl: `/universities/${universityId}`
         })
 
         revalidatePath(`/universities/${universityId}`)
@@ -432,6 +447,21 @@ export async function createProgram(formData: FormData) {
             }
         })
 
+        // Notify students who have expressed interest in this university
+        const interestedStudents = await prisma.interest.findMany({
+            where: { universityId: university.id },
+            select: { studentId: true },
+            distinct: ['studentId']
+        })
+        for (const { studentId } of interestedStudents) {
+            await notifyStudent(studentId, {
+                title: 'New Programme Added',
+                message: `${university.institutionName} has added a new programme: ${data.programName}.`,
+                type: 'INFO',
+                actionUrl: `/universities/${university.id}`
+            })
+        }
+
         revalidatePath('/university/dashboard')
         return { success: true }
     } catch (error) {
@@ -475,7 +505,7 @@ export async function verifyUniversity(formData: FormData) {
             }
         })
 
-        // Notification (Email + In-App)
+        // Notification (Email + In-App generic)
         const isVerified = status === 'VERIFIED'
         await createNotification({
             userId: uniProfile.userId,
@@ -496,6 +526,16 @@ export async function verifyUniversity(formData: FormData) {
                 )
             ),
             ...(!isVerified ? { replyTo: process.env.SUPPORT_EMAIL } : {})
+        })
+
+        // Role-specific bell notification
+        await notifyUniversity(universityId, {
+            title: isVerified ? '🎉 Profile Verified!' : 'Verification Update',
+            message: isVerified
+                ? 'Your university profile has been verified. You can now publish programs and accept meetings.'
+                : 'Your verification was not approved. Please contact support.',
+            type: isVerified ? 'INFO' : 'WARNING',
+            actionUrl: '/university/dashboard'
         })
 
         await logAudit({
@@ -1444,13 +1484,20 @@ export async function updateMeetingStatus(
                         )
                     }
                 }
-                // In-app notification to student
+                // In-app notification to student (generic)
                 await createNotification({
                     userId: studentUserId,
                     type: 'MEETING_CONFIRMED',
                     title: 'Meeting Confirmed!',
                     message: `Your meeting with ${institutionName} on ${new Date(mtg.startTime).toLocaleDateString()} has been confirmed.`,
                     payload: { meetingId: mtg.id }
+                })
+                // Role-specific bell
+                if (mtg.studentId) await notifyStudent(mtg.studentId, {
+                    title: '🎉 Meeting Confirmed!',
+                    message: `Your meeting with ${institutionName} on ${new Date(mtg.startTime).toLocaleDateString()} is confirmed. Check your email for the join link.`,
+                    type: 'INFO',
+                    actionUrl: '/student/meetings'
                 })
             } else if (status === 'REJECTED' || status === 'CANCELLED') {
                 await sendMeetingCancelledEmail(
@@ -1459,13 +1506,20 @@ export async function updateMeetingStatus(
                     mtg.startTime,
                     rejectionReason || 'University updated status.'
                 )
-                // In-app notification to student
+                // In-app notification to student (generic)
                 await createNotification({
                     userId: studentUserId,
                     type: 'MEETING_CANCELLED',
                     title: 'Meeting Cancelled',
                     message: `Your meeting with ${institutionName} on ${new Date(mtg.startTime).toLocaleDateString()} has been ${status.toLowerCase()}.${rejectionReason ? ' Reason: ' + rejectionReason : ''}`,
                     payload: { meetingId: mtg.id }
+                })
+                // Role-specific bell
+                if (mtg.studentId) await notifyStudent(mtg.studentId, {
+                    title: 'Meeting Request Declined',
+                    message: `Your meeting with ${institutionName} was ${status.toLowerCase()}.${rejectionReason ? ' Reason: ' + rejectionReason : ' View alternatives.'}`,
+                    type: 'WARNING',
+                    actionUrl: '/student/meetings'
                 })
             }
         }
@@ -1580,6 +1634,14 @@ export async function cancelMeetingByStudent(meetingId: string, reason: string) 
             title: 'Meeting Cancelled by Student',
             message: `A student has cancelled "${meetingTitle}". Reason: ${reason || 'Not specified'}`,
             payload: { meetingId: meeting.id, cancelledBy: 'STUDENT' }
+        })
+
+        // Role-specific bell
+        await notifyUniversity(meeting.universityId, {
+            title: 'Meeting Cancelled by Student',
+            message: `${meetingTitle} was cancelled. Reason: ${reason || 'Not specified'}.`,
+            type: 'WARNING',
+            actionUrl: '/university/meetings'
         })
 
         await sendEmail({

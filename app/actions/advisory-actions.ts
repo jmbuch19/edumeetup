@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { requireUser } from '@/lib/auth'
+import { notifyStudent } from '@/lib/notify'
 
 // Form Data Type
 export type AdvisoryRequestData = {
@@ -45,6 +46,13 @@ export async function createAdvisoryRequest(data: AdvisoryRequestData) {
                 ...data,
                 status: 'NEW'
             }
+        })
+
+        await notifyStudent(student.id, {
+            title: 'Advisory Request Received',
+            message: 'Your advisory request has been submitted. Our team will review it and assign an advisor shortly.',
+            type: 'INFO',
+            actionUrl: '/student/dashboard'
         })
 
         revalidatePath('/student/dashboard')

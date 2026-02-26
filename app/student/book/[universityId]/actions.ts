@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { sendMeetingRequestEmail } from "@/lib/notifications"
 import { createNotification } from "@/lib/notifications"
+import { notifyStudent, notifyUniversity } from "@/lib/notify"
 
 // --- Schema Validation ---
 
@@ -176,7 +177,7 @@ export async function createMeetingRequest(data: BookingData) {
             )
         }
 
-        // 3. In-app notification to university owner
+        // 3. In-app notification to university owner (generic Notification table)
         if (universityRecord?.user?.id) {
             await createNotification({
                 userId: universityRecord.user.id,
@@ -186,6 +187,20 @@ export async function createMeetingRequest(data: BookingData) {
                 payload: { meetingId: meeting.id, studentId: student.id }
             })
         }
+
+        // 4. Role-specific dashboard bell notifications
+        await notifyUniversity(universityId, {
+            title: 'New Meeting Request',
+            message: `${student.fullName || 'A student'} has requested a ${durationMinutes}-min meeting on ${start.toLocaleDateString()}.`,
+            type: 'INFO',
+            actionUrl: '/university/meetings'
+        })
+        await notifyStudent(student.id, {
+            title: 'Meeting Request Sent',
+            message: `Your meeting request with ${universityRecord?.institutionName || 'the university'} has been submitted. You'll be notified when it's confirmed.`,
+            type: 'INFO',
+            actionUrl: '/student/meetings'
+        })
 
         revalidatePath('/student/meetings')
         revalidatePath('/university/meetings')

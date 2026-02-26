@@ -2,7 +2,8 @@
 
 import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/auth'
-import { sendEmail } from '@/lib/email' // Assuming this exists
+import { sendEmail } from '@/lib/email'
+import { notifyStudent } from '@/lib/notify'
 
 // Types for the UI
 export type InterestStats = {
@@ -131,7 +132,7 @@ export async function sendBulkNotification(programId: string, subject: string, m
 
     if (interests.length === 0) return { success: true, count: 0 }
 
-    // Create Notifications
+    // Create Notifications (generic table + role-specific bell)
     await prisma.notification.createMany({
         data: interests.map(i => ({
             userId: i.student.userId,
@@ -142,8 +143,17 @@ export async function sendBulkNotification(programId: string, subject: string, m
         }))
     })
 
-    // Send Emails (Background or Batch)
-    // For MVP, simplistic loop (careful with rate limits if real)
+    // Role-specific StudentNotification (dashboard bell)
+    for (const interest of interests) {
+        await notifyStudent(interest.studentId, {
+            title: subject,
+            message: message,
+            type: 'INFO',
+            actionUrl: `/universities/${uni.id}`
+        })
+    }
+
+    // Send Emails
     for (const interest of interests) {
         await sendEmail({
             to: interest.student.user.email,
