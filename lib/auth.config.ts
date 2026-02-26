@@ -19,6 +19,7 @@ export const authConfig = {
         newUser: '/onboarding'
     },
     providers: [], // Providers configured in auth.ts
+    session: { strategy: "jwt" as const },
     callbacks: {
         authorized({ auth, request }) {
             // Granular redirect logic is handled in middleware.ts.
