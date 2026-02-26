@@ -18,12 +18,12 @@ async function getDashboardData() {
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
     const now = new Date()
 
-    // Run each query defensively — a missing table must not crash the whole page
-    const safe = async<T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
+    // Defensive wrapper — a failed query never crashes the dashboard
+    async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
         try { return await fn() } catch { return fallback }
     }
 
-        const [
+    const [
         totalStudents,
         newStudentsThisWeek,
         totalUniversities,
@@ -33,36 +33,36 @@ async function getDashboardData() {
         totalMeetings,
         pendingList,
         recentActivity,
-        ] = await Promise.all([
+    ] = await Promise.all([
         safe(() => prisma.student.count(), 0),
-        safe(() => prisma.student.count({where: {createdAt: {gte: oneWeekAgo } } }), 0),
+        safe(() => prisma.student.count({ where: { createdAt: { gte: oneWeekAgo } } }), 0),
         safe(() => prisma.university.count(), 0),
-        safe(() => prisma.university.count({where: {verificationStatus: "VERIFIED" } }), 0),
-        safe(() => prisma.university.count({where: {verificationStatus: "PENDING" } }), 0),
+        safe(() => prisma.university.count({ where: { verificationStatus: "VERIFIED" } }), 0),
+        safe(() => prisma.university.count({ where: { verificationStatus: "PENDING" } }), 0),
         safe(() => prisma.interest.count(), 0),
         safe(() => prisma.meeting.count(), 0),
 
         // Pending universities — oldest first
         safe(() => prisma.university.findMany({
-            where: {verificationStatus: "PENDING" },
-        include: {user: true },
-        orderBy: {createdAt: "asc" },
+            where: { verificationStatus: "PENDING" },
+            include: { user: true },
+            orderBy: { createdAt: "asc" },
         }), []),
 
         // Audit log — falls back to [] if table missing in production
         safe(() => prisma.auditLog.findMany({
             take: 8,
-        orderBy: {createdAt: "desc" },
-        include: {actor: {select: {email: true, role: true } } },
+            orderBy: { createdAt: "desc" },
+            include: { actor: { select: { email: true, role: true } } },
         }), []),
-        ])
+    ])
 
     const oldestPendingHours = (pendingList as any[]).length > 0
         ? differenceInHours(now, (pendingList as any[])[0].createdAt)
         : null
 
-        return {
-            stats: {
+    return {
+        stats: {
             totalStudents,
             newStudentsThisWeek,
             totalUniversities,
@@ -77,37 +77,37 @@ async function getDashboardData() {
     }
 }
 
-        // ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
-        function getGreeting() {
+function getGreeting() {
     const hour = new Date().getHours()
-        if (hour < 12) return "Good morning"
-        if (hour < 17) return "Good afternoon"
-        return "Good evening"
+    if (hour < 12) return "Good morning"
+    if (hour < 17) return "Good afternoon"
+    return "Good evening"
 }
 
-        function getActivityIcon(action: string) {
+function getActivityIcon(action: string) {
     if (action.includes("VERIFY") || action.includes("APPROVE")) return "✅"
-        if (action.includes("REJECT")) return "❌"
-        if (action.includes("DELETE")) return "🗑️"
-        if (action.includes("CREATE") || action.includes("REGISTER")) return "🎓"
-        if (action.includes("MEETING")) return "📅"
-        if (action.includes("TICKET")) return "🎫"
-        return "📋"
+    if (action.includes("REJECT")) return "❌"
+    if (action.includes("DELETE")) return "🗑️"
+    if (action.includes("CREATE") || action.includes("REGISTER")) return "🎓"
+    if (action.includes("MEETING")) return "📅"
+    if (action.includes("TICKET")) return "🎫"
+    return "📋"
 }
 
-        // ── Page ─────────────────────────────────────────────────────────────────────
+// ── Page ─────────────────────────────────────────────────────────────────────
 
-        export default async function AdminDashboard() {
+export default async function AdminDashboard() {
     const session = await auth()
-        if (!session?.user || session.user.role !== "ADMIN") redirect("/login")
+    if (!session?.user || session.user.role !== "ADMIN") redirect("/login")
 
-        const {stats, pendingList, recentActivity} = await getDashboardData()
+    const { stats, pendingList, recentActivity } = await getDashboardData()
 
-        const adminName = session.user.name || session.user.email?.split("@")[0] || "Admin"
-        const greeting = getGreeting()
+    const adminName = session.user.name || session.user.email?.split("@")[0] || "Admin"
+    const greeting = getGreeting()
 
-        const alerts: string[] = []
+    const alerts: string[] = []
     if (stats.pendingUniversities > 0)
         alerts.push(`${stats.pendingUniversities} pending verification${stats.pendingUniversities > 1 ? "s" : ""}`)
     if (stats.oldestPendingHours && stats.oldestPendingHours > 48)
@@ -117,7 +117,7 @@ async function getDashboardData() {
         ? `You have ${alerts.join(" and ")}.`
         : "Everything looks good — all caught up!"
 
-        return (
+    return (
         <div className="min-h-screen bg-gray-50/50">
 
             {/* ── Hero banner ───────────────────────────────────────────── */}
@@ -315,21 +315,21 @@ async function getDashboardData() {
                 </div>
             </div>
         </div>
-        )
+    )
 }
 
-        // ── Reusable stat card ────────────────────────────────────────────────────────
+// ── Reusable stat card ────────────────────────────────────────────────────────
 
-        function StatCard({
-            icon, bg, label, value, sub, subColor, valueColor = "text-gray-900"
-        }: {
-            icon: React.ReactNode
-        bg: string
-        label: string
-        value: number
-        sub: string
-        subColor: string
-        valueColor?: string
+function StatCard({
+    icon, bg, label, value, sub, subColor, valueColor = "text-gray-900"
+}: {
+    icon: React.ReactNode
+    bg: string
+    label: string
+    value: number
+    sub: string
+    subColor: string
+    valueColor?: string
 }) {
     return (
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
@@ -342,5 +342,5 @@ async function getDashboardData() {
             <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
             <p className={`text-xs mt-1 ${subColor}`}>{sub}</p>
         </div>
-        )
+    )
 }
