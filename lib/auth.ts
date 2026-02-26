@@ -226,9 +226,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
             // 2. Database Checks
             try {
+                // Use a targeted select — avoid `include: { university: true }` which loads
+                // ALL university columns and will crash if the DB schema is out of sync
+                // (e.g. a column exists in schema.prisma but hasn't been migrated yet).
                 const dbUser = await prisma.user.findUnique({
                     where: { email },
-                    include: { university: true }
+                    select: {
+                        role: true,
+                        isActive: true,
+                        university: {
+                            select: { verificationStatus: true }
+                        }
+                    }
                 })
 
                 if (dbUser && !dbUser.isActive) {
