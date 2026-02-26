@@ -18,7 +18,12 @@ async function getDashboardData() {
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
     const now = new Date()
 
-    const [
+    // Run each query defensively — a missing table must not crash the whole page
+    const safe = async<T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
+        try { return await fn() } catch { return fallback }
+    }
+
+        const [
         totalStudents,
         newStudentsThisWeek,
         totalUniversities,
@@ -28,36 +33,36 @@ async function getDashboardData() {
         totalMeetings,
         pendingList,
         recentActivity,
-    ] = await Promise.all([
-        prisma.student.count(),
-        prisma.student.count({ where: { createdAt: { gte: oneWeekAgo } } }),
-        prisma.university.count(),
-        prisma.university.count({ where: { verificationStatus: "VERIFIED" } }),
-        prisma.university.count({ where: { verificationStatus: "PENDING" } }),
-        prisma.interest.count(),
-        prisma.meeting.count(),
+        ] = await Promise.all([
+        safe(() => prisma.student.count(), 0),
+        safe(() => prisma.student.count({where: {createdAt: {gte: oneWeekAgo } } }), 0),
+        safe(() => prisma.university.count(), 0),
+        safe(() => prisma.university.count({where: {verificationStatus: "VERIFIED" } }), 0),
+        safe(() => prisma.university.count({where: {verificationStatus: "PENDING" } }), 0),
+        safe(() => prisma.interest.count(), 0),
+        safe(() => prisma.meeting.count(), 0),
 
         // Pending universities — oldest first
-        prisma.university.findMany({
-            where: { verificationStatus: "PENDING" },
-            include: { user: true },
-            orderBy: { createdAt: "asc" },
-        }),
+        safe(() => prisma.university.findMany({
+            where: {verificationStatus: "PENDING" },
+        include: {user: true },
+        orderBy: {createdAt: "asc" },
+        }), []),
 
-        // Recent system reports (activity feed)
-        prisma.systemReport.findMany({
+        // Audit log — falls back to [] if table missing in production
+        safe(() => prisma.auditLog.findMany({
             take: 8,
-            orderBy: { createdAt: "desc" },
-            include: { user: { select: { email: true, role: true } } },
-        }),
-    ])
+        orderBy: {createdAt: "desc" },
+        include: {actor: {select: {email: true, role: true } } },
+        }), []),
+        ])
 
-    const oldestPendingHours = pendingList.length > 0
-        ? differenceInHours(now, pendingList[0].createdAt)
+    const oldestPendingHours = (pendingList as any[]).length > 0
+        ? differenceInHours(now, (pendingList as any[])[0].createdAt)
         : null
 
-    return {
-        stats: {
+        return {
+            stats: {
             totalStudents,
             newStudentsThisWeek,
             totalUniversities,
@@ -72,37 +77,37 @@ async function getDashboardData() {
     }
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+        // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function getGreeting() {
+        function getGreeting() {
     const hour = new Date().getHours()
-    if (hour < 12) return "Good morning"
-    if (hour < 17) return "Good afternoon"
-    return "Good evening"
+        if (hour < 12) return "Good morning"
+        if (hour < 17) return "Good afternoon"
+        return "Good evening"
 }
 
-function getActivityIcon(type: string) {
-    if (type.includes("VERIFY") || type.includes("APPROVE")) return "✅"
-    if (type.includes("REJECT")) return "❌"
-    if (type.includes("DELETE")) return "🗑️"
-    if (type.includes("MAGIC_LINK") || type.includes("AUTH")) return "🔐"
-    if (type.includes("MEETING")) return "📅"
-    if (type.includes("ERROR") || type.includes("FAIL")) return "⚠️"
-    return "📋"
+        function getActivityIcon(action: string) {
+    if (action.includes("VERIFY") || action.includes("APPROVE")) return "✅"
+        if (action.includes("REJECT")) return "❌"
+        if (action.includes("DELETE")) return "🗑️"
+        if (action.includes("CREATE") || action.includes("REGISTER")) return "🎓"
+        if (action.includes("MEETING")) return "📅"
+        if (action.includes("TICKET")) return "🎫"
+        return "📋"
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+        // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function AdminDashboard() {
+        export default async function AdminDashboard() {
     const session = await auth()
-    if (!session?.user || session.user.role !== "ADMIN") redirect("/login")
+        if (!session?.user || session.user.role !== "ADMIN") redirect("/login")
 
-    const { stats, pendingList, recentActivity } = await getDashboardData()
+        const {stats, pendingList, recentActivity} = await getDashboardData()
 
-    const adminName = session.user.name || session.user.email?.split("@")[0] || "Admin"
-    const greeting = getGreeting()
+        const adminName = session.user.name || session.user.email?.split("@")[0] || "Admin"
+        const greeting = getGreeting()
 
-    const alerts: string[] = []
+        const alerts: string[] = []
     if (stats.pendingUniversities > 0)
         alerts.push(`${stats.pendingUniversities} pending verification${stats.pendingUniversities > 1 ? "s" : ""}`)
     if (stats.oldestPendingHours && stats.oldestPendingHours > 48)
@@ -112,7 +117,7 @@ export default async function AdminDashboard() {
         ? `You have ${alerts.join(" and ")}.`
         : "Everything looks good — all caught up!"
 
-    return (
+        return (
         <div className="min-h-screen bg-gray-50/50">
 
             {/* ── Hero banner ───────────────────────────────────────────── */}
@@ -281,17 +286,19 @@ export default async function AdminDashboard() {
                                 </div>
                             ) : (
                                 <ul className="divide-y divide-gray-100">
-                                    {recentActivity.map((log: any) => (
+                                    {(recentActivity as any[]).map((log: any) => (
                                         <li key={log.id} className="px-4 py-3 hover:bg-gray-50 transition-colors">
                                             <div className="flex items-start gap-3">
-                                                <span className="text-base mt-0.5">{getActivityIcon(log.type)}</span>
+                                                <span className="text-base mt-0.5">{getActivityIcon(log.action ?? log.type ?? '')}</span>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-xs font-medium text-gray-800 truncate">
-                                                        {log.type.replace(/_/g, " ")}
+                                                        {(log.action ?? log.type ?? 'Event').replace(/_/g, " ")}
                                                     </p>
-                                                    <p className="text-xs text-gray-500 truncate">{log.message}</p>
+                                                    {log.message && (
+                                                        <p className="text-xs text-gray-500 truncate">{log.message}</p>
+                                                    )}
                                                     <p className="text-xs text-gray-400 truncate">
-                                                        {log.user?.email || "System"}
+                                                        {log.actor?.email ?? log.user?.email ?? "System"}
                                                     </p>
                                                     <p className="text-[10px] text-gray-300 mt-0.5">
                                                         {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
@@ -308,21 +315,21 @@ export default async function AdminDashboard() {
                 </div>
             </div>
         </div>
-    )
+        )
 }
 
-// ── Reusable stat card ────────────────────────────────────────────────────────
+        // ── Reusable stat card ────────────────────────────────────────────────────────
 
-function StatCard({
-    icon, bg, label, value, sub, subColor, valueColor = "text-gray-900"
-}: {
-    icon: React.ReactNode
-    bg: string
-    label: string
-    value: number
-    sub: string
-    subColor: string
-    valueColor?: string
+        function StatCard({
+            icon, bg, label, value, sub, subColor, valueColor = "text-gray-900"
+        }: {
+            icon: React.ReactNode
+        bg: string
+        label: string
+        value: number
+        sub: string
+        subColor: string
+        valueColor?: string
 }) {
     return (
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
@@ -335,5 +342,5 @@ function StatCard({
             <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
             <p className={`text-xs mt-1 ${subColor}`}>{sub}</p>
         </div>
-    )
+        )
 }
