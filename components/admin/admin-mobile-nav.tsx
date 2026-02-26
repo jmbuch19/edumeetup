@@ -2,15 +2,23 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, LayoutDashboard, Users, School, Ticket, Globe } from 'lucide-react'
+import {
+    Menu, X, LayoutDashboard, Users, School,
+    Ticket, Globe, Megaphone, CalendarDays,
+    FileBarChart2, Sparkles
+} from 'lucide-react'
 
 const navItems = [
     { href: '/admin/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
     { href: '/admin/universities', label: 'Universities', Icon: School },
     { href: '/admin/users', label: 'Users', Icon: Users },
+    { href: '/admin/meetings', label: 'Meetings', Icon: CalendarDays },
+    { href: '/admin/engagement', label: 'Engagement', Icon: Megaphone },
     { href: '/admin/tickets', label: 'Support Tickets', Icon: Ticket },
     { href: '/admin/advisory', label: 'Advisory Requests', Icon: Users },
     { href: '/admin/host-requests', label: 'Host Requests', Icon: Globe },
+    { href: '/admin/sponsored', label: 'Sponsored Content', Icon: Sparkles },
+    { href: '/admin/reports', label: 'Reports', Icon: FileBarChart2 },
 ]
 
 export function AdminMobileNav({ adminEmail }: { adminEmail?: string | null }) {
