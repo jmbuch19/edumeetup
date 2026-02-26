@@ -44,11 +44,11 @@ async function getDashboardData() {
             orderBy: { createdAt: "asc" },
         }),
 
-        // Recent audit log activity
-        prisma.auditLog.findMany({
+        // Recent system reports (activity feed)
+        prisma.systemReport.findMany({
             take: 8,
             orderBy: { createdAt: "desc" },
-            include: { actor: { select: { email: true, role: true } } },
+            include: { user: { select: { email: true, role: true } } },
         }),
     ])
 
@@ -81,13 +81,13 @@ function getGreeting() {
     return "Good evening"
 }
 
-function getActivityIcon(action: string) {
-    if (action.includes("VERIFY") || action.includes("APPROVE")) return "✅"
-    if (action.includes("REJECT")) return "❌"
-    if (action.includes("DELETE")) return "🗑️"
-    if (action.includes("CREATE") || action.includes("REGISTER")) return "🎓"
-    if (action.includes("MEETING")) return "📅"
-    if (action.includes("TICKET")) return "🎫"
+function getActivityIcon(type: string) {
+    if (type.includes("VERIFY") || type.includes("APPROVE")) return "✅"
+    if (type.includes("REJECT")) return "❌"
+    if (type.includes("DELETE")) return "🗑️"
+    if (type.includes("MAGIC_LINK") || type.includes("AUTH")) return "🔐"
+    if (type.includes("MEETING")) return "📅"
+    if (type.includes("ERROR") || type.includes("FAIL")) return "⚠️"
     return "📋"
 }
 
@@ -230,8 +230,8 @@ export default async function AdminDashboard() {
                                                     </td>
                                                     <td className="px-5 py-4">
                                                         <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${isUrgent
-                                                                ? "bg-red-100 text-red-700"
-                                                                : "bg-gray-100 text-gray-600"
+                                                            ? "bg-red-100 text-red-700"
+                                                            : "bg-gray-100 text-gray-600"
                                                             }`}>
                                                             <Clock className="h-3 w-3" />
                                                             {isUrgent
@@ -284,13 +284,14 @@ export default async function AdminDashboard() {
                                     {recentActivity.map((log: any) => (
                                         <li key={log.id} className="px-4 py-3 hover:bg-gray-50 transition-colors">
                                             <div className="flex items-start gap-3">
-                                                <span className="text-base mt-0.5">{getActivityIcon(log.action)}</span>
+                                                <span className="text-base mt-0.5">{getActivityIcon(log.type)}</span>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-xs font-medium text-gray-800 truncate">
-                                                        {log.action.replace(/_/g, " ")}
+                                                        {log.type.replace(/_/g, " ")}
                                                     </p>
+                                                    <p className="text-xs text-gray-500 truncate">{log.message}</p>
                                                     <p className="text-xs text-gray-400 truncate">
-                                                        {log.actor?.email || "System"}
+                                                        {log.user?.email || "System"}
                                                     </p>
                                                     <p className="text-[10px] text-gray-300 mt-0.5">
                                                         {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
