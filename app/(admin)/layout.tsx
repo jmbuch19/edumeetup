@@ -1,5 +1,6 @@
 import Link from "next/link"
-import { auth } from "@/lib/auth"
+import NextAuth from "next-auth"
+import { authConfig } from "@/lib/auth.config"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -7,10 +8,18 @@ import {
     Globe, Megaphone, CalendarDays, FileBarChart2,
     Sparkles
 } from "lucide-react"
-import { logout } from "@/app/actions"
 import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav"
 import { ActiveNavItem } from "@/components/admin/active-nav-item"
+
+// Lightweight auth — same as middleware, no PrismaAdapter, safe at module level
+const { auth } = NextAuth(authConfig)
+
+async function logout() {
+    'use server'
+    const { signOut } = await import('@/lib/auth')
+    await signOut({ redirectTo: '/' })
+}
 
 export const dynamic = 'force-dynamic'
 
