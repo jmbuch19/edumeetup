@@ -215,7 +215,9 @@ export default async function AdminDashboard() {
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {pendingList.map((uni: any) => {
-                                            const hoursWaiting = differenceInHours(new Date(), uni.createdAt)
+                                            const hoursWaiting = uni.createdAt
+                                                ? differenceInHours(new Date(), new Date(uni.createdAt))
+                                                : 0
                                             const isUrgent = hoursWaiting > 48
                                             return (
                                                 <tr key={uni.id} className="hover:bg-gray-50">
@@ -301,7 +303,7 @@ export default async function AdminDashboard() {
                                                         {log.actor?.email ?? log.user?.email ?? "System"}
                                                     </p>
                                                     <p className="text-[10px] text-gray-300 mt-0.5">
-                                                        {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
+                                                        {log.createdAt ? formatDistanceToNow(new Date(log.createdAt), { addSuffix: true }) : 'Unknown time'}
                                                     </p>
                                                 </div>
                                             </div>
