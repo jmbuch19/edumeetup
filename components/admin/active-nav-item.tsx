@@ -2,16 +2,15 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface ActiveNavItemProps {
     href: string
-    icon: LucideIcon
+    iconNode: React.ReactNode
     label: string
 }
 
-export function ActiveNavItem({ href, icon: Icon, label }: ActiveNavItemProps) {
+export function ActiveNavItem({ href, iconNode, label }: ActiveNavItemProps) {
     const pathname = usePathname()
     const isActive = pathname === href || pathname.startsWith(href + "/")
 
@@ -25,7 +24,7 @@ export function ActiveNavItem({ href, icon: Icon, label }: ActiveNavItemProps) {
                     : "text-gray-600 hover:bg-gray-50 hover:text-primary"
             )}
         >
-            <Icon className="h-5 w-5 shrink-0" />
+            {iconNode}
             {label}
             {isActive && (
                 <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />

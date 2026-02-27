@@ -62,19 +62,19 @@ export default async function AdminLayout({
                 {/* Nav */}
                 <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
                     <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-3 pt-2 pb-1">Main</p>
-                    <ActiveNavItem href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
-                    <ActiveNavItem href="/admin/users" icon={Users} label="Users" />
-                    <ActiveNavItem href="/admin/universities" icon={School} label="Universities" />
+                    <ActiveNavItem href="/admin/dashboard" iconNode={<LayoutDashboard className="h-5 w-5 shrink-0" />} label="Dashboard" />
+                    <ActiveNavItem href="/admin/users" iconNode={<Users className="h-5 w-5 shrink-0" />} label="Users" />
+                    <ActiveNavItem href="/admin/universities" iconNode={<School className="h-5 w-5 shrink-0" />} label="Universities" />
 
                     <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-3 pt-4 pb-1">Operations</p>
-                    <ActiveNavItem href="/admin/advisory" icon={Users} label="Advisory Requests" />
-                    <ActiveNavItem href="/admin/host-requests" icon={Globe} label="Host Requests" />
-                    <ActiveNavItem href="/admin/engagement" icon={Megaphone} label="Engagement" />
+                    <ActiveNavItem href="/admin/advisory" iconNode={<Users className="h-5 w-5 shrink-0" />} label="Advisory Requests" />
+                    <ActiveNavItem href="/admin/host-requests" iconNode={<Globe className="h-5 w-5 shrink-0" />} label="Host Requests" />
+                    <ActiveNavItem href="/admin/engagement" iconNode={<Megaphone className="h-5 w-5 shrink-0" />} label="Engagement" />
 
                     <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-3 pt-4 pb-1">Insights</p>
-                    <ActiveNavItem href="/admin/overview" icon={CalendarDays} label="Overview" />
-                    <ActiveNavItem href="/admin/reports" icon={FileBarChart2} label="Reports" />
-                    <ActiveNavItem href="/admin/engagement" icon={Sparkles} label="Sponsored Content" />
+                    <ActiveNavItem href="/admin/overview" iconNode={<CalendarDays className="h-5 w-5 shrink-0" />} label="Overview" />
+                    <ActiveNavItem href="/admin/reports" iconNode={<FileBarChart2 className="h-5 w-5 shrink-0" />} label="Reports" />
+                    <ActiveNavItem href="/admin/engagement" iconNode={<Sparkles className="h-5 w-5 shrink-0" />} label="Sponsored Content" />
                 </nav>
 
                 {/* Footer */}
