@@ -297,28 +297,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
 
         async jwt({ token, user, trigger }) {
-            // On initial sign-in, stamp the token id.
-            // NOTE: PrismaAdapter does NOT return custom fields (like `role`) in
-            // the NextAuth User object, so we must load role from DB immediately
-            // on sign-in — do NOT rely on user.role here.
             if (user) {
                 token.id = user.id
-                // token.lastRefreshed intentionally NOT set here so the DB
-                // refresh below runs immediately on the first sign-in call.
             }
 
-            // Refresh role + active status from DB:
-            //   - Always on the first sign-in call (lastRefreshed not yet set)
-            //   - Every 5 minutes thereafter
-            //   - On explicit session update trigger
-            const REFRESH_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
+            const REFRESH_INTERVAL_MS = 5 * 60 * 1000
             const shouldRefresh =
-                !!user ||                          // ← always refresh on sign-in
+                !!user ||
                 trigger === 'update' ||
                 !token.lastRefreshed ||
                 Date.now() - (token.lastRefreshed as number) > REFRESH_INTERVAL_MS
 
             if (shouldRefresh && token.sub) {
+                console.log(`[AUTH jwt] Refreshing role for sub=${token.sub}`)
                 const dbUser = await prisma.user.findUnique({
                     where: { id: token.sub },
                     select: { role: true, isActive: true }
@@ -326,7 +317,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 if (dbUser) {
                     token.role = dbUser.role as any
                     token.lastRefreshed = Date.now()
-                    if (!dbUser.isActive) return null // Force logout immediately
+                    console.log(`[AUTH jwt] Stamped role=${token.role} for sub=${token.sub}`)
+                    if (!dbUser.isActive) return null
+                } else {
+                    console.warn(`[AUTH jwt] No DB user found for sub=${token.sub}`)
                 }
             }
 
@@ -337,14 +331,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             if (session.user && token.sub) {
                 session.user.id = token.sub
                 session.user.role = token.role!
+                console.log(`[AUTH session] user=${session.user.email} role=${token.role}`)
             }
             return session
         },
 
         async redirect({ url, baseUrl }) {
-            // Honour absolute same-origin callbackUrls (set by magic link / sign-in form)
+            console.log(`[AUTH redirect] url=${url} baseUrl=${baseUrl}`)
             if (url.startsWith(baseUrl)) return url
-            // Relative callbackUrls
             if (url.startsWith('/')) return `${baseUrl}${url}`
             return `${baseUrl}/student/dashboard`
         },
