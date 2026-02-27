@@ -1,6 +1,5 @@
 import Link from "next/link"
-import NextAuth from "next-auth"
-import { authConfig } from "@/lib/auth.config"
+import { auth, signOut } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,13 +11,8 @@ import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav"
 import { ActiveNavItem } from "@/components/admin/active-nav-item"
 
-// Lightweight auth — same as middleware, no PrismaAdapter, safe at module level
-const { auth } = NextAuth(authConfig)
-
 async function logout() {
     'use server'
-    // Dynamic import — avoids module-level lib/auth load which crashes on cold start
-    const { signOut } = await import('@/lib/auth')
     await signOut({ redirectTo: '/' })
 }
 
