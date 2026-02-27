@@ -26,12 +26,56 @@ async function getUniversityProfile(userId: string) {
             institutionName: true,
             notifQuota: true,
             notifPaused: true,
+            // Fetch the field categories of all programs this university offers
+            programs: {
+                select: { fieldCategory: true },
+                distinct: ['fieldCategory']
+            }
         }
     })
 }
 
-/** Return deduplicated student IDs based on the chosen segment */
-async function resolveSegment(universityId: string, segment: string, since: Date): Promise<string[]> {
+/**
+ * Smart field-of-interest filter.
+ * Given a list of student IDs and the university's program categories,
+ * return only students whose fieldOfInterest is blank (unknown, always include)
+ * OR matches one of the university's program fieldCategories.
+ *
+ * A liberal arts school won't burn quota on CS/Engineering students.
+ */
+async function filterByFieldMatch(
+    studentIds: string[],
+    universityFieldCategories: string[]
+): Promise<string[]> {
+    // If the university has no programs yet, skip the filter entirely
+    // (don't penalize new universities who haven't set up programs)
+    if (universityFieldCategories.length === 0) return studentIds
+
+    const normalised = universityFieldCategories.map(f => f.toLowerCase().trim())
+
+    const students = await prisma.student.findMany({
+        where: { id: { in: studentIds } },
+        select: { id: true, fieldOfInterest: true }
+    })
+
+    return students
+        .filter(s => {
+            // No preference set → always include (we can't rule them out)
+            if (!s.fieldOfInterest) return true
+            const studentField = s.fieldOfInterest.toLowerCase().trim()
+            // Include if at least one university category is a substring match
+            return normalised.some(cat => cat.includes(studentField) || studentField.includes(cat))
+        })
+        .map(s => s.id)
+}
+
+/** Return deduplicated, field-matched student IDs based on the chosen segment */
+async function resolveSegment(
+    universityId: string,
+    segment: string,
+    since: Date,
+    uniFieldCategories: string[]
+): Promise<string[]> {
     const studentIdSet = new Set<string>()
 
     if (segment === 'interested' || segment === 'all') {
@@ -44,7 +88,6 @@ async function resolveSegment(universityId: string, segment: string, since: Date
     }
 
     if (segment === 'meetings' || segment === 'all') {
-        // Meeting.studentId is already the Student.id FK
         const meetings = await prisma.meeting.findMany({
             where: { universityId, createdAt: { gte: since }, studentId: { not: null } },
             select: { studentId: true },
@@ -53,7 +96,15 @@ async function resolveSegment(universityId: string, segment: string, since: Date
         meetings.forEach(m => { if (m.studentId) studentIdSet.add(m.studentId) })
     }
 
-    return [...studentIdSet]
+    const rawIds = [...studentIdSet]
+
+    // ── Smart field-of-interest filter ────────────────────────────────────────
+    // Students who expressed interest in a meeting are always more committed,
+    // so apply the filter only if we got >10 students to keep UX responsive.
+    if (rawIds.length > 10) {
+        return filterByFieldMatch(rawIds, uniFieldCategories)
+    }
+    return rawIds
 }
 
 // ── Segment preview — shown to university before sending ──────────────────────
@@ -66,7 +117,8 @@ export async function getSegmentCount(segment: string, dayRange: number = 30) {
     if (!uni) return { error: 'University profile not found' }
 
     const since = new Date(Date.now() - dayRange * 24 * 60 * 60 * 1_000)
-    const ids = await resolveSegment(uni.id, segment, since)
+    const fieldCategories = (uni.programs ?? []).map(p => p.fieldCategory as string)
+    const ids = await resolveSegment(uni.id, segment, since, fieldCategories)
     return { count: Math.min(ids.length, MAX_STUDENTS_PER_CAMPAIGN) }
 }
 
@@ -152,7 +204,8 @@ export async function sendUniversityNotification(formData: FormData) {
 
     // ── Collect target students ───────────────────────────────────────────────
     const since = new Date(Date.now() - dayRange * 24 * 60 * 60 * 1_000)
-    const allStudentIds = await resolveSegment(uni.id, segment, since)
+    const fieldCategories = (uni.programs ?? []).map(p => p.fieldCategory as string)
+    const allStudentIds = await resolveSegment(uni.id, segment, since, fieldCategories)
 
     if (allStudentIds.length === 0) {
         return { error: 'No students found in this segment. Try a wider time range or a different segment.' }
