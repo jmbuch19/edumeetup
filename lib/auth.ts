@@ -286,7 +286,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 }
                 return true
             } catch (error) {
-                console.error(`[AUTH] Error in signIn callback:`, error)
+                console.error(`[AUTH signIn] DB error for ${email}:`, {
+                    message: error instanceof Error ? error.message : String(error),
+                    code: (error as any)?.code,
+                    meta: (error as any)?.meta,
+                    stack: error instanceof Error ? error.stack?.slice(0, 500) : undefined,
+                })
                 return false
             }
         },
