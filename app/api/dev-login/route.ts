@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 // ⚠️  DEVELOPMENT ONLY — disabled in production
-// GET /api/dev-login  → HTML page with one-click buttons that POST to NextAuth credentials
+// GET /api/dev-login  → HTML page with one-click buttons
+// CSRF is fetched CLIENT-SIDE so browser gets both token + cookie together
 
 const DEMO_ACCOUNTS = [
     { label: 'Admin', email: 'admin@edumeetup.com', emoji: '🔐' },
-    { label: 'University Admin', email: 'demo@harvard.edu', emoji: '🏛️' },
+    { label: 'University Admin', email: 'demo@testuniversity.edu', emoji: '🏛️' },
 ]
 
 export async function GET(req: NextRequest) {
@@ -14,19 +15,6 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Not available in production' }, { status: 404 })
     }
 
-    const baseUrl = req.nextUrl.origin || 'http://localhost:3000'
-
-    // Fetch CSRF token from NextAuth (required for credentials POSTs)
-    let csrfToken = ''
-    try {
-        const csrfRes = await fetch(`${baseUrl}/api/auth/csrf`)
-        const csrfData = await csrfRes.json()
-        csrfToken = csrfData.csrfToken ?? ''
-    } catch {
-        console.warn('[dev-login] Could not fetch CSRF token')
-    }
-
-    // Resolve redirect URLs for each demo account
     const accountsWithRedirects = await Promise.all(
         DEMO_ACCOUNTS.map(async (a) => {
             const user = await prisma.user.findUnique({
@@ -42,19 +30,18 @@ export async function GET(req: NextRequest) {
     )
 
     const buttons = accountsWithRedirects.map(a => `
-    <form method="POST" action="/api/auth/callback/credentials">
-      <input type="hidden" name="csrfToken" value="${csrfToken}" />
-      <input type="hidden" name="email" value="${a.email}" />
-      <input type="hidden" name="callbackUrl" value="${a.redirectTo}" />
-      <button type="submit" class="btn" ${!a.found ? 'disabled style="opacity:0.4"' : ''}>
-        <span class="emoji">${a.emoji}</span>
-        <span class="info">
-          <strong>${a.label}</strong>
-          <small>${a.email}${!a.found ? ' (not in DB)' : ''}</small>
-        </span>
-        <span class="arrow">→</span>
-      </button>
-    </form>`).join('')
+    <button
+      class="btn"
+      ${!a.found ? 'disabled style="opacity:0.4"' : ''}
+      onclick="loginAs('${a.email}', '${a.redirectTo}')"
+    >
+      <span class="emoji">${a.emoji}</span>
+      <span class="info">
+        <strong>${a.label}</strong>
+        <small>${a.email}${!a.found ? ' (not in DB)' : ''}</small>
+      </span>
+      <span class="arrow">→</span>
+    </button>`).join('')
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -82,11 +69,11 @@ export async function GET(req: NextRequest) {
     }
     h1 { font-size: 1.5rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.4rem; }
     p  { font-size: 0.85rem; color: #94a3b8; margin-bottom: 2rem; }
-    form { margin-bottom: 0.75rem; }
     .btn {
       width: 100%; display: flex; align-items: center; gap: 1rem; background: #1e1e38;
       border: 1px solid #3b3b5e; border-radius: 12px; padding: 1rem 1.25rem;
       color: #e2e8f0; cursor: pointer; transition: all 0.2s ease; text-align: left;
+      margin-bottom: 0.75rem;
     }
     .btn:hover { background: #2d2d50; border-color: #6366f1; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(99,102,241,0.2); }
     .emoji { font-size: 1.6rem; }
@@ -123,16 +110,37 @@ export async function GET(req: NextRequest) {
     <div class="note">⚡ Logs in instantly via NextAuth Credentials provider (dev only).</div>
     <div class="custom">
       <p>Login as any other user by email:</p>
-      <form method="POST" action="/api/auth/callback/credentials">
-        <input type="hidden" name="csrfToken" value="${csrfToken}" />
-        <input type="hidden" name="callbackUrl" value="/student/dashboard" />
-        <div class="row">
-          <input name="email" type="email" placeholder="user@example.com" required />
-          <button type="submit">Go →</button>
-        </div>
-      </form>
+      <div class="row">
+        <input id="customEmail" type="email" placeholder="user@example.com" />
+        <button onclick="loginAs(document.getElementById('customEmail').value, '/student/dashboard')">Go →</button>
+      </div>
     </div>
   </div>
+
+  <script>
+    async function loginAs(email, callbackUrl) {
+      if (!email) return;
+      // Fetch CSRF client-side so browser gets both the token AND the cookie
+      const csrfRes = await fetch('/api/auth/csrf');
+      const { csrfToken } = await csrfRes.json();
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/api/auth/callback/dev';
+
+      function addHidden(name, value) {
+        const el = document.createElement('input');
+        el.type = 'hidden'; el.name = name; el.value = value;
+        form.appendChild(el);
+      }
+
+      addHidden('csrfToken', csrfToken);
+      addHidden('email', email);
+      addHidden('callbackUrl', callbackUrl);
+      document.body.appendChild(form);
+      form.submit();
+    }
+  </script>
 </body>
 </html>`
 
