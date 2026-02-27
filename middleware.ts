@@ -1,32 +1,34 @@
 import NextAuth from "next-auth"
 import { authConfig } from "./lib/auth.config"
-import { NextResponse } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
 
 const { auth } = NextAuth(authConfig)
 
-// API routes that are genuinely public (no auth needed at the edge)
-const PUBLIC_API_ROUTES = new Set([
-    '/api/auth',                       // NextAuth internals
-    '/api/validate-university-email',  // Called from the public registration form
-    '/api/refresh-university-domains', // Has its own secret key check inside
-    '/api/cron',                       // Has its own cron secret check inside
-    '/api/dev-login',                  // Dev-only: returns magic link as JSON (disabled in prod)
-])
+// ─── GOLDEN RULE ──────────────────────────────────────────────────────────────
+// NEVER use the NextAuth `auth()` wrapper as the default export middleware.
+// The auth() wrapper processes auth actions (like /api/auth/callback/email)
+// BEFORE any of our custom guard logic runs. Since it uses the lightweight
+// authConfig (no PrismaAdapter), it throws MissingAdapter on email callbacks.
+//
+// Instead: use a plain async function and call auth(req) manually ONLY after
+// hard-blocking all /api/ routes first.
+// ──────────────────────────────────────────────────────────────────────────────
 
-// Dangerous internal/dev routes — only ADMIN may call these
-const ADMIN_ONLY_API_ROUTES = [
-    '/api/admin',
-    '/api/promote-admin',
-    '/api/setup-admin',
-    '/api/seed',
-    '/api/debug-login',
-    '/api/get-magic-link',
-]
-
-export default auth((req) => {
+export default async function middleware(req: NextRequest) {
     const { nextUrl } = req
-    const isLoggedIn = !!req.auth
-    const role = req.auth?.user?.role as "ADMIN" | "UNIVERSITY" | "UNIVERSITY_REP" | "STUDENT" | undefined
+
+    // ── STEP 1: ALL /api/ routes bypass this middleware completely ──────────
+    // API routes either protect themselves (requireUser) or are public.
+    // The NextAuth email callback MUST reach the full route handler which
+    // has PrismaAdapter. Never let the edge middleware touch /api/*.
+    if (nextUrl.pathname.startsWith('/api/')) {
+        return NextResponse.next()
+    }
+
+    // ── STEP 2: Get session (safe — only called for non-API paths) ──────────
+    const session = await auth(req as any)
+    const isLoggedIn = !!(session as any)?.user
+    const role = (session as any)?.user?.role as "ADMIN" | "UNIVERSITY" | "UNIVERSITY_REP" | "STUDENT" | undefined
 
     const isAuthRoute = nextUrl.pathname.startsWith('/login') || nextUrl.pathname.startsWith('/register')
     const isStudentRoute = nextUrl.pathname.startsWith('/student')
@@ -34,39 +36,8 @@ export default auth((req) => {
     const isAdminRoute = nextUrl.pathname.startsWith('/admin')
     const isRegistrationPage = nextUrl.pathname === '/student/register' || nextUrl.pathname === '/university/register'
     const isUniversityLogin = nextUrl.pathname === '/university-login'
-    const isApiRoute = nextUrl.pathname.startsWith('/api')
 
-    // ── API ROUTE PROTECTION ────────────────────────────────────────────────
-    if (isApiRoute) {
-        // Allow truly public API routes through immediately
-        const isPublic = Array.from(PUBLIC_API_ROUTES).some(p => nextUrl.pathname.startsWith(p))
-        if (isPublic) return NextResponse.next()
-
-        // All other API routes require authentication
-        if (!isLoggedIn) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        // Admin-only API routes
-        const isAdminApi = ADMIN_ONLY_API_ROUTES.some(p => nextUrl.pathname.startsWith(p))
-        if (isAdminApi && role !== 'ADMIN') {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-        }
-
-        // University-scoped API routes — UNIVERSITY_REP also allowed
-        if (nextUrl.pathname.startsWith('/api/uni-docs') && role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP' && role !== 'ADMIN') {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-        }
-
-        // CV upload is student-only; CV read is open to authenticated users (uni reps need it)
-        if (nextUrl.pathname.startsWith('/api/cv/upload') && role !== 'STUDENT') {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-        }
-
-        return NextResponse.next()
-    }
-
-    // ── PAGE ROUTE PROTECTION ───────────────────────────────────────────────
+    // ── STEP 3: PAGE ROUTE PROTECTION ───────────────────────────────────────
 
     // Explicit /admin → /admin/dashboard redirect
     if (nextUrl.pathname === '/admin') {
@@ -93,7 +64,6 @@ export default auth((req) => {
             const dest = (role === 'UNIVERSITY' || role === 'UNIVERSITY_REP') ? '/university/dashboard' : '/student/dashboard'
             return NextResponse.redirect(new URL(dest, nextUrl))
         }
-        // UNIVERSITY_REP shares /university/* access with UNIVERSITY
         if (isUniversityRoute && role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP' && !isRegistrationPage) {
             return NextResponse.redirect(new URL('/student/dashboard', nextUrl))
         }
@@ -104,16 +74,8 @@ export default auth((req) => {
     }
 
     return NextResponse.next()
-})
+}
 
 export const config = {
-    // ─── GOLDEN RULE ────────────────────────────────────────────────────────
-    // NEVER let the edge middleware touch /api/auth/*
-    // It runs lightweight authConfig with NO adapter.
-    // Auth callbacks (e.g. /api/auth/callback/email) MUST reach the full
-    // route handler (app/api/auth/[...nextauth]/route.ts) which has the
-    // PrismaAdapter. Removing api/auth from this exclusion list causes a
-    // MissingAdapter error on every magic link click → login loop.
-    // ────────────────────────────────────────────────────────────────────────
-    matcher: ["/((?!_next/static|_next/image|favicon.ico|api/auth|login|register).*)"],
+    matcher: ["/((?!_next/static|_next/image|favicon.ico|login|register).*)"],
 }
