@@ -107,12 +107,13 @@ export default auth((req) => {
 })
 
 export const config = {
-    // Now includes /api routes. NextAuth's own /api/auth/* is handled by the
-    // PUBLIC_API_ROUTES allowlist above, so no infinite loop risk.
-    // IMPORTANT: api/auth must be excluded so NextAuth's email callback
-    // (/api/auth/callback/email) is handled solely by the route handler
-    // which has the full config + PrismaAdapter. If the middleware intercepts
-    // it, the edge NextAuth instance (no adapter) throws MissingAdapter and
-    // the login loop occurs.
+    // ─── GOLDEN RULE ────────────────────────────────────────────────────────
+    // NEVER let the edge middleware touch /api/auth/*
+    // It runs lightweight authConfig with NO adapter.
+    // Auth callbacks (e.g. /api/auth/callback/email) MUST reach the full
+    // route handler (app/api/auth/[...nextauth]/route.ts) which has the
+    // PrismaAdapter. Removing api/auth from this exclusion list causes a
+    // MissingAdapter error on every magic link click → login loop.
+    // ────────────────────────────────────────────────────────────────────────
     matcher: ["/((?!_next/static|_next/image|favicon.ico|api/auth|login|register).*)"],
 }
