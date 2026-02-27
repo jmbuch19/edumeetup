@@ -19,9 +19,17 @@ export default async function middleware(req: NextRequest) {
     }
 
     // ── STEP 2: Read JWT directly from cookie ───────────────────────────────
+    // NextAuth v5 (auth.js) uses a different cookie name than v4:
+    //   v4: next-auth.session-token
+    //   v5: authjs.session-token  (prod: __Secure-authjs.session-token)
+    // getToken() defaults to the v4 name, so we MUST pass cookieName explicitly.
+    const isProduction = process.env.NODE_ENV === 'production'
     const token = await getToken({
         req,
         secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+        cookieName: isProduction
+            ? '__Secure-authjs.session-token'
+            : 'authjs.session-token',
     })
     const isLoggedIn = !!token
     const role = token?.role as "ADMIN" | "UNIVERSITY" | "UNIVERSITY_REP" | "STUDENT" | undefined
