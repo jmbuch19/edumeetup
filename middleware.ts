@@ -1,34 +1,30 @@
-import NextAuth from "next-auth"
-import { authConfig } from "./lib/auth.config"
+import { getToken } from "next-auth/jwt"
 import { NextResponse, type NextRequest } from "next/server"
 
-const { auth } = NextAuth(authConfig)
-
 // ─── GOLDEN RULE ──────────────────────────────────────────────────────────────
-// NEVER use the NextAuth `auth()` wrapper as the default export middleware.
-// The auth() wrapper processes auth actions (like /api/auth/callback/email)
-// BEFORE any of our custom guard logic runs. Since it uses the lightweight
-// authConfig (no PrismaAdapter), it throws MissingAdapter on email callbacks.
-//
-// Instead: use a plain async function and call auth(req) manually ONLY after
-// hard-blocking all /api/ routes first.
+// Use getToken() — NOT auth(req) — to read the session in middleware.
+// auth(req as any) misuses the NextAuth v5 API: auth() called with a Request
+// object tries to use it as a handler, returning undefined instead of a session.
+// getToken() directly decodes the JWT cookie using AUTH_SECRET — edge-safe,
+// no adapter, no NextAuth instance needed.
 // ──────────────────────────────────────────────────────────────────────────────
 
 export default async function middleware(req: NextRequest) {
     const { nextUrl } = req
 
     // ── STEP 1: ALL /api/ routes bypass this middleware completely ──────────
-    // API routes either protect themselves (requireUser) or are public.
-    // The NextAuth email callback MUST reach the full route handler which
-    // has PrismaAdapter. Never let the edge middleware touch /api/*.
+    // Auth callbacks MUST reach the full route handler with PrismaAdapter.
     if (nextUrl.pathname.startsWith('/api/')) {
         return NextResponse.next()
     }
 
-    // ── STEP 2: Get session (safe — only called for non-API paths) ──────────
-    const session = await auth(req as any)
-    const isLoggedIn = !!(session as any)?.user
-    const role = (session as any)?.user?.role as "ADMIN" | "UNIVERSITY" | "UNIVERSITY_REP" | "STUDENT" | undefined
+    // ── STEP 2: Read JWT directly from cookie ───────────────────────────────
+    const token = await getToken({
+        req,
+        secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+    })
+    const isLoggedIn = !!token
+    const role = token?.role as "ADMIN" | "UNIVERSITY" | "UNIVERSITY_REP" | "STUDENT" | undefined
 
     const isAuthRoute = nextUrl.pathname.startsWith('/login') || nextUrl.pathname.startsWith('/register')
     const isStudentRoute = nextUrl.pathname.startsWith('/student')
