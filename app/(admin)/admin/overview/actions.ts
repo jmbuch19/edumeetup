@@ -2,34 +2,33 @@
 
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
-import { redirect } from 'next/navigation'
 
 export async function getAdminOverviewMetrics() {
     const session = await auth()
-    if (!session || !session.user || (session.user as any).role !== 'ADMIN') {
-        return null // Handling auth in page mostly, but safe here too
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
+        return null
     }
 
     const [
         totalUniversities,
         totalStudents,
         totalMeetings,
+        pendingVerifications,
+        pendingAdvisory,
+        hostRequestsPending,
         meetingsByUni
     ] = await Promise.all([
         prisma.university.count(),
         prisma.student.count(),
         prisma.meeting.count(),
+        prisma.university.count({ where: { verificationStatus: 'PENDING' } }),
+        prisma.advisoryRequest.count({ where: { status: 'NEW' } }),
+        prisma.hostRequest.count({ where: { status: 'SUBMITTED' } }),
         prisma.meeting.groupBy({
             by: ['universityId'],
-            _count: {
-                _all: true
-            },
+            _count: { _all: true },
             take: 10,
-            orderBy: {
-                _count: {
-                    universityId: 'desc'
-                }
-            }
+            orderBy: { _count: { universityId: 'desc' } }
         })
     ])
 
@@ -49,6 +48,9 @@ export async function getAdminOverviewMetrics() {
         totalUniversities,
         totalStudents,
         totalMeetings,
+        pendingVerifications,
+        pendingAdvisory,
+        hostRequestsPending,
         topUnis
     }
 }
