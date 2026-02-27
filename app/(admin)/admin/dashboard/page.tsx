@@ -33,7 +33,7 @@ export default async function AdminDashboard() {
     ]
 
     return (
-        <div className="max-w-6xl mx-auto py-8 px-4 space-y-8">
+        <div className="max-w-6xl mx-auto py-4 md:py-8 px-4 space-y-6">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
                 <p className="text-muted-foreground mt-1">Platform overview and quick access to all admin tools.</p>
@@ -48,7 +48,7 @@ export default async function AdminDashboard() {
                             <Icon className={`h-4 w-4 ${color}`} />
                         </CardHeader>
                         <CardContent>
-                            <div className={`text-3xl font-bold ${urgent ? 'text-amber-600' : ''}`}>{value}</div>
+                            <div className={`text-2xl font-bold ${urgent ? 'text-amber-600' : ''}`}>{value}</div>
                         </CardContent>
                     </Card>
                 ))}
@@ -57,7 +57,7 @@ export default async function AdminDashboard() {
             {/* Quick Access */}
             <div>
                 <h2 className="text-lg font-semibold mb-3">Quick Access</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                     {QUICK_LINKS.map(({ href, label, icon: Icon, desc }) => (
                         <Link key={href} href={href}>
                             <Card className="hover:shadow-md hover:border-primary/40 transition-all cursor-pointer h-full">
@@ -85,7 +85,7 @@ export default async function AdminDashboard() {
                         <div className="space-y-3">
                             {metrics.topUnis.map((uni, idx) => (
                                 <div key={idx} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
-                                    <div className="font-medium">{uni.name}</div>
+                                    <div className="font-medium truncate">{uni.name}</div>
                                     <div className="font-bold text-primary">{uni.count}</div>
                                 </div>
                             ))}
