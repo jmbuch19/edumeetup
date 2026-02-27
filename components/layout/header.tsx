@@ -25,6 +25,9 @@ export async function Header() {
         where: { userId: user.id },
         orderBy: { createdAt: 'desc' },
         take: 10
+    }).catch((e) => {
+        console.error('[Header] notifications query failed:', e.message)
+        return []
     }) : []
 
     return (

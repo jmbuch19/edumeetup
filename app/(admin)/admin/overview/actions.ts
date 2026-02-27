@@ -9,6 +9,14 @@ export async function getAdminOverviewMetrics() {
         return null
     }
 
+    async function safe<T>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> {
+        try { return await fn() }
+        catch (e) {
+            console.error(`[AdminMetrics] ${label} failed:`, (e as Error).message)
+            return fallback
+        }
+    }
+
     const [
         totalUniversities,
         totalStudents,
@@ -18,30 +26,26 @@ export async function getAdminOverviewMetrics() {
         hostRequestsPending,
         meetingsByUni
     ] = await Promise.all([
-        prisma.university.count(),
-        prisma.student.count(),
-        prisma.meeting.count(),
-        prisma.university.count({ where: { verificationStatus: 'PENDING' } }),
-        prisma.advisoryRequest.count({ where: { status: 'NEW' } }),
-        prisma.hostRequest.count({ where: { status: 'SUBMITTED' } }),
-        prisma.meeting.groupBy({
+        safe('totalUniversities', () => prisma.university.count(), 0),
+        safe('totalStudents', () => prisma.student.count(), 0),
+        safe('totalMeetings', () => prisma.meeting.count(), 0),
+        safe('pendingVerifications', () => prisma.university.count({ where: { verificationStatus: 'PENDING' } }), 0),
+        safe('pendingAdvisory', () => prisma.advisoryRequest.count({ where: { status: 'NEW' } }), 0),
+        safe('hostRequestsPending', () => prisma.hostRequest.count({ where: { status: 'SUBMITTED' } }), 0),
+        safe('meetingsByUni', () => prisma.meeting.groupBy({
             by: ['universityId'],
             _count: { _all: true },
             take: 10,
             orderBy: { _count: { universityId: 'desc' } }
-        })
+        }), []),
     ])
 
-    // Enrich uni names
-    const topUnis = await Promise.all(meetingsByUni.map(async (item) => {
-        const uni = await prisma.university.findUnique({
+    const topUnis = await Promise.all((meetingsByUni as any[]).map(async (item) => {
+        const uni = await safe('topUniLookup', () => prisma.university.findUnique({
             where: { id: item.universityId },
             select: { institutionName: true }
-        })
-        return {
-            name: uni?.institutionName || 'Unknown',
-            count: item._count._all
-        }
+        }), null)
+        return { name: uni?.institutionName || 'Unknown', count: item._count._all }
     }))
 
     return {
@@ -54,3 +58,4 @@ export async function getAdminOverviewMetrics() {
         topUnis
     }
 }
+
