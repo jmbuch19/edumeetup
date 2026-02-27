@@ -43,7 +43,8 @@ export function AnnouncementsManager() {
         if (res.error) {
             toast.error(res.error)
         } else {
-            toast.success("Announcement posted")
+            const count = (res as any).notifiedCount ?? 0
+            toast.success(`Announcement sent! ${count} user${count !== 1 ? 's' : ''} notified in-app.`)
             loadItems()
             const form = document.getElementById("annout-form") as HTMLFormElement
             form?.reset()

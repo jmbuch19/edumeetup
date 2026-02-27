@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
-import { sendEmail, sendMarketingEmail, generateEmailHtml, EmailTemplates } from "@/lib/email"
+import { sendMarketingEmail, generateEmailHtml, EmailTemplates } from "@/lib/email"
 
 const ALLOWED_ANNOUNCEMENT_TYPES = ['GENERAL', 'NEW_UNIVERSITY', 'CHECK_IN', 'PHYSICAL_FAIR', 'SPONSOR_ONBOARD'] as const
 
@@ -19,7 +19,6 @@ export async function createAnnouncement(formData: FormData) {
 
     if (!title || !content) return { error: "Missing required fields" }
 
-    // Server-side allowlist validation — prevents unknown types reaching the DB
     if (!ALLOWED_ANNOUNCEMENT_TYPES.includes(announcementType as any)) {
         return { error: "Invalid announcement type" }
     }
@@ -36,31 +35,93 @@ export async function createAnnouncement(formData: FormData) {
             }
         })
 
-        // ── Email broadcast ──────────────────────────────────────────────
-        const roleFilter =
-            targetAudience === "STUDENT" ? { role: 'STUDENT' as const } :
-                targetAudience === "UNIVERSITY" ? { role: { in: ['UNIVERSITY', 'UNIVERSITY_REP'] as ('UNIVERSITY' | 'UNIVERSITY_REP')[] } } :
-                    {} // ALL — no filter
-
-        const recipients = await prisma.user.findMany({
-            where: { isActive: true, ...roleFilter },
-            select: { email: true, name: true }
-        })
+        const isStudentTarget = targetAudience === "STUDENT" || targetAudience === "ALL" || !targetAudience
+        const isUniTarget = targetAudience === "UNIVERSITY" || targetAudience === "ALL" || !targetAudience
 
         const emailHtml = generateEmailHtml(title, EmailTemplates.announcement(title, content))
+        let emailedCount = 0
+        let notifiedCount = 0
 
-        for (const recipient of recipients) {
-            await sendMarketingEmail({
-                userEmail: recipient.email,
-                to: recipient.email,
-                subject: `[edUmeetup] ${title}`,
-                html: emailHtml
+        // ── Students: in-app bell + email ────────────────────────────────
+        if (isStudentTarget) {
+            const students = await prisma.student.findMany({
+                where: { user: { isActive: true } },
+                select: {
+                    id: true,
+                    user: { select: { email: true, consentMarketing: true } }
+                }
             })
+
+            // Bulk in-app bell (no consent gate — admin messages always appear in bell)
+            if (students.length > 0) {
+                await prisma.studentNotification.createMany({
+                    data: students.map(s => ({
+                        studentId: s.id,
+                        title,
+                        message: content,
+                        type: 'INFO',
+                        actionUrl: null,
+                    })),
+                    skipDuplicates: true,
+                })
+                notifiedCount += students.length
+            }
+
+            // Email only to those who consented to marketing
+            for (const s of students) {
+                if (s.user.consentMarketing) {
+                    await sendMarketingEmail({
+                        userEmail: s.user.email,
+                        to: s.user.email,
+                        subject: `[edUmeetup] ${title}`,
+                        html: emailHtml
+                    })
+                    emailedCount++
+                }
+            }
+        }
+
+        // ── Universities: in-app bell + email ────────────────────────────
+        if (isUniTarget) {
+            const universities = await prisma.university.findMany({
+                where: { user: { isActive: true } },
+                select: {
+                    id: true,
+                    user: { select: { email: true, consentMarketing: true } }
+                }
+            })
+
+            if (universities.length > 0) {
+                await prisma.universityNotification.createMany({
+                    data: universities.map(u => ({
+                        universityId: u.id,
+                        title,
+                        message: content,
+                        type: 'INFO',
+                        actionUrl: null,
+                    })),
+                    skipDuplicates: true,
+                })
+                notifiedCount += universities.length
+            }
+
+            for (const u of universities) {
+                if (u.user.consentMarketing) {
+                    await sendMarketingEmail({
+                        userEmail: u.user.email,
+                        to: u.user.email,
+                        subject: `[edUmeetup] ${title}`,
+                        html: emailHtml
+                    })
+                    emailedCount++
+                }
+            }
         }
 
         revalidatePath("/admin/engagement")
-        return { success: true, emailedCount: recipients.length }
+        return { success: true, emailedCount, notifiedCount }
     } catch (error) {
+        console.error("[createAnnouncement]", error)
         return { error: "Failed to create announcement" }
     }
 }
@@ -110,7 +171,7 @@ export async function createSponsoredContent(formData: FormData) {
                 partnerName,
                 imageUrl,
                 targetUrl,
-                placement, // SIDEBAR, FEED, BANNER
+                placement,
                 isActive: true
             }
         })
