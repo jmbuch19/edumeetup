@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 import {
     Menu, X, LayoutDashboard, Users, School,
     Ticket, Globe, Megaphone, CalendarDays,
@@ -24,7 +24,6 @@ const navItems = [
 
 export function AdminMobileNav({ adminEmail }: { adminEmail?: string | null }) {
     const [open, setOpen] = useState(false)
-    const router = useRouter()
 
     return (
         <div className="md:hidden fixed top-0 left-0 right-0 z-40">
@@ -65,15 +64,14 @@ export function AdminMobileNav({ adminEmail }: { adminEmail?: string | null }) {
                                 Signed in as {adminEmail}
                             </p>
                         )}
-                        <form action="/api/auth/signout" method="POST">
-                            <button
-                                type="submit"
-                                className="flex w-full items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
-                            >
-                                <LogOut className="h-4 w-4" />
-                                Sign Out
-                            </button>
-                        </form>
+                        <button
+                            type="button"
+                            onClick={() => signOut({ callbackUrl: '/' })}
+                            className="flex w-full items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+                        >
+                            <LogOut className="h-4 w-4" />
+                            Sign Out
+                        </button>
                     </div>
                 </nav>
             )}
