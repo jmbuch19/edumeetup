@@ -562,7 +562,8 @@ export async function login(formData: FormData) {
         return { error: validation.error.flatten().fieldErrors }
     }
 
-    const { email } = validation.data
+    // Schema already lowercases. Belt+suspenders: normalize again.
+    const email = validation.data.email.trim().toLowerCase()
 
     const ip = headers().get('x-forwarded-for') || 'unknown'
     const limitKey = `${ip}:${email}`
@@ -571,7 +572,10 @@ export async function login(formData: FormData) {
     }
 
     try {
-        const user = await prisma.user.findUnique({ where: { email } })
+        // findFirst + mode insensitive handles legacy mixed-case emails in DB
+        const user = await prisma.user.findFirst({
+            where: { email: { equals: email, mode: 'insensitive' } }
+        })
 
         if (!user) {
             return { error: "No account found with this email." }

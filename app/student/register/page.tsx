@@ -4,11 +4,12 @@ import { registerStudent } from '@/app/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
-import { GraduationCap, Loader2 } from 'lucide-react'
+import { GraduationCap, Loader2, AlertCircle } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import { toast } from 'sonner'
 import { DegreeLevels } from '@/lib/constants'
+import { COMMON_TYPO_DOMAINS } from '@/lib/schemas'
 
 
 interface State {
@@ -42,9 +43,17 @@ export default function StudentRegisterPage() {
     const [phone, setPhone] = useState({ code: '+91', number: '' })
     const [greTaken, setGreTaken] = useState(false)
     const [gmatTaken, setGmatTaken] = useState(false)
+    const [emailError, setEmailError] = useState<string | null>(null)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [state, formAction] = useFormState(registerStudent as any, initialState)
     const formRef = useRef<HTMLFormElement>(null)
+
+    function checkEmailTypo(email: string): string | null {
+        const trimmed = email.trim().toLowerCase()
+        const domain = trimmed.split('@')[1] ?? ''
+        const suggestion = COMMON_TYPO_DOMAINS[domain]
+        return suggestion ? `Did you mean @${suggestion}?` : null
+    }
 
     useEffect(() => {
         if (state?.error) {
@@ -96,7 +105,25 @@ export default function StudentRegisterPage() {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                                <Input name="email" type="email" required placeholder="john@example.com" />
+                                <Input
+                                    name="email"
+                                    type="email"
+                                    required
+                                    placeholder="john@example.com"
+                                    className={emailError ? 'border-amber-400 focus-visible:ring-amber-400' : ''}
+                                    onBlur={(e) => {
+                                        const val = e.target.value
+                                        // Normalize to lowercase in-place
+                                        e.target.value = val.trim().toLowerCase()
+                                        setEmailError(checkEmailTypo(val))
+                                    }}
+                                />
+                                {emailError && (
+                                    <p className="mt-1 flex items-center gap-1 text-xs text-amber-600">
+                                        <AlertCircle className="h-3 w-3 shrink-0" />
+                                        {emailError} Please fix before submitting.
+                                    </p>
+                                )}
                             </div>
 
 
