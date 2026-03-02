@@ -10,6 +10,8 @@ import {
 import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav"
 import { ActiveNavItem } from "@/components/admin/active-nav-item"
+import { AdminNotificationBell } from "@/components/admin/notification-bell"
+import { getAdminNotifications } from "@/app/(admin)/admin/actions/notifications"
 
 async function logout() {
     'use server'
@@ -40,6 +42,14 @@ export default async function AdminLayout({
 
     const adminName = session.user.name || session.user.email?.split('@')[0] || 'Admin'
     const adminInitial = adminName.charAt(0).toUpperCase()
+
+    // Fetch notifications — safe fallback so layout never crashes
+    let notifData = { notifications: [], milestones: [], unreadCount: 0 } as Awaited<ReturnType<typeof getAdminNotifications>>
+    try {
+        notifData = await getAdminNotifications()
+    } catch (e) {
+        console.error('[AdminLayout] notifications failed:', e)
+    }
 
     return (
         <div className="flex min-h-screen bg-gray-50">
@@ -81,6 +91,11 @@ export default async function AdminLayout({
                             <p className="text-sm font-medium text-gray-900 truncate capitalize">{adminName}</p>
                             <p className="text-xs text-gray-500 truncate">{session.user?.email}</p>
                         </div>
+                        <AdminNotificationBell
+                            notifications={notifData.notifications}
+                            milestones={notifData.milestones}
+                            unreadCount={notifData.unreadCount}
+                        />
                     </div>
                     <form action={logout}>
                         <Button variant="outline" className="w-full justify-start gap-2" type="submit">
