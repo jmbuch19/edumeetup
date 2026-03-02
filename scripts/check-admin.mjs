@@ -1,13 +1,17 @@
 import { PrismaClient } from '@prisma/client'
-const p = new PrismaClient()
-const admins = await p.user.findMany({
-  where: { role: 'ADMIN' },
-  select: { id: true, email: true, role: true, isActive: true, emailVerified: true }
-})
-console.log('ADMIN USERS:', JSON.stringify(admins, null, 2))
+const prisma = new PrismaClient()
 
-const allUsers = await p.user.findMany({
-  select: { id: true, email: true, role: true, isActive: true }
+// Simulate what PrismaAdapter.getUserByEmail returns for admin
+const user = await prisma.user.findUnique({
+  where: { email: 'admin@edumeetup.com' },
+  select: { id: true, name: true, email: true, emailVerified: true, image: true, role: true }
 })
-console.log('\nALL USERS:', JSON.stringify(allUsers, null, 2))
-await p.$disconnect()
+console.log('Admin user from DB:', user)
+
+// Check remaining VerificationTokens
+const tokens = await prisma.verificationToken.findMany({
+  where: { identifier: 'admin@edumeetup.com' }
+})
+console.log('Pending verification tokens for admin:', tokens.length, tokens.map(t => ({ expires: t.expires })))
+
+await prisma.$disconnect()

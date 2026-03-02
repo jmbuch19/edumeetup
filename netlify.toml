@@ -22,10 +22,15 @@
 # ─── Required Environment Variables ─────────────────────────────────────────
 # Set all of the following in the Netlify dashboard → Site Settings → Env vars:
 #
+# ⚠️  This app uses NextAuth v5. The env var names changed from v4:
+#       AUTH_SECRET  (was: NEXTAUTH_SECRET) ← CRITICAL — if missing, a random
+#                    secret is generated on every deploy, wiping all sessions!
+#       AUTH_URL     (was: NEXTAUTH_URL)    ← must be your full Netlify URL
+#
 #   DATABASE_URL          Neon PostgreSQL connection string
-#   NEXTAUTH_URL          https://your-site.netlify.app
-#   NEXTAUTH_SECRET       (random 32-char secret)
-#   AUTH_GOOGLE_ID        Google OAuth client ID
+#   AUTH_URL              https://www.edumeetup.com  (your production URL)
+#   AUTH_SECRET           Random 32-char secret — generate with: openssl rand -base64 32
+#   AUTH_GOOGLE_ID        Google OAuth client ID (env var name unchanged in v5)
 #   AUTH_GOOGLE_SECRET    Google OAuth client secret
 #   R2_ACCOUNT_ID         Cloudflare R2 account ID
 #   R2_ACCESS_KEY_ID      R2 access key
