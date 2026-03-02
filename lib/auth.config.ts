@@ -19,7 +19,7 @@ export const authConfig = {
         newUser: '/onboarding'
     },
     providers: [], // Providers configured in auth.ts
-    session: { strategy: "jwt" as const },
+    session: { strategy: "jwt" as const, maxAge: 30 * 24 * 60 * 60 }, // 30 days
     callbacks: {
         authorized({ auth, request }) {
             // Granular redirect logic is handled in middleware.ts.

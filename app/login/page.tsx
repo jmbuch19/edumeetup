@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, Mail, AlertCircle } from 'lucide-react'
+import { Loader2, Mail, AlertCircle, ShieldCheck, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import { login } from '@/app/actions'
 import { COMMON_TYPO_DOMAINS } from '@/lib/schemas'
@@ -13,6 +13,8 @@ import { COMMON_TYPO_DOMAINS } from '@/lib/schemas'
 export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [emailError, setEmailError] = useState<string | null>(null)
+    const [trustDevice, setTrustDevice] = useState(true)
+    const [showTip, setShowTip] = useState(false)
 
     function checkEmailTypo(email: string): string | null {
         const domain = email.trim().toLowerCase().split('@')[1] ?? ''
@@ -21,14 +23,21 @@ export default function LoginPage() {
     }
 
     async function handleLogin(formData: FormData) {
-        // Normalize email before submitting
         const emailVal = (formData.get('email') as string ?? '').trim().toLowerCase()
         formData.set('email', emailVal)
+
+        // Store device trust preference so SessionGuard can act on it after magic link redirect
+        if (typeof window !== 'undefined') {
+            if (trustDevice) {
+                localStorage.removeItem('em_shared_device')
+            } else {
+                localStorage.setItem('em_shared_device', '1')
+            }
+        }
 
         setIsLoading(true)
         try {
             const result = await login(formData)
-
             if (result?.error) {
                 const errorMessage = typeof result.error === 'string'
                     ? result.error
@@ -77,6 +86,44 @@ export default function LoginPage() {
                                 </p>
                             )}
                         </div>
+
+                        {/* Trust This Device */}
+                        <div className={`rounded-lg border px-3 py-2.5 transition-colors ${trustDevice ? 'border-indigo-200 bg-indigo-50 dark:bg-indigo-950/20 dark:border-indigo-800' : 'border-border bg-muted/40'}`}>
+                            <label className="flex items-center gap-3 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={trustDevice}
+                                    onChange={(e) => setTrustDevice(e.target.checked)}
+                                    className="h-4 w-4 rounded accent-indigo-600 cursor-pointer"
+                                />
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                        <ShieldCheck className={`h-3.5 w-3.5 shrink-0 ${trustDevice ? 'text-indigo-600' : 'text-muted-foreground'}`} />
+                                        <span className={`text-sm font-medium ${trustDevice ? 'text-indigo-700 dark:text-indigo-300' : 'text-muted-foreground'}`}>
+                                            Trust this device
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowTip(!showTip)}
+                                            className="text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                            <Info className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                        {trustDevice
+                                            ? 'Stay signed in for 30 days on this device.'
+                                            : 'You will be signed out when the browser closes.'}
+                                    </p>
+                                </div>
+                            </label>
+                            {showTip && (
+                                <p className="mt-2 text-xs text-muted-foreground border-t border-border pt-2">
+                                    ⚠️ Uncheck this on a shared or public computer so others cannot access your account.
+                                </p>
+                            )}
+                        </div>
+
                         <Button className="w-full" type="submit" disabled={isLoading}>
                             {isLoading ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -13,6 +13,11 @@ const ChatWidget = dynamic(
   { ssr: false }
 )
 
+const SessionGuard = dynamic(
+  () => import("@/components/session-guard").then(m => m.SessionGuard),
+  { ssr: false }
+)
+
 const inter = Inter({ subsets: ["latin"] }); // id: 7
 
 export const metadata: Metadata = {
@@ -54,6 +59,7 @@ export default async function RootLayout({
             {children}
           </main>
           <ChatWidget />
+          <SessionGuard />
           <BugReporter />
           <Toaster richColors position="top-center" />
           <Footer />
