@@ -512,14 +512,14 @@ export async function verifyUniversity(formData: FormData) {
             type: 'VERIFICATION_UPDATE',
             title: `University Verification: ${status}`,
             message: isVerified
-                ? 'Congratulations! Your university profile has been verified. You can now publish programs and accept meetings.'
-                : 'Your university verification was not approved. Please contact support for more details.',
+                ? 'Congratulations! Your Official Profile is now live on EdUmeetup. You can now publish programs and accept student meetings.'
+                : 'Your profile could not be onboarded at this time. Please contact our support team — we will be happy to help.',
             emailTo: uni.contactEmail || uniProfile.user.email,
             emailSubject: isVerified
-                ? `Your EdUmeetup Profile Has Been Verified — ${uni.institutionName}`
-                : `Update on Your EdUmeetup Verification — ${uni.institutionName}`,
+                ? `Welcome to EdUmeetup — Your Official Profile is Live! 🎉`
+                : `Your EdUmeetup Profile — Follow-up Required`,
             emailHtml: generateEmailHtml(
-                isVerified ? 'Verification Approved! 🎉' : 'Verification Update',
+                isVerified ? 'Your Profile is Now Live! 🎉' : 'Profile Update',
                 EmailTemplates.verificationStatus(
                     status as 'VERIFIED' | 'REJECTED',
                     uni.institutionName
@@ -530,10 +530,10 @@ export async function verifyUniversity(formData: FormData) {
 
         // Role-specific bell notification
         await notifyUniversity(universityId, {
-            title: isVerified ? '🎉 Profile Verified!' : 'Verification Update',
+            title: isVerified ? '🎉 Official Profile is Live!' : 'Profile Update',
             message: isVerified
-                ? 'Your university profile has been verified. You can now publish programs and accept meetings.'
-                : 'Your verification was not approved. Please contact support.',
+                ? 'Your Official Profile is now live. You can publish programs and accept student meetings.'
+                : 'Your profile could not be onboarded at this time. Please contact support — we are here to help.',
             type: isVerified ? 'INFO' : 'WARNING',
             actionUrl: '/university/dashboard'
         })

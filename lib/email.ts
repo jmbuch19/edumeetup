@@ -268,28 +268,31 @@ export const EmailTemplates = {
 
     verificationStatus: (status: 'VERIFIED' | 'REJECTED', institutionName: string) => status === 'VERIFIED'
         ? `
-            <p>Great news, <strong>${institutionName}</strong>!</p>
-            <p>Your university profile has been <span style="color:#16a34a;font-weight:700;">verified</span> by the EdUmeetup team.</p>
-            <p>You now have full access to:</p>
+            <p>Dear <strong>${institutionName}</strong>,</p>
+            <p>We are thrilled to welcome you to the <strong>EdUmeetup network</strong>! 🎉</p>
+            <p>Your <strong>Official University Profile</strong> is now live and active on our platform.</p>
+            <p>As an official partner, you now have full access to:</p>
             <ul style="padding-left:20px;color:#374151;">
-                <li>View interested students and their profiles</li>
-                <li>Publish and manage your programs</li>
-                <li>Accept and manage meeting requests</li>
-                <li>Register for campus fair opportunities</li>
+                <li>Receive and manage student meeting requests</li>
+                <li>Publish and manage your programs and offerings</li>
+                <li>Reach thousands of students actively exploring study abroad options</li>
+                <li>Register for campus fair and outreach opportunities</li>
             </ul>
-            <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'}/university/dashboard" class="btn">Go to Dashboard →</a></p>
+            <p style="font-style:italic;color:#6B7280;font-size:13px;">Your profile now displays an <strong>Official Profile</strong> badge, letting students know they are getting accurate, up-to-date information directly from your team.</p>
+            <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'}/university/dashboard" class="btn">Go to Your Dashboard →</a></p>
         `
         : `
-            <p>Dear ${institutionName},</p>
-            <p>Thank you for registering with EdUmeetup. After careful review, we were unable to verify your university profile at this time.</p>
-            <p>This may be due to:</p>
+            <p>Dear <strong>${institutionName}</strong>,</p>
+            <p>Thank you for your interest in joining the EdUmeetup network. We appreciate you taking the time to submit your profile.</p>
+            <p>At this stage, we were unable to complete the onboarding process for your institution. This can sometimes happen due to:</p>
             <ul style="padding-left:20px;color:#374151;">
-                <li>Incomplete or unverifiable accreditation details</li>
-                <li>Mismatched institutional information</li>
-                <li>Domain verification issues</li>
+                <li>Incomplete institutional or accreditation details</li>
+                <li>Information that needs additional clarification</li>
+                <li>Domain or contact verification requirements</li>
             </ul>
-            <p>Please contact our support team to resolve this and resubmit your application.</p>
-            <p><a href="mailto:${process.env.SUPPORT_EMAIL || 'support@edumeetup.com'}" class="btn">Contact Support</a></p>
+            <p>We would love to work with you to get this resolved. Please reach out and our team will guide you through the next steps.</p>
+            <p><a href="mailto:${process.env.SUPPORT_EMAIL || 'support@edumeetup.com'}" class="btn">Contact Our Team</a></p>
+            <p style="color:#6B7280;font-size:13px;">We look forward to partnering with you soon.</p>
         `,
 
     // ── Meetings ─────────────────────────────────────────────────────────────
