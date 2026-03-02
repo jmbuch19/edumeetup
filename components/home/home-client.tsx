@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { User, School, ArrowRight, Shield } from "lucide-react";
+import { User, School, ArrowRight, Shield, GraduationCap, CalendarDays, MapPin, Building2, ChevronRight } from "lucide-react";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { HeroFeatures } from "@/components/hero-features";
 import { motion } from "framer-motion";
@@ -195,6 +195,37 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
                     </div>
                 </section>
             )}
+
+            {/* ── Services at a glance strip ────────────────────────────── */}
+            <section className="w-full bg-white border-y border-slate-100 py-10 px-4">
+                <div className="container max-w-6xl mx-auto">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest">What we offer</h2>
+                        <Link href="/services" className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+                            View all services <ChevronRight className="h-4 w-4" />
+                        </Link>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                        {[
+                            { icon: GraduationCap, label: 'Student Matching', href: '/services#student-matching', color: '#3333CC', bg: '#eff1ff' },
+                            { icon: CalendarDays, label: 'Video Meetings', href: '/services#video-meetings', color: '#0284c7', bg: '#e0f2fe' },
+                            { icon: MapPin, label: 'Campus Fairs', href: '/services#campus-fair', color: '#7c3aed', bg: '#f3e8ff' },
+                            { icon: Shield, label: 'Exam Proctoring', href: '/services#proctor', color: '#1e3a5f', bg: '#e8edf5' },
+                            { icon: Building2, label: 'University Recruitment', href: '/services#university-recruitment', color: '#059669', bg: '#d1fae5' },
+                        ].map(({ icon: Icon, label, href, color, bg }) => (
+                            <Link key={href} href={href}
+                                className="group flex flex-col items-center gap-3 p-4 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-md transition-all text-center bg-white">
+                                <div className="w-11 h-11 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
+                                    style={{ background: bg }}>
+                                    <Icon className="h-5 w-5" style={{ color }} />
+                                </div>
+                                <span className="text-xs font-semibold text-slate-700 leading-tight">{label}</span>
+                                <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color }} />
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            </section>
 
             {/* Hero Features Accordion */}
             <section className="w-full pb-12 md:pb-24">

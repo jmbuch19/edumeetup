@@ -66,6 +66,10 @@ export async function Header() {
                         Host a Campus Fair
                     </Link>
 
+                    <Link href="/services" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
+                        Services
+                    </Link>
+
                     <Link href="/about" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
                         About
                     </Link>
@@ -171,6 +175,10 @@ export async function Header() {
 
                         <DropdownMenuItem asChild>
                             <Link href="/host-a-fair" className="w-full cursor-pointer">Host a Campus Fair</Link>
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem asChild>
+                            <Link href="/services" className="w-full cursor-pointer">All Services</Link>
                         </DropdownMenuItem>
 
                         <DropdownMenuItem asChild>
