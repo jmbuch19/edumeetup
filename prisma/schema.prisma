@@ -212,6 +212,10 @@ model University {
   quietHoursStart         Int      @default(22)         // 10pm IST (24h)
   quietHoursEnd           Int      @default(7)          // 7am IST (24h)
 
+  // ── Agent Metadata ────────────────────────────────────────────────
+  notificationPrefs       Json?    // UniversityNotificationPrefs (typed overlay)
+  responseRate            Float?   // cached 0-100, updated by agent hourly
+
   availabilityProfiles    AvailabilityProfile[]
   availabilitySlots       AvailabilitySlot[]
   bookmarkedBy            Bookmark[]
