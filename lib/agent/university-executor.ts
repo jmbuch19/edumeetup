@@ -1,4 +1,4 @@
-﻿/**
+/**
  * lib/agent/university-executor.ts
  *
  * Executes UniversityAgentActions:

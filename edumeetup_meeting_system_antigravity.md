@@ -1,4 +1,4 @@
-﻿# EdUmeetup — Meeting System: Google Antigravity Build Prompt
+# EdUmeetup — Meeting System: Google Antigravity Build Prompt
 ## Student ↔ University Virtual Meeting Scheduler
 
 **Platform:** EdUmeetup.com

@@ -1,4 +1,4 @@
-﻿
+
 export default function PrivacyPage() {
     return (
         <div className="bg-white min-h-screen py-16">

@@ -1,4 +1,4 @@
-﻿import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { sendEmail, generateEmailHtml } from '@/lib/email'
 
 interface NotificationPayload {

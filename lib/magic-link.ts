@@ -1,4 +1,4 @@
-﻿import { randomBytes, createHash } from 'crypto'
+import { randomBytes, createHash } from 'crypto'
 import { prisma } from './prisma'
 import { Resend } from 'resend'
 

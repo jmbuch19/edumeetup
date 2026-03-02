@@ -1,4 +1,4 @@
-﻿import Link from 'next/link'
+import Link from 'next/link'
 import {
     GraduationCap, CalendarDays, MapPin, Shield,
     Users, ArrowRight, CheckCircle, Globe, Building2

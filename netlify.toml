@@ -1,4 +1,4 @@
-﻿[build]
+[build]
   command = "rm -rf .next && npm run build"
 
 [build.environment]

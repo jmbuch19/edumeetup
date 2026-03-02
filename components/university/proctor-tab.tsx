@@ -1,4 +1,4 @@
-﻿/**
+/**
  * components/university/proctor-tab.tsx
  *
  * Tab 7 in university dashboard.

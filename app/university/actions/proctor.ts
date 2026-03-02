@@ -1,4 +1,4 @@
-﻿'use server'
+'use server'
 
 /**
  * app/university/actions/proctor.ts

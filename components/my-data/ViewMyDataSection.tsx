@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { CheckCircle, XCircle, Clock, Database } from 'lucide-react'
 

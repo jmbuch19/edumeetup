@@ -1,4 +1,4 @@
-﻿import Link from "next/link"
+import Link from "next/link"
 import { GraduationCap, Mail, Github } from "lucide-react"
 
 export function Footer() {

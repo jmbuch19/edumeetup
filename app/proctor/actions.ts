@@ -1,4 +1,4 @@
-﻿'use server'
+'use server'
 
 import { sendEmail, generateEmailHtml } from '@/lib/email'
 import { logSystemEvent } from '@/lib/system-log'

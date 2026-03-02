@@ -1,4 +1,4 @@
-﻿/**
+/**
  * lib/agent/executor.ts
  *
  * Executes a list of AgentActions produced by triggers.ts.

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * lib/agent/triggers.ts
  *
  * Four trigger functions for the EdUmeetup automated agent.

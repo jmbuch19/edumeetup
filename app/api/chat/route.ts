@@ -1,4 +1,4 @@
-﻿import { google } from '@/lib/ai';
+import { google } from '@/lib/ai';
 import { streamText } from 'ai';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';

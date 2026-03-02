@@ -1,4 +1,4 @@
-﻿import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { FIELD_CATEGORIES } from '@/lib/constants'
 import { requireUser } from '@/lib/auth'
 import { DashboardUI } from '@/components/student/dashboard-ui'

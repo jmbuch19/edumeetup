@@ -1,4 +1,4 @@
-﻿/**
+/**
  * app/university/settings/page.tsx
  *
  * University notification preferences page.

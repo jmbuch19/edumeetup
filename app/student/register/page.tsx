@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { registerStudent } from '@/app/actions'
 import { Button } from '@/components/ui/button'

@@ -1,4 +1,4 @@
-﻿# EdUmeetup MVP - Deployment Guide
+# EdUmeetup MVP - Deployment Guide
 
 ## 1. Prepare for Deployment
 
