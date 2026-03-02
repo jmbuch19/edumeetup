@@ -1,17 +1,22 @@
-/**
- * /proctor/credentials
- * Print-ready IAES credentials page — opens in new tab, auto-triggers print dialog.
- * Students / universities can save as PDF via browser print → Save as PDF.
- */
+'use client'
+
+import { useEffect } from 'react'
+
 export default function ProctorCredentialsPage() {
+    // Auto-trigger print on load
+    useEffect(() => {
+        const timer = setTimeout(() => window.print(), 500)
+        return () => clearTimeout(timer)
+    }, [])
+
     return (
         <>
-            {/* Auto-print on load */}
-            <script dangerouslySetInnerHTML={{ __html: 'window.onload=()=>window.print()' }} />
-
             <style>{`
         @page { size: A4; margin: 24mm 20mm; }
-        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .no-print { display: none !important; } }
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .no-print { display: none !important; }
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; background: #fff; }
       `}</style>
@@ -49,7 +54,7 @@ export default function ProctorCredentialsPage() {
                     </p>
                 </div>
 
-                {/* Details grid */}
+                {/* Details table */}
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 28 }}>
                     <tbody>
                         {[
@@ -94,8 +99,7 @@ export default function ProctorCredentialsPage() {
                 <div style={{ background: '#f0f4ff', border: '1px solid #c7d2fe', borderRadius: 10, padding: '14px 18px', marginBottom: 28 }}>
                     <p style={{ fontSize: 12, color: '#3730a3', lineHeight: 1.6 }}>
                         <strong>To university examination offices:</strong> To register IAES / edUmeetup as a proctor site
-                        for your students in India, please contact us at{' '}
-                        <strong>proctor@edumeetup.com</strong> or visit{' '}
+                        for your students in India, please contact us at <strong>proctor@edumeetup.com</strong> or visit{' '}
                         <strong>edumeetup.com/proctor</strong> to submit a partnership enquiry.
                     </p>
                 </div>
@@ -104,9 +108,6 @@ export default function ProctorCredentialsPage() {
                 <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div>
                         <p style={{ fontSize: 11, color: '#94a3b8' }}>Generated from edumeetup.com/proctor</p>
-                        <p style={{ fontSize: 11, color: '#94a3b8' }}>
-                            {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                         <p style={{ fontSize: 12, color: '#3333CC', fontWeight: 700 }}>edUmeetup / IAES</p>
@@ -116,7 +117,7 @@ export default function ProctorCredentialsPage() {
 
             </div>
 
-            {/* Print button — only visible on screen, hidden when printing */}
+            {/* Print button — hidden when printing */}
             <div className="no-print" style={{ textAlign: 'center', marginTop: 32, marginBottom: 40, fontFamily: 'sans-serif' }}>
                 <button
                     onClick={() => window.print()}

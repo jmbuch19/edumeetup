@@ -3,36 +3,36 @@
 import { sendEmail, generateEmailHtml } from '@/lib/email'
 import { logSystemEvent } from '@/lib/system-log'
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'jaydeep@edumeetup.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'jaydeep@edumeetup.com' // real address already set
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'
 
 // ── STUDENT ENQUIRY ───────────────────────────────────────────────────────────
 export async function submitStudentProctorEnquiry(
-    formData: FormData
+  formData: FormData
 ): Promise<{ success?: boolean; error?: string }> {
 
-    const fields = {
-        fullName: (formData.get('fullName') as string)?.trim(),
-        email: (formData.get('email') as string)?.trim().toLowerCase(),
-        phone: (formData.get('phone') as string)?.trim(),
-        city: (formData.get('city') as string)?.trim(),
-        universityName: (formData.get('universityName') as string)?.trim(),
-        subject: (formData.get('subject') as string)?.trim(),
-        examType: (formData.get('examType') as string)?.trim(),
-        examDate: (formData.get('examDate') as string)?.trim(),
-        duration: (formData.get('duration') as string)?.trim(),
-        notes: (formData.get('notes') as string)?.trim(),
-    }
+  const fields = {
+    fullName: (formData.get('fullName') as string)?.trim(),
+    email: (formData.get('email') as string)?.trim().toLowerCase(),
+    phone: (formData.get('phone') as string)?.trim(),
+    city: (formData.get('city') as string)?.trim(),
+    universityName: (formData.get('universityName') as string)?.trim(),
+    subject: (formData.get('subject') as string)?.trim(),
+    examType: (formData.get('examType') as string)?.trim(),
+    examDate: (formData.get('examDate') as string)?.trim(),
+    duration: (formData.get('duration') as string)?.trim(),
+    notes: (formData.get('notes') as string)?.trim(),
+  }
 
-    if (!fields.fullName || !fields.email || !fields.universityName || !fields.examDate) {
-        return { error: 'Please fill in all required fields.' }
-    }
+  if (!fields.fullName || !fields.email || !fields.universityName || !fields.examDate) {
+    return { error: 'Please fill in all required fields.' }
+  }
 
-    const examDateFormatted = fields.examDate
-        ? new Date(fields.examDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
-        : 'Not specified'
+  const examDateFormatted = fields.examDate
+    ? new Date(fields.examDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+    : 'Not specified'
 
-    const adminContent = `
+  const adminContent = `
     <p>A student has submitted a proctor site enquiry via <strong>edumeetup.com/proctor</strong>.</p>
 
     <div class="info-box" style="background:#f0fdf4;border-color:#bbf7d0;">
@@ -66,14 +66,14 @@ export async function submitStudentProctorEnquiry(
     <p><a href="mailto:${fields.email}" class="btn">Reply to Student →</a></p>
   `
 
-    await sendEmail({
-        to: ADMIN_EMAIL,
-        subject: `📋 Proctor Enquiry — ${fields.fullName} · ${fields.universityName} · ${examDateFormatted}`,
-        html: generateEmailHtml('New Student Proctor Enquiry', adminContent),
-        replyTo: fields.email,
-    })
+  await sendEmail({
+    to: ADMIN_EMAIL,
+    subject: `📋 Proctor Enquiry — ${fields.fullName} · ${fields.universityName} · ${examDateFormatted}`,
+    html: generateEmailHtml('New Student Proctor Enquiry', adminContent),
+    replyTo: fields.email,
+  })
 
-    const studentContent = `
+  const studentContent = `
     <p>Hi ${fields.fullName},</p>
     <p>Thank you for reaching out to <strong>edUmeetup / IAES</strong> for your proctored exam arrangement.</p>
     <p>We've received your enquiry and our team will contact you within <strong>24 hours</strong> to confirm the arrangements and next steps.</p>
@@ -95,52 +95,52 @@ export async function submitStudentProctorEnquiry(
     </p>
   `
 
-    await sendEmail({
-        to: fields.email,
-        subject: `✅ Proctor Enquiry Received — edUmeetup / IAES`,
-        html: generateEmailHtml('Proctor Enquiry Received', studentContent),
-    })
+  await sendEmail({
+    to: fields.email,
+    subject: `✅ Proctor Enquiry Received — edUmeetup / IAES`,
+    html: generateEmailHtml('Proctor Enquiry Received', studentContent),
+  })
 
-    await logSystemEvent({
-        level: 'INFO',
-        type: 'SYSTEM_EVENT',
-        message: `Student proctor enquiry: ${fields.fullName} · ${fields.universityName}`,
-        metadata: { email: fields.email, examDate: fields.examDate, university: fields.universityName },
-    })
+  await logSystemEvent({
+    level: 'INFO',
+    type: 'SYSTEM_EVENT',
+    message: `Student proctor enquiry: ${fields.fullName} · ${fields.universityName}`,
+    metadata: { email: fields.email, examDate: fields.examDate, university: fields.universityName },
+  })
 
-    return { success: true }
+  return { success: true }
 }
 
 // ── UNIVERSITY ENQUIRY ────────────────────────────────────────────────────────
 export async function submitUniversityProctorEnquiry(
-    formData: FormData
+  formData: FormData
 ): Promise<{ success?: boolean; error?: string }> {
 
-    const fields = {
-        institutionName: (formData.get('institutionName') as string)?.trim(),
-        country: (formData.get('country') as string)?.trim(),
-        contactName: (formData.get('contactName') as string)?.trim(),
-        contactTitle: (formData.get('contactTitle') as string)?.trim(),
-        email: (formData.get('email') as string)?.trim().toLowerCase(),
-        phone: (formData.get('phone') as string)?.trim(),
-        examStart: (formData.get('examStart') as string)?.trim(),
-        examEnd: (formData.get('examEnd') as string)?.trim(),
-        studentCount: (formData.get('studentCount') as string)?.trim(),
-        examType: (formData.get('examType') as string)?.trim(),
-        subjects: (formData.get('subjects') as string)?.trim(),
-        requirements: (formData.get('requirements') as string)?.trim(),
-        policyUrl: (formData.get('policyUrl') as string)?.trim(),
-    }
+  const fields = {
+    institutionName: (formData.get('institutionName') as string)?.trim(),
+    country: (formData.get('country') as string)?.trim(),
+    contactName: (formData.get('contactName') as string)?.trim(),
+    contactTitle: (formData.get('contactTitle') as string)?.trim(),
+    email: (formData.get('email') as string)?.trim().toLowerCase(),
+    phone: (formData.get('phone') as string)?.trim(),
+    examStart: (formData.get('examStart') as string)?.trim(),
+    examEnd: (formData.get('examEnd') as string)?.trim(),
+    studentCount: (formData.get('studentCount') as string)?.trim(),
+    examType: (formData.get('examType') as string)?.trim(),
+    subjects: (formData.get('subjects') as string)?.trim(),
+    requirements: (formData.get('requirements') as string)?.trim(),
+    policyUrl: (formData.get('policyUrl') as string)?.trim(),
+  }
 
-    if (!fields.institutionName || !fields.email || !fields.contactName || !fields.examStart) {
-        return { error: 'Please fill in all required fields.' }
-    }
+  if (!fields.institutionName || !fields.email || !fields.contactName || !fields.examStart) {
+    return { error: 'Please fill in all required fields.' }
+  }
 
-    const fmt = (d: string) => d
-        ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
-        : 'Not specified'
+  const fmt = (d: string) => d
+    ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+    : 'Not specified'
 
-    const adminContent = `
+  const adminContent = `
     <p>A university has submitted a proctor partnership enquiry via <strong>edumeetup.com/proctor</strong>.</p>
 
     <div class="info-box" style="background:#f0f4ff;border-color:#c7d2fe;">
@@ -175,14 +175,14 @@ export async function submitUniversityProctorEnquiry(
     <p><a href="mailto:${fields.email}" class="btn">Reply to ${fields.contactName} →</a></p>
   `
 
-    await sendEmail({
-        to: ADMIN_EMAIL,
-        subject: `🏛️ University Proctor Enquiry — ${fields.institutionName} · ${fields.studentCount} students · ${fmt(fields.examStart)}`,
-        html: generateEmailHtml('New University Proctor Partnership Enquiry', adminContent),
-        replyTo: fields.email,
-    })
+  await sendEmail({
+    to: ADMIN_EMAIL,
+    subject: `🏛️ University Proctor Enquiry — ${fields.institutionName} · ${fields.studentCount} students · ${fmt(fields.examStart)}`,
+    html: generateEmailHtml('New University Proctor Partnership Enquiry', adminContent),
+    replyTo: fields.email,
+  })
 
-    const uniContent = `
+  const uniContent = `
     <p>Dear ${fields.contactName},</p>
     <p>Thank you for reaching out to <strong>edUmeetup / IAES</strong> regarding exam proctoring for your students in India.</p>
     <p>We've received your enquiry and our team will contact you within <strong>24 hours</strong> to discuss next steps and begin the proctor registration process.</p>
@@ -205,18 +205,18 @@ export async function submitUniversityProctorEnquiry(
     </p>
   `
 
-    await sendEmail({
-        to: fields.email,
-        subject: `✅ Proctor Partnership Enquiry Received — edUmeetup / IAES`,
-        html: generateEmailHtml('Proctor Partnership Enquiry Received', uniContent),
-    })
+  await sendEmail({
+    to: fields.email,
+    subject: `✅ Proctor Partnership Enquiry Received — edUmeetup / IAES`,
+    html: generateEmailHtml('Proctor Partnership Enquiry Received', uniContent),
+  })
 
-    await logSystemEvent({
-        level: 'INFO',
-        type: 'SYSTEM_EVENT',
-        message: `University proctor enquiry: ${fields.institutionName} · ${fields.studentCount} students`,
-        metadata: { email: fields.email, institution: fields.institutionName, examStart: fields.examStart },
-    })
+  await logSystemEvent({
+    level: 'INFO',
+    type: 'SYSTEM_EVENT',
+    message: `University proctor enquiry: ${fields.institutionName} · ${fields.studentCount} students`,
+    metadata: { email: fields.email, institution: fields.institutionName, examStart: fields.examStart },
+  })
 
-    return { success: true }
+  return { success: true }
 }
