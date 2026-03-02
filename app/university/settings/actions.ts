@@ -1,65 +1,63 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { requireUser } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
-export async function updateUniversitySettings(formData: FormData) {
-    const session = await auth()
-    if (!session || !session.user || ((session.user as any).role !== 'UNIVERSITY' && (session.user as any).role !== 'UNIVERSITY_REP')) {
-        return { error: 'Unauthorized' }
-    }
+export async function updateUniversityNotificationPrefs(formData: FormData) {
+    const user = await requireUser()
+    if (user.role !== 'UNIVERSITY') return { error: 'Unauthorized' }
 
-    const userId = session.user.id
+    const university = await prisma.university.findFirst({ where: { userId: user.id } })
+    if (!university) return { error: 'University not found' }
 
-    // Extract Profile Fields
-    const website = formData.get('website') as string
-    const contactEmail = formData.get('contactEmail') as string
-    const description = formData.get('description') as string
-    const logo = formData.get('logo') as string
-    const brandColor = formData.get('brandColor') as string
+    // Pipeline
+    const notifyNewInterest      = formData.get('notifyNewInterest') === 'on'
+    const notifyMeetingBooked    = formData.get('notifyMeetingBooked') === 'on'
+    const notifyMeetingCancelled = formData.get('notifyMeetingCancelled') === 'on'
+    const followUpRaw            = formData.get('followUpThresholdHours') as string
+    const followUpThresholdHours = followUpRaw === 'off' ? null : parseInt(followUpRaw)
 
-    // Extract Rules Fields
-    const approvalMode = formData.get('approvalMode') as string
-    const defaultDuration = parseInt(formData.get('defaultDuration') as string)
-    const dailyCapPerRep = parseInt(formData.get('dailyCapPerRep') as string)
-    const minLeadTimeHours = parseInt(formData.get('minLeadTimeHours') as string)
-    const bufferMinutes = parseInt(formData.get('bufferMinutes') as string)
-    const cancellationWindowHours = parseInt(formData.get('cancellationWindowHours') as string)
-    const isPublic = formData.get('isPublic') === 'on'
+    // Digest
+    const digestDaily   = formData.get('digestDaily') === 'on'
+    const digestWeekly  = formData.get('digestWeekly') === 'on'
+    const digestMonthly = formData.get('digestMonthly') === 'on'
 
-    try {
-        await prisma.university.update({
-            where: { userId },
-            data: {
-                website,
-                contactEmail,
-                about: description,
-                logo: logo && /^https:\/\/.*\.(jpg|jpeg|png|svg|webp)$/i.test(logo) ? logo : undefined,
-                brandColor,
-                approvalMode,
-                defaultDuration,
-                dailyCapPerRep,
-                minLeadTimeHours,
-                bufferMinutes,
-                cancellationWindowHours,
-                isPublic
-            }
-        })
+    // Events & Fairs
+    const notifyFairOpportunities = formData.get('notifyFairOpportunities') === 'on'
+    const notifyInterestSpikes    = formData.get('notifyInterestSpikes') === 'on'
 
-        revalidatePath('/university/settings')
-        return { success: true }
-    } catch (e) {
-        console.error(e)
-        return { error: 'Failed to update settings' }
-    }
-}
+    // Escalation
+    const notifyTarget       = (formData.get('notifyTarget') as string) || 'PRIMARY'
+    const customEmailsRaw    = (formData.get('customNotifyEmails') as string) || ''
+    const customNotifyEmails = customEmailsRaw
+        .split(',')
+        .map(e => e.trim())
+        .filter(e => e.includes('@'))
+    const quietHoursEnabled  = formData.get('quietHoursEnabled') === 'on'
+    const quietHoursStart    = parseInt((formData.get('quietHoursStart') as string) || '22')
+    const quietHoursEnd      = parseInt((formData.get('quietHoursEnd') as string) || '7')
 
-export async function getUniversitySettings() {
-    const session = await auth()
-    if (!session || !session.user) return null
-
-    return await prisma.university.findUnique({
-        where: { userId: session.user.id }
+    await prisma.university.update({
+        where: { id: university.id },
+        data: {
+            notifyNewInterest,
+            notifyMeetingBooked,
+            notifyMeetingCancelled,
+            followUpThresholdHours: isNaN(followUpThresholdHours as number) ? null : followUpThresholdHours,
+            digestDaily,
+            digestWeekly,
+            digestMonthly,
+            notifyFairOpportunities,
+            notifyInterestSpikes,
+            notifyTarget,
+            customNotifyEmails,
+            quietHoursEnabled,
+            quietHoursStart: isNaN(quietHoursStart) ? 22 : quietHoursStart,
+            quietHoursEnd: isNaN(quietHoursEnd) ? 7 : quietHoursEnd,
+        }
     })
+
+    revalidatePath('/university/settings')
+    return { success: true }
 }

@@ -189,6 +189,29 @@ model University {
   updatedAt               DateTime                 @updatedAt
   universityNameFromEmail String?
   countryFromEmail        String?
+
+  // ── Pipeline Notifications ────────────────────────────────────────
+  notifyNewInterest       Boolean  @default(true)
+  notifyMeetingBooked     Boolean  @default(true)
+  notifyMeetingCancelled  Boolean  @default(true)
+  followUpThresholdHours  Int?     // null=off | 24 | 48 | 72
+
+  // ── Digest & Reporting ────────────────────────────────────────────
+  digestDaily             Boolean  @default(true)   // 9am IST daily
+  digestWeekly            Boolean  @default(true)   // Monday 9am IST
+  digestMonthly           Boolean  @default(true)   // 1st of month
+
+  // ── Events & Fairs ────────────────────────────────────────────────
+  notifyFairOpportunities Boolean  @default(true)
+  notifyInterestSpikes    Boolean  @default(true)
+
+  // ── Escalation Controls ───────────────────────────────────────────
+  notifyTarget            String   @default("PRIMARY") // PRIMARY | ALL | CUSTOM
+  customNotifyEmails      String[] @default([])         // used when notifyTarget=CUSTOM
+  quietHoursEnabled       Boolean  @default(true)
+  quietHoursStart         Int      @default(22)         // 10pm IST (24h)
+  quietHoursEnd           Int      @default(7)          // 7am IST (24h)
+
   availabilityProfiles    AvailabilityProfile[]
   availabilitySlots       AvailabilitySlot[]
   bookmarkedBy            Bookmark[]
