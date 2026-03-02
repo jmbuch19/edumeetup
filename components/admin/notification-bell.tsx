@@ -1,149 +1,235 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
+import { Bell, X, ArrowRight, Trophy, AlertTriangle, Info, Zap } from 'lucide-react'
 import Link from 'next/link'
-import { Bell, X, AlertTriangle, Info, CheckCircle } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import type { AdminNotification, MilestoneAlert } from '@/app/(admin)/admin/actions/notifications'
 
-interface Props {
+interface NotificationBellProps {
   notifications: AdminNotification[]
   milestones: MilestoneAlert[]
   unreadCount: number
 }
 
-function NotifIcon({ type }: { type: AdminNotification['type'] }) {
-  if (type === 'URGENT') return <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-  if (type === 'WARNING') return <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-  return <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+const TYPE_STYLES = {
+  URGENT: {
+    bg: 'bg-red-50 border-red-200',
+    icon: <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />,
+    badge: 'bg-red-100 text-red-700',
+    label: 'Urgent',
+  },
+  WARNING: {
+    bg: 'bg-amber-50 border-amber-200',
+    icon: <Zap className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />,
+    badge: 'bg-amber-100 text-amber-700',
+    label: 'Action Needed',
+  },
+  INFO: {
+    bg: 'bg-blue-50 border-blue-200',
+    icon: <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />,
+    badge: 'bg-blue-100 text-blue-700',
+    label: 'Info',
+  },
+  MILESTONE: {
+    bg: 'bg-purple-50 border-purple-200',
+    icon: <Trophy className="h-4 w-4 text-purple-500 shrink-0 mt-0.5" />,
+    badge: 'bg-purple-100 text-purple-700',
+    label: 'Milestone',
+  },
 }
 
-function NotifItem({ n, onClose }: { n: AdminNotification; onClose: () => void }) {
-  const bg =
-    n.type === 'URGENT' ? 'bg-red-50 border-red-100' :
-    n.type === 'WARNING' ? 'bg-amber-50 border-amber-100' :
-    'bg-blue-50 border-blue-100'
-
-  const content = (
-    <div className={`flex items-start gap-3 rounded-lg border p-3 transition-opacity hover:opacity-90 ${bg}`}>
-      <span className="text-lg leading-none mt-0.5">{n.icon}</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-900 leading-tight">{n.title}</p>
-        <p className="text-xs text-gray-600 mt-0.5 leading-snug">{n.message}</p>
-      </div>
-      <NotifIcon type={n.type} />
-    </div>
-  )
-
-  return n.actionUrl ? (
-    <Link href={n.actionUrl} onClick={onClose}>{content}</Link>
-  ) : (
-    <div>{content}</div>
-  )
-}
-
-export function AdminNotificationBell({ notifications, milestones, unreadCount }: Props) {
+export function NotificationBell({ notifications, milestones, unreadCount }: NotificationBellProps) {
   const [open, setOpen] = useState(false)
-  const panelRef = useRef<HTMLDivElement>(null)
-  const btnRef = useRef<HTMLButtonElement>(null)
 
-  // Close on outside click
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (
-        panelRef.current && !panelRef.current.contains(e.target as Node) &&
-        btnRef.current && !btnRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false)
-      }
-    }
-    if (open) document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
-  const urgent = notifications.filter(n => n.type === 'URGENT' || n.type === 'WARNING')
-  const info = notifications.filter(n => n.type === 'INFO')
-  const hasUrgent = urgent.some(n => n.type === 'URGENT')
+  const hasUrgent = notifications.some(n => n.type === 'URGENT')
+  const isEmpty = notifications.length === 0 && milestones.length === 0
 
   return (
-    <div className="relative">
-      {/* Bell Button */}
+    <>
+      {/* ── Bell Button ───────────────────────────────────────────────────── */}
       <button
-        ref={btnRef}
-        onClick={() => setOpen(v => !v)}
-        className="relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-gray-100 transition-colors"
-        aria-label="Notifications"
+        onClick={() => setOpen(true)}
+        className="relative p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+        aria-label="Open notifications"
       >
-        <Bell className="h-5 w-5 text-gray-600" />
+        <Bell className={cn("h-5 w-5", hasUrgent && "text-red-500")} />
         {unreadCount > 0 && (
-          <span className={`absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white
-            ${hasUrgent ? 'bg-red-500' : 'bg-blue-500'}`}>
-            {hasUrgent && (
-              <span className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping bg-red-400" />
-            )}
-            <span className="relative">{unreadCount > 9 ? '9+' : unreadCount}</span>
+          <span className={cn(
+            "absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full text-[10px] font-bold text-white flex items-center justify-center px-1",
+            hasUrgent ? "bg-red-500 animate-pulse" : "bg-primary"
+          )}>
+            {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
-      {/* Slide-out Panel */}
+      {/* ── Backdrop ──────────────────────────────────────────────────────── */}
       {open && (
         <div
-          ref={panelRef}
-          className="absolute right-0 top-11 z-50 w-80 sm:w-96 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
-            <span className="text-sm font-semibold text-gray-800">Notifications</span>
-            <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-              <X className="h-4 w-4" />
-            </button>
+          className="fixed inset-0 bg-black/20 z-40 transition-opacity"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      {/* ── Slide-out Panel ───────────────────────────────────────────────── */}
+      <div className={cn(
+        "fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out",
+        open ? "translate-x-0" : "translate-x-full"
+      )}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Notifications</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {isEmpty ? 'All clear — nothing needs attention' : `${notifications.length + milestones.length} items`}
+            </p>
           </div>
+          <button
+            onClick={() => setOpen(false)}
+            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-          <div className="max-h-[70vh] overflow-y-auto divide-y divide-gray-100">
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto">
 
-            {/* Milestones */}
-            {milestones.length > 0 && (
-              <section className="p-3 space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 px-1">🎉 Milestones</p>
-                {milestones.map(m => (
-                  <div key={m.id} className="flex items-start gap-3 rounded-lg border border-purple-100 bg-purple-50 p-3">
-                    <span className="text-lg leading-none">{m.emoji}</span>
-                    <div>
-                      <p className="text-sm font-semibold text-purple-900">{m.title}</p>
-                      <p className="text-xs text-purple-700 mt-0.5">{m.message}</p>
+          {/* Empty state */}
+          {isEmpty && (
+            <div className="flex flex-col items-center justify-center h-full px-6 text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <Bell className="h-7 w-7 text-green-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-1">All caught up!</h3>
+              <p className="text-sm text-gray-500">No pending actions or alerts right now.</p>
+            </div>
+          )}
+
+          {/* Milestones */}
+          {milestones.length > 0 && (
+            <div className="px-4 pt-4">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
+                🎉 Milestones
+              </p>
+              <div className="space-y-2">
+                {milestones.map(milestone => (
+                  <div
+                    key={milestone.id}
+                    className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">{milestone.emoji}</span>
+                      <div>
+                        <p className="text-sm font-semibold text-purple-900">{milestone.title}</p>
+                        <p className="text-xs text-purple-700 mt-0.5">{milestone.message}</p>
+                      </div>
                     </div>
                   </div>
                 ))}
-              </section>
-            )}
-
-            {/* Urgent / Warnings */}
-            {urgent.length > 0 && (
-              <section className="p-3 space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 px-1">⚠️ Urgent</p>
-                {urgent.map(n => <NotifItem key={n.id} n={n} onClose={() => setOpen(false)} />)}
-              </section>
-            )}
-
-            {/* Info */}
-            {info.length > 0 && (
-              <section className="p-3 space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 px-1">📊 Platform Updates</p>
-                {info.map(n => <NotifItem key={n.id} n={n} onClose={() => setOpen(false)} />)}
-              </section>
-            )}
-
-            {/* Empty state */}
-            {notifications.length === 0 && milestones.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-10 text-center px-4">
-                <CheckCircle className="h-8 w-8 text-green-400 mb-3" />
-                <p className="text-sm font-medium text-gray-700">All clear!</p>
-                <p className="text-xs text-gray-400 mt-1">No pending actions or alerts right now.</p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Urgent notifications */}
+          {notifications.filter(n => n.type === 'URGENT').length > 0 && (
+            <div className="px-4 pt-4">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
+                ⚠️ Urgent
+              </p>
+              <div className="space-y-2">
+                {notifications
+                  .filter(n => n.type === 'URGENT')
+                  .map(n => <NotificationCard key={n.id} notification={n} onClose={() => setOpen(false)} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Warning notifications */}
+          {notifications.filter(n => n.type === 'WARNING').length > 0 && (
+            <div className="px-4 pt-4">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
+                Action Needed
+              </p>
+              <div className="space-y-2">
+                {notifications
+                  .filter(n => n.type === 'WARNING')
+                  .map(n => <NotificationCard key={n.id} notification={n} onClose={() => setOpen(false)} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Info notifications */}
+          {notifications.filter(n => n.type === 'INFO').length > 0 && (
+            <div className="px-4 pt-4 pb-6">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
+                Platform Updates
+              </p>
+              <div className="space-y-2">
+                {notifications
+                  .filter(n => n.type === 'INFO')
+                  .map(n => <NotificationCard key={n.id} notification={n} onClose={() => setOpen(false)} />)}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-gray-200 shrink-0">
+          <Link
+            href="/admin/overview"
+            onClick={() => setOpen(false)}
+            className="flex items-center justify-center gap-2 w-full py-2 text-sm font-medium text-primary hover:underline"
+          >
+            View Full Overview <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ── Individual notification card ──────────────────────────────────────────────
+function NotificationCard({
+  notification,
+  onClose,
+}: {
+  notification: AdminNotification
+  onClose: () => void
+}) {
+  const style = TYPE_STYLES[notification.type]
+
+  const content = (
+    <div className={cn(
+      "flex items-start gap-3 p-3 rounded-xl border transition-all",
+      style.bg,
+      notification.actionUrl && "hover:shadow-sm cursor-pointer"
+    )}>
+      <span className="text-lg shrink-0">{notification.icon}</span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-sm font-semibold text-gray-900">{notification.title}</p>
+          <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded-full", style.badge)}>
+            {style.label}
+          </span>
+        </div>
+        <p className="text-xs text-gray-600 mt-0.5">{notification.message}</p>
+      </div>
+      {notification.actionUrl && (
+        <ArrowRight className="h-4 w-4 text-gray-400 shrink-0 mt-0.5" />
       )}
     </div>
   )
+
+  if (notification.actionUrl) {
+    return (
+      <Link href={notification.actionUrl} onClick={onClose}>
+        {content}
+      </Link>
+    )
+  }
+
+  return content
 }

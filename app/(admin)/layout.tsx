@@ -10,7 +10,7 @@ import {
 import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav"
 import { ActiveNavItem } from "@/components/admin/active-nav-item"
-import { AdminNotificationBell } from "@/components/admin/notification-bell"
+import { NotificationBell } from "@/components/admin/notification-bell"
 import { getAdminNotifications } from "@/app/(admin)/admin/actions/notifications"
 
 async function logout() {
@@ -91,7 +91,7 @@ export default async function AdminLayout({
                             <p className="text-sm font-medium text-gray-900 truncate capitalize">{adminName}</p>
                             <p className="text-xs text-gray-500 truncate">{session.user?.email}</p>
                         </div>
-                        <AdminNotificationBell
+                        <NotificationBell
                             notifications={notifData.notifications}
                             milestones={notifData.milestones}
                             unreadCount={notifData.unreadCount}
