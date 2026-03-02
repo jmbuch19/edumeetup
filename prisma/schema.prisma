@@ -118,6 +118,7 @@ model Student {
   cvFileName         String?
   cvUploadedAt       DateTime?
   cvSizeBytes        Int?
+  notificationPrefs  Json?
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
   advisoryRequests   AdvisoryRequest[]

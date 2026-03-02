@@ -9,9 +9,7 @@ export async function updateDisplayName(formData: FormData) {
     const name = (formData.get('name') as string)?.trim()
     if (!name || name.length < 2) return { error: 'Name must be at least 2 characters.' }
     if (name.length > 80) return { error: 'Name is too long.' }
-
     await prisma.user.update({ where: { id: user.id }, data: { name } })
-    // Keep student.fullName in sync if it exists
     await prisma.student.updateMany({ where: { userId: user.id }, data: { fullName: name } })
     revalidatePath('/student/settings')
     return { success: true }
@@ -19,6 +17,8 @@ export async function updateDisplayName(formData: FormData) {
 
 export async function updateNotificationPrefs(formData: FormData) {
     const user = await requireUser()
+
+    // ── Existing consent fields ───────────────────────────────────────────────
     const consentMarketing = formData.get('consentMarketing') === 'on'
     const consentAnalytics = formData.get('consentAnalytics') === 'on'
 
@@ -30,6 +30,23 @@ export async function updateNotificationPrefs(formData: FormData) {
             consentWithdrawnAt: (!consentMarketing && !consentAnalytics) ? new Date() : null,
         }
     })
+
+    // ── Agent notification preferences (stored on Student) ───────────────────
+    const emailNudge = formData.get('emailNudge') === 'on'
+    const emailMeetingReminder = formData.get('emailMeetingReminder') === 'on'
+    const emailUniversityUpdates = formData.get('emailUniversityUpdates') === 'on'
+
+    await prisma.student.updateMany({
+        where: { userId: user.id },
+        data: {
+            notificationPrefs: {
+                emailNudge,
+                emailMeetingReminder,
+                emailUniversityUpdates,
+            }
+        }
+    })
+
     revalidatePath('/student/settings')
     return { success: true }
 }

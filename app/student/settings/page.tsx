@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { updateDisplayName, updateNotificationPrefs } from './actions'
 import {
     User, Bell, Shield, ExternalLink, Mail,
-    BarChart2, CheckCircle2, XCircle
+    BarChart2, CheckCircle2, XCircle, Zap, Calendar, School
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -20,20 +20,28 @@ export default async function StudentSettingsPage() {
     const user = await requireUser()
     if (user.role !== 'STUDENT') redirect('/')
 
-    const userData = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: {
-            id: true,
-            email: true,
-            name: true,
-            createdAt: true,
-            emailVerified: true,
-            consentMarketing: true,
-            consentAnalytics: true,
-            consentWithdrawnAt: true,
-            deletionRequestedAt: true,
-        }
-    })
+    const [userData, student] = await Promise.all([
+        prisma.user.findUnique({
+            where: { id: user.id },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                createdAt: true,
+                emailVerified: true,
+                consentMarketing: true,
+                consentAnalytics: true,
+                consentWithdrawnAt: true,
+                deletionRequestedAt: true,
+            }
+        }),
+        prisma.student.findFirst({
+            where: { userId: user.id },
+            select: { notificationPrefs: true }
+        })
+    ])
+
+    const prefs = (student?.notificationPrefs ?? {}) as Record<string, boolean>
 
     if (!userData) redirect('/')
 
@@ -171,6 +179,50 @@ export default async function StudentSettingsPage() {
                                     Consent withdrawn on {format(new Date(userData.consentWithdrawnAt), 'MMM d, yyyy')}. Update above and save to re-enable.
                                 </p>
                             )}
+
+                            {/* ── Agent Notification Prefs ─────────────────── */}
+                            <div className="pt-3 border-t border-gray-100 space-y-4">
+                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Agent Notifications</p>
+
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                                            <label htmlFor="emailMeetingReminder" className="text-sm font-medium cursor-pointer">Meeting Reminders</label>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-0.5 ml-6">24h email reminder before confirmed meetings.</p>
+                                    </div>
+                                    <input type="checkbox" id="emailMeetingReminder" name="emailMeetingReminder"
+                                        defaultChecked={prefs.emailMeetingReminder ?? true}
+                                        className="mt-1 h-4 w-4 accent-primary cursor-pointer shrink-0" />
+                                </div>
+
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <Zap className="h-4 w-4 text-muted-foreground" />
+                                            <label htmlFor="emailNudge" className="text-sm font-medium cursor-pointer">Profile Completion Nudges</label>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-0.5 ml-6">Weekly reminder to complete your profile (stops once complete).</p>
+                                    </div>
+                                    <input type="checkbox" id="emailNudge" name="emailNudge"
+                                        defaultChecked={prefs.emailNudge ?? true}
+                                        className="mt-1 h-4 w-4 accent-primary cursor-pointer shrink-0" />
+                                </div>
+
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <School className="h-4 w-4 text-muted-foreground" />
+                                            <label htmlFor="emailUniversityUpdates" className="text-sm font-medium cursor-pointer">University Response Alerts</label>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-0.5 ml-6">Notify you when universities respond to your interest.</p>
+                                    </div>
+                                    <input type="checkbox" id="emailUniversityUpdates" name="emailUniversityUpdates"
+                                        defaultChecked={prefs.emailUniversityUpdates ?? true}
+                                        className="mt-1 h-4 w-4 accent-primary cursor-pointer shrink-0" />
+                                </div>
+                            </div>
 
                             <Button type="submit" size="sm" className="w-full">Save Preferences</Button>
                         </form>
