@@ -3,6 +3,7 @@
  *
  * Four trigger functions for the edUmeetup automated agent.
  * Each trigger queries the DB and returns a list of AgentActions to execute.
+ * Respects student notificationPrefs — students who opted out are skipped.
  * No side effects here — pure data in, actions out.
  */
 
@@ -41,10 +42,20 @@ async function alreadyFired(action: string, entityId: string): Promise<boolean> 
   return !!existing
 }
 
+// ── Helper: read a student's notification preference ─────────────────────────
+function prefEnabled(
+  prefs: Record<string, boolean> | null | undefined,
+  key: string
+): boolean {
+  if (!prefs) return true           // default ON if no prefs set yet
+  return prefs[key] !== false       // default ON unless explicitly false
+}
+
 // ── TRIGGER 1: Profile Completion ─────────────────────────────────────────────
 /**
  * Fires once per student when they complete their profile.
- * Sends a "You're live!" welcome notification + email.
+ * Always sends — this is a transactional notification, not a nudge.
+ * Not affected by notificationPrefs (students always want to know they're live).
  */
 export async function triggerProfileCompletion(): Promise<AgentAction[]> {
   const actions: AgentAction[] = []
@@ -73,9 +84,10 @@ export async function triggerProfileCompletion(): Promise<AgentAction[]> {
 
 // ── TRIGGER 2: Inactive Student Nudge ────────────────────────────────────────
 /**
- * Fires when a student has an incomplete profile and hasn't been active
- * for 3+ days. Max one nudge per student per 7 days.
- * Uses updatedAt as the inactivity proxy — no migration needed.
+ * Fires when a student has an incomplete profile and hasn't updated it
+ * for 3+ days (using updatedAt as activity proxy — no schema change needed).
+ * Max one nudge per student per 7 days.
+ * Respects: notificationPrefs.emailNudge
  */
 export async function triggerInactiveNudge(): Promise<AgentAction[]> {
   const actions: AgentAction[] = []
@@ -86,8 +98,8 @@ export async function triggerInactiveNudge(): Promise<AgentAction[]> {
   const inactiveStudents = await prisma.student.findMany({
     where: {
       profileComplete: false,
-      updatedAt: { lt: threeDaysAgo },    // proxy for "not active in 3 days"
-      createdAt: { lt: threeDaysAgo },    // skip brand-new accounts
+      updatedAt: { lt: threeDaysAgo },  // proxy for inactivity — no migration needed
+      createdAt: { lt: threeDaysAgo },  // must be at least 3 days old
     },
     include: {
       user: { select: { email: true } }
@@ -95,9 +107,12 @@ export async function triggerInactiveNudge(): Promise<AgentAction[]> {
   })
 
   for (const student of inactiveStudents) {
-    const actionKey = 'AGENT_INACTIVE_NUDGE_SENT'
+    // ── Respect opt-out ───────────────────────────────────────────────────
+    const prefs = student.notificationPrefs as Record<string, boolean> | null
+    if (!prefEnabled(prefs, 'emailNudge')) continue
 
-    // Check if we sent a nudge in the last 7 days
+    // ── Max one nudge per 7 days ──────────────────────────────────────────
+    const actionKey = 'AGENT_INACTIVE_NUDGE_SENT'
     const recentNudge = await prisma.auditLog.findFirst({
       where: {
         action: actionKey,
@@ -121,8 +136,12 @@ export async function triggerInactiveNudge(): Promise<AgentAction[]> {
 // ── TRIGGER 3: University Response Delay ──────────────────────────────────────
 /**
  * Fires when a student has expressed interest but the university
- * hasn't responded (no universityNote) after 48 hours.
+ * hasn't responded after 48 hours.
  * Notifies the university once per interest.
+ * Note: this notifies the UNIVERSITY, not the student —
+ * so it uses university settings, not student prefs.
+ * Students can toggle emailUniversityUpdates but that controls
+ * whether THEY get notified about university responses, not this trigger.
  */
 export async function triggerUniversityResponseDelay(): Promise<AgentAction[]> {
   const actions: AgentAction[] = []
@@ -173,9 +192,9 @@ export async function triggerUniversityResponseDelay(): Promise<AgentAction[]> {
 
 // ── TRIGGER 4: Meeting Reminder (24h before) ──────────────────────────────────
 /**
- * Fires for all confirmed meetings starting in the next 23–25 hour window.
- * Uses the existing reminder24hSent flag to prevent duplicates.
- * Notifies both student and university rep.
+ * Fires for confirmed meetings starting in the next 23–25 hour window.
+ * Uses reminder24hSent flag to prevent duplicates.
+ * Respects: student notificationPrefs.emailMeetingReminder
  */
 export async function triggerMeetingReminders(): Promise<AgentAction[]> {
   const actions: AgentAction[] = []
@@ -208,23 +227,26 @@ export async function triggerMeetingReminders(): Promise<AgentAction[]> {
   })
 
   for (const meeting of upcomingMeetings) {
-    // Student reminder
+    // ── Student reminder — respect their pref ─────────────────────────────
     if (meeting.student?.user?.email) {
-      actions.push({
-        type: 'NOTIFY_MEETING_REMINDER_STUDENT',
-        meetingId: meeting.id,
-        studentId: meeting.studentId ?? undefined,
-        studentEmail: meeting.student.user.email,
-        studentName: meeting.student.fullName || 'there',
-        meetingTitle: meeting.title ?? 'Your Meeting',
-        meetingStartTime: meeting.startTime,
-        meetingDuration: meeting.durationMinutes,
-        meetingJoinUrl: meeting.joinUrl ?? undefined,
-        meetingCode: meeting.meetingCode,
-      })
+      const prefs = meeting.student.notificationPrefs as Record<string, boolean> | null
+      if (prefEnabled(prefs, 'emailMeetingReminder')) {
+        actions.push({
+          type: 'NOTIFY_MEETING_REMINDER_STUDENT',
+          meetingId: meeting.id,
+          studentId: meeting.studentId ?? undefined,
+          studentEmail: meeting.student.user.email,
+          studentName: meeting.student.fullName || 'there',
+          meetingTitle: meeting.title ?? 'Your Meeting',
+          meetingStartTime: meeting.startTime,
+          meetingDuration: meeting.durationMinutes,
+          meetingJoinUrl: meeting.joinUrl ?? undefined,
+          meetingCode: meeting.meetingCode,
+        })
+      }
     }
 
-    // University reminder
+    // ── University reminder — always send (universities don't have prefs yet) ──
     if (meeting.university?.user?.email) {
       actions.push({
         type: 'NOTIFY_MEETING_REMINDER_UNIVERSITY',
