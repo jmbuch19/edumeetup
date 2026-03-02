@@ -284,13 +284,21 @@ export default function ProctorPage() {
                             </p>
                         </div>
                     </div>
-                    <p className="text-center mt-6">
+                    <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 text-center">
                         <button onClick={handleShare}
                             className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline underline-offset-4">
                             <Share2 className="h-4 w-4" />
                             Share this page with your university or student
                         </button>
-                    </p>
+                        <span className="hidden sm:block text-slate-300">·</span>
+                        <a
+                            href="/proctor/credentials"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-primary hover:underline underline-offset-4 transition-colors">
+                            ⬇ Download Proctor Details PDF
+                        </a>
+                    </div>
                 </div>
             </section>
 
