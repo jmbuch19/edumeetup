@@ -115,11 +115,17 @@ export function InterestedStudentsTable({ interests, availabilitySlots = [], pro
                             <TableHead>Country</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Date</TableHead>
+                            <TableHead>Waiting</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {interests.map((interest) => (
-                            <TableRow key={interest.id}>
+                        {interests.map((interest) => {
+                            const hoursWaiting = Math.floor((Date.now() - new Date(interest.createdAt).getTime()) / (1000 * 60 * 60))
+                            const daysWaiting = Math.floor(hoursWaiting / 24)
+                            const urgency = hoursWaiting >= 72 ? 'text-red-600 font-semibold' : hoursWaiting >= 48 ? 'text-amber-600 font-medium' : 'text-gray-500'
+                            const waitLabel = daysWaiting > 0 ? `${daysWaiting}d` : `${hoursWaiting}h`
+                            return (
+                            <TableRow key={interest.id} className={hoursWaiting >= 72 ? 'bg-red-50/40' : hoursWaiting >= 48 ? 'bg-amber-50/40' : ''}>
                                 <TableCell>
                                     <input
                                         type="checkbox"
@@ -132,11 +138,13 @@ export function InterestedStudentsTable({ interests, availabilitySlots = [], pro
                                 <TableCell>{interest.program?.programName || 'General Interest'}</TableCell>
                                 <TableCell>{interest.student.country || 'N/A'}</TableCell>
                                 <TableCell>
-                                    <Badge variant="outline">{interest.status}</Badge>
+                                    <Badge variant="outline" className={hoursWaiting >= 48 ? 'border-amber-300 text-amber-700' : ''}>{interest.status}</Badge>
                                 </TableCell>
-                                <TableCell>{new Date(interest.createdAt).toLocaleDateString()}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground">{new Date(interest.createdAt).toLocaleDateString()}</TableCell>
+                                <TableCell className={`text-sm ${urgency}`}>{waitLabel}</TableCell>
                             </TableRow>
-                        ))}
+                            )
+                        })}
                         {interests.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={6} className="text-center h-24">

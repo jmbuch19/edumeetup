@@ -11,6 +11,7 @@ const navItems = [
     { href: '/university/meetings', label: 'Meetings', icon: 'Users' },
     { href: '/university/fairs', label: 'Campus Fairs', icon: 'Calendar' },
     { href: '/university/engagement', label: '📢 Engagement', icon: 'Megaphone' },
+    { href: '/university/settings', label: '⚙️ Settings', icon: 'Settings' },
 ]
 
 export default async function UniversityLayout({

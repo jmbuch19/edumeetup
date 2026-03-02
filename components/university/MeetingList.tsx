@@ -171,6 +171,19 @@ export default function MeetingList({ meetings, compact }: { meetings: Meeting[]
                                             CV
                                         </a>
                                     )}
+                                    {/* Surfaced join link for CONFIRMED meetings */}
+                                    {meeting.status === 'CONFIRMED' && meeting.meetingLink && (
+                                        <a
+                                            href={meeting.meetingLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={e => e.stopPropagation()}
+                                            className="inline-flex items-center gap-1 text-xs text-white bg-green-600 hover:bg-green-700 rounded-md px-2 py-1 transition-colors font-medium"
+                                        >
+                                            <Video className="h-3.5 w-3.5" />
+                                            Join
+                                        </a>
+                                    )}
                                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusBadge(meeting.status)}`}>
                                         {meeting.status}
                                     </span>

@@ -46,7 +46,7 @@ export default async function UniversityDashboard() {
                 orderBy: { uploadedAt: 'desc' },
                 select: { id: true, displayName: true, category: true, fileName: true, mimeType: true, sizeBytes: true, uploadedAt: true }
             }
-        }
+        },
     })
 
     if (!uni) return (
@@ -134,6 +134,11 @@ export default async function UniversityDashboard() {
             : 0
     }
 
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000)
+    const awaitingResponse = uni.interests.filter(
+        i => i.status === 'INTERESTED' && !i.universityNote && new Date(i.createdAt) < fortyEightHoursAgo
+    ).length
+
     const pendingInterestsCount = uni.interests.filter(i => i.status === 'PENDING').length
     const recentInterests = uni.interests.slice(0, 5)
 
@@ -192,6 +197,8 @@ export default async function UniversityDashboard() {
                         stats={stats}
                         meetingCount={upcomingMeetings.length}
                         pendingInterests={pendingInterestsCount}
+                        responseRate={(uni as any).responseRate ?? null}
+                        awaitingResponse={awaitingResponse}
                     />
 
                     <div className="grid md:grid-cols-2 gap-6">
