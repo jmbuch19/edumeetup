@@ -77,10 +77,14 @@ export async function scheduleAdvisorySession(
         const studentEmail = request.student.user.email
         const studentName = request.student.fullName ?? 'Student'
 
+        const adviserEmail = adviserUser?.email ?? 'advisory@edumeetup.com'
+        const adviserDisplayName = adviserUser?.name ?? adviserUser?.email ?? 'Your Adviser'
+
         // Send notification email to student
         const resend = new Resend(process.env.RESEND_API_KEY)
         const { error } = await resend.emails.send({
             from: process.env.EMAIL_FROM ?? 'EduMeetup <noreply@edumeetup.com>',
+            replyTo: adviserEmail,
             to: studentEmail,
             subject: '✅ Your EduMeetup Advisory Session is Scheduled!',
             html: `<!DOCTYPE html>
@@ -94,6 +98,7 @@ export async function scheduleAdvisorySession(
   .card{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:20px;margin:20px 0}
   .cta{display:inline-block;padding:12px 28px;background:#4F46E5;color:white!important;text-decoration:none;border-radius:6px;font-weight:600;font-size:15px;margin:20px 0}
   .footer{margin-top:40px;padding-top:16px;border-top:1px solid #E5E7EB;font-size:12px;color:#9CA3AF;text-align:center}
+  a{color:#4F46E5}
 </style></head>
 <body><div class="container">
   <div class="logo"><span>edU</span>meetup</div>
@@ -101,13 +106,17 @@ export async function scheduleAdvisorySession(
   <h2 style="margin-top:0">Your Advisory Session is Scheduled, ${studentName}!</h2>
   <p>Great news — an EduMeetup adviser has been assigned to help guide your study abroad journey.</p>
   <div class="card">
-    <p style="margin:0 0 8px"><strong>Session Details</strong></p>
-    ${adviserUser ? `<p style="margin:4px 0">👤 <strong>Adviser:</strong> ${adviserUser.name ?? adviserUser.email}</p>` : ''}
+    <p style="margin:0 0 12px"><strong>Session Details</strong></p>
+    <p style="margin:4px 0">👤 <strong>Adviser:</strong> ${adviserDisplayName} &mdash; <a href="mailto:${adviserEmail}">${adviserEmail}</a></p>
+    ${request.preferredTime ? `<p style="margin:4px 0">🕐 <strong>Your Preferred Time:</strong> ${request.preferredTime}</p>` : ''}
     <p style="margin:4px 0">🔗 <strong>Meeting Link:</strong> <a href="${sessionLink}">${sessionLink}</a></p>
-    <p style="margin:4px 0;font-size:13px;color:#6B7280">Click the link at your scheduled time to join your session.</p>
+    <p style="margin:8px 0 0;font-size:13px;color:#6B7280">Click the link at your scheduled time to join your session.</p>
   </div>
   <a href="${sessionLink}" class="cta">Join Session</a>
-  <p style="font-size:14px;color:#6B7280">If you have questions before the session, simply reply to this email.</p>
+  <p style="font-size:14px;color:#6B7280">
+    If you have questions before the session, simply
+    <a href="mailto:${adviserEmail}">email your adviser</a> — they will get back to you directly.
+  </p>
   <div class="footer"><p>© ${new Date().getFullYear()} IAES — EduMeetup Advisory Service</p></div>
 </div></body></html>`
         })

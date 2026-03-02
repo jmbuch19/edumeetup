@@ -244,7 +244,7 @@ export const EmailTemplates = {
         <p>A new university has registered and is awaiting verification.</p>
         <div class="info-box">
             <div class="info-row"><span class="info-label">Institution:</span> ${instName}</div>
-            <div class="info-row"><span class="info-label">Contact:</span> ${email}</div>
+            <div class="info-row"><span class="info-label">Contact:</span> <a href="mailto:${email}">${email}</a></div>
             <div class="info-row"><span class="info-label">Status:</span> <span style="color:#d97706;font-weight:600;">Pending Verification</span></div>
         </div>
         <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'}/admin/dashboard" class="btn">Review &amp; Verify Now →</a></p>
@@ -357,7 +357,7 @@ export const EmailTemplates = {
 
     publicInquiryNotification: (inquiry: PublicInquiryData) => `
         <p><strong>From:</strong> ${inquiry.fullName} (${inquiry.role})</p>
-        <p><strong>Email:</strong> ${inquiry.email}</p>
+        <p><strong>Email:</strong> <a href="mailto:${inquiry.email}">${inquiry.email}</a></p>
         <p><strong>Country:</strong> ${inquiry.country}</p>
         <p><strong>Subject:</strong> ${inquiry.subject}</p>
         <hr/>
@@ -377,7 +377,7 @@ export const EmailTemplates = {
 
     supportTicketNotification: (ticket: SupportTicketData, userName: string, userEmail: string) => `
         <p><strong>User:</strong> ${userName} (${ticket.type})</p>
-        <p><strong>Email:</strong> ${userEmail}</p>
+        <p><strong>Email:</strong> <a href="mailto:${userEmail}">${userEmail}</a></p>
         <p><strong>Category:</strong> ${ticket.category}</p>
         <p><strong>Priority:</strong> <span style="color:${ticket.priority === 'HIGH' ? '#dc2626' : '#374151'}">${ticket.priority}</span></p>
         <hr/>
