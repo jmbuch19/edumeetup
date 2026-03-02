@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
-import { sendMarketingEmail, generateEmailHtml, EmailTemplates } from "@/lib/email"
+import { sendEmail, generateEmailHtml, EmailTemplates } from "@/lib/email"
 
 const ALLOWED_NOTIFICATION_TYPES = ['INFO', 'WARNING', 'ACTION_REQUIRED'] as const
 
@@ -71,9 +71,8 @@ export async function sendNotification(formData: FormData) {
             })
         }
 
-        // Also send a transactional email
-        await sendMarketingEmail({
-            userEmail: user.email,
+        // Always send transactional email for targeted admin push (bypasses consentMarketing gate)
+        await sendEmail({
             to: user.email,
             subject: `[edUmeetup] ${title}`,
             html: generateEmailHtml(title, EmailTemplates.announcement(title, message))

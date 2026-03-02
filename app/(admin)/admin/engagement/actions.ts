@@ -159,10 +159,17 @@ export async function createSponsoredContent(formData: FormData) {
     const title = formData.get("title") as string
     const partnerName = formData.get("partnerName") as string
     const imageUrl = formData.get("imageUrl") as string
+    const mobileImageUrl = (formData.get("mobileImageUrl") as string) || null
     const targetUrl = formData.get("targetUrl") as string
-    const placement = formData.get("placement") as string
+    const placement = (formData.get("placement") as string) || "SIDEBAR"
+    const sponsorType = (formData.get("sponsorType") as string) || "UNIVERSITY"
+    const priority = parseInt(formData.get("priority") as string) || 5
+    const status = (formData.get("status") as string) || "DRAFT"
+    const startDate = formData.get("startDate") ? new Date(formData.get("startDate") as string) : new Date()
+    const endDate = formData.get("endDate") ? new Date(formData.get("endDate") as string) : null
 
     if (!title || !imageUrl || !targetUrl) return { error: "Missing fields" }
+    if (status === "ACTIVE" && !endDate) return { error: "Active campaigns require an end date" }
 
     try {
         await prisma.sponsoredContent.create({
@@ -170,14 +177,21 @@ export async function createSponsoredContent(formData: FormData) {
                 title,
                 partnerName,
                 imageUrl,
+                mobileImageUrl,
                 targetUrl,
                 placement,
-                isActive: true
+                sponsorType,
+                priority,
+                status,
+                startDate,
+                endDate,
+                isActive: status === "ACTIVE",
             }
         })
         revalidatePath("/admin/engagement")
         return { success: true }
     } catch (error) {
+        console.error("[createSponsoredContent]", error)
         return { error: "Failed to create sponsored content" }
     }
 }
