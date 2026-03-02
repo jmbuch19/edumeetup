@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, LayoutDashboard, Calendar, BarChart3, Clock, Users } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Calendar, BarChart3, Clock, Users, Shield } from 'lucide-react'
 
 const ICON_MAP: Record<string, React.ElementType> = {
     LayoutDashboard,
@@ -10,6 +10,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
     BarChart3,
     Clock,
     Users,
+    Shield,
 }
 
 interface NavItem {

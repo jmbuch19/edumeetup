@@ -228,6 +228,7 @@ model University {
   user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   documents               UniversityDocument[]
   notifications           UniversityNotification[]
+  proctorRequests         ProctorRequest[]
   reps                    User[]                   @relation("UniversityReps")
 
   @@index([verificationStatus])
@@ -768,4 +769,44 @@ enum MeetingPurpose {
   DOCUMENT_HELP
   APPLICATION_STATUS
   OTHER
+}
+
+enum ProctorRequestStatus {
+  PENDING
+  UNDER_REVIEW
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model ProctorRequest {
+  id             String               @id @default(cuid())
+  universityId   String
+  university     University           @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  // Exam details
+  examStart      DateTime
+  examEnd        DateTime?
+  subjects       String
+  studentCount   Int
+  examType       String               // midterm | final | multiple | other
+  requirements   String?
+  policyUrl      String?
+
+  // Admin workflow
+  status         ProctorRequestStatus @default(PENDING)
+  adminNote      String?              // internal note visible to university on status change
+  adminFee       Decimal?             @db.Decimal(10, 2) // optional fee in USD
+  confirmedAt    DateTime?
+  completedAt    DateTime?
+
+  // Agent reminder tracking
+  reminderSentAt DateTime?
+
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([universityId])
+  @@index([status])
+  @@index([examStart])
 }
