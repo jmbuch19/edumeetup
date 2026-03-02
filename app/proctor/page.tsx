@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useTransition } from 'react'
 import { submitStudentProctorEnquiry, submitUniversityProctorEnquiry } from './actions'
@@ -7,7 +7,7 @@ import { MapPin, GraduationCap, Building2, Share2, CheckCircle, ChevronRight, Sh
 // ── IAES Credentials ──────────────────────────────────────────────────────────
 const IAES = {
     orgName: 'Indo American Education Society (IAES)',
-    shortName: 'IAES / edUmeetup',
+    shortName: 'IAES / EdUmeetup',
     address: 'Ahmedabad, Gujarat, India',
     website: 'www.edumeetup.com',
     email: 'proctor@edumeetup.com',
@@ -27,7 +27,7 @@ export default function ProctorPage() {
     function handleShare() {
         const url = window.location.href
         if (navigator.share) {
-            navigator.share({ title: 'Exam Proctoring in India — edUmeetup', url })
+            navigator.share({ title: 'Exam Proctoring in India — EdUmeetup', url })
         } else {
             navigator.clipboard.writeText(url)
             alert('Page link copied to clipboard!')
@@ -76,7 +76,7 @@ export default function ProctorPage() {
                         <span style={{ color: '#c7d2fe' }}>Anywhere in India</span>
                     </h1>
                     <p className="text-blue-100 text-lg max-w-2xl mx-auto mb-8 leading-relaxed">
-                        edUmeetup / IAES is a registered proctoring centre for international university examinations.
+                        EdUmeetup / IAES is a registered proctoring centre for international university examinations.
                         We handle the paperwork, the venue, and the invigilation — so you focus on the exam.
                     </p>
 

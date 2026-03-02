@@ -1,7 +1,7 @@
-# edUmeetup — Meeting System: Google Antigravity Build Prompt
+﻿# EdUmeetup — Meeting System: Google Antigravity Build Prompt
 ## Student ↔ University Virtual Meeting Scheduler
 
-**Platform:** edumeetup.com
+**Platform:** EdUmeetup.com
 **Feature:** 1:1 Virtual Meeting Scheduling System
 **Brand Colors:** #1B5E7E (Deep Teal), #2B7A9B (Ocean Blue), #4A9EBF (Light Blue)
 **Tagline:** WHERE DREAMS MEET DESTINATIONS
@@ -192,7 +192,7 @@ Browsing is allowed without complete profile. Booking requires completion.
 - Preferred countries (multi-select): USA, UK, Canada, Australia, Germany, India, Singapore, NZ, Other
 - Preferred intake: Fall 2025, Spring 2026, Fall 2026, Other
 - Time zone (auto-detect from browser, student can override)
-- Consent checkbox: "I agree to Privacy Policy and allow edUmeetup to share my profile with universities I connect with"
+- Consent checkbox: "I agree to Privacy Policy and allow EdUmeetup to share my profile with universities I connect with"
 
 **On Submit:**
 - Update Student Profile: profile_complete = yes, timezone = detected

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * components/university/proctor-tab.tsx
  *
  * Tab 7 in university dashboard.
@@ -167,7 +167,7 @@ function RequestCard({ req }: { req: ProctorRequest }) {
 
                 {req.adminNotes && req.status === 'CONFIRMED' && (
                     <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3">
-                        <p className="text-xs font-semibold text-green-800 mb-1">Note from edUmeetup team:</p>
+                        <p className="text-xs font-semibold text-green-800 mb-1">Note from EdUmeetup team:</p>
                         <p className="text-sm text-green-700">{req.adminNotes}</p>
                     </div>
                 )}
@@ -241,7 +241,7 @@ export function ProctorTab({ universityId, universityName, requests }: Props) {
                     <div>
                         <h3 className="font-bold text-slate-900 text-lg">Proctored Exam Services</h3>
                         <p className="text-sm text-slate-600 mt-1 leading-relaxed max-w-xl">
-                            edUmeetup / IAES is a registered proctoring centre in Ahmedabad, India.
+                            EdUmeetup / IAES is a registered proctoring centre in Ahmedabad, India.
                             If you have students in India who need to sit a proctored exam, we handle the venue,
                             the invigilation, and the paperwork — so your students can focus on the exam.
                         </p>

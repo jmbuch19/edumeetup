@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -39,7 +39,7 @@ export function HowItWorks({ activeTab: propActiveTab, onTabChange }: HowItWorks
             number: '02',
             icon: '🔍',
             title: 'Browse Verified Unis',
-            desc: 'Every university on edUmeetup is admin-verified. Filter by country, program, intake date, tuition, or scholarship availability. No fake listings.'
+            desc: 'Every university on EdUmeetup is admin-verified. Filter by country, program, intake date, tuition, or scholarship availability. No fake listings.'
         },
         {
             number: '03',
@@ -99,7 +99,7 @@ export function HowItWorks({ activeTab: propActiveTab, onTabChange }: HowItWorks
             icon: '🌍',
             label: 'Global Reach',
             title: 'Reach students you\'d never find through agents',
-            desc: 'Students from 80+ countries actively browse edUmeetup. Your verified profile and program listings are discoverable globally — 24/7, without additional effort.'
+            desc: 'Students from 80+ countries actively browse EdUmeetup. Your verified profile and program listings are discoverable globally — 24/7, without additional effort.'
         }
     ]
 
@@ -119,7 +119,7 @@ export function HowItWorks({ activeTab: propActiveTab, onTabChange }: HowItWorks
                 </h2>
 
                 {/* TAB SWITCHER */}
-                <div className={styles.tabSwitcher} role="tablist" aria-label="View how edUmeetup works">
+                <div className={styles.tabSwitcher} role="tablist" aria-label="View how EdUmeetup works">
                     <button
                         className={cn(styles.tabBtn, activeTab === 'student' && styles.active)}
                         id="tab-student"
@@ -217,7 +217,7 @@ export function HowItWorks({ activeTab: propActiveTab, onTabChange }: HowItWorks
                     {/* ROI Strip — lead with cost/benefit headline */}
                     <div className={styles.roiStrip}>
                         <span className={styles.roiIcon}>💡</span>
-                        <p>Traditional recruitment agents charge <strong>15–25% commission per enrolled student</strong>. edUmeetup gives you a direct pipeline to qualified, self-selecting students — at a fraction of the cost.</p>
+                        <p>Traditional recruitment agents charge <strong>15–25% commission per enrolled student</strong>. EdUmeetup gives you a direct pipeline to qualified, self-selecting students — at a fraction of the cost.</p>
                     </div>
 
                     {/* Value props — 3 core university benefits */}
@@ -258,7 +258,7 @@ export function HowItWorks({ activeTab: propActiveTab, onTabChange }: HowItWorks
                         ))}
                     </div>
 
-                    {/* Old way vs edUmeetup comparison */}
+                    {/* Old way vs EdUmeetup comparison */}
                     <div className={styles.comparisonRow}>
                         <div className={cn(styles.comparisonCol, styles.colOld)}>
                             <div className={styles.comparisonLabel}>The old way</div>
@@ -279,7 +279,7 @@ export function HowItWorks({ activeTab: propActiveTab, onTabChange }: HowItWorks
                         </div>
 
                         <div className={cn(styles.comparisonCol, styles.colNew)}>
-                            <div className={styles.comparisonLabel}>With edUmeetup</div>
+                            <div className={styles.comparisonLabel}>With EdUmeetup</div>
                             <h4>Direct. Qualified. Yours.</h4>
                             <ul className={styles.comparisonList}>
                                 <li>Flat platform fee — no per-student commission</li>

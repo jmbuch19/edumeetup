@@ -1,12 +1,12 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 import {
     GraduationCap, CalendarDays, MapPin, Shield,
     Users, ArrowRight, CheckCircle, Globe, Building2
 } from 'lucide-react'
 
 export const metadata = {
-    title: 'Our Services — edUmeetup',
-    description: 'Discover every service edUmeetup offers: student matching, university recruitment, campus fairs in India, and IAES-approved exam proctoring.',
+    title: 'Our Services — EdUmeetup',
+    description: 'Discover every service EdUmeetup offers: student matching, university recruitment, campus fairs in India, and IAES-approved exam proctoring.',
 }
 
 const SERVICES = [
@@ -59,10 +59,10 @@ const SERVICES = [
         title: 'Host a Campus Fair',
         tagline: 'Bring the world to your campus.',
         description:
-            'Indian colleges, schools, and institutions can invite verified international universities to host a campus fair on their premises. Submit your request, choose your dates, and edUmeetup handles outreach to partner universities on your behalf.',
+            'Indian colleges, schools, and institutions can invite verified international universities to host a campus fair on their premises. Submit your request, choose your dates, and EdUmeetup handles outreach to partner universities on your behalf.',
         bullets: [
             'Open to all Indian educational institutions — no minimum size',
-            'edUmeetup contacts international universities on your behalf',
+            'EdUmeetup contacts international universities on your behalf',
             'Universities confirm interest and logistics directly',
             'Coordinate multi-day events with multiple institutions',
             'Full request tracking in your dashboard',
@@ -79,7 +79,7 @@ const SERVICES = [
         title: 'Exam Proctoring in India',
         tagline: 'Your exams. Our certified centre. Ahmedabad, Gujarat.',
         description:
-            'Verified partner universities can designate edUmeetup / IAES as their official proctoring centre for remote students based in India. Submit a request from your dashboard, specify exam dates and student count, and our team confirms within 24 hours.',
+            'Verified partner universities can designate EdUmeetup / IAES as their official proctoring centre for remote students based in India. Submit a request from your dashboard, specify exam dates and student count, and our team confirms within 24 hours.',
         bullets: [
             'IAES-approved examination centre — Ahmedabad, Gujarat',
             'Online request form — no paperwork, no calls needed',
@@ -199,7 +199,7 @@ export default function ServicesPage() {
                 <div className="container max-w-5xl mx-auto relative text-center space-y-6">
                     <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium backdrop-blur-sm">
                         <Globe className="h-4 w-4" />
-                        edUmeetup · IAES · Ahmedabad, India
+                        EdUmeetup · IAES · Ahmedabad, India
                     </div>
                     <h1 className="text-5xl md:text-7xl font-bold leading-tight">
                         Every Service.<br />
@@ -208,7 +208,7 @@ export default function ServicesPage() {
                         </span>
                     </h1>
                     <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
-                        From student matching to exam proctoring — edUmeetup is the complete infrastructure
+                        From student matching to exam proctoring — EdUmeetup is the complete infrastructure
                         layer between international universities and the Indian education ecosystem.
                     </p>
 

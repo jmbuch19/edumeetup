@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import { GraduationCap, Mail, Github } from "lucide-react"
 
 export function Footer() {
@@ -12,7 +12,7 @@ export function Footer() {
                             <div className="bg-primary p-1.5 rounded-lg">
                                 <GraduationCap className="h-5 w-5 text-white" />
                             </div>
-                            <span className="font-bold text-lg text-primary">edUmeetup</span>
+                            <span className="font-bold text-lg text-primary">EdUmeetup</span>
                         </Link>
                         <p className="text-sm text-gray-500 leading-relaxed">
                             Connecting students with universities worldwide. Where dreams meet destinations.
@@ -57,8 +57,8 @@ export function Footer() {
                                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                                 </svg>
-                                <Link href="https://x.com/edUMeetup0226" target="_blank" rel="noopener noreferrer" className="hover:text-primary">
-                                    @edUMeetup0226
+                                <Link href="https://x.com/EdUmeetup0226" target="_blank" rel="noopener noreferrer" className="hover:text-primary">
+                                    @EdUmeetup0226
                                 </Link>
                             </li>
                         </ul>
@@ -67,7 +67,7 @@ export function Footer() {
 
                 <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
                     <p className="text-xs text-gray-500">
-                        &copy; {new Date().getFullYear()} edUmeetup. All rights reserved.
+                        &copy; {new Date().getFullYear()} EdUmeetup. All rights reserved.
                     </p>
                     <p className="text-xs text-gray-400 font-mono">
                         v0.2.0-beta • build:{new Date().toISOString().split('T')[0]} • <Link href="/admin/dashboard" className="hover:text-gray-600">Admin</Link>

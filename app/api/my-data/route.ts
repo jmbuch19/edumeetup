@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -144,7 +144,7 @@ export async function GET(_req: NextRequest) {
 
     return NextResponse.json(exportData, {
         headers: {
-            'Content-Disposition': `attachment; filename="edumeetup-my-data-${new Date().toISOString().split('T')[0]}.json"`,
+            'Content-Disposition': `attachment; filename="EdUmeetup-my-data-${new Date().toISOString().split('T')[0]}.json"`,
             'Content-Type': 'application/json',
         }
     })

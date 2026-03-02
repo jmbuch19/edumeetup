@@ -1,4 +1,4 @@
-
+﻿
 import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
@@ -113,8 +113,8 @@ export function isAnyValidEmail(email: string): boolean {
 async function sendMagicLinkEmail(to: string, url: string) {
     const isUniLogin = url.includes("loginType=university") || decodeURIComponent(url).includes("loginType=university")
     const subject = isUniLogin
-        ? "Your edUmeetup university portal sign-in link"
-        : "Your edUmeetup sign-in link"
+        ? "Your EdUmeetup university portal sign-in link"
+        : "Your EdUmeetup sign-in link"
 
     const brandColor = "#3333CC"
     // Wrap the real callback URL in /auth/confirm to prevent Gmail/Outlook
@@ -139,13 +139,13 @@ async function sendMagicLinkEmail(to: string, url: string) {
     <body>
         <div class="container">
             <div class="logo"><span>edU</span>meetup</div>
-            <h1>Sign in to ${isUniLogin ? "University Portal" : "edUmeetup"}</h1>
+            <h1>Sign in to ${isUniLogin ? "University Portal" : "EdUmeetup"}</h1>
             <p>Click the button below to sign in. This link is valid for <strong>15 minutes</strong> and can only be used once.</p>
-            <a href="${confirmUrl}" class="button" target="_blank">Sign in to edUmeetup</a>
+            <a href="${confirmUrl}" class="button" target="_blank">Sign in to EdUmeetup</a>
             <p class="warning">If you did not request this email, you can safely ignore it.</p>
             <div class="footer">
                 <p>&copy; ${new Date().getFullYear()} IAES (International Academic &amp; Education Services). All rights reserved.</p>
-                <p>EduMeetup is an initiative by IAES.</p>
+                <p>EdUmeetup is an initiative by IAES.</p>
             </div>
         </div>
     </body>
@@ -154,11 +154,11 @@ async function sendMagicLinkEmail(to: string, url: string) {
 
     const resend = new Resend(process.env.RESEND_API_KEY)
     const { error } = await resend.emails.send({
-        from: process.env.EMAIL_FROM || 'EduMeetup <noreply@edumeetup.com>',
+        from: process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>',
         to,
         subject,
         html,
-        text: `Sign in to edUmeetup — open this link in your browser to complete sign-in: ${confirmUrl}`
+        text: `Sign in to EdUmeetup — open this link in your browser to complete sign-in: ${confirmUrl}`
     })
 
     if (error) {
@@ -189,7 +189,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 port: 25,
                 auth: { user: 'placeholder', pass: 'placeholder' }
             },
-            from: process.env.EMAIL_FROM || 'EduMeetup <noreply@edumeetup.com>',
+            from: process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>',
             maxAge: 15 * 60, // 15 minutes
             sendVerificationRequest: async ({ identifier, url }) => {
                 // DEV: log magic link to terminal — no email needed for local testing

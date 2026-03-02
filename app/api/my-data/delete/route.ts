@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendEmail, generateEmailHtml } from '@/lib/email'
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
     const html = generateEmailHtml(
         'Your Account Deletion Request',
         `<p>Hi ${user.name || 'there'},</p>
-        <p>We received a request to permanently delete your edUmeetup account.</p>
+        <p>We received a request to permanently delete your EdUmeetup account.</p>
         <div class="info-box">
             <div class="info-row"><span class="info-label">Requested:</span> ${now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
             <div class="info-row"><span class="info-label">Scheduled:</span> ${graceDeadline}</div>
@@ -145,12 +145,12 @@ export async function POST(req: NextRequest) {
         </div>
         <p><strong>Your account has been deactivated immediately.</strong> Your data will be permanently deleted on <strong>${graceDeadline}</strong>.</p>
         <p>If you made this request by mistake, please contact <a href="mailto:${process.env.SUPPORT_EMAIL ?? 'support@edumeetup.com'}">${process.env.SUPPORT_EMAIL ?? 'support@edumeetup.com'}</a> before ${graceDeadline}.</p>
-        <p>— The edUmeetup Team</p>`
+        <p>— The EdUmeetup Team</p>`
     )
 
     await sendEmail({
         to: user.email,
-        subject: 'Your edUmeetup account is scheduled for deletion',
+        subject: 'Your EdUmeetup account is scheduled for deletion',
         html,
     }).catch(err => console.error('[Delete] Confirmation email failed:', err))
 

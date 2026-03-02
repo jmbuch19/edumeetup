@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/auth'
@@ -158,7 +158,7 @@ export async function sendBulkNotification(programId: string, subject: string, m
         await sendEmail({
             to: interest.student.user.email,
             subject: `Message from ${uni.institutionName}: ${subject}`,
-            html: `<p>${message}</p><br/><p>Sent via EduMeetup regarding ${program.programName}</p>`
+            html: `<p>${message}</p><br/><p>Sent via EdUmeetup regarding ${program.programName}</p>`
         })
     }
 

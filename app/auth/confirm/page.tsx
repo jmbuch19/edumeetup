@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
@@ -29,7 +29,7 @@ function ConfirmContent() {
                 Click the button below to complete your sign-in. This link is single-use and expires in 15 minutes.
             </p>
             <button onClick={() => { window.location.href = url! }} style={styles.btn}>
-                Sign In to edUmeetup →
+                Sign In to EdUmeetup →
             </button>
             <p style={styles.warning}>
                 If you did not request this, you can safely ignore this page.

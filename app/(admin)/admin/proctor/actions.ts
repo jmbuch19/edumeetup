@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
@@ -20,8 +20,8 @@ const STATUS_LABELS: Record<ProctorRequestStatus, string> = {
 const STATUS_MESSAGES: Record<ProctorRequestStatus, string> = {
     PENDING: '',
     UNDER_REVIEW: 'Our team is currently reviewing your request and will confirm shortly.',
-    CONFIRMED: 'Your proctor arrangement has been confirmed. edUmeetup / IAES will be your official proctor site.',
-    COMPLETED: 'Your exam has been completed. Thank you for using edUmeetup proctoring services.',
+    CONFIRMED: 'Your proctor arrangement has been confirmed. EdUmeetup / IAES will be your official proctor site.',
+    COMPLETED: 'Your exam has been completed. Thank you for using EdUmeetup proctoring services.',
     CANCELLED: 'Your proctor request has been cancelled. Please contact us if you need assistance.',
 }
 

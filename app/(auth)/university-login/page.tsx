@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, Suspense } from 'react'
 import Link from "next/link"
@@ -138,7 +138,7 @@ function UniversityLoginForm() {
                         <li>Link expires in 15 minutes</li>
                         <li>Single use only</li>
                         <li>Check spam folder if missing</li>
-                        <li className="font-semibold">Your account must be verified by edUmeetup admin before dashboard access</li>
+                        <li className="font-semibold">Your account must be verified by EdUmeetup admin before dashboard access</li>
                     </ul>
                 </div>
                 <div className="pt-4">

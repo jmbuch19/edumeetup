@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
@@ -643,11 +643,11 @@ export default function UniversityRegisterPage() {
                                 {[
                                     {
                                         id: 'certAuthority', label: <>
-                                            <strong>1. Authority:</strong> I, <span className="font-mono bg-blue-100 px-1 rounded">{formData.repName}</span>, am authorized by <span className="font-mono bg-blue-100 px-1 rounded">{formData.institutionName}</span> to act as its official representative on EduMeetup.
+                                            <strong>1. Authority:</strong> I, <span className="font-mono bg-blue-100 px-1 rounded">{formData.repName}</span>, am authorized by <span className="font-mono bg-blue-100 px-1 rounded">{formData.institutionName}</span> to act as its official representative on EdUmeetup.
                                         </>
                                     },
                                     { id: 'certLegitimacy', label: <><strong>2. Legitimacy:</strong> <span className="font-mono bg-blue-100 px-1 rounded">{formData.institutionName}</span> is a real, accredited higher education institution, not a coaching center or unauthorized agency.</> },
-                                    { id: 'certPurpose', label: <><strong>3. Purpose:</strong> I am registering solely for genuine student recruitment and academic collaboration, aligning with EduMeetup&apos;s core mission.</> },
+                                    { id: 'certPurpose', label: <><strong>3. Purpose:</strong> I am registering solely for genuine student recruitment and academic collaboration, aligning with EdUmeetup&apos;s core mission.</> },
                                     { id: 'certAccountability', label: <><strong>4. Accountability:</strong> I understand this declaration is recorded with my IP address and timestamp. False representation may lead to account suspension and legal action.</> },
                                 ].map(({ id, label }) => (
                                     <div key={id} className="flex items-start gap-3">

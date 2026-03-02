@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
@@ -83,10 +83,10 @@ export async function scheduleAdvisorySession(
         // Send notification email to student
         const resend = new Resend(process.env.RESEND_API_KEY)
         const { error } = await resend.emails.send({
-            from: process.env.EMAIL_FROM ?? 'EduMeetup <noreply@edumeetup.com>',
+            from: process.env.EMAIL_FROM ?? 'EdUmeetup <noreply@edumeetup.com>',
             replyTo: adviserEmail,
             to: studentEmail,
-            subject: '✅ Your EduMeetup Advisory Session is Scheduled!',
+            subject: '✅ Your EdUmeetup Advisory Session is Scheduled!',
             html: `<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
@@ -104,7 +104,7 @@ export async function scheduleAdvisorySession(
   <div class="logo"><span>edU</span>meetup</div>
   <div class="badge">✅ Session Confirmed</div>
   <h2 style="margin-top:0">Your Advisory Session is Scheduled, ${studentName}!</h2>
-  <p>Great news — an EduMeetup adviser has been assigned to help guide your study abroad journey.</p>
+  <p>Great news — an EdUmeetup adviser has been assigned to help guide your study abroad journey.</p>
   <div class="card">
     <p style="margin:0 0 12px"><strong>Session Details</strong></p>
     <p style="margin:4px 0">👤 <strong>Adviser:</strong> ${adviserDisplayName} &mdash; <a href="mailto:${adviserEmail}">${adviserEmail}</a></p>
@@ -117,7 +117,7 @@ export async function scheduleAdvisorySession(
     If you have questions before the session, simply
     <a href="mailto:${adviserEmail}">email your adviser</a> — they will get back to you directly.
   </p>
-  <div class="footer"><p>© ${new Date().getFullYear()} IAES — EduMeetup Advisory Service</p></div>
+  <div class="footer"><p>© ${new Date().getFullYear()} IAES — EdUmeetup Advisory Service</p></div>
 </div></body></html>`
         })
 

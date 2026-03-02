@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { sendEmail, generateEmailHtml } from '@/lib/email'
 import { logSystemEvent } from '@/lib/system-log'
@@ -33,7 +33,7 @@ export async function submitStudentProctorEnquiry(
     : 'Not specified'
 
   const adminContent = `
-    <p>A student has submitted a proctor site enquiry via <strong>edumeetup.com/proctor</strong>.</p>
+    <p>A student has submitted a proctor site enquiry via <strong>EdUmeetup.com/proctor</strong>.</p>
 
     <div class="info-box" style="background:#f0fdf4;border-color:#bbf7d0;">
       <p style="margin:0 0 12px 0;font-weight:700;color:#166534;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">🎓 Student Details</p>
@@ -75,7 +75,7 @@ export async function submitStudentProctorEnquiry(
 
   const studentContent = `
     <p>Hi ${fields.fullName},</p>
-    <p>Thank you for reaching out to <strong>edUmeetup / IAES</strong> for your proctored exam arrangement.</p>
+    <p>Thank you for reaching out to <strong>EdUmeetup / IAES</strong> for your proctored exam arrangement.</p>
     <p>We've received your enquiry and our team will contact you within <strong>24 hours</strong> to confirm the arrangements and next steps.</p>
 
     <div class="info-box">
@@ -83,7 +83,7 @@ export async function submitStudentProctorEnquiry(
       <div class="info-row"><span class="info-label">University:</span> ${fields.universityName}</div>
       <div class="info-row"><span class="info-label">Subject:</span> ${fields.subject || 'Not specified'}</div>
       <div class="info-row"><span class="info-label">Exam Date:</span> ${examDateFormatted}</div>
-      <div class="info-row"><span class="info-label">Proctor Site:</span> edUmeetup / IAES, Ahmedabad, Gujarat</div>
+      <div class="info-row"><span class="info-label">Proctor Site:</span> EdUmeetup / IAES, Ahmedabad, Gujarat</div>
     </div>
 
     <p>In the meantime, if your university requires a proctor approval form, please share this page with them:</p>
@@ -97,7 +97,7 @@ export async function submitStudentProctorEnquiry(
 
   await sendEmail({
     to: fields.email,
-    subject: `✅ Proctor Enquiry Received — edUmeetup / IAES`,
+    subject: `✅ Proctor Enquiry Received — EdUmeetup / IAES`,
     html: generateEmailHtml('Proctor Enquiry Received', studentContent),
   })
 
@@ -141,7 +141,7 @@ export async function submitUniversityProctorEnquiry(
     : 'Not specified'
 
   const adminContent = `
-    <p>A university has submitted a proctor partnership enquiry via <strong>edumeetup.com/proctor</strong>.</p>
+    <p>A university has submitted a proctor partnership enquiry via <strong>EdUmeetup.com/proctor</strong>.</p>
 
     <div class="info-box" style="background:#f0f4ff;border-color:#c7d2fe;">
       <p style="margin:0 0 12px 0;font-weight:700;color:#3730a3;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">🏛️ University Details</p>
@@ -184,13 +184,13 @@ export async function submitUniversityProctorEnquiry(
 
   const uniContent = `
     <p>Dear ${fields.contactName},</p>
-    <p>Thank you for reaching out to <strong>edUmeetup / IAES</strong> regarding exam proctoring for your students in India.</p>
+    <p>Thank you for reaching out to <strong>EdUmeetup / IAES</strong> regarding exam proctoring for your students in India.</p>
     <p>We've received your enquiry and our team will contact you within <strong>24 hours</strong> to discuss next steps and begin the proctor registration process.</p>
 
     <div class="info-box">
       <p style="margin:0 0 10px 0;font-weight:600;color:#0f172a;">Our Proctor Site Details</p>
       <div class="info-row"><span class="info-label">Organisation:</span> Indo American Education Society (IAES)</div>
-      <div class="info-row"><span class="info-label">Platform:</span> edUmeetup (edumeetup.com)</div>
+      <div class="info-row"><span class="info-label">Platform:</span> EdUmeetup (EdUmeetup.com)</div>
       <div class="info-row"><span class="info-label">Location:</span> Ahmedabad, Gujarat, India</div>
       <div class="info-row"><span class="info-label">Contact:</span> proctor@edumeetup.com</div>
     </div>
@@ -201,13 +201,13 @@ export async function submitUniversityProctorEnquiry(
     </p>
     <p style="font-size:13px;color:#94a3b8;">
       Questions? Reply to this email or contact us at proctor@edumeetup.com<br/>
-      Best regards,<br/>The edUmeetup / IAES Proctoring Team
+      Best regards,<br/>The EdUmeetup / IAES Proctoring Team
     </p>
   `
 
   await sendEmail({
     to: fields.email,
-    subject: `✅ Proctor Partnership Enquiry Received — edUmeetup / IAES`,
+    subject: `✅ Proctor Partnership Enquiry Received — EdUmeetup / IAES`,
     html: generateEmailHtml('Proctor Partnership Enquiry Received', uniContent),
   })
 

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from "react";
 import Link from "next/link";
@@ -92,7 +92,7 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
                                 Where Dreams Meet <span className="text-primary">Destinations</span>.
                             </h1>
                             <p className="text-xl text-slate-600 max-w-lg leading-relaxed">
-                                edUmeetup brings students, mentors, and top-tier institutions together.
+                                EdUmeetup brings students, mentors, and top-tier institutions together.
                                 Guidance, exposure, and direction—all in one place.
                             </p>
                         </div>

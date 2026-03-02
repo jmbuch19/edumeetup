@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+﻿import { prisma } from '@/lib/prisma'
 import { FIELD_CATEGORIES } from '@/lib/constants'
 import { requireUser } from '@/lib/auth'
 import { DashboardUI } from '@/components/student/dashboard-ui'
@@ -24,7 +24,7 @@ export default async function StudentDashboard() {
                     <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
                         <span className="text-3xl">👋</span>
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-900 mb-3">Welcome to edUmeetup!</h2>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-3">Welcome to EdUmeetup!</h2>
                     <p className="text-slate-600 mb-8 leading-relaxed">
                         To match you with your dream university, we need a few details about your interests and background.
                     </p>

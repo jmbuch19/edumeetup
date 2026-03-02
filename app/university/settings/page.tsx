@@ -1,4 +1,4 @@
-/**
+﻿/**
  * app/university/settings/page.tsx
  *
  * University notification preferences page.
@@ -49,7 +49,7 @@ export default async function UniversitySettingsPage() {
           <Badge className="bg-primary/10 text-primary border-0">Premium Partner</Badge>
         </div>
         <p className="text-muted-foreground text-sm">
-          Control exactly how and when edUmeetup contacts your team.
+          Control exactly how and when EdUmeetup contacts your team.
         </p>
         {university.responseRate != null && (
           <div className="mt-3 inline-flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
@@ -137,7 +137,7 @@ export default async function UniversitySettingsPage() {
               <Clock className="h-4 w-4 text-orange-500" /> Response SLA Threshold
             </CardTitle>
             <CardDescription>
-              How long before edUmeetup reminds you about an unanswered student interest.
+              How long before EdUmeetup reminds you about an unanswered student interest.
               Faster responses improve your ranking on the platform.
             </CardDescription>
           </CardHeader>
@@ -174,7 +174,7 @@ export default async function UniversitySettingsPage() {
               <Users className="h-4 w-4 text-purple-500" /> Who Gets Notified
             </CardTitle>
             <CardDescription>
-              Choose who on your team receives email notifications from edUmeetup.
+              Choose who on your team receives email notifications from EdUmeetup.
             </CardDescription>
           </CardHeader>
           <CardContent>

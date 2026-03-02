@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { CheckCircle, XCircle, Clock, Database } from 'lucide-react'
 
@@ -71,7 +71,7 @@ export default function ViewMyDataSection({ user, consentHistory }: ViewMyDataSe
         <div className="space-y-6">
             <div>
                 <h3 className="font-semibold text-slate-800 mb-1">Account Information</h3>
-                <p className="text-sm text-slate-500 mb-3">The personal data we hold about you on edUmeetup.</p>
+                <p className="text-sm text-slate-500 mb-3">The personal data we hold about you on EdUmeetup.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {[
                         { label: 'Email', value: user.email },

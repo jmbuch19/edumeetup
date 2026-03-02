@@ -1,4 +1,4 @@
-import { randomBytes, createHash } from 'crypto'
+﻿import { randomBytes, createHash } from 'crypto'
 import { prisma } from './prisma'
 import { Resend } from 'resend'
 
@@ -32,13 +32,13 @@ function buildEmailHtml(url: string, isUniversity = false): string {
 <body>
   <div class="container">
     <div class="logo"><span>edU</span>meetup</div>
-    <h1>Sign in to ${isUniversity ? 'University Portal' : 'edUmeetup'}</h1>
+    <h1>Sign in to ${isUniversity ? 'University Portal' : 'EdUmeetup'}</h1>
     <p>Click the button below to sign in. This link is valid for <strong>15 minutes</strong> and can only be used once.</p>
-    <a href="${confirmUrl}" class="button" target="_blank">Sign in to edUmeetup</a>
+    <a href="${confirmUrl}" class="button" target="_blank">Sign in to EdUmeetup</a>
     <p style="font-size:14px;color:#6b7280;margin-top:20px;">If you did not request this email, you can safely ignore it.</p>
     <div class="footer">
       <p>&copy; ${new Date().getFullYear()} IAES (International Academic &amp; Education Services). All rights reserved.</p>
-      <p>EduMeetup is an initiative by IAES.</p>
+      <p>EdUmeetup is an initiative by IAES.</p>
     </div>
   </div>
 </body>
@@ -91,11 +91,11 @@ export async function sendMagicLink(email: string, redirectTo: string): Promise<
   // 5. Send via Resend
   const isUniversity = redirectTo.includes('university')
   const subject = isUniversity
-    ? 'Your edUmeetup university portal sign-in link'
-    : 'Your edUmeetup sign-in link'
+    ? 'Your EdUmeetup university portal sign-in link'
+    : 'Your EdUmeetup sign-in link'
 
   const { error } = await getResend().emails.send({
-    from: process.env.EMAIL_FROM ?? 'EduMeetup <noreply@edumeetup.com>',
+    from: process.env.EMAIL_FROM ?? 'EdUmeetup <noreply@edumeetup.com>',
     to: email,
     subject,
     html: buildEmailHtml(magicLinkUrl, isUniversity),

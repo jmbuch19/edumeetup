@@ -1,4 +1,4 @@
-
+﻿
 export default function PrivacyPage() {
     return (
         <div className="bg-white min-h-screen py-16">
@@ -15,7 +15,7 @@ export default function PrivacyPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Introduction</h2>
                         <p>
-                            <strong>Edumeetup.com</strong> (&quot;Platform&quot;, &quot;we&quot;, &quot;us&quot;, &quot;our&quot;) is operated by [Your Company Name / Your Name], based in Ahmedabad, Gujarat, India.
+                            <strong>EdUmeetup.com</strong> (&quot;Platform&quot;, &quot;we&quot;, &quot;us&quot;, &quot;our&quot;) is operated by [Your Company Name / Your Name], based in Ahmedabad, Gujarat, India.
                         </p>
                         <p>
                             We are committed to protecting your privacy and handling your digital personal data (as defined under the <em>Digital Personal Data Protection Act, 2023</em> – &quot;DPDP Act&quot;) in a fair, lawful, and transparent manner.

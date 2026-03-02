@@ -1,4 +1,4 @@
-/**
+﻿/**
  * lib/agent/university-executor.ts
  *
  * Executes UniversityAgentActions:
@@ -74,7 +74,7 @@ async function executeNewInterestAlert(action: UniversityAgentAction) {
 
   const content = `
     <p>${greeting},</p>
-    <p>A student has expressed interest in your university on <strong>edUmeetup</strong>.</p>
+    <p>A student has expressed interest in your university on <strong>EdUmeetup</strong>.</p>
     <div class="info-box" style="background:#f0fdf4;border-color:#bbf7d0;">
       <div class="info-row"><span class="info-label">Student:</span> <strong>${studentName}</strong></div>
       ${programName ? `<div class="info-row"><span class="info-label">Programme:</span> ${programName}</div>` : ''}

@@ -1,4 +1,4 @@
-
+﻿
 import Link from 'next/link'
 
 export default function TermsPage() {
@@ -17,7 +17,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Introduction & Acceptance</h2>
                         <p>
-                            Welcome to <strong>Edumeetup.com</strong> (the “Platform”), a student-focused space for educational meetups, study groups, doubt-solving, project collaboration, and skill-sharing (online/offline).
+                            Welcome to <strong>EdUmeetup.com</strong> (the “Platform”), a student-focused space for educational meetups, study groups, doubt-solving, project collaboration, and skill-sharing (online/offline).
                         </p>
                         <p>
                             These Student User Terms apply when you register or use the Platform as a Student. By creating an account, clicking “I Agree”, or using any feature, you accept these terms (plus our general Terms of Service and Privacy Policy linked in the footer).
@@ -129,7 +129,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">11. Limitation of Liability</h2>
                         <p>
-                            To the fullest extent permitted by Indian law, Edumeetup, its founders, and team shall not be liable for any direct, indirect, incidental, consequential damages, including (but not limited to) personal injury, loss during meetups, data loss, or lost opportunities.
+                            To the fullest extent permitted by Indian law, EdUmeetup, its founders, and team shall not be liable for any direct, indirect, incidental, consequential damages, including (but not limited to) personal injury, loss during meetups, data loss, or lost opportunities.
                         </p>
                     </section>
 

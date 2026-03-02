@@ -1,4 +1,4 @@
-import { Resend } from 'resend'
+﻿import { Resend } from 'resend'
 import { logSystemEvent } from './system-log'
 
 /**
@@ -83,7 +83,7 @@ export function generateEmailHtml(title: string, content: string) {
     </div>
     <!-- Footer -->
     <div style="max-width:600px;margin:0 auto;background-color:#f8fafc;padding:20px 32px;border-radius:0 0 12px 12px;text-align:center;font-size:12px;color:#94a3b8;border-top:1px solid #e2e8f0;">
-        <p style="margin:0 0 4px 0;">© ${new Date().getFullYear()} edUmeetup · IAES (International Academic &amp; Education Services)</p>
+        <p style="margin:0 0 4px 0;">© ${new Date().getFullYear()} EdUmeetup · IAES (International Academic &amp; Education Services)</p>
         <p style="margin:0;"><a href="https://www.edumeetup.com" style="color:#64748b;">www.edumeetup.com</a> · <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@edumeetup.com'}" style="color:#64748b;">Contact Support</a></p>
     </div>
 </body>
@@ -172,7 +172,7 @@ ${plainText.slice(0, 300)}
     }
 
     try {
-        const fromAddress = process.env.EMAIL_FROM || 'EduMeetup <noreply@edumeetup.com>'
+        const fromAddress = process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>'
 
         const { error } = await getResend().emails.send({
             from: fromAddress,
@@ -217,7 +217,7 @@ export const EmailTemplates = {
 
     welcomeStudent: (fullName: string) => `
         <p>Hi ${fullName},</p>
-        <p>Welcome to <strong>edUmeetup</strong>! Your account has been created successfully.</p>
+        <p>Welcome to <strong>EdUmeetup</strong>! Your account has been created successfully.</p>
         <p>You can now:</p>
         <ul style="padding-left:20px;color:#374151;">
             <li>Browse universities and programs from around the world</li>
@@ -269,7 +269,7 @@ export const EmailTemplates = {
     verificationStatus: (status: 'VERIFIED' | 'REJECTED', institutionName: string) => status === 'VERIFIED'
         ? `
             <p>Great news, <strong>${institutionName}</strong>!</p>
-            <p>Your university profile has been <span style="color:#16a34a;font-weight:700;">verified</span> by the EduMeetup team.</p>
+            <p>Your university profile has been <span style="color:#16a34a;font-weight:700;">verified</span> by the EdUmeetup team.</p>
             <p>You now have full access to:</p>
             <ul style="padding-left:20px;color:#374151;">
                 <li>View interested students and their profiles</li>
@@ -281,7 +281,7 @@ export const EmailTemplates = {
         `
         : `
             <p>Dear ${institutionName},</p>
-            <p>Thank you for registering with edUmeetup. After careful review, we were unable to verify your university profile at this time.</p>
+            <p>Thank you for registering with EdUmeetup. After careful review, we were unable to verify your university profile at this time.</p>
             <p>This may be due to:</p>
             <ul style="padding-left:20px;color:#374151;">
                 <li>Incomplete or unverifiable accreditation details</li>
@@ -370,9 +370,9 @@ export const EmailTemplates = {
 
     publicInquiryAutoReply: (fullName: string) => `
         <p>Hi ${fullName},</p>
-        <p>Thank you for reaching out to <strong>edUmeetup</strong>! We've received your inquiry and will get back to you within 24–48 hours.</p>
+        <p>Thank you for reaching out to <strong>EdUmeetup</strong>! We've received your inquiry and will get back to you within 24–48 hours.</p>
         <p>If your matter is urgent, you can also reach us at <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@edumeetup.com'}">${process.env.SUPPORT_EMAIL || 'support@edumeetup.com'}</a>.</p>
-        <p>Best regards,<br/>The edUmeetup Team</p>
+        <p>Best regards,<br/>The EdUmeetup Team</p>
     `,
 
     supportTicketNotification: (ticket: SupportTicketData, userName: string, userEmail: string) => `
@@ -391,19 +391,19 @@ export const EmailTemplates = {
     announcement: (title: string, content: string) => `
         <p>${content}</p>
         <hr/>
-        <p style="font-size:12px;color:#94a3b8;">This is an official announcement from the edUmeetup team. You received this because you have an active account.</p>
+        <p style="font-size:12px;color:#94a3b8;">This is an official announcement from the EdUmeetup team. You received this because you have an active account.</p>
     `,
 
     hostRequestConfirmation: (refNumber: string, contactName: string) => `
         <p>Dear ${contactName},</p>
-        <p>Thank you for your interest in hosting a campus fair through <strong>edUmeetup</strong>. We have received your request.</p>
+        <p>Thank you for your interest in hosting a campus fair through <strong>EdUmeetup</strong>. We have received your request.</p>
         <div class="info-box">
             <div class="info-row"><span class="info-label">Reference:</span> <strong>${refNumber}</strong></div>
             <div class="info-row"><span class="info-label">Status:</span> Under Review</div>
             <div class="info-row"><span class="info-label">Review time:</span> 48 hours</div>
         </div>
         <p>We will contact you with next steps once your request has been reviewed by our team.</p>
-        <p>Best regards,<br/>The edUmeetup Team</p>
+        <p>Best regards,<br/>The EdUmeetup Team</p>
     `,
 
     hostRequestAlert: (refNumber: string, institution: string, city: string) => `
@@ -424,19 +424,19 @@ export const EmailTemplates = {
             <div class="info-row"><span class="info-label">Status:</span> <span style="color:#16a34a;font-weight:600;">Approved</span></div>
         </div>
         <p>Our team is now reaching out to partner universities. You will receive updates as universities express interest in participating in your fair.</p>
-        <p>Best regards,<br/>The edUmeetup Team</p>
+        <p>Best regards,<br/>The EdUmeetup Team</p>
     `,
 
     hostRequestRejected: (refNumber: string, contactName: string, reason?: string) => `
         <p>Dear ${contactName},</p>
-        <p>Thank you for your interest in hosting a campus fair through edUmeetup.</p>
+        <p>Thank you for your interest in hosting a campus fair through EdUmeetup.</p>
         <p>After careful review, we are unable to proceed with your request at this time.</p>
         <div class="info-box">
             <div class="info-row"><span class="info-label">Reference:</span> ${refNumber}</div>
             ${reason ? `<div class="info-row"><span class="info-label">Reason:</span> ${reason}</div>` : ''}
         </div>
         <p>If you have questions or would like to discuss further, please contact us at <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@edumeetup.com'}">${process.env.SUPPORT_EMAIL || 'support@edumeetup.com'}</a>.</p>
-        <p>We hope to work with you in the future.<br/>The edUmeetup Team</p>
+        <p>We hope to work with you in the future.<br/>The EdUmeetup Team</p>
     `,
 
     hostRequestOpportunity: (institutionName: string, city: string, dateRange: string, outreachId?: string) => `

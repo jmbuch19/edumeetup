@@ -1,7 +1,7 @@
-/**
+﻿/**
  * lib/agent/triggers.ts
  *
- * Four trigger functions for the edUmeetup automated agent.
+ * Four trigger functions for the EdUmeetup automated agent.
  * Each trigger queries the DB and returns a list of AgentActions to execute.
  * Respects student notificationPrefs — students who opted out are skipped.
  * No side effects here — pure data in, actions out.

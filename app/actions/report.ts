@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
@@ -41,7 +41,7 @@ export async function submitBugReport(formData: FormData) {
         if (!adminEmail) throw new Error('ADMIN_NOTIFICATION_EMAIL not configured')
         await sendEmail({
             to: adminEmail,
-            subject: `[URGENT] ${type} Reported on edumeetup.com`,
+            subject: `[URGENT] ${type} Reported on EdUmeetup.com`,
             html: `
                 <h2>New System Report (#${report.id})</h2>
                 <p><strong>Type:</strong> ${type}</p>

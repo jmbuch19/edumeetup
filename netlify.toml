@@ -1,4 +1,4 @@
-[build]
+﻿[build]
   command = "rm -rf .next && npm run build"
 
 [build.environment]
@@ -40,7 +40,7 @@
 #   R2_ACCESS_KEY_ID      R2 access key
 #   R2_SECRET_ACCESS_KEY  R2 secret key
 #   R2_BUCKET             R2 bucket name
-#   R2_PUBLIC_URL         Public R2 domain (e.g. https://files.edumeetup.com)
+#   R2_PUBLIC_URL         Public R2 domain (e.g. https://files.EdUmeetup.com)
 #   EMAIL_FROM            Sender address for transactional email
 #   RESEND_API_KEY        Resend API key (or SMTP vars if using nodemailer)
 #   CRON_SECRET           Random secret shared with the process-deletions function

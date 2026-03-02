@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 /**
  * app/university/actions/proctor.ts
@@ -145,7 +145,7 @@ export async function submitProctorRequest(
     // ── 4. Confirmation email to university ───────────────────────────────────
     const uniContent = `
     <p>Hi ${university.user.name || university.institutionName} team,</p>
-    <p>Your proctor services request has been received by <strong>edUmeetup / IAES</strong>. Our team will review it and contact you within <strong>24 hours</strong>.</p>
+    <p>Your proctor services request has been received by <strong>EdUmeetup / IAES</strong>. Our team will review it and contact you within <strong>24 hours</strong>.</p>
 
     <div class="info-box">
       <p style="margin:0 0 10px 0;font-weight:600;color:#0f172a;">Request Summary</p>
@@ -154,7 +154,7 @@ export async function submitProctorRequest(
       <div class="info-row"><span class="info-label">Exam Period:</span> ${fmt(startDate)} – ${fmt(endDate)}</div>
       <div class="info-row"><span class="info-label">Students:</span> ${studentCount}</div>
       <div class="info-row"><span class="info-label">Duration:</span> ${durationMinutes} minutes</div>
-      <div class="info-row"><span class="info-label">Proctor Site:</span> edUmeetup / IAES, Ahmedabad, Gujarat, India</div>
+      <div class="info-row"><span class="info-label">Proctor Site:</span> EdUmeetup / IAES, Ahmedabad, Gujarat, India</div>
       <div class="info-row"><span class="info-label">Status:</span> <span style="color:#d97706;font-weight:600;">Pending Review</span></div>
     </div>
 

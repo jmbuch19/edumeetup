@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -30,7 +30,7 @@ export function AdminMobileNav({ adminEmail }: { adminEmail?: string | null }) {
             {/* Header bar */}
             <header className="flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm">
                 <Link href="/" className="flex items-center gap-2">
-                    <span className="font-bold text-lg text-primary tracking-tight">edUmeetup</span>
+                    <span className="font-bold text-lg text-primary tracking-tight">EdUmeetup</span>
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Admin</span>
                 </Link>
                 <button

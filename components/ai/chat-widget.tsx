@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -97,7 +97,7 @@ export function ChatWidget() {
                     <div className="bg-primary p-4 flex justify-between items-center text-white">
                         <div className="flex items-center gap-2">
                             <Bot className="h-5 w-5" />
-                            <h3 className="font-semibold">EduMeetup Support</h3>
+                            <h3 className="font-semibold">EdUmeetup Support</h3>
                         </div>
                         <Button
                             variant="ghost"

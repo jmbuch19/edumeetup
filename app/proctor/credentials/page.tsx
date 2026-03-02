@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect } from 'react'
 
@@ -48,7 +48,7 @@ export default function ProctorCredentialsPage() {
                         Official Proctor Site — Credential Letter
                     </h2>
                     <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.6 }}>
-                        This document certifies that <strong>edUmeetup / IAES</strong> is a registered examination
+                        This document certifies that <strong>EdUmeetup / IAES</strong> is a registered examination
                         proctoring centre in India, authorised to invigilate examinations for students of international
                         universities on behalf of their institutions.
                     </p>
@@ -59,7 +59,7 @@ export default function ProctorCredentialsPage() {
                     <tbody>
                         {[
                             { label: 'Organisation', value: 'Indo American Education Society (IAES)' },
-                            { label: 'Platform', value: 'edUmeetup — edumeetup.com' },
+                            { label: 'Platform', value: 'EdUmeetup — EdUmeetup.com' },
                             { label: 'Proctor Site Address', value: 'Ahmedabad, Gujarat, India' },
                             { label: 'Proctoring Email', value: 'proctor@edumeetup.com' },
                             { label: 'Phone', value: '+91 79 XXXX XXXX' },
@@ -98,19 +98,19 @@ export default function ProctorCredentialsPage() {
                 {/* Note for university */}
                 <div style={{ background: '#f0f4ff', border: '1px solid #c7d2fe', borderRadius: 10, padding: '14px 18px', marginBottom: 28 }}>
                     <p style={{ fontSize: 12, color: '#3730a3', lineHeight: 1.6 }}>
-                        <strong>To university examination offices:</strong> To register IAES / edUmeetup as a proctor site
+                        <strong>To university examination offices:</strong> To register IAES / EdUmeetup as a proctor site
                         for your students in India, please contact us at <strong>proctor@edumeetup.com</strong> or visit{' '}
-                        <strong>edumeetup.com/proctor</strong> to submit a partnership enquiry.
+                        <strong>EdUmeetup.com/proctor</strong> to submit a partnership enquiry.
                     </p>
                 </div>
 
                 {/* Footer */}
                 <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div>
-                        <p style={{ fontSize: 11, color: '#94a3b8' }}>Generated from edumeetup.com/proctor</p>
+                        <p style={{ fontSize: 11, color: '#94a3b8' }}>Generated from EdUmeetup.com/proctor</p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                        <p style={{ fontSize: 12, color: '#3333CC', fontWeight: 700 }}>edUmeetup / IAES</p>
+                        <p style={{ fontSize: 12, color: '#3333CC', fontWeight: 700 }}>EdUmeetup / IAES</p>
                         <p style={{ fontSize: 11, color: '#94a3b8' }}>proctor@edumeetup.com</p>
                     </div>
                 </div>

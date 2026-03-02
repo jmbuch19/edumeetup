@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { CheckCircle } from "lucide-react"
 
@@ -11,7 +11,7 @@ export default function ContactSuccessPage() {
                 </div>
                 <h1 className="text-3xl font-bold tracking-tight">Message Sent!</h1>
                 <p className="text-gray-500 text-lg">
-                    Thank you for reaching out to EduMeetup. We have received your inquiry and typically respond within 24-48 hours.
+                    Thank you for reaching out to EdUmeetup. We have received your inquiry and typically respond within 24-48 hours.
                 </p>
                 <div className="pt-6">
                     <Link href="/">

@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
@@ -264,7 +264,7 @@ export async function sendUniversityNotification(formData: FormData) {
                 await sendMarketingEmail({
                     userEmail: s.user.email,
                     to: s.user.email,
-                    subject: `[edUmeetup] ${title}`,
+                    subject: `[EdUmeetup] ${title}`,
                     html: emailHtml
                 })
                 emailedCount++

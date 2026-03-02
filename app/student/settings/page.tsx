@@ -1,4 +1,4 @@
-import { requireUser } from '@/lib/auth'
+﻿import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { format } from 'date-fns'
@@ -92,7 +92,7 @@ export default async function StudentSettingsPage() {
                         <CardTitle className="flex items-center gap-2 text-base">
                             <Bell className="h-4 w-4" /> Email Preferences
                         </CardTitle>
-                        <CardDescription>Control which emails edUmeetup sends you.</CardDescription>
+                        <CardDescription>Control which emails EdUmeetup sends you.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form action={updateNotificationPrefs} className="space-y-5">
@@ -144,7 +144,7 @@ export default async function StudentSettingsPage() {
                                     <span className="text-sm font-medium">Smart Reminders</span>
                                 </div>
                                 <p className="text-xs text-muted-foreground mb-4 ml-6">
-                                    Automated nudges sent by edUmeetup to help you get the most out of the platform. You&apos;re in control.
+                                    Automated nudges sent by EdUmeetup to help you get the most out of the platform. You&apos;re in control.
                                 </p>
                                 <div className="space-y-4 ml-6">
 

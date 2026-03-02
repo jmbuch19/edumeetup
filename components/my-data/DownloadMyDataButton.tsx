@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -21,7 +21,7 @@ export default function DownloadMyDataButton({ userName }: { userName: string | 
             const blob = await res.blob()
             const url = URL.createObjectURL(blob)
             const date = new Date().toISOString().split('T')[0]
-            const filename = `edumeetup-my-data-${date}.json`
+            const filename = `EdUmeetup-my-data-${date}.json`
 
             // iOS Safari doesn't honour programmatic anchor clicks for non-image blobs.
             // Detect iOS and fall back to opening the API URL directly (the server sets
@@ -85,7 +85,7 @@ export default function DownloadMyDataButton({ userName }: { userName: string | 
             </Button>
 
             <p className="text-xs text-slate-400">
-                File will be named <code>edumeetup-my-data-{new Date().toISOString().split('T')[0]}.json</code>.
+                File will be named <code>EdUmeetup-my-data-{new Date().toISOString().split('T')[0]}.json</code>.
                 This request is logged for security purposes.
             </p>
         </div>

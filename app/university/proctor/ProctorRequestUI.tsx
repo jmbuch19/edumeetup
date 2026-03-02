@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useTransition } from 'react'
 import { submitProctorRequest, getMyProctorRequests } from './actions'
@@ -97,7 +97,7 @@ export function ProctorRequestUI({ initial }: { initial: ProctorRequest[] }) {
                     <h1 className="text-xl font-bold text-slate-900">Proctor Services</h1>
                 </div>
                 <p className="text-sm text-slate-500">
-                    Request edUmeetup / IAES to proctor your upcoming exams for students in India.
+                    Request EdUmeetup / IAES to proctor your upcoming exams for students in India.
                 </p>
             </div>
 
@@ -198,7 +198,7 @@ export function ProctorRequestUI({ initial }: { initial: ProctorRequest[] }) {
 
                             {r.adminNotes && (
                                 <div className="mt-3 bg-blue-50 border border-blue-100 rounded-lg px-4 py-2.5 text-sm text-blue-700">
-                                    <strong className="font-semibold">Note from edUmeetup:</strong> {r.adminNotes}
+                                    <strong className="font-semibold">Note from EdUmeetup:</strong> {r.adminNotes}
                                 </div>
                             )}
 

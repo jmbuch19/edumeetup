@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { prisma } from '@/lib/prisma'
 
@@ -191,7 +191,7 @@ export async function getAdminNotifications(): Promise<{
         id: milestoneId,
         emoji: '🎉',
         title: `${threshold} Students Registered!`,
-        message: `edUmeetup has reached ${threshold} students on the platform.`,
+        message: `EdUmeetup has reached ${threshold} students on the platform.`,
       })
       await markMilestoneSeen(milestoneId)
       break
@@ -205,7 +205,7 @@ export async function getAdminNotifications(): Promise<{
         id: milestoneId,
         emoji: '🏛️',
         title: `${threshold} Universities Onboarded!`,
-        message: `${threshold} universities are now on edUmeetup.`,
+        message: `${threshold} universities are now on EdUmeetup.`,
       })
       await markMilestoneSeen(milestoneId)
       break
@@ -219,7 +219,7 @@ export async function getAdminNotifications(): Promise<{
         id: milestoneId,
         emoji: '📅',
         title: `${threshold} Meetings Completed!`,
-        message: `${threshold} student-university meetings have taken place on edUmeetup.`,
+        message: `${threshold} student-university meetings have taken place on EdUmeetup.`,
       })
       await markMilestoneSeen(milestoneId)
       break

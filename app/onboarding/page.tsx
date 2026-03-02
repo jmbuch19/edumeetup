@@ -1,4 +1,4 @@
-
+﻿
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { CheckCircle } from "lucide-react"
@@ -11,7 +11,7 @@ export default function OnboardingPage() {
                     <CheckCircle className="h-8 w-8 text-green-600" />
                 </div>
 
-                <h2 className="text-3xl font-bold tracking-tight text-gray-900">Welcome to EduMeetup!</h2>
+                <h2 className="text-3xl font-bold tracking-tight text-gray-900">Welcome to EdUmeetup!</h2>
 
                 <p className="text-gray-600">
                     Your account has been successfully created.

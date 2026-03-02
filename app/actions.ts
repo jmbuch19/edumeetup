@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 
 import { redirect } from 'next/navigation'
@@ -175,8 +175,8 @@ export async function registerStudent(prevState: any, formData: FormData) {
         // Welcome email to new student
         await sendEmail({
             to: email,
-            subject: 'Welcome to EduMeetup! 🎓',
-            html: generateEmailHtml('Welcome to EduMeetup!', EmailTemplates.welcomeStudent(fullName))
+            subject: 'Welcome to EdUmeetup! 🎓',
+            html: generateEmailHtml('Welcome to EdUmeetup!', EmailTemplates.welcomeStudent(fullName))
         })
 
         // Alert admin about new student
@@ -516,8 +516,8 @@ export async function verifyUniversity(formData: FormData) {
                 : 'Your university verification was not approved. Please contact support for more details.',
             emailTo: uni.contactEmail || uniProfile.user.email,
             emailSubject: isVerified
-                ? `Your edUmeetup Profile Has Been Verified — ${uni.institutionName}`
-                : `Update on Your edUmeetup Verification — ${uni.institutionName}`,
+                ? `Your EdUmeetup Profile Has Been Verified — ${uni.institutionName}`
+                : `Update on Your EdUmeetup Verification — ${uni.institutionName}`,
             emailHtml: generateEmailHtml(
                 isVerified ? 'Verification Approved! 🎉' : 'Verification Update',
                 EmailTemplates.verificationStatus(
@@ -930,7 +930,7 @@ export async function createSupportTicket(formData: FormData) {
                     <div class="info-row"><span class="info-label">Priority:</span> <span>${priority}</span></div>
                 </div>
                 <p>Our team typically responds within 24-48 hours. You will be notified by email when there is an update.</p>
-                <p>Best regards,<br/>The EduMeetup Support Team</p>
+                <p>Best regards,<br/>The EdUmeetup Support Team</p>
             `)
         })
 

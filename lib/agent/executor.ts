@@ -1,4 +1,4 @@
-/**
+﻿/**
  * lib/agent/executor.ts
  *
  * Executes a list of AgentActions produced by triggers.ts.
@@ -40,7 +40,7 @@ export async function executeAction(action: AgentAction): Promise<void> {
 
             await sendEmail({
                 to: studentEmail,
-                subject: 'Your edUmeetup profile is complete!',
+                subject: 'Your EdUmeetup profile is complete!',
                 html: generateEmailHtml(
                     'Profile Complete 🎉',
                     EmailTemplates.welcomeStudent(studentName ?? studentEmail.split('@')[0])
@@ -69,7 +69,7 @@ export async function executeAction(action: AgentAction): Promise<void> {
 
             await sendEmail({
                 to: studentEmail,
-                subject: `${name}, your edUmeetup profile is incomplete`,
+                subject: `${name}, your EdUmeetup profile is incomplete`,
                 html: generateEmailHtml(
                     'Complete Your Profile',
                     `

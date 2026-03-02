@@ -1,4 +1,4 @@
-import { google } from '@/lib/ai';
+﻿import { google } from '@/lib/ai';
 import { streamText } from 'ai';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     - "Report a Bug" -> Direct them to [/report-issue](/report-issue).
 
     **Platform Overview:**
-    EduMeetup connects students with universities worldwide.
+    EdUmeetup connects students with universities worldwide.
     - **Students**: Create profiles, get matched, RSVP to meetings.
     - **Universities**: Manage programs, schedule meetings, host events.
     

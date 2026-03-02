@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { motion, MotionConfig } from "framer-motion";
 
-// These values match the "Spring" feel we discussed for edumeetup.com
+// These values match the "Spring" feel we discussed for EdUmeetup.com
 const GLOBAL_TRANSITION = {
     type: "spring",
     stiffness: 260,

@@ -1,4 +1,4 @@
-
+﻿
 import Link from "next/link"
 import { GraduationCap, LogOut, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -38,7 +38,7 @@ export async function Header() {
                     <div className="bg-primary p-1.5 rounded-lg">
                         <GraduationCap className="h-6 w-6 text-white" />
                     </div>
-                    <span className="font-bold text-xl text-primary tracking-tight">edUmeetup</span>
+                    <span className="font-bold text-xl text-primary tracking-tight">EdUmeetup</span>
                 </Link>
 
                 {/* Desktop Nav */}

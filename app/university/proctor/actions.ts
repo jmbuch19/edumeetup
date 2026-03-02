@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -106,7 +106,7 @@ export async function submitProctorRequest(
     `
         await sendEmail({
             to: uniEmail,
-            subject: `✅ Proctor Request Received — edUmeetup / IAES`,
+            subject: `✅ Proctor Request Received — EdUmeetup / IAES`,
             html: generateEmailHtml('Proctor Request Received', uniHtml),
         })
     }

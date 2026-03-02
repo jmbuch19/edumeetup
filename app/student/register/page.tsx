@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { registerStudent } from '@/app/actions'
 import { Button } from '@/components/ui/button'
@@ -86,7 +86,7 @@ export default function StudentRegisterPage() {
                 <div className="rounded-lg bg-orange-50 border border-orange-200 px-4 py-3 text-sm text-orange-800 flex gap-2 items-start">
                     <span className="text-lg leading-snug">🇮🇳</span>
                     <span>
-                        Currently, EduMeetup profiling is available to <strong>students based in India</strong> with a valid Indian phone number and resident details (city and PIN code). We do not collect your full address.
+                        Currently, EdUmeetup profiling is available to <strong>students based in India</strong> with a valid Indian phone number and resident details (city and PIN code). We do not collect your full address.
                     </span>
                 </div>
 

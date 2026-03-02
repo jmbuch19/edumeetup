@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -77,7 +77,7 @@ export default function HostFairLandingPage() {
                 <div className="container mx-auto px-4">
                     <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
                         <h2 className="text-3xl font-bold text-slate-900">How It Works</h2>
-                        <p className="text-slate-600">Partnering with edUmeetup makes hosting international education fairs seamless and impactful.</p>
+                        <p className="text-slate-600">Partnering with EdUmeetup makes hosting international education fairs seamless and impactful.</p>
                     </div>
 
                     <div className="grid md:grid-cols-4 gap-8">

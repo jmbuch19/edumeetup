@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
@@ -74,7 +74,7 @@ export async function sendNotification(formData: FormData) {
         // Always send transactional email for targeted admin push (bypasses consentMarketing gate)
         await sendEmail({
             to: user.email,
-            subject: `[edUmeetup] ${title}`,
+            subject: `[EdUmeetup] ${title}`,
             html: generateEmailHtml(title, EmailTemplates.announcement(title, message))
         })
 
