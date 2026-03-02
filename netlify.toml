@@ -16,6 +16,10 @@
 [functions."process-deletions"]
   schedule = "0 2 * * *"
 
+[functions."triggers"]
+  schedule = "0 * * * *"
+
+
 [functions."refresh-university-domains"]
   schedule = "@weekly"
 
