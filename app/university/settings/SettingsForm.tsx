@@ -41,7 +41,7 @@ export default function SettingsForm({ settings }: { settings: any }) {
                     <div className="grid gap-2">
                         <Label htmlFor="institutionName">Institution Name</Label>
                         <Input id="institutionName" defaultValue={settings?.institutionName} disabled />
-                        <p className="text-xs text-muted-foreground">Contact support to change your verified name.</p>
+                        <p className="text-xs text-muted-foreground">Contact support to change your official institution name.</p>
                     </div>
 
                     <div className="grid gap-2">

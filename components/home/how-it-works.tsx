@@ -38,8 +38,8 @@ export function HowItWorks({ activeTab: propActiveTab, onTabChange }: HowItWorks
         {
             number: '02',
             icon: '🔍',
-            title: 'Browse Verified Unis',
-            desc: 'Every university on EdUmeetup is admin-verified. Filter by country, program, intake date, tuition, or scholarship availability. No fake listings.'
+            title: 'Browse Official Profiles',
+            desc: 'Every university on EdUmeetup carries an Official Profile badge, so you always know you are talking to the real institution — not an agent or listing. Filter by country, program, intake date, tuition, or scholarship availability.'
         },
         {
             number: '03',
@@ -59,8 +59,8 @@ export function HowItWorks({ activeTab: propActiveTab, onTabChange }: HowItWorks
         {
             number: '01',
             icon: '📋',
-            title: 'Apply & Get Verified',
-            desc: 'Submit your institution details and accreditation documents. Our team verifies every listing — so students trust your profile from day one.'
+            title: 'Apply & Go Live',
+            desc: 'Submit your institution details. Our team reviews every application and launches your Official Profile — so students trust your listing from day one.'
         },
         {
             number: '02',
@@ -99,7 +99,7 @@ export function HowItWorks({ activeTab: propActiveTab, onTabChange }: HowItWorks
             icon: '🌍',
             label: 'Global Reach',
             title: 'Reach students you\'d never find through agents',
-            desc: 'Students from 80+ countries actively browse EdUmeetup. Your verified profile and program listings are discoverable globally — 24/7, without additional effort.'
+            desc: 'Students from 80+ countries actively browse EdUmeetup. Your Official Profile and program listings are discoverable globally — 24/7, without additional effort.'
         }
     ]
 
@@ -158,8 +158,8 @@ export function HowItWorks({ activeTab: propActiveTab, onTabChange }: HowItWorks
                     {/* Stats bar — social proof for students */}
                     <div className={styles.statBar}>
                         <div className={styles.statItem}>
-                            <div className={styles.statValue}>Verified</div>
-                            <div className={styles.statLabel}>Admin-verified<br />institutions</div>
+                            <div className={styles.statValue}>Official</div>
+                            <div className={styles.statLabel}>Official Profiles<br />you can trust</div>
                         </div>
                         <div className={styles.statItem}>
                             <div className={styles.statValue}>Free</div>
@@ -295,10 +295,10 @@ export function HowItWorks({ activeTab: propActiveTab, onTabChange }: HowItWorks
                     <div className={styles.ctaBlock}>
                         <div className={styles.ctaText}>
                             <h3>Start building your direct pipeline</h3>
-                            <p>Apply for verification today. Our team reviews within 48 hours. Then go live and start receiving student interest.</p>
+                            <p>Apply today. Our team reviews within 48 hours. Then go live and start receiving student interest.</p>
                         </div>
                         <div className={styles.ctaActions}>
-                            <Link href="#how-it-works" className={styles.btnGhost}>See How Verification Works</Link>
+                            <Link href="#how-it-works" className={styles.btnGhost}>See How It Works</Link>
                             <Link href="/university/register" className={styles.btnPrimary}>Start Your Application →</Link>
                         </div>
                     </div>

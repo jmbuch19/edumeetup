@@ -22,85 +22,85 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'jaydeep@edumeetup.com'
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'
 
 export async function submitProctorRequest(
-    formData: FormData
+  formData: FormData
 ): Promise<{ success?: boolean; error?: string }> {
 
-    const session = await auth()
-    if (!session?.user?.id) redirect('/login')
-    const userId = session.user.id
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+  const userId = session.user.id
 
-    // Verify university ownership
-    const university = await prisma.university.findFirst({
-        where: { userId },
-        include: { user: { select: { email: true, name: true } } },
-    })
+  // Verify university ownership
+  const university = await prisma.university.findFirst({
+    where: { userId },
+    include: { user: { select: { email: true, name: true } } },
+  })
 
-    if (!university) return { error: 'University profile not found.' }
-    if (university.verificationStatus !== 'VERIFIED') {
-        return { error: 'Only verified universities can submit proctor requests.' }
-    }
+  if (!university) return { error: 'University profile not found.' }
+  if (university.verificationStatus !== 'VERIFIED') {
+    return { error: 'Only official EdUmeetup partner universities can submit proctor requests.' }
+  }
 
-    // Parse form data
-    const examType = (formData.get('examType') as string)?.trim()
-    const subjects = (formData.get('subjects') as string)?.trim()
-    const examStartDate = formData.get('examStartDate') as string
-    const examEndDate = formData.get('examEndDate') as string
-    const studentCount = parseInt(formData.get('studentCount') as string)
-    const durationMinutes = parseInt(formData.get('durationMinutes') as string)
-    const requirements = (formData.get('requirements') as string)?.trim() || null
-    const policyUrl = (formData.get('policyUrl') as string)?.trim() || null
+  // Parse form data
+  const examType = (formData.get('examType') as string)?.trim()
+  const subjects = (formData.get('subjects') as string)?.trim()
+  const examStartDate = formData.get('examStartDate') as string
+  const examEndDate = formData.get('examEndDate') as string
+  const studentCount = parseInt(formData.get('studentCount') as string)
+  const durationMinutes = parseInt(formData.get('durationMinutes') as string)
+  const requirements = (formData.get('requirements') as string)?.trim() || null
+  const policyUrl = (formData.get('policyUrl') as string)?.trim() || null
 
-    // Validate
-    if (!examType || !subjects || !examStartDate || !examEndDate) {
-        return { error: 'Please fill in all required fields.' }
-    }
-    if (isNaN(studentCount) || studentCount < 1) {
-        return { error: 'Please enter a valid number of students.' }
-    }
-    if (isNaN(durationMinutes) || durationMinutes < 30) {
-        return { error: 'Please enter a valid exam duration (minimum 30 minutes).' }
-    }
+  // Validate
+  if (!examType || !subjects || !examStartDate || !examEndDate) {
+    return { error: 'Please fill in all required fields.' }
+  }
+  if (isNaN(studentCount) || studentCount < 1) {
+    return { error: 'Please enter a valid number of students.' }
+  }
+  if (isNaN(durationMinutes) || durationMinutes < 30) {
+    return { error: 'Please enter a valid exam duration (minimum 30 minutes).' }
+  }
 
-    const startDate = new Date(examStartDate)
-    const endDate = new Date(examEndDate)
-    if (endDate < startDate) {
-        return { error: 'Exam end date must be after start date.' }
-    }
+  const startDate = new Date(examStartDate)
+  const endDate = new Date(examEndDate)
+  if (endDate < startDate) {
+    return { error: 'Exam end date must be after start date.' }
+  }
 
-    // ── 1. Create ProctorRequest ──────────────────────────────────────────────
-    const request = await prisma.proctorRequest.create({
-        data: {
-            universityId: university.id,
-            examType,
-            subjects,
-            examStartDate: startDate,
-            examEndDate: endDate,
-            studentCount,
-            durationMinutes,
-            requirements,
-            policyUrl,
-            status: 'PENDING',
-        },
-    })
+  // ── 1. Create ProctorRequest ──────────────────────────────────────────────
+  const request = await prisma.proctorRequest.create({
+    data: {
+      universityId: university.id,
+      examType,
+      subjects,
+      examStartDate: startDate,
+      examEndDate: endDate,
+      studentCount,
+      durationMinutes,
+      requirements,
+      policyUrl,
+      status: 'PENDING',
+    },
+  })
 
-    // ── 2. In-app notification for university ─────────────────────────────────
-    await prisma.universityNotification.create({
-        data: {
-            universityId: university.id,
-            title: '🛡️ Proctor Request Submitted',
-            message: `Your proctor request for "${subjects}" (${examType}) has been received. We'll confirm within 24 hours.`,
-            type: 'INFO',
-            actionUrl: '/university/proctor',
-        },
-    })
+  // ── 2. In-app notification for university ─────────────────────────────────
+  await prisma.universityNotification.create({
+    data: {
+      universityId: university.id,
+      title: '🛡️ Proctor Request Submitted',
+      message: `Your proctor request for "${subjects}" (${examType}) has been received. We'll confirm within 24 hours.`,
+      type: 'INFO',
+      actionUrl: '/university/proctor',
+    },
+  })
 
-    const fmt = (d: Date) => d.toLocaleDateString('en-IN', {
-        day: 'numeric', month: 'long', year: 'numeric',
-    })
+  const fmt = (d: Date) => d.toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'long', year: 'numeric',
+  })
 
-    // ── 3. Email to Jaydeep ───────────────────────────────────────────────────
-    const adminContent = `
-    <p>A verified university has submitted a proctor services request via the dashboard.</p>
+  // ── 3. Email to Jaydeep ───────────────────────────────────────────────────
+  const adminContent = `
+    <p>An official EdUmeetup partner university has submitted a proctor services request via the dashboard.</p>
 
     <div class="info-box" style="background:#f0f4ff;border-color:#c7d2fe;">
       <p style="margin:0 0 12px 0;font-weight:700;color:#3730a3;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">🏛️ University</p>
@@ -135,15 +135,15 @@ export async function submitProctorRequest(
     </div>
   `
 
-    await sendEmail({
-        to: ADMIN_EMAIL,
-        subject: `🛡️ Proctor Request — ${university.institutionName} · ${subjects} · ${fmt(startDate)}`,
-        html: generateEmailHtml('New Proctor Services Request', adminContent),
-        replyTo: university.user.email,
-    })
+  await sendEmail({
+    to: ADMIN_EMAIL,
+    subject: `🛡️ Proctor Request — ${university.institutionName} · ${subjects} · ${fmt(startDate)}`,
+    html: generateEmailHtml('New Proctor Services Request', adminContent),
+    replyTo: university.user.email,
+  })
 
-    // ── 4. Confirmation email to university ───────────────────────────────────
-    const uniContent = `
+  // ── 4. Confirmation email to university ───────────────────────────────────
+  const uniContent = `
     <p>Hi ${university.user.name || university.institutionName} team,</p>
     <p>Your proctor services request has been received by <strong>EdUmeetup / IAES</strong>. Our team will review it and contact you within <strong>24 hours</strong>.</p>
 
@@ -167,25 +167,25 @@ export async function submitProctorRequest(
     </p>
   `
 
-    await sendEmail({
-        to: university.user.email,
-        subject: `✅ Proctor Request Received — ${subjects} · ${fmt(startDate)}`,
-        html: generateEmailHtml('Proctor Request Received', uniContent),
-    })
+  await sendEmail({
+    to: university.user.email,
+    subject: `✅ Proctor Request Received — ${subjects} · ${fmt(startDate)}`,
+    html: generateEmailHtml('Proctor Request Received', uniContent),
+  })
 
-    await logSystemEvent({
-        level: 'INFO',
-        type: 'SYSTEM_EVENT',
-        message: `Proctor request submitted: ${university.institutionName} · ${subjects}`,
-        metadata: {
-            requestId: request.id,
-            universityId: university.id,
-            examStartDate,
-            studentCount,
-        },
-    })
+  await logSystemEvent({
+    level: 'INFO',
+    type: 'SYSTEM_EVENT',
+    message: `Proctor request submitted: ${university.institutionName} · ${subjects}`,
+    metadata: {
+      requestId: request.id,
+      universityId: university.id,
+      examStartDate,
+      studentCount,
+    },
+  })
 
-    revalidatePath('/university/proctor')
-    revalidatePath('/university/dashboard')
-    return { success: true }
+  revalidatePath('/university/proctor')
+  revalidatePath('/university/dashboard')
+  return { success: true }
 }
