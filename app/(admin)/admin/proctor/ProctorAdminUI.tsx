@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { updateProctorStatus } from './actions'
+import { updateProctorRequestStatus } from './actions'
 import { Shield, Building2, CalendarDays, ChevronDown, Loader2 } from 'lucide-react'
 import { ProctorRequestStatus } from '@prisma/client'
 
