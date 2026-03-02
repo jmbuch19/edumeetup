@@ -1,221 +1,302 @@
-import { requireUser } from '@/lib/auth'
+/**
+ * app/university/settings/page.tsx
+ *
+ * University notification preferences page.
+ * Fresh build — premium feel matching university partner status.
+ */
+
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { updateUniversityNotificationPrefs } from './actions'
-import { Bell, FileBarChart2, Globe, ShieldAlert } from 'lucide-react'
+import { Bell, Zap, Calendar, Clock, Users, BarChart2 } from 'lucide-react'
+import { saveUniversityNotificationPrefs } from './actions'
+import type { UniversityNotificationPrefs } from '@/lib/agent/university-triggers'
+import { mergePrefs } from '@/lib/agent/university-triggers'
 
 export const dynamic = 'force-dynamic'
 
 export default async function UniversitySettingsPage() {
-    const user = await requireUser()
-    if (user.role !== 'UNIVERSITY') redirect('/')
+  const session = await auth()
+  if (!session?.user || (session.user.role !== 'UNIVERSITY' && session.user.role !== 'UNIVERSITY_REP')) {
+    redirect('/login')
+  }
 
-    const university = await prisma.university.findFirst({
-        where: { userId: user.id },
-        select: {
-            institutionName: true,
-            notifyNewInterest: true,
-            notifyMeetingBooked: true,
-            notifyMeetingCancelled: true,
-            followUpThresholdHours: true,
-            digestDaily: true,
-            digestWeekly: true,
-            digestMonthly: true,
-            notifyFairOpportunities: true,
-            notifyInterestSpikes: true,
-            notifyTarget: true,
-            customNotifyEmails: true,
-            quietHoursEnabled: true,
-            quietHoursStart: true,
-            quietHoursEnd: true,
-        }
-    })
+  const university = await prisma.university.findFirst({
+    where: { userId: session.user.id },
+    select: {
+      id: true,
+      institutionName: true,
+      notificationPrefs: true,
+      responseRate: true,
+      verificationStatus: true,
+    },
+  })
 
-    if (!university) redirect('/')
+  if (!university) redirect('/university/dashboard')
 
-    const u = university
+  const prefs: UniversityNotificationPrefs = mergePrefs(university.notificationPrefs)
 
-    return (
-        <div className="container mx-auto px-4 py-8 max-w-2xl">
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">Notification Settings</h1>
-            <p className="text-muted-foreground text-sm mb-8">
-                Control how and when edUmeetup contacts you and your team.
-            </p>
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-2xl">
 
-            <form action={updateUniversityNotificationPrefs} className="space-y-6">
-
-                {/* ── Pipeline ─────────────────────────────────────────────── */}
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Bell className="h-4 w-4" /> Pipeline Notifications
-                        </CardTitle>
-                        <CardDescription>Immediate alerts for student activity — your core business signals.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <CheckRow id="notifyNewInterest" label="New student interest received" description="Instant alert when a student expresses interest in your university." defaultChecked={u.notifyNewInterest} />
-                        <CheckRow id="notifyMeetingBooked" label="Student booked a meeting" description="Instant alert when a student books a slot with you." defaultChecked={u.notifyMeetingBooked} />
-                        <CheckRow id="notifyMeetingCancelled" label="Student cancelled a meeting" description="Instant alert when a confirmed meeting is cancelled." defaultChecked={u.notifyMeetingCancelled} />
-
-                        <div className="pt-2 border-t border-gray-100">
-                            <label htmlFor="followUpThresholdHours" className="text-sm font-medium block mb-1">
-                                Follow-up threshold
-                            </label>
-                            <p className="text-xs text-muted-foreground mb-2">
-                                Escalate to you if a student hasn&apos;t been contacted after this long.
-                            </p>
-                            <select
-                                id="followUpThresholdHours"
-                                name="followUpThresholdHours"
-                                defaultValue={u.followUpThresholdHours?.toString() ?? 'off'}
-                                className="text-sm border border-gray-200 rounded-md px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
-                            >
-                                <option value="off">Off — don&apos;t escalate</option>
-                                <option value="24">24 hours</option>
-                                <option value="48">48 hours</option>
-                                <option value="72">72 hours</option>
-                            </select>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* ── Digest & Reporting ───────────────────────────────────── */}
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <FileBarChart2 className="h-4 w-4" /> Digest & Reporting
-                        </CardTitle>
-                        <CardDescription>Regular summaries of your pipeline — the account manager feel.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <CheckRow id="digestDaily" label="Daily pipeline summary" description="Sent at 9am IST every day — new interests, meetings, pending replies." defaultChecked={u.digestDaily} />
-                        <CheckRow id="digestWeekly" label="Weekly engagement report" description="Every Monday — week-over-week trends and highlights." defaultChecked={u.digestWeekly} />
-                        <CheckRow id="digestMonthly" label="Monthly performance snapshot" description="1st of every month — full pipeline metrics and conversion summary." defaultChecked={u.digestMonthly} />
-                    </CardContent>
-                </Card>
-
-                {/* ── Events & Fairs ───────────────────────────────────────── */}
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Globe className="h-4 w-4" /> Events & Fairs
-                        </CardTitle>
-                        <CardDescription>Opportunities and market signals relevant to your university.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <CheckRow id="notifyFairOpportunities" label="Campus fair opportunities in my region" description="Notified when a fair is approved in a country you recruit from." defaultChecked={u.notifyFairOpportunities} />
-                        <CheckRow id="notifyInterestSpikes" label="New programme interest spikes" description="Alert when student interest in your field of study surges." defaultChecked={u.notifyInterestSpikes} />
-                    </CardContent>
-                </Card>
-
-                {/* ── Escalation Controls ──────────────────────────────────── */}
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <ShieldAlert className="h-4 w-4" /> Escalation Controls
-                        </CardTitle>
-                        <CardDescription>Who receives notifications and when.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-5">
-
-                        {/* Notify target */}
-                        <div>
-                            <label className="text-sm font-medium block mb-1">Notify</label>
-                            <p className="text-xs text-muted-foreground mb-2">Who should receive pipeline and digest emails?</p>
-                            <div className="flex gap-3 flex-wrap">
-                                {(['PRIMARY', 'ALL', 'CUSTOM'] as const).map(opt => (
-                                    <label key={opt} className="flex items-center gap-2 cursor-pointer text-sm">
-                                        <input
-                                            type="radio"
-                                            name="notifyTarget"
-                                            value={opt}
-                                            defaultChecked={u.notifyTarget === opt}
-                                            className="accent-primary"
-                                        />
-                                        {opt === 'PRIMARY' && 'Primary contact only'}
-                                        {opt === 'ALL' && <span>All team members <Badge variant="outline" className="text-[10px] ml-1">Coming soon</Badge></span>}
-                                        {opt === 'CUSTOM' && 'Custom emails'}
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Custom emails */}
-                        <div>
-                            <label htmlFor="customNotifyEmails" className="text-sm font-medium block mb-1">
-                                Custom email addresses
-                            </label>
-                            <p className="text-xs text-muted-foreground mb-2">Comma-separated. Only used when &quot;Custom emails&quot; is selected above.</p>
-                            <input
-                                id="customNotifyEmails"
-                                name="customNotifyEmails"
-                                type="text"
-                                defaultValue={u.customNotifyEmails.join(', ')}
-                                placeholder="rep@university.edu, admissions@university.edu"
-                                className="w-full text-sm border border-gray-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                            />
-                        </div>
-
-                        {/* Quiet hours */}
-                        <div className="pt-2 border-t border-gray-100">
-                            <div className="flex items-center justify-between mb-2">
-                                <div>
-                                    <label htmlFor="quietHoursEnabled" className="text-sm font-medium cursor-pointer">Quiet hours</label>
-                                    <p className="text-xs text-muted-foreground mt-0.5">No emails sent during this window (IST).</p>
-                                </div>
-                                <input type="checkbox" id="quietHoursEnabled" name="quietHoursEnabled" defaultChecked={u.quietHoursEnabled} className="h-4 w-4 accent-primary cursor-pointer" />
-                            </div>
-                            <div className="flex items-center gap-3 ml-0">
-                                <div>
-                                    <label className="text-xs text-muted-foreground block mb-1">From (24h)</label>
-                                    <input
-                                        type="number"
-                                        name="quietHoursStart"
-                                        defaultValue={u.quietHoursStart}
-                                        min={0} max={23}
-                                        className="w-20 text-sm border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                                    />
-                                </div>
-                                <span className="text-muted-foreground mt-4">→</span>
-                                <div>
-                                    <label className="text-xs text-muted-foreground block mb-1">Until (24h)</label>
-                                    <input
-                                        type="number"
-                                        name="quietHoursEnd"
-                                        defaultValue={u.quietHoursEnd}
-                                        min={0} max={23}
-                                        className="w-20 text-sm border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                                    />
-                                </div>
-                                <span className="text-xs text-muted-foreground mt-4">IST</span>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Button type="submit" className="w-full">Save Notification Settings</Button>
-            </form>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-1">
+          <h1 className="text-3xl font-bold text-gray-900">Notification Settings</h1>
+          <Badge className="bg-primary/10 text-primary border-0">Premium Partner</Badge>
         </div>
-    )
+        <p className="text-muted-foreground text-sm">
+          Control exactly how and when edUmeetup contacts your team.
+        </p>
+        {university.responseRate != null && (
+          <div className="mt-3 inline-flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+            <BarChart2 className="h-4 w-4 text-primary" />
+            <span className="text-sm">
+              Your response rate: <strong className={
+                university.responseRate >= 80 ? 'text-green-600' :
+                university.responseRate >= 60 ? 'text-amber-600' : 'text-red-600'
+              }>{university.responseRate}%</strong>
+            </span>
+            <span className="text-xs text-muted-foreground">(platform avg: 67%)</span>
+          </div>
+        )}
+      </div>
+
+      <form action={saveUniversityNotificationPrefs} className="space-y-6">
+
+        {/* Pipeline Alerts */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Zap className="h-4 w-4 text-amber-500" /> Instant Pipeline Alerts
+            </CardTitle>
+            <CardDescription>
+              Real-time notifications when students interact with your university. Sent immediately.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <PrefToggle
+              id="alertNewInterest"
+              name="alertNewInterest"
+              defaultChecked={prefs.alertNewInterest}
+              label="New student interest"
+              description="Sent the moment a student expresses interest in your university or programme."
+              badge="High impact"
+              badgeColor="green"
+            />
+            <PrefToggle
+              id="alertMeetingBooked"
+              name="alertMeetingBooked"
+              defaultChecked={prefs.alertMeetingBooked}
+              label="Meeting booked"
+              description="Sent when a student schedules a meeting with your team."
+              badge="Recommended"
+              badgeColor="blue"
+            />
+            <PrefToggle
+              id="alertMeetingCancelled"
+              name="alertMeetingCancelled"
+              defaultChecked={prefs.alertMeetingCancelled}
+              label="Meeting cancelled"
+              description="Sent if a student cancels a scheduled meeting."
+            />
+          </CardContent>
+        </Card>
+
+        {/* Daily Brief */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Calendar className="h-4 w-4 text-primary" /> Daily Brief
+            </CardTitle>
+            <CardDescription>
+              A curated morning summary of your recruitment pipeline — sent at 9:00 AM IST.
+              Only sent when there&apos;s something worth reporting.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PrefToggle
+              id="dailyBrief"
+              name="dailyBrief"
+              defaultChecked={prefs.dailyBrief}
+              label="Daily pipeline briefing"
+              description="New interests, pending responses, upcoming meetings, and your response rate — in one email."
+              badge="Recommended"
+              badgeColor="blue"
+            />
+          </CardContent>
+        </Card>
+
+        {/* Response SLA */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Clock className="h-4 w-4 text-orange-500" /> Response SLA Threshold
+            </CardTitle>
+            <CardDescription>
+              How long before edUmeetup reminds you about an unanswered student interest.
+              Faster responses improve your ranking on the platform.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-3">
+              {([24, 48, 72] as const).map(hours => (
+                <label key={hours} className="cursor-pointer">
+                  <input
+                    type="radio"
+                    name="responseSlaHours"
+                    value={hours}
+                    defaultChecked={prefs.responseSlaHours === hours}
+                    className="sr-only peer"
+                  />
+                  <div className="border-2 border-gray-200 rounded-xl p-3 text-center transition-all peer-checked:border-primary peer-checked:bg-primary/5">
+                    <div className="text-xl font-bold text-gray-900">{hours}h</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {hours === 24 ? 'Same day' : hours === 48 ? 'Standard' : 'Relaxed'}
+                    </div>
+                    {hours === 48 && (
+                      <div className="text-[10px] text-primary font-medium mt-1">Recommended</div>
+                    )}
+                  </div>
+                </label>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Notify Target */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Users className="h-4 w-4 text-purple-500" /> Who Gets Notified
+            </CardTitle>
+            <CardDescription>
+              Choose who on your team receives email notifications from edUmeetup.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              {(['PRIMARY', 'ALL'] as const).map(target => (
+                <label key={target} className="cursor-pointer">
+                  <input
+                    type="radio"
+                    name="notifyTarget"
+                    value={target}
+                    defaultChecked={prefs.notifyTarget === target}
+                    className="sr-only peer"
+                  />
+                  <div className="border-2 border-gray-200 rounded-xl p-4 transition-all peer-checked:border-primary peer-checked:bg-primary/5">
+                    <div className="text-sm font-semibold text-gray-900">
+                      {target === 'PRIMARY' ? 'Primary contact' : 'All team members'}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {target === 'PRIMARY'
+                        ? 'Only the main account contact receives emails.'
+                        : 'All registered reps receive emails. (Coming soon)'}
+                    </div>
+                    {target === 'ALL' && (
+                      <Badge variant="outline" className="text-[10px] mt-2">Coming Soon</Badge>
+                    )}
+                  </div>
+                </label>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quiet Hours */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Bell className="h-4 w-4 text-gray-400" /> Quiet Hours
+            </CardTitle>
+            <CardDescription>
+              Pause non-urgent notifications during off-hours. Times are in IST.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <PrefToggle
+              id="quietHoursEnabled"
+              name="quietHoursEnabled"
+              defaultChecked={prefs.quietHoursEnabled}
+              label="Enable quiet hours"
+              description="No instant alert emails sent during the window below."
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  From (IST)
+                </label>
+                <input
+                  type="time"
+                  name="quietHoursStart"
+                  defaultValue={prefs.quietHoursStart}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Until (IST)
+                </label>
+                <input
+                  type="time"
+                  name="quietHoursEnd"
+                  defaultValue={prefs.quietHoursEnd}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Button type="submit" className="w-full" size="lg">
+          Save Notification Preferences
+        </Button>
+
+      </form>
+    </div>
+  )
 }
 
-// ── Shared checkbox row component ─────────────────────────────────────────────
-function CheckRow({ id, label, description, defaultChecked }: {
-    id: string
-    label: string
-    description: string
-    defaultChecked: boolean
+// ── Reusable toggle row ───────────────────────────────────────────────────────
+function PrefToggle({
+  id, name, defaultChecked, label, description, badge, badgeColor
+}: {
+  id: string
+  name: string
+  defaultChecked: boolean
+  label: string
+  description: string
+  badge?: string
+  badgeColor?: 'green' | 'blue'
 }) {
-    return (
-        <div className="flex items-start justify-between gap-4">
-            <div>
-                <label htmlFor={id} className="text-sm font-medium cursor-pointer">{label}</label>
-                <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-            </div>
-            <input type="checkbox" id={id} name={id} defaultChecked={defaultChecked} className="mt-1 h-4 w-4 accent-primary cursor-pointer shrink-0" />
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <label htmlFor={id} className="text-sm font-medium cursor-pointer">{label}</label>
+          {badge && (
+            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+              badgeColor === 'green'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-blue-100 text-blue-700'
+            }`}>
+              {badge}
+            </span>
+          )}
         </div>
-    )
+        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+      </div>
+      <input
+        type="checkbox"
+        id={id}
+        name={name}
+        defaultChecked={defaultChecked}
+        className="mt-1 h-4 w-4 accent-primary cursor-pointer shrink-0"
+      />
+    </div>
+  )
 }

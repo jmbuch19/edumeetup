@@ -1,61 +1,37 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { requireUser } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import type { UniversityNotificationPrefs } from '@/lib/agent/university-triggers'
 
-export async function updateUniversityNotificationPrefs(formData: FormData) {
-    const user = await requireUser()
-    if (user.role !== 'UNIVERSITY') return { error: 'Unauthorized' }
+export async function saveUniversityNotificationPrefs(formData: FormData) {
+    const session = await auth()
+    if (!session?.user || (session.user.role !== 'UNIVERSITY' && session.user.role !== 'UNIVERSITY_REP')) {
+        return { error: 'Unauthorized' }
+    }
 
-    const university = await prisma.university.findFirst({ where: { userId: user.id } })
+    const university = await prisma.university.findFirst({ where: { userId: session.user.id } })
     if (!university) return { error: 'University not found' }
 
-    // Pipeline
-    const notifyNewInterest      = formData.get('notifyNewInterest') === 'on'
-    const notifyMeetingBooked    = formData.get('notifyMeetingBooked') === 'on'
-    const notifyMeetingCancelled = formData.get('notifyMeetingCancelled') === 'on'
-    const followUpRaw            = formData.get('followUpThresholdHours') as string
-    const followUpThresholdHours = followUpRaw === 'off' ? null : parseInt(followUpRaw)
+    const slaRaw = formData.get('responseSlaHours') as string
+    const slaHours = parseInt(slaRaw)
 
-    // Digest
-    const digestDaily   = formData.get('digestDaily') === 'on'
-    const digestWeekly  = formData.get('digestWeekly') === 'on'
-    const digestMonthly = formData.get('digestMonthly') === 'on'
-
-    // Events & Fairs
-    const notifyFairOpportunities = formData.get('notifyFairOpportunities') === 'on'
-    const notifyInterestSpikes    = formData.get('notifyInterestSpikes') === 'on'
-
-    // Escalation
-    const notifyTarget       = (formData.get('notifyTarget') as string) || 'PRIMARY'
-    const customEmailsRaw    = (formData.get('customNotifyEmails') as string) || ''
-    const customNotifyEmails = customEmailsRaw
-        .split(',')
-        .map(e => e.trim())
-        .filter(e => e.includes('@'))
-    const quietHoursEnabled  = formData.get('quietHoursEnabled') === 'on'
-    const quietHoursStart    = parseInt((formData.get('quietHoursStart') as string) || '22')
-    const quietHoursEnd      = parseInt((formData.get('quietHoursEnd') as string) || '7')
+    const prefs: UniversityNotificationPrefs = {
+        alertNewInterest:      formData.get('alertNewInterest') === 'on',
+        alertMeetingBooked:    formData.get('alertMeetingBooked') === 'on',
+        alertMeetingCancelled: formData.get('alertMeetingCancelled') === 'on',
+        dailyBrief:            formData.get('dailyBrief') === 'on',
+        responseSlaHours:      ([24, 48, 72].includes(slaHours) ? slaHours : 48) as 24 | 48 | 72,
+        notifyTarget:          (formData.get('notifyTarget') as 'PRIMARY' | 'ALL') || 'PRIMARY',
+        quietHoursEnabled:     formData.get('quietHoursEnabled') === 'on',
+        quietHoursStart:       (formData.get('quietHoursStart') as string) || '22:00',
+        quietHoursEnd:         (formData.get('quietHoursEnd') as string) || '07:00',
+    }
 
     await prisma.university.update({
         where: { id: university.id },
-        data: {
-            notifyNewInterest,
-            notifyMeetingBooked,
-            notifyMeetingCancelled,
-            followUpThresholdHours: isNaN(followUpThresholdHours as number) ? null : followUpThresholdHours,
-            digestDaily,
-            digestWeekly,
-            digestMonthly,
-            notifyFairOpportunities,
-            notifyInterestSpikes,
-            notifyTarget,
-            customNotifyEmails,
-            quietHoursEnabled,
-            quietHoursStart: isNaN(quietHoursStart) ? 22 : quietHoursStart,
-            quietHoursEnd: isNaN(quietHoursEnd) ? 7 : quietHoursEnd,
-        }
+        data: { notificationPrefs: prefs },
     })
 
     revalidatePath('/university/settings')
