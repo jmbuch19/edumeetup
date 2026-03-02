@@ -11,6 +11,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { sendEmail, generateEmailHtml } from '@/lib/email'
+import { Prisma } from '@prisma/client'
 import type { UniversityAgentAction } from './university-triggers'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'
@@ -18,7 +19,7 @@ const PLATFORM_AVG_RESPONSE_RATE = 67
 
 async function logAgentAction(action: string, entityId: string, metadata?: Record<string, unknown>) {
   await prisma.auditLog.create({
-    data: { action, entityType: 'AGENT', entityId, actorId: null, metadata: metadata ?? {} },
+    data: { action, entityType: 'AGENT', entityId, actorId: null, metadata: (metadata ?? {}) as Prisma.InputJsonValue },
   })
 }
 
