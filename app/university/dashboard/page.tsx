@@ -197,7 +197,7 @@ export default async function UniversityDashboard() {
                         stats={stats}
                         meetingCount={upcomingMeetings.length}
                         pendingInterests={pendingInterestsCount}
-                        responseRate={(uni as any).responseRate ?? null}
+                        responseRate={uni.responseRate ?? null}
                         awaitingResponse={awaitingResponse}
                     />
 
