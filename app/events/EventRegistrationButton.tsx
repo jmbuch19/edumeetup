@@ -4,8 +4,6 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { registerForEvent } from './actions'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react' // Or assume server component passes session status? 
-// Actually server actions are cleaner. But for immediate feedback:
 
 export default function EventRegistrationButton({ eventId, isRegistered }: { eventId: string, isRegistered: boolean }) {
     const [isLoading, setIsLoading] = useState(false)
