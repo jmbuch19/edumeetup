@@ -198,14 +198,14 @@ async function executeDailyBrief(action: UniversityAgentAction) {
 
   const [newInterests, newMeetings, pendingResponse, meetingsNext24h,
     weeksInterests, weeksMeetings, responseRate] = await Promise.all([
-    prisma.interest.count({ where: { universityId, createdAt: { gte: yesterday } } }),
-    prisma.meeting.count({ where: { universityId, createdAt: { gte: yesterday }, status: { in: ['PENDING', 'CONFIRMED'] } } }),
-    prisma.interest.count({ where: { universityId, status: 'INTERESTED', universityNote: null, createdAt: { lt: fortyEightHoursAgo } } }),
-    prisma.meeting.count({ where: { universityId, status: 'CONFIRMED', startTime: { gte: now, lte: new Date(now.getTime() + 24 * 60 * 60 * 1000) } } }),
-    prisma.interest.count({ where: { universityId, createdAt: { gte: weekAgo } } }),
-    prisma.meeting.count({ where: { universityId, createdAt: { gte: weekAgo }, status: { in: ['CONFIRMED', 'COMPLETED'] } } }),
-    calculateResponseRate(universityId),
-  ])
+      prisma.interest.count({ where: { universityId, createdAt: { gte: yesterday } } }),
+      prisma.meeting.count({ where: { universityId, createdAt: { gte: yesterday }, status: { in: ['PENDING', 'CONFIRMED'] } } }),
+      prisma.interest.count({ where: { universityId, status: 'INTERESTED', universityNote: null, createdAt: { lt: fortyEightHoursAgo } } }),
+      prisma.meeting.count({ where: { universityId, status: 'CONFIRMED', startTime: { gte: now, lte: new Date(now.getTime() + 24 * 60 * 60 * 1000) } } }),
+      prisma.interest.count({ where: { universityId, createdAt: { gte: weekAgo } } }),
+      prisma.meeting.count({ where: { universityId, createdAt: { gte: weekAgo }, status: { in: ['CONFIRMED', 'COMPLETED'] } } }),
+      calculateResponseRate(universityId),
+    ])
 
   // Skip if nothing to report
   if (!newInterests && !newMeetings && !pendingResponse && !meetingsNext24h) {
@@ -274,6 +274,50 @@ async function executeDailyBrief(action: UniversityAgentAction) {
   console.log(`[AGENT:UNI] Daily brief → ${universityEmail} (rate: ${responseRate}%)`)
 }
 
+// ── Proctor Escalation ────────────────────────────────────────────────────────
+async function executeProctorEscalation(action: UniversityAgentAction) {
+  const {
+    proctorRequestId, proctorExamStart, proctorSubjects,
+    proctorStudentCount, proctorStatus, universityName, universityEmail,
+  } = action
+  if (!proctorRequestId || !proctorExamStart) return
+
+  const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'jaydeep@edumeetup.com'
+  const daysLeft = Math.ceil((proctorExamStart.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+
+  const html = generateEmailHtml('⚠️ Proctor Request — Urgent Action Needed', `
+    <p>A proctor service request is approaching its exam date with status still <strong>${proctorStatus}</strong>.</p>
+    <div class="info-box" style="background:#fef2f2;border-color:#fecaca;">
+      <p style="margin:0 0 10px 0;font-weight:700;color:#991b1b;font-size:13px;">🚨 ${daysLeft} day${daysLeft !== 1 ? 's' : ''} until exam</p>
+      <div class="info-row"><span class="info-label">University:</span> <strong>${universityName}</strong></div>
+      <div class="info-row"><span class="info-label">Contact:</span> <a href="mailto:${universityEmail}">${universityEmail}</a></div>
+      <div class="info-row"><span class="info-label">Subjects:</span> ${proctorSubjects}</div>
+      <div class="info-row"><span class="info-label">Students:</span> ${proctorStudentCount}</div>
+      <div class="info-row"><span class="info-label">Exam Date:</span> <strong>${fmt(proctorExamStart)}</strong></div>
+      <div class="info-row"><span class="info-label">Current Status:</span> ${proctorStatus}</div>
+    </div>
+    <p><a href="${BASE_URL}/admin/proctor" class="btn">Confirm or Update in Admin →</a></p>
+  `)
+
+  await sendEmail({
+    to: ADMIN_EMAIL,
+    subject: `🚨 URGENT: Proctor exam in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} — ${universityName} — still ${proctorStatus}`,
+    html,
+  })
+
+  // Update reminderSentAt + log for deduplication
+  await prisma.proctorRequest.update({
+    where: { id: proctorRequestId },
+    data: { reminderSentAt: new Date() },
+  })
+  await logAgentAction('AGENT_PROCTOR_ESCALATION_SENT', proctorRequestId, {
+    universityId: action.universityId, daysLeft, status: proctorStatus,
+  })
+
+  console.log(`[AGENT:UNI] Proctor escalation → ${ADMIN_EMAIL} (${universityName}, ${daysLeft}d left)`)
+}
+
 // ── Main executor ─────────────────────────────────────────────────────────────
 export async function executeUniversityAction(action: UniversityAgentAction): Promise<void> {
   try {
@@ -282,6 +326,7 @@ export async function executeUniversityAction(action: UniversityAgentAction): Pr
       case 'ALERT_MEETING_BOOKED': await executeMeetingBookedAlert(action); break
       case 'ALERT_MEETING_CANCELLED': await executeMeetingCancelledAlert(action); break
       case 'SEND_DAILY_BRIEF': await executeDailyBrief(action); break
+      case 'PROCTOR_EXAM_ESCALATION': await executeProctorEscalation(action); break
       default: console.warn(`[AGENT:UNI] Unknown action: ${(action as any).type}`)
     }
   } catch (error) {

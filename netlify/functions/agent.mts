@@ -11,6 +11,7 @@ import {
   triggerMeetingBookedAlerts,
   triggerMeetingCancelledAlerts,
   triggerDailyBriefs,
+  triggerProctorEscalations,
 } from '../../lib/agent/university-triggers'
 import { executeUniversityAction } from '../../lib/agent/university-executor'
 
@@ -29,6 +30,7 @@ export default async function handler() {
     meetingBookedAlerts: 0,
     meetingCancelledAlerts: 0,
     dailyBriefs: 0,
+    proctorEscalations: 0,
     errors: 0,
   }
 
@@ -63,6 +65,9 @@ export default async function handler() {
     }
     for (const action of await triggerDailyBriefs()) {
       await executeUniversityAction(action); results.dailyBriefs++
+    }
+    for (const action of await triggerProctorEscalations()) {
+      await executeUniversityAction(action); results.proctorEscalations++
     }
 
   } catch (error) {
