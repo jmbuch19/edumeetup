@@ -3,19 +3,20 @@
 import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 
-export async function updateDisplayName(formData: FormData) {
+export async function updateDisplayName(formData: FormData): Promise<void> {
     const user = await requireUser()
     const name = (formData.get('name') as string)?.trim()
-    if (!name || name.length < 2) return { error: 'Name must be at least 2 characters.' }
-    if (name.length > 80) return { error: 'Name is too long.' }
+    if (!name || name.length < 2 || name.length > 80) {
+        redirect('/student/settings?error=invalid-name')
+    }
     await prisma.user.update({ where: { id: user.id }, data: { name } })
     await prisma.student.updateMany({ where: { userId: user.id }, data: { fullName: name } })
     revalidatePath('/student/settings')
-    return { success: true }
 }
 
-export async function updateNotificationPrefs(formData: FormData) {
+export async function updateNotificationPrefs(formData: FormData): Promise<void> {
     const user = await requireUser()
 
     // ── Existing consent fields ───────────────────────────────────────────────
@@ -48,5 +49,4 @@ export async function updateNotificationPrefs(formData: FormData) {
     })
 
     revalidatePath('/student/settings')
-    return { success: true }
 }

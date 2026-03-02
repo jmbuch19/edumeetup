@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
-export async function saveUniversityNotificationPrefs(formData: FormData) {
+export async function saveUniversityNotificationPrefs(formData: FormData): Promise<void> {
   const session = await auth()
   if (!session?.user || (session.user.role !== 'UNIVERSITY' && session.user.role !== 'UNIVERSITY_REP')) {
     redirect('/login')
@@ -15,7 +15,7 @@ export async function saveUniversityNotificationPrefs(formData: FormData) {
     where: { userId: session.user.id },
     select: { id: true },
   })
-  if (!university) return { error: 'University not found' }
+  if (!university) redirect('/university/dashboard')
 
   const prefs = {
     alertNewInterest:      formData.get('alertNewInterest') === 'on',
@@ -35,5 +35,4 @@ export async function saveUniversityNotificationPrefs(formData: FormData) {
   })
 
   revalidatePath('/university/settings')
-  return { success: true }
 }
