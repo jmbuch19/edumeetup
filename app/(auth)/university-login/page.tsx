@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { SubmitButton } from "@/components/SubmitButton"
 import { Input } from "@/components/ui/input"
-import { Building2, AlertCircle, Clock, CheckCircle2, Info } from "lucide-react"
+import { Building2, AlertCircle, Clock, CheckCircle2, Info, ShieldCheck } from "lucide-react"
 import { loginUniversity } from "@/app/actions"
 
 function UniversityLoginForm() {
@@ -15,6 +15,8 @@ function UniversityLoginForm() {
     const [isLoading, setIsLoading] = useState(false)
     const [isSuccess, setIsSuccess] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [trustDevice, setTrustDevice] = useState(true)
+    const [showTip, setShowTip] = useState(false)
 
     // Rate Limit State
     const [rateLimitEnds, setRateLimitEnds] = useState<number | null>(null)
@@ -96,6 +98,15 @@ function UniversityLoginForm() {
         }
 
         setIsLoading(true)
+
+        // Store device trust preference for SessionGuard
+        if (typeof window !== 'undefined') {
+            if (trustDevice) {
+                localStorage.removeItem('em_shared_device')
+            } else {
+                localStorage.setItem('em_shared_device', '1')
+            }
+        }
 
         try {
             const formData = new FormData()
@@ -194,6 +205,43 @@ function UniversityLoginForm() {
                         required
                         className="h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     />
+                </div>
+
+                {/* Trust This Device */}
+                <div className={`rounded-lg border px-3 py-2.5 transition-colors ${trustDevice ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-gray-50'}`}>
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={trustDevice}
+                            onChange={(e) => setTrustDevice(e.target.checked)}
+                            className="h-4 w-4 rounded accent-blue-600 cursor-pointer"
+                        />
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                                <ShieldCheck className={`h-3.5 w-3.5 shrink-0 ${trustDevice ? 'text-blue-600' : 'text-gray-400'}`} />
+                                <span className={`text-sm font-medium ${trustDevice ? 'text-blue-700' : 'text-gray-500'}`}>
+                                    Trust this device
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowTip(!showTip)}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <Info className="h-3 w-3" />
+                                </button>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                                {trustDevice
+                                    ? 'Stay signed in for 30 days on this device.'
+                                    : 'You will be signed out when the browser closes.'}
+                            </p>
+                        </div>
+                    </label>
+                    {showTip && (
+                        <p className="mt-2 text-xs text-gray-500 border-t border-gray-200 pt-2">
+                            ⚠️ Uncheck this on a shared or public computer so others cannot access your account.
+                        </p>
+                    )}
                 </div>
 
                 <SubmitButton
