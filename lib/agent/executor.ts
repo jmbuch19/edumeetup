@@ -20,7 +20,7 @@ async function markFired(action: string, entityType: string, entityId: string) {
 }
 
 // ── Execute a single action ───────────────────────────────────────────────────
-async function executeAction(action: AgentAction): Promise<void> {
+export async function executeAction(action: AgentAction): Promise<void> {
     switch (action.type) {
 
         // ── T1: Profile Complete ──────────────────────────────────────────────
