@@ -17,6 +17,7 @@ import { DegreeLevels } from '@/lib/constants'
 import { UniversityLogo } from '@/components/university/university-logo'
 import { NotificationsCenter } from '@/components/notifications-center'
 import { UniDocManager } from '@/components/university/uni-doc-manager'
+import { ProctorTab } from '@/components/university/proctor-tab'
 
 export const dynamic = 'force-dynamic'
 
@@ -123,6 +124,12 @@ export default async function UniversityDashboard() {
         orderBy: { sentAt: 'desc' }
     })
 
+    // 5. Proctor Requests
+    const proctorRequests = await prisma.proctorRequest.findMany({
+        where: { universityId: uni.id },
+        orderBy: { createdAt: 'desc' },
+    })
+
     // Stats
     const stats = {
         totalPrograms: uni.programs.length,
@@ -189,6 +196,12 @@ export default async function UniversityDashboard() {
                             )}
                         </TabsTrigger>
                         <TabsTrigger value="documents">Documents</TabsTrigger>
+                        <TabsTrigger value="proctor" className="relative">
+                            Proctor Services
+                            {proctorRequests.some(r => r.status === 'CONFIRMED') && (
+                                <span className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full" />
+                            )}
+                        </TabsTrigger>
                     </TabsList>
                 </div>
 
@@ -370,6 +383,14 @@ export default async function UniversityDashboard() {
                             ...d,
                             uploadedAt: new Date(d.uploadedAt).toISOString(),
                         }))}
+                    />
+                </TabsContent>
+
+                <TabsContent value="proctor" className="space-y-6">
+                    <ProctorTab
+                        universityId={uni.id}
+                        universityName={uni.institutionName}
+                        requests={JSON.parse(JSON.stringify(proctorRequests))}
                     />
                 </TabsContent>
             </Tabs>

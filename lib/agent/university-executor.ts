@@ -276,46 +276,52 @@ async function executeDailyBrief(action: UniversityAgentAction) {
 
 // ── Proctor Escalation ────────────────────────────────────────────────────────
 async function executeProctorEscalation(action: UniversityAgentAction) {
-  const {
-    proctorRequestId, proctorExamStart, proctorSubjects,
-    proctorStudentCount, proctorStatus, universityName, universityEmail,
-  } = action
-  if (!proctorRequestId || !proctorExamStart) return
+  const { universityId, universityEmail, universityName, repName, payload } = action
+  if (!payload?.requestId) return
 
-  const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'jaydeep@edumeetup.com'
-  const daysLeft = Math.ceil((proctorExamStart.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  const greeting = repName ? `Hi ${repName}` : `Hi ${universityName} team`
+  const daysUntilExam = payload.daysUntilExam as number
+  const subjects = payload.subjects as string
+  const examDate = new Date(payload.examStartDate as string)
+    .toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
 
-  const html = generateEmailHtml('⚠️ Proctor Request — Urgent Action Needed', `
-    <p>A proctor service request is approaching its exam date with status still <strong>${proctorStatus}</strong>.</p>
-    <div class="info-box" style="background:#fef2f2;border-color:#fecaca;">
-      <p style="margin:0 0 10px 0;font-weight:700;color:#991b1b;font-size:13px;">🚨 ${daysLeft} day${daysLeft !== 1 ? 's' : ''} until exam</p>
-      <div class="info-row"><span class="info-label">University:</span> <strong>${universityName}</strong></div>
-      <div class="info-row"><span class="info-label">Contact:</span> <a href="mailto:${universityEmail}">${universityEmail}</a></div>
-      <div class="info-row"><span class="info-label">Subjects:</span> ${proctorSubjects}</div>
-      <div class="info-row"><span class="info-label">Students:</span> ${proctorStudentCount}</div>
-      <div class="info-row"><span class="info-label">Exam Date:</span> <strong>${fmt(proctorExamStart)}</strong></div>
-      <div class="info-row"><span class="info-label">Current Status:</span> ${proctorStatus}</div>
+  // In-app notification
+  await prisma.universityNotification.create({
+    data: {
+      universityId,
+      title: '⚠️ Proctor Request Still Pending',
+      message: `Your proctor request for "${subjects}" starts in ${daysUntilExam} day${daysUntilExam > 1 ? 's' : ''}. Our team is on it.`,
+      type: 'WARNING',
+      actionUrl: '/university/proctor',
+    },
+  })
+
+  // Email to university
+  const content = `
+    <p>${greeting},</p>
+    <p>Your proctor services request is still <strong>pending review</strong> and your exam is coming up soon.</p>
+    <div class="info-box" style="background:#fff7ed;border-color:#fed7aa;">
+      <div class="info-row"><span class="info-label">Subject:</span> ${subjects}</div>
+      <div class="info-row"><span class="info-label">Exam Date:</span> ${examDate}</div>
+      <div class="info-row"><span class="info-label">Days remaining:</span> <strong style="color:#d97706;">${daysUntilExam} day${daysUntilExam > 1 ? 's' : ''}</strong></div>
     </div>
-    <p><a href="${BASE_URL}/admin/proctor" class="btn">Confirm or Update in Admin →</a></p>
-  `)
+    <p>Our team has been notified and is prioritising your request. We will confirm shortly.</p>
+    <p style="text-align:center;margin-top:24px;">
+      <a href="${BASE_URL}/university/proctor" class="btn">View Request Status →</a>
+    </p>
+  `
 
   await sendEmail({
-    to: ADMIN_EMAIL,
-    subject: `🚨 URGENT: Proctor exam in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} — ${universityName} — still ${proctorStatus}`,
-    html,
+    to: universityEmail,
+    subject: `⚠️ Proctor request for "${subjects}" pending — ${daysUntilExam} days to exam`,
+    html: generateEmailHtml('Proctor Request: Action Needed', content),
   })
 
-  // Update reminderSentAt + log for deduplication
-  await prisma.proctorRequest.update({
-    where: { id: proctorRequestId },
-    data: { reminderSentAt: new Date() },
-  })
-  await logAgentAction('AGENT_PROCTOR_ESCALATION_SENT', proctorRequestId, {
-    universityId: action.universityId, daysLeft, status: proctorStatus,
+  await logAgentAction('AGENT_PROCTOR_ESCALATION_SENT', payload.requestId as string, {
+    universityId, daysUntilExam, subjects,
   })
 
-  console.log(`[AGENT:UNI] Proctor escalation → ${ADMIN_EMAIL} (${universityName}, ${daysLeft}d left)`)
+  console.log(`[AGENT:UNI] Proctor escalation → ${universityEmail} (${daysUntilExam}d to exam)`)
 }
 
 // ── Main executor ─────────────────────────────────────────────────────────────
@@ -326,7 +332,7 @@ export async function executeUniversityAction(action: UniversityAgentAction): Pr
       case 'ALERT_MEETING_BOOKED': await executeMeetingBookedAlert(action); break
       case 'ALERT_MEETING_CANCELLED': await executeMeetingCancelledAlert(action); break
       case 'SEND_DAILY_BRIEF': await executeDailyBrief(action); break
-      case 'PROCTOR_EXAM_ESCALATION': await executeProctorEscalation(action); break
+      case 'ALERT_PROCTOR_ESCALATION': await executeProctorEscalation(action); break
       default: console.warn(`[AGENT:UNI] Unknown action: ${(action as any).type}`)
     }
   } catch (error) {

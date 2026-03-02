@@ -13,7 +13,7 @@ export type UniversityAgentActionType =
   | 'ALERT_MEETING_BOOKED'
   | 'ALERT_MEETING_CANCELLED'
   | 'SEND_DAILY_BRIEF'
-  | 'PROCTOR_EXAM_ESCALATION'
+  | 'ALERT_PROCTOR_ESCALATION'
 
 export type UniversityAgentAction = {
   type: UniversityAgentActionType
@@ -31,12 +31,7 @@ export type UniversityAgentAction = {
   meetingDuration?: number
   meetingJoinUrl?: string
   cancelReason?: string
-  // Proctor escalation fields
-  proctorRequestId?: string
-  proctorExamStart?: Date
-  proctorSubjects?: string
-  proctorStudentCount?: number
-  proctorStatus?: string
+  payload?: Record<string, unknown>
 }
 
 // ── Preference types ──────────────────────────────────────────────────────────
@@ -249,20 +244,19 @@ export async function triggerDailyBriefs(): Promise<UniversityAgentAction[]> {
 
 // ── TRIGGER 5: Proctor Exam Escalation ───────────────────────────────────────
 /**
- * Fires when examStart is within 7 days and status is still PENDING or UNDER_REVIEW.
- * Sends escalation alert to admin (Jaydeep) — not to the university.
- * Max once per request per 24h window (tracked via AuditLog).
+ * Fires if exam starts within 7 days and request is still PENDING.
+ * Notifies the university (not admin) that their request is pending.
+ * Deduplicates via alreadyFired() — max once per request.
  */
 export async function triggerProctorEscalations(): Promise<UniversityAgentAction[]> {
   const actions: UniversityAgentAction[] = []
 
   const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-  const now = new Date()
 
   const urgentRequests = await prisma.proctorRequest.findMany({
     where: {
-      status: { in: ['PENDING', 'UNDER_REVIEW'] },
-      examStart: { lte: sevenDaysFromNow, gte: now },
+      status: 'PENDING',
+      examStartDate: { lte: sevenDaysFromNow },
     },
     include: {
       university: {
@@ -272,27 +266,24 @@ export async function triggerProctorEscalations(): Promise<UniversityAgentAction
   })
 
   for (const req of urgentRequests) {
-    // Skip if reminder sent in the last 24h
-    const recentReminder = await prisma.auditLog.findFirst({
-      where: {
-        action: 'AGENT_PROCTOR_ESCALATION_SENT',
-        entityId: req.id,
-        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-      },
-    })
-    if (recentReminder) continue
+    if (await alreadyFired('AGENT_PROCTOR_ESCALATION_SENT', req.id)) continue
+
+    const daysUntilExam = Math.ceil(
+      (req.examStartDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    )
 
     actions.push({
-      type: 'PROCTOR_EXAM_ESCALATION',
+      type: 'ALERT_PROCTOR_ESCALATION',
       universityId: req.universityId,
       universityEmail: req.university.user.email,
       universityName: req.university.institutionName,
       repName: req.university.user.name || undefined,
-      proctorRequestId: req.id,
-      proctorExamStart: req.examStart,
-      proctorSubjects: req.subjects,
-      proctorStudentCount: req.studentCount,
-      proctorStatus: req.status,
+      payload: {
+        requestId: req.id,
+        subjects: req.subjects,
+        daysUntilExam,
+        examStartDate: req.examStartDate.toISOString(),
+      },
     })
   }
 
