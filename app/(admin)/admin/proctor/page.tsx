@@ -9,15 +9,9 @@ export default async function AdminProctorPage() {
 
     const requests = await getAllProctorRequests()
 
-    // Serialise Decimal for client
-    const serialised = requests.map(r => ({
-        ...r,
-        adminFee: r.adminFee ? r.adminFee.toString() : null,
-    }))
-
     return (
         <div className="max-w-4xl mx-auto py-4 md:py-8 px-4">
-            <ProctorAdminUI initial={serialised as any} />
+            <ProctorAdminUI initial={requests as any} />
         </div>
     )
 }

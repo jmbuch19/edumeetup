@@ -18,20 +18,9 @@ export default async function UniversityProctorPage() {
         orderBy: { createdAt: 'desc' },
     })
 
-    // Decimal → string for client component serialisation
-    const serialised = requests.map(r => ({
-        ...r,
-        adminFee: r.adminFee ? r.adminFee.toString() : null,
-        examStart: r.examStart,
-        examEnd: r.examEnd,
-        confirmedAt: r.confirmedAt,
-        completedAt: r.completedAt,
-        reminderSentAt: r.reminderSentAt,
-    }))
-
     return (
         <div className="max-w-4xl mx-auto py-4 md:py-8 px-4">
-            <ProctorRequestUI initial={serialised as any} />
+            <ProctorRequestUI initial={requests as any} />
         </div>
     )
 }

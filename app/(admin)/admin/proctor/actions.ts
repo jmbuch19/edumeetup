@@ -13,10 +13,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'
 // ── Fetch all requests (admin) ────────────────────────────────────────────────
 export async function getAllProctorRequests() {
     const session = await auth()
-    if (!session?.user || session.user.role !== 'ADMIN') return []
+    if (!session?.user || (session.user as any).role !== 'ADMIN') return []
 
     return prisma.proctorRequest.findMany({
-        orderBy: [{ status: 'asc' }, { examStart: 'asc' }],
+        orderBy: [{ status: 'asc' }, { examStartDate: 'asc' }],
         include: {
             university: {
                 select: { institutionName: true, country: true, repName: true, repEmail: true, contactEmail: true },
@@ -25,15 +25,15 @@ export async function getAllProctorRequests() {
     })
 }
 
-// ── Update status + optional note + fee (admin) ───────────────────────────────
+// ── Update status + optional notes + fees (admin) ─────────────────────────────
 export async function updateProctorStatus(
     id: string,
     status: ProctorRequestStatus,
-    adminNote?: string,
-    adminFee?: string
+    adminNotes?: string,
+    fees?: string
 ): Promise<{ error?: string; success?: boolean }> {
     const session = await auth()
-    if (!session?.user || session.user.role !== 'ADMIN') return { error: 'Unauthorised' }
+    if (!session?.user || (session.user as any).role !== 'ADMIN') return { error: 'Unauthorised' }
 
     const existing = await prisma.proctorRequest.findUnique({
         where: { id },
@@ -45,71 +45,62 @@ export async function updateProctorStatus(
     })
     if (!existing) return { error: 'Request not found' }
 
-    const data: Record<string, unknown> = {
-        status,
-        adminNote: adminNote || null,
-        adminFee: adminFee ? parseFloat(adminFee) : null,
-        ...(status === 'CONFIRMED' ? { confirmedAt: new Date() } : {}),
-        ...(status === 'COMPLETED' ? { completedAt: new Date() } : {}),
-    }
-
-    await prisma.proctorRequest.update({ where: { id }, data })
+    await prisma.proctorRequest.update({
+        where: { id },
+        data: {
+            status,
+            adminNotes: adminNotes || null,
+            fees: fees ? parseFloat(fees) : null,
+            ...(status === 'CONFIRMED' ? { confirmedAt: new Date() } : {}),
+            ...(status === 'COMPLETED' ? { completedAt: new Date() } : {}),
+        },
+    })
 
     const uniEmail = existing.university.repEmail || existing.university.contactEmail
     const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 
-    // ── Send status-change email to university ────────────────────────────────
+    // ── Status-change email to university ─────────────────────────────────────
     const statusMessages: Partial<Record<ProctorRequestStatus, { subject: string; headline: string; body: string }>> = {
         UNDER_REVIEW: {
             subject: `📋 Proctor Request Under Review — ${existing.university.institutionName}`,
             headline: 'Your Request is Under Review',
-            body: `<p>We've received your proctor service request for <strong>${existing.subjects}</strong> (${fmt(existing.examStart)}) and our team is now reviewing it.</p><p>We'll confirm availability and arrangements within 24 hours.</p>`,
+            body: `<p>We've received your request for <strong>${existing.subjects}</strong> (${fmt(existing.examStartDate)}) and our team is reviewing it.</p><p>We'll confirm within 24 hours.</p>`,
         },
         CONFIRMED: {
             subject: `✅ Proctor Request Confirmed — ${existing.university.institutionName}`,
             headline: 'Proctoring Confirmed!',
-            body: `<p>Great news! Your proctor service request for <strong>${existing.subjects}</strong> on <strong>${fmt(existing.examStart)}</strong> has been confirmed.</p>
-        ${adminFee ? `<div class="info-box" style="background:#f0fdf4;border-color:#bbf7d0;"><p style="margin:0 0 8px 0;font-weight:600;color:#166534;">Service Fee</p><p style="margin:0;">$${parseFloat(adminFee).toFixed(2)} USD — our team will be in touch with payment and logistics details.</p></div>` : ''}
-        ${adminNote ? `<p><strong>Note:</strong> ${adminNote}</p>` : ''}
-        <p>The edUmeetup / IAES team will handle all on-ground logistics. If you have any questions, contact <a href="mailto:proctor@edumeetup.com">proctor@edumeetup.com</a>.</p>`,
+            body: `<p>Great news! Your proctor request for <strong>${existing.subjects}</strong> on <strong>${fmt(existing.examStartDate)}</strong> is confirmed.</p>
+        ${fees ? `<div class="info-box" style="background:#f0fdf4;border-color:#bbf7d0;"><p style="margin:0 0 8px 0;font-weight:600;color:#166534;">Service Fee</p><p style="margin:0;">$${parseFloat(fees).toFixed(2)} USD — our team will be in touch with payment details.</p></div>` : ''}
+        ${adminNotes ? `<p><strong>Note:</strong> ${adminNotes}</p>` : ''}`,
         },
         COMPLETED: {
             subject: `🎓 Exam Completed — Thank You! — ${existing.university.institutionName}`,
             headline: 'Exam Successfully Proctored',
-            body: `<p>The proctored exam for <strong>${existing.subjects}</strong> has been successfully completed.</p><p>Thank you for partnering with edUmeetup / IAES. We look forward to serving you again.</p>`,
+            body: `<p>The proctored exam for <strong>${existing.subjects}</strong> has been completed successfully.</p><p>Thank you for partnering with edUmeetup / IAES.</p>`,
         },
         CANCELLED: {
             subject: `❌ Proctor Request Update — ${existing.university.institutionName}`,
             headline: 'Proctor Request Cancelled',
-            body: `<p>Unfortunately, your proctor service request for <strong>${existing.subjects}</strong> (${fmt(existing.examStart)}) could not be fulfilled at this time.</p>
-        ${adminNote ? `<div class="info-box" style="background:#fef2f2;border-color:#fecaca;"><p style="margin:0 0 6px 0;font-weight:600;color:#991b1b;">Reason</p><p style="margin:0;">${adminNote}</p></div>` : ''}
-        <p>Please contact us at <a href="mailto:proctor@edumeetup.com">proctor@edumeetup.com</a> if you have questions or wish to resubmit.</p>`,
+            body: `<p>Unfortunately your request for <strong>${existing.subjects}</strong> (${fmt(existing.examStartDate)}) could not be fulfilled.</p>
+        ${adminNotes ? `<div class="info-box" style="background:#fef2f2;border-color:#fecaca;"><p style="margin:0 0 6px 0;font-weight:600;color:#991b1b;">Reason</p><p style="margin:0;">${adminNotes}</p></div>` : ''}`,
         },
     }
 
     const msg = statusMessages[status]
     if (msg && uniEmail) {
-        const content = `
-      ${msg.body}
-      <hr/>
-      <p><a href="${BASE_URL}/university/proctor" class="btn">View My Requests →</a></p>
-    `
-        await sendEmail({
-            to: uniEmail,
-            subject: msg.subject,
-            html: generateEmailHtml(msg.headline, content),
-        })
+        const content = `${msg.body}<hr/><p><a href="${BASE_URL}/university/proctor" class="btn">View My Requests →</a></p>`
+        await sendEmail({ to: uniEmail, subject: msg.subject, html: generateEmailHtml(msg.headline, content) })
     }
 
-    // ── In-app notification to university ─────────────────────────────────────
-    const inAppMessages: Partial<Record<ProctorRequestStatus, { title: string; message: string }>> = {
-        UNDER_REVIEW: { title: 'Proctor Request Under Review', message: `Your request for ${existing.subjects} (${fmt(existing.examStart)}) is now under review.` },
-        CONFIRMED: { title: '✅ Proctor Request Confirmed!', message: `Your proctoring for ${existing.subjects} on ${fmt(existing.examStart)} is confirmed.${adminFee ? ` Fee: $${parseFloat(adminFee).toFixed(2)}` : ''}` },
-        COMPLETED: { title: 'Exam Completed', message: `Your proctored exam for ${existing.subjects} has been marked complete.` },
-        CANCELLED: { title: 'Proctor Request Cancelled', message: `Your request for ${existing.subjects} could not be fulfilled.${adminNote ? ` Reason: ${adminNote}` : ''}` },
+    // ── In-app notification ───────────────────────────────────────────────────
+    const inApp: Partial<Record<ProctorRequestStatus, { title: string; message: string }>> = {
+        UNDER_REVIEW: { title: 'Proctor Request Under Review', message: `Your request for ${existing.subjects} (${fmt(existing.examStartDate)}) is under review.` },
+        CONFIRMED: { title: '✅ Proctor Request Confirmed!', message: `Proctoring confirmed for ${existing.subjects} on ${fmt(existing.examStartDate)}.${fees ? ` Fee: $${parseFloat(fees).toFixed(2)}` : ''}` },
+        COMPLETED: { title: 'Exam Completed', message: `Your proctored exam for ${existing.subjects} is marked complete.` },
+        CANCELLED: { title: 'Proctor Request Cancelled', message: `Your request for ${existing.subjects} could not be fulfilled.${adminNotes ? ` Reason: ${adminNotes}` : ''}` },
     }
 
-    const notif = inAppMessages[status]
+    const notif = inApp[status]
     if (notif) {
         await prisma.universityNotification.create({
             data: {
@@ -121,13 +112,7 @@ export async function updateProctorStatus(
         })
     }
 
-    await logSystemEvent({
-        level: 'INFO',
-        type: 'SYSTEM_EVENT',
-        message: `Proctor request ${id} → ${status}`,
-        metadata: { requestId: id, status, adminNote },
-    })
-
+    await logSystemEvent({ level: 'INFO', type: 'SYSTEM_EVENT', message: `Proctor request ${id} → ${status}`, metadata: { requestId: id, status, adminNotes } })
     revalidatePath('/admin/proctor')
     return { success: true }
 }

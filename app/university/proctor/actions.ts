@@ -4,7 +4,6 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendEmail, generateEmailHtml } from '@/lib/email'
 import { logSystemEvent } from '@/lib/system-log'
-import { ProctorRequestStatus } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'jaydeep@edumeetup.com'
@@ -24,26 +23,28 @@ export async function submitProctorRequest(
     })
     if (!university) return { error: 'University profile not found' }
 
-    const examStart = formData.get('examStart') as string
-    const examEnd = formData.get('examEnd') as string | null
+    const examStartDate = formData.get('examStartDate') as string
+    const examEndDate = formData.get('examEndDate') as string
     const subjects = (formData.get('subjects') as string)?.trim()
     const studentCount = parseInt(formData.get('studentCount') as string, 10)
     const examType = formData.get('examType') as string
+    const durationMinutes = parseInt(formData.get('durationMinutes') as string, 10) || 120
     const requirements = (formData.get('requirements') as string)?.trim() || null
     const policyUrl = (formData.get('policyUrl') as string)?.trim() || null
 
-    if (!examStart || !subjects || !studentCount || !examType) {
+    if (!examStartDate || !examEndDate || !subjects || !studentCount || !examType) {
         return { error: 'Please fill in all required fields.' }
     }
 
     const request = await prisma.proctorRequest.create({
         data: {
             universityId: university.id,
-            examStart: new Date(examStart),
-            examEnd: examEnd ? new Date(examEnd) : null,
+            examStartDate: new Date(examStartDate),
+            examEndDate: new Date(examEndDate),
             subjects,
             studentCount,
             examType,
+            durationMinutes,
             requirements,
             policyUrl,
         },
@@ -54,7 +55,7 @@ export async function submitProctorRequest(
 
     // ── Notify admin ──────────────────────────────────────────────────────────
     const adminHtml = `
-    <p>A verified university has submitted a proctor service request on the platform.</p>
+    <p>A verified university has submitted a proctor service request.</p>
     <div class="info-box" style="background:#f0f4ff;border-color:#c7d2fe;">
       <p style="margin:0 0 12px 0;font-weight:700;color:#3730a3;font-size:13px;text-transform:uppercase;">🏛️ University</p>
       <div class="info-row"><span class="info-label">Institution:</span> <strong>${university.institutionName}</strong></div>
@@ -63,11 +64,12 @@ export async function submitProctorRequest(
     </div>
     <div class="info-box" style="margin-top:16px;">
       <p style="margin:0 0 12px 0;font-weight:700;color:#0f172a;font-size:13px;text-transform:uppercase;">📋 Exam Details</p>
-      <div class="info-row"><span class="info-label">Exam Start:</span> <strong>${fmt(examStart)}</strong></div>
-      ${examEnd ? `<div class="info-row"><span class="info-label">Exam End:</span> ${fmt(examEnd)}</div>` : ''}
+      <div class="info-row"><span class="info-label">Start:</span> <strong>${fmt(examStartDate)}</strong></div>
+      <div class="info-row"><span class="info-label">End:</span> ${fmt(examEndDate)}</div>
+      <div class="info-row"><span class="info-label">Duration:</span> ${durationMinutes} minutes</div>
       <div class="info-row"><span class="info-label">Subjects:</span> ${subjects}</div>
       <div class="info-row"><span class="info-label">Students:</span> <strong>${studentCount}</strong></div>
-      <div class="info-row"><span class="info-label">Exam Type:</span> ${examType}</div>
+      <div class="info-row"><span class="info-label">Type:</span> ${examType}</div>
       ${policyUrl ? `<div class="info-row"><span class="info-label">Policy URL:</span> <a href="${policyUrl}">${policyUrl}</a></div>` : ''}
     </div>
     ${requirements ? `
@@ -81,7 +83,7 @@ export async function submitProctorRequest(
 
     await sendEmail({
         to: ADMIN_EMAIL,
-        subject: `🛡️ Proctor Request — ${university.institutionName} · ${studentCount} students · ${fmt(examStart)}`,
+        subject: `🛡️ Proctor Request — ${university.institutionName} · ${studentCount} students · ${fmt(examStartDate)}`,
         html: generateEmailHtml('New Proctor Service Request', adminHtml),
         replyTo: university.repEmail || university.contactEmail || undefined,
     })
@@ -91,17 +93,16 @@ export async function submitProctorRequest(
     if (uniEmail) {
         const uniHtml = `
       <p>Dear ${university.repName || 'Team'},</p>
-      <p>Your proctor service request has been received and is under review by the edUmeetup / IAES team.</p>
+      <p>Your proctor service request has been received and is pending review.</p>
       <div class="info-box">
-        <p style="margin:0 0 10px 0;font-weight:600;color:#0f172a;">Request Summary</p>
-        <div class="info-row"><span class="info-label">Exam Start:</span> ${fmt(examStart)}</div>
+        <div class="info-row"><span class="info-label">Exam Start:</span> ${fmt(examStartDate)}</div>
+        <div class="info-row"><span class="info-label">Exam End:</span> ${fmt(examEndDate)}</div>
         <div class="info-row"><span class="info-label">Subjects:</span> ${subjects}</div>
         <div class="info-row"><span class="info-label">Students:</span> ${studentCount}</div>
         <div class="info-row"><span class="info-label">Status:</span> <strong>Pending Review</strong></div>
       </div>
-      <p>We'll notify you at each stage. You can track your requests from your dashboard.</p>
+      <p>We'll notify you at each stage. Track your requests from the dashboard.</p>
       <p><a href="${BASE_URL}/university/proctor" class="btn">View My Requests →</a></p>
-      <p style="font-size:13px;color:#94a3b8;">Questions? Reply to this email or contact proctor@edumeetup.com</p>
     `
         await sendEmail({
             to: uniEmail,
@@ -116,14 +117,14 @@ export async function submitProctorRequest(
             universityId: university.id,
             type: 'INFO',
             title: 'Proctor Request Submitted',
-            message: `Your proctor request for ${studentCount} students (${fmt(examStart)}) has been received and is pending review.`,
+            message: `Your proctor request for ${studentCount} students (${fmt(examStartDate)}) has been received and is pending review.`,
         },
     })
 
     await logSystemEvent({
         level: 'INFO',
         type: 'SYSTEM_EVENT',
-        message: `Proctor request submitted: ${university.institutionName} · ${studentCount} students · ${examStart}`,
+        message: `Proctor request submitted: ${university.institutionName} · ${studentCount} students · ${examStartDate}`,
         metadata: { requestId: request.id, universityId: university.id },
     })
 

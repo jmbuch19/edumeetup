@@ -782,21 +782,22 @@ enum ProctorRequestStatus {
 model ProctorRequest {
   id             String               @id @default(cuid())
   universityId   String
-  university     University           @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  university     University           @relation(fields: [universityId], references: [id])
 
   // Exam details
-  examStart      DateTime
-  examEnd        DateTime?
-  subjects       String
-  studentCount   Int
-  examType       String               // midterm | final | multiple | other
-  requirements   String?
-  policyUrl      String?
+  examType        String               // "midterm" | "final" | "multiple" | "other"
+  subjects        String
+  examStartDate   DateTime
+  examEndDate     DateTime
+  studentCount    Int
+  durationMinutes Int                  // e.g. 120 or 180
+  requirements    String?
+  policyUrl       String?
 
-  // Admin workflow
+  // Status machine
   status         ProctorRequestStatus @default(PENDING)
-  adminNote      String?              // internal note visible to university on status change
-  adminFee       Decimal?             @db.Decimal(10, 2) // optional fee in USD
+  adminNotes     String?              // internal notes by Jaydeep
+  fees           Float?               // decided later
   confirmedAt    DateTime?
   completedAt    DateTime?
 
@@ -808,5 +809,5 @@ model ProctorRequest {
 
   @@index([universityId])
   @@index([status])
-  @@index([examStart])
+  @@index([examStartDate])
 }

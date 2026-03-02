@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { updateProctorStatus } from './actions'
-import { Shield, Building2, CalendarDays, Users, ChevronDown, Loader2 } from 'lucide-react'
+import { Shield, Building2, CalendarDays, ChevronDown, Loader2 } from 'lucide-react'
 import { ProctorRequestStatus } from '@prisma/client'
 
 const STATUS_CONFIG: Record<ProctorRequestStatus, { label: string; color: string }> = {
@@ -15,16 +15,17 @@ const STATUS_CONFIG: Record<ProctorRequestStatus, { label: string; color: string
 
 type Request = {
     id: string
-    examStart: Date
-    examEnd: Date | null
+    examStartDate: Date
+    examEndDate: Date
     subjects: string
     studentCount: number
     examType: string
+    durationMinutes: number
     requirements: string | null
     policyUrl: string | null
     status: ProctorRequestStatus
-    adminNote: string | null
-    adminFee: string | null
+    adminNotes: string | null
+    fees: number | null
     confirmedAt: Date | null
     createdAt: Date
     university: {
@@ -43,14 +44,14 @@ function fmt(d: Date | string) {
 function RequestCard({ req, onUpdate }: { req: Request; onUpdate: () => void }) {
     const [open, setOpen] = useState(false)
     const [status, setStatus] = useState<ProctorRequestStatus>(req.status)
-    const [note, setNote] = useState(req.adminNote || '')
-    const [fee, setFee] = useState(req.adminFee || '')
+    const [notes, setNotes] = useState(req.adminNotes || '')
+    const [fees, setFees] = useState(req.fees ? String(req.fees) : '')
     const [isPending, startTransition] = useTransition()
     const [saved, setSaved] = useState(false)
 
     function handleSave() {
         startTransition(async () => {
-            await updateProctorStatus(req.id, status, note, fee)
+            await updateProctorStatus(req.id, status, notes, fees)
             setSaved(true)
             setTimeout(() => setSaved(false), 2000)
             onUpdate()
@@ -62,9 +63,7 @@ function RequestCard({ req, onUpdate }: { req: Request; onUpdate: () => void }) 
 
     return (
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            {/* Header */}
-            <div
-                className="flex items-start justify-between gap-3 p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+            <div className="flex items-start justify-between gap-3 p-4 cursor-pointer hover:bg-slate-50 transition-colors"
                 onClick={() => setOpen(o => !o)}>
                 <div className="flex items-start gap-3">
                     <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center shrink-0">
@@ -73,34 +72,28 @@ function RequestCard({ req, onUpdate }: { req: Request; onUpdate: () => void }) 
                     <div>
                         <p className="font-semibold text-slate-900">{req.university.institutionName}</p>
                         <p className="text-xs text-slate-500 mt-0.5">
-                            {req.subjects} · {req.studentCount} students · {fmt(req.examStart)}
+                            {req.subjects} · {req.studentCount} students · {fmt(req.examStartDate)}
                         </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.color}`}>
-                        {cfg.label}
-                    </span>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.color}`}>{cfg.label}</span>
                     <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
                 </div>
             </div>
 
-            {/* Expanded detail + actions */}
             {open && (
                 <div className="border-t border-slate-100 p-4 space-y-4">
-                    {/* Details grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                         <div><p className="text-xs text-slate-400 mb-0.5">Country</p><p className="font-medium">{req.university.country}</p></div>
                         <div><p className="text-xs text-slate-400 mb-0.5">Contact</p><p className="font-medium">{req.university.repName || '—'}</p></div>
-                        <div><p className="text-xs text-slate-400 mb-0.5">Email</p>
+                        <div><p className="text-xs text-slate-400 mb-0.5">Exam End</p><p className="font-medium">{fmt(req.examEndDate)}</p></div>
+                        <div><p className="text-xs text-slate-400 mb-0.5">Duration</p><p className="font-medium">{req.durationMinutes} min</p></div>
+                        <div><p className="text-xs text-slate-400 mb-0.5">Type</p><p className="font-medium capitalize">{req.examType}</p></div>
+                        <div><p className="text-xs text-slate-400 mb-0.5">Students</p><p className="font-medium">{req.studentCount}</p></div>
+                        <div className="col-span-2"><p className="text-xs text-slate-400 mb-0.5">Email</p>
                             {uniEmail ? <a href={`mailto:${uniEmail}`} className="text-primary hover:underline text-xs">{uniEmail}</a> : <p>—</p>}
                         </div>
-                        <div><p className="text-xs text-slate-400 mb-0.5">Exam Type</p><p className="font-medium capitalize">{req.examType}</p></div>
-                        <div><p className="text-xs text-slate-400 mb-0.5">Students</p><p className="font-medium">{req.studentCount}</p></div>
-                        <div><p className="text-xs text-slate-400 mb-0.5">Submitted</p><p className="font-medium">{fmt(req.createdAt)}</p></div>
-                        {req.examEnd && (
-                            <div><p className="text-xs text-slate-400 mb-0.5">Exam End</p><p className="font-medium">{fmt(req.examEnd)}</p></div>
-                        )}
                     </div>
                     {req.requirements && (
                         <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5 text-sm text-amber-700">
@@ -119,9 +112,7 @@ function RequestCard({ req, onUpdate }: { req: Request; onUpdate: () => void }) 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                                 <label className="block text-xs font-semibold text-slate-600 mb-1">Status</label>
-                                <select
-                                    value={status}
-                                    onChange={e => setStatus(e.target.value as ProctorRequestStatus)}
+                                <select value={status} onChange={e => setStatus(e.target.value as ProctorRequestStatus)}
                                     className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white">
                                     {Object.entries(STATUS_CONFIG).map(([val, { label }]) => (
                                         <option key={val} value={val}>{label}</option>
@@ -130,21 +121,18 @@ function RequestCard({ req, onUpdate }: { req: Request; onUpdate: () => void }) 
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-slate-600 mb-1">Fee (USD)</label>
-                                <input
-                                    type="number" step="0.01" placeholder="e.g. 500"
-                                    value={fee} onChange={e => setFee(e.target.value)}
+                                <input type="number" step="0.01" placeholder="e.g. 500"
+                                    value={fees} onChange={e => setFees(e.target.value)}
                                     className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white" />
                             </div>
-                            <div className="sm:col-span-1">
-                                <label className="block text-xs font-semibold text-slate-600 mb-1">Note to University</label>
-                                <input
-                                    type="text" placeholder="Optional note..."
-                                    value={note} onChange={e => setNote(e.target.value)}
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-600 mb-1">Notes to University</label>
+                                <input type="text" placeholder="Optional note..."
+                                    value={notes} onChange={e => setNotes(e.target.value)}
                                     className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white" />
                             </div>
                         </div>
-                        <button
-                            onClick={handleSave} disabled={isPending}
+                        <button onClick={handleSave} disabled={isPending}
                             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-60 transition-all"
                             style={{ background: 'linear-gradient(135deg, #3333CC, #1e3a5f)' }}>
                             {isPending ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</> : saved ? '✓ Saved' : 'Update & Notify University'}
@@ -163,10 +151,6 @@ export function ProctorAdminUI({ initial }: { initial: Request[] }) {
     const filtered = filter === 'ALL' ? requests : requests.filter(r => r.status === filter)
     const pending = requests.filter(r => r.status === 'PENDING').length
 
-    async function refresh() {
-        // Revalidation handled server-side; optimistic update just re-renders
-    }
-
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between flex-wrap gap-3">
@@ -180,12 +164,9 @@ export function ProctorAdminUI({ initial }: { initial: Request[] }) {
                     </div>
                     <p className="text-sm text-slate-500">Manage proctoring service requests from verified universities.</p>
                 </div>
-
-                {/* Filter */}
                 <div className="flex gap-2 flex-wrap">
-                    {['ALL', 'PENDING', 'UNDER_REVIEW', 'CONFIRMED', 'COMPLETED', 'CANCELLED'].map(s => (
-                        <button key={s}
-                            onClick={() => setFilter(s as any)}
+                    {(['ALL', ...Object.keys(STATUS_CONFIG)] as string[]).map(s => (
+                        <button key={s} onClick={() => setFilter(s as any)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${filter === s ? 'bg-primary text-white' : 'bg-white text-slate-600 border border-slate-200 hover:border-primary/40'}`}>
                             {s === 'ALL' ? 'All' : STATUS_CONFIG[s as ProctorRequestStatus]?.label ?? s}
                         </button>
@@ -200,7 +181,7 @@ export function ProctorAdminUI({ initial }: { initial: Request[] }) {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {filtered.map(r => <RequestCard key={r.id} req={r} onUpdate={refresh} />)}
+                    {filtered.map(r => <RequestCard key={r.id} req={r} onUpdate={() => { }} />)}
                 </div>
             )}
         </div>
