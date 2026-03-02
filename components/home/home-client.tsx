@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { User, School, ArrowRight } from "lucide-react";
+import { User, School, ArrowRight, Shield } from "lucide-react";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { HeroFeatures } from "@/components/hero-features";
 import { motion } from "framer-motion";
@@ -162,7 +162,7 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
                                 </div>
                             </div>
 
-                            <Link href="/host-a-fair" className="col-span-2 mx-auto">
+                            <Link href="/host-a-fair" className="col-span-2 mx-auto w-full">
                                 <div className="bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-purple-100 flex items-center gap-4 hover:scale-105 transition-transform cursor-pointer">
                                     <div className="h-10 w-10 bg-purple-100 rounded-lg flex items-center justify-center">
                                         <span className="text-xl">🇮🇳</span>
@@ -171,7 +171,24 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
                                         <p className="font-bold text-slate-800 text-sm">Host a Fair in India</p>
                                         <p className="text-xs text-slate-500">For Indian Institutions</p>
                                     </div>
-                                    <ArrowRight className="h-4 w-4 text-purple-600 ml-2" />
+                                    <ArrowRight className="h-4 w-4 text-purple-600 ml-auto" />
+                                </div>
+                            </Link>
+
+                            <Link href="/proctor" className="col-span-2 mx-auto w-full">
+                                <div className="relative bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-blue-100 flex items-center gap-4 hover:scale-105 transition-transform cursor-pointer">
+                                    <div className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0"
+                                        style={{ background: 'linear-gradient(135deg, #3333CC, #1e3a5f)' }}>
+                                        <Shield className="h-5 w-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-slate-800 text-sm">Exam Proctoring in India</p>
+                                        <p className="text-xs text-slate-500">IAES approved centre · Ahmedabad</p>
+                                    </div>
+                                    <ArrowRight className="h-4 w-4 text-blue-600 ml-auto" />
+                                    <span className="absolute top-2 right-2 text-[9px] font-bold text-white bg-primary rounded-full px-1.5 py-0.5 uppercase tracking-wide leading-none">
+                                        New
+                                    </span>
                                 </div>
                             </Link>
                         </div>
