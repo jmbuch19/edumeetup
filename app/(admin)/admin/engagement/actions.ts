@@ -189,6 +189,7 @@ export async function createSponsoredContent(formData: FormData) {
             }
         })
         revalidatePath("/admin/engagement")
+        revalidatePath("/") // bust homepage hero cache
         return { success: true }
     } catch (error) {
         console.error("[createSponsoredContent]", error)
@@ -212,6 +213,7 @@ export async function deleteSponsoredContent(id: string) {
     try {
         await prisma.sponsoredContent.delete({ where: { id } })
         revalidatePath("/admin/engagement")
+        revalidatePath("/") // bust homepage hero cache
         return { success: true }
     } catch (error) {
         return { error: "Failed to delete" }

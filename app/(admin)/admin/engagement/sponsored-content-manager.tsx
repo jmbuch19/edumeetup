@@ -112,14 +112,14 @@ export function SponsoredContentManager() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="placement">Placement</Label>
-                            <Select name="placement" defaultValue="SIDEBAR">
+                            <Select name="placement" defaultValue="BANNER">
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select placement" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="SIDEBAR">Sidebar Widget</SelectItem>
                                     <SelectItem value="FEED">Feed / Dashboard</SelectItem>
-                                    <SelectItem value="BANNER">Top Banner (Hero)</SelectItem>
+                                    <SelectItem value="BANNER">⭐ Top Banner (Hero Page)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -138,14 +138,14 @@ export function SponsoredContentManager() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="status">Status</Label>
-                            <Select name="status" defaultValue="DRAFT">
+                            <Select name="status" defaultValue="ACTIVE">
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select status" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="DRAFT">Draft</SelectItem>
+                                    <SelectItem value="DRAFT">Draft (hidden)</SelectItem>
                                     <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-                                    <SelectItem value="ACTIVE">Active</SelectItem>
+                                    <SelectItem value="ACTIVE">✅ Active (live)</SelectItem>
                                     <SelectItem value="EXPIRED">Expired</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -161,6 +161,10 @@ export function SponsoredContentManager() {
                             <Label htmlFor="endDate">End Date</Label>
                             <Input type="datetime-local" id="endDate" name="endDate" required />
                         </div>
+                    </div>
+
+                    <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+                        <strong>⚡ To appear on the Hero page:</strong> Placement must be <strong>Top Banner</strong>, Status must be <strong>Active</strong>, and End Date must be set in the future. Start Date defaults to now if left blank.
                     </div>
 
                     <Button type="submit" disabled={isSubmitting}>
