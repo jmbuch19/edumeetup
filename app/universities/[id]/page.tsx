@@ -37,7 +37,7 @@ export default async function UniversityDetailPage({
     const isLoggedIn = !!user
 
     const university = await prisma.university.findUnique({
-        where: { id },
+        where: { id, verificationStatus: 'VERIFIED', isPublic: true },
         include: {
             programs: true,
             documents: {
