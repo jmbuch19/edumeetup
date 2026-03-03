@@ -153,7 +153,7 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
             <Card>
                 <CardHeader><CardTitle className="text-sm">Correct Email Address</CardTitle></CardHeader>
                 <CardContent>
-                    <form action={updateUserEmail} className="flex gap-3">
+                    <form action={async (fd: FormData) => { await updateUserEmail(fd) }} className="flex gap-3">
                         <input type="hidden" name="userId" value={user.id} />
                         <input type="email" name="newEmail" defaultValue={user.email}
                             className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm"
