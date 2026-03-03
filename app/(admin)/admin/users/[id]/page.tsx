@@ -35,17 +35,6 @@ function Field({ label, value, required = false }: { label: string; value?: stri
     )
 }
 
-function CompletionBadge({ complete }: { complete: boolean }) {
-    return complete ? (
-        <Badge className="bg-green-100 text-green-700 border-green-200 flex items-center gap-1 w-fit">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Profile Complete
-        </Badge>
-    ) : (
-        <Badge className="bg-amber-100 text-amber-700 border-amber-200 flex items-center gap-1 w-fit">
-            <AlertCircle className="h-3.5 w-3.5" /> Profile Incomplete
-        </Badge>
-    )
-}
 
 export default async function AdminUserDetailPage({ params }: { params: { id: string } }) {
     const user = await prisma.user.findUnique({
@@ -95,7 +84,14 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
                         {user.isActive ? 'ACTIVE' : 'INACTIVE'}
                     </Badge>
                     {/* Use isActuallyComplete (computed) not stored boolean */}
-                    {s && <CompletionBadge complete={isActuallyComplete} />}
+                    {completeness && (
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${completeness.isComplete
+                                ? 'bg-green-50 text-green-700 border-green-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                            {completeness.isComplete ? 'Profile Complete' : `${completeness.score}% Complete`}
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -108,24 +104,20 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
                 isActuallyComplete={s ? isActuallyComplete : undefined}
             />
 
-            {/* Action Alert — only for students with missing fields */}
-            {s && completeness && !completeness.isComplete && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
-                    <div>
-                        <p className="text-sm font-semibold text-amber-800">
-                            Profile needs attention — {completeness.score}% complete
-                        </p>
-                        <p className="text-sm text-amber-700 mt-0.5">
-                            {completeness.missingFields.length} field{completeness.missingFields.length > 1 ? 's are' : ' is'} missing.
-                            Student should complete their profile to get matched with universities.
-                        </p>
-                        <ul className="text-xs text-amber-700 mt-2 list-disc pl-4 space-y-0.5">
-                            {completeness.missingFields.map(f => (
-                                <li key={f}>{f}</li>
-                            ))}
-                        </ul>
-                    </div>
+            {/* Missing fields warning */}
+            {completeness && !completeness.isComplete && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <p className="text-sm font-semibold text-amber-800 mb-2">
+                        Profile needs attention — {completeness.score}% complete
+                    </p>
+                    <ul className="space-y-1">
+                        {completeness.missingFields.map(f => (
+                            <li key={f} className="text-sm text-amber-700 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full shrink-0" />
+                                {f}
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             )}
 
