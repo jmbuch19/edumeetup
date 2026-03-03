@@ -25,6 +25,60 @@ import { ActionCentre } from '@/components/university/action-centre'
 
 export const dynamic = 'force-dynamic'
 
+// ── Profile completeness helper (module-level, 0 extra DB queries) ─────────
+function calculateCompleteness(uni: {
+    logo: string | null
+    about: string | null
+    website: string | null
+    repName: string | null
+    repEmail: string | null
+    contactPhone: string | null
+    scholarshipsAvailable: boolean
+    foundedYear: number | null
+    programs: { description: string | null; programName: string }[]
+}) {
+    const tasks = [
+        {
+            id: 'logo', label: 'Upload your university logo', done: !!uni.logo,
+            actionUrl: '/university/settings', actionLabel: 'Add logo',
+        },
+        {
+            id: 'about', label: 'Write an About section (50+ chars)',
+            done: !!uni.about && uni.about.length > 50,
+            actionUrl: '/university/settings', actionLabel: 'Write bio',
+        },
+        {
+            id: 'website', label: 'Add your university website', done: !!uni.website,
+            actionUrl: '/university/settings', actionLabel: 'Add link',
+        },
+        {
+            id: 'rep', label: 'Add representative name & email',
+            done: !!uni.repName && !!uni.repEmail,
+            actionUrl: '/university/settings', actionLabel: 'Add contact',
+        },
+        {
+            id: 'phone', label: 'Add a contact phone number', done: !!uni.contactPhone,
+            actionUrl: '/university/settings', actionLabel: 'Add phone',
+        },
+        {
+            id: 'programs', label: 'Add descriptions to all programmes',
+            done: uni.programs.length > 0 && uni.programs.every(p => (p.description?.length ?? 0) > 30),
+            actionUrl: '/university/dashboard?tab=programs', actionLabel: 'Edit programmes',
+        },
+        {
+            id: 'scholarships', label: 'Confirm scholarship availability',
+            done: uni.scholarshipsAvailable,
+            actionUrl: '/university/settings', actionLabel: 'Update',
+        },
+        {
+            id: 'founded', label: 'Add founding year', done: !!uni.foundedYear,
+            actionUrl: '/university/settings', actionLabel: 'Add year',
+        },
+    ]
+    const score = Math.round((tasks.filter(t => t.done).length / tasks.length) * 100)
+    return { score, tasks }
+}
+
 export default async function UniversityDashboard() {
     const user = await requireUser()
     const email = user.email
@@ -174,27 +228,46 @@ export default async function UniversityDashboard() {
         }),
     ])
 
-    // 8. Discoverable students for Action Centre (not already interested, not dismissed)
-    const actionCentreFields = [...new Set(uni.programs.map(p => p.fieldCategory))]
-    const discoverableStudents = await prisma.student.findMany({
-        where: {
-            profileComplete: true,
-            user: { consentMarketing: true, consentWithdrawnAt: null, isActive: true },
-            interests: { none: { universityId: uni.id } },
-            dismissals: { none: { universityId: uni.id } },
-            ...(actionCentreFields.length > 0 ? { fieldOfInterest: { in: actionCentreFields } } : {}),
-        },
-        select: {
-            id: true,
-            city: true,
-            fieldOfInterest: true,
-            preferredDegree: true,
-            currentStatus: true,
-            user: { select: { name: true } },
-        },
-        take: 10,
-        orderBy: { updatedAt: 'desc' },
-    })
+    // 8. Action Centre data — explicit notIn sets (more reliable than Prisma `none` filters)
+    const [dismissedRows, recentMessages] = await Promise.all([
+        prisma.studentDiscoveryDismissal.findMany({
+            where: { universityId: uni.id },
+            select: { studentId: true },
+        }),
+        prisma.proactiveMessage.findMany({
+            where: {
+                universityId: uni.id,
+                sentAt: { gte: new Date(Date.now() - (uni.proactiveCooldownDays ?? 21) * 24 * 60 * 60 * 1000) },
+            },
+            select: { studentId: true },
+        }),
+    ])
+    const excludedStudentIds = [
+        ...dismissedRows.map(d => d.studentId),
+        ...recentMessages.map(m => m.studentId),
+        ...uni.interests.map(i => i.studentId),
+    ]
+    const actionCentreFields = [...new Set(uni.programs.map(p => p.fieldCategory).filter(Boolean))] as string[]
+    const discoverableStudents = actionCentreFields.length > 0
+        ? await prisma.student.findMany({
+            where: {
+                profileComplete: true,
+                fieldOfInterest: { in: actionCentreFields },
+                id: { notIn: excludedStudentIds },
+                user: { consentMarketing: true, consentWithdrawnAt: null, isActive: true },
+            },
+            select: {
+                id: true,
+                city: true,
+                fieldOfInterest: true,
+                preferredDegree: true,
+                currentStatus: true,
+                user: { select: { name: true } },
+            },
+            take: 10,
+            orderBy: { updatedAt: 'desc' },
+        })
+        : []
     const discoverableForUI = discoverableStudents.map(s => ({
         id: s.id,
         fullName: s.user.name ?? null,
@@ -204,17 +277,9 @@ export default async function UniversityDashboard() {
         currentStatus: s.currentStatus,
     }))
 
-    // 9. Profile completeness
-    const completenessTasks = [
-        { id: 'logo', label: 'Upload your university logo', done: !!uni.logo, actionUrl: '/university/settings', actionLabel: 'Add logo' },
-        { id: 'about', label: 'Add an About section (50+ chars)', done: (uni.about?.length ?? 0) > 50, actionUrl: '/university/settings', actionLabel: 'Write about' },
-        { id: 'programs', label: 'Add at least one programme', done: uni.programs.length > 0, actionUrl: '/university/dashboard?tab=programs', actionLabel: 'Add programme' },
-        { id: 'contactEmail', label: 'Set a contact email', done: !!uni.contactEmail, actionUrl: '/university/settings', actionLabel: 'Set email' },
-        { id: 'repName', label: 'Add rep name & designation', done: !!uni.repName && !!uni.repDesignation, actionUrl: '/university/settings', actionLabel: 'Update rep' },
-        { id: 'website', label: 'Add your website URL', done: !!uni.website, actionUrl: '/university/settings', actionLabel: 'Add website' },
-        { id: 'meetingLink', label: 'Add a meeting/calendar link', done: !!uni.meetingLink, actionUrl: '/university/settings', actionLabel: 'Add link' },
-    ]
-    const completenessScore = Math.round((completenessTasks.filter(t => t.done).length / completenessTasks.length) * 100)
+    // 9. Profile completeness (0 extra DB queries — uses uni already loaded)
+    const completeness = calculateCompleteness(uni)
+    const { score: completenessScore, tasks: completenessTasks } = completeness
 
     // Stats
     const stats = {
