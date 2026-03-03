@@ -21,8 +21,8 @@ export default async function AdminUsersPage({
     searchParams: Record<string, string>
 }) {
     const filter = (searchParams?.filter as StudentFilter) || 'ALL'
-
     const where = buildFilterWhere(filter)
+
     const users = await prisma.user.findMany({
         where,
         include: {
@@ -34,12 +34,14 @@ export default async function AdminUsersPage({
                     cvUrl: true,
                     fieldOfInterest: true,
                     city: true,
-                    _count: { select: { interests: true, meetings: true, advisoryRequests: true } }
                 }
             },
             university: { select: { institutionName: true } }
         },
         orderBy: { createdAt: 'desc' },
+    }).catch((err: unknown) => {
+        console.error('[AdminUsersPage] prisma.findMany failed:', err)
+        return []
     })
 
 
@@ -78,7 +80,6 @@ export default async function AdminUsersPage({
                             <TableHead>Name</TableHead>
                             <TableHead>Profile</TableHead>
                             <TableHead>CV</TableHead>
-                            <TableHead>Activity</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Joined</TableHead>
                             <TableHead></TableHead>
@@ -138,16 +139,7 @@ export default async function AdminUsersPage({
                                                     : <span className="text-xs text-muted-foreground">—</span>
                                             ) : <span className="text-muted-foreground text-sm">—</span>}
                                         </TableCell>
-                                        {/* Activity: interests / meetings / advisory */}
-                                        <TableCell>
-                                            {s?._count ? (
-                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                    <span title="Interests">⭐ {s._count.interests}</span>
-                                                    <span title="Meetings">📅 {s._count.meetings}</span>
-                                                    <span title="Advisory">🎓 {s._count.advisoryRequests}</span>
-                                                </div>
-                                            ) : <span className="text-muted-foreground text-sm">—</span>}
-                                        </TableCell>
+
                                         <TableCell>
                                             <Badge
                                                 variant={user.isActive ? 'outline' : 'destructive'}
