@@ -60,6 +60,20 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
     const completeness = s ? computeProfileComplete(s) : null
     const isActuallyComplete = completeness?.isComplete ?? false
 
+    // Inline server actions — must have 'use server' so Next.js registers them as action references
+    async function handleBlock(fd: FormData) {
+        'use server'
+        await blockUser(fd)
+    }
+    async function handleUnblock(fd: FormData) {
+        'use server'
+        await unblockUser(fd)
+    }
+    async function handleUpdateEmail(fd: FormData) {
+        'use server'
+        await updateUserEmail(fd)
+    }
+
     return (
         <div className="max-w-5xl mx-auto space-y-6">
             {/* Back */}
@@ -98,7 +112,7 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
             {/* Admin action buttons — Block / Unblock */}
             <div className="flex flex-wrap gap-2">
                 {user.isActive ? (
-                    <form action={blockUser}>
+                    <form action={handleBlock}>
                         <input type="hidden" name="userId" value={user.id} />
                         <Button type="submit" variant="outline"
                             className="border-red-200 text-red-600 hover:bg-red-50">
@@ -106,7 +120,7 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
                         </Button>
                     </form>
                 ) : (
-                    <form action={unblockUser}>
+                    <form action={handleUnblock}>
                         <input type="hidden" name="userId" value={user.id} />
                         <Button type="submit" variant="outline"
                             className="border-green-200 text-green-600 hover:bg-green-50">
@@ -153,7 +167,7 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
             <Card>
                 <CardHeader><CardTitle className="text-sm">Correct Email Address</CardTitle></CardHeader>
                 <CardContent>
-                    <form action={async (fd: FormData) => { await updateUserEmail(fd) }} className="flex gap-3">
+                    <form action={handleUpdateEmail} className="flex gap-3">
                         <input type="hidden" name="userId" value={user.id} />
                         <input type="email" name="newEmail" defaultValue={user.email}
                             className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm"
