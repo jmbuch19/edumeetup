@@ -152,6 +152,8 @@ export async function sendSegmentNudge(formData: FormData) {
           `),
                 })
                 emailCount++
+                // Throttle: Resend free tier allows ~2 req/sec — avoid silent drops
+                await new Promise(r => setTimeout(r, 300))
             } catch (e) {
                 console.error(`[NUDGE] Failed email to ${user.email}:`, e)
             }
