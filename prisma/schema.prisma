@@ -234,6 +234,7 @@ model University {
   documents               UniversityDocument[]
   notifications           UniversityNotification[]
   proctorRequests         ProctorRequest[]
+  proactiveMessages       ProactiveMessage[]
   reps                    User[]                   @relation("UniversityReps")
 
   @@index([verificationStatus])
