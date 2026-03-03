@@ -162,6 +162,17 @@ export default async function UniversityDashboard() {
         lastNudgedAt: s.lastNudgedAt ? s.lastNudgedAt.toISOString() : null,
     }))
 
+    // 7. Weekly outreach stats (two simple counts — no groupBy needed)
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    const [weekNudges, weekReplies] = await Promise.all([
+        prisma.proactiveMessage.count({
+            where: { universityId: uni.id, sentAt: { gte: oneWeekAgo } }
+        }),
+        prisma.proactiveMessage.count({
+            where: { universityId: uni.id, repliedAt: { gte: oneWeekAgo } }
+        }),
+    ])
+
     // Stats
     const stats = {
         totalPrograms: uni.programs.length,
@@ -251,6 +262,21 @@ export default async function UniversityDashboard() {
                         responseRate={uni.responseRate ?? null}
                         awaitingResponse={awaitingResponse}
                     />
+
+                    {/* Outreach stats widget */}
+                    {(weekNudges > 0 || serialisedHistory.length > 0) && (
+                        <div className="grid grid-cols-3 gap-4">
+                            {[{ label: 'Nudges this week', value: weekNudges, color: 'text-primary' },
+                            { label: 'Replies this week', value: weekReplies, color: 'text-green-600' },
+                            { label: 'All-time nudges', value: serialisedHistory.length, color: 'text-slate-700' }]
+                                .map(({ label, value, color }) => (
+                                    <div key={label} className="bg-white border border-slate-200 rounded-xl p-4 text-center shadow-sm">
+                                        <p className={`text-3xl font-bold ${color}`}>{value}</p>
+                                        <p className="text-xs text-slate-500 mt-1">{label}</p>
+                                    </div>
+                                ))}
+                        </div>
+                    )}
 
                     <div className="grid md:grid-cols-2 gap-6">
                         <Card>
