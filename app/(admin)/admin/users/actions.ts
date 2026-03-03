@@ -77,15 +77,20 @@ export async function updateUserEmail(formData: FormData) {
 
     await prisma.user.update({
         where: { id: userId },
-        data: { email: newEmail, emailVerified: null }, // reset verification
+        data: { email: newEmail, emailVerified: null },
     })
 
-    await prisma.auditLog.create({
-        data: {
-            action: 'ADMIN_EMAIL_UPDATED', entityType: 'USER', entityId: userId,
-            actorId: admin.id, metadata: { oldEmail: old?.email, newEmail },
-        }
-    })
+    // Audit log — non-critical, don't let it fail the action
+    try {
+        await prisma.auditLog.create({
+            data: {
+                action: 'ADMIN_EMAIL_UPDATED', entityType: 'USER', entityId: userId,
+                actorId: admin.id,
+            }
+        })
+    } catch (e) {
+        console.error('[AUDIT] auditLog.create failed (email update):', e)
+    }
 
     revalidatePath(`/admin/users/${userId}`)
     return { success: true }
@@ -148,13 +153,17 @@ export async function sendSegmentNudge(formData: FormData) {
         }
     }
 
-    await prisma.auditLog.create({
-        data: {
-            action: 'ADMIN_SEGMENT_NUDGE_SENT', entityType: 'CAMPAIGN',
-            entityId: filter, actorId: admin.id,
-            metadata: { filter, title, recipientCount: users.length, notifCount, emailCount },
-        }
-    })
+    // Audit log — non-critical, don't let it fail the action
+    try {
+        await prisma.auditLog.create({
+            data: {
+                action: 'ADMIN_SEGMENT_NUDGE_SENT', entityType: 'CAMPAIGN',
+                entityId: filter, actorId: admin.id,
+            }
+        })
+    } catch (e) {
+        console.error('[AUDIT] auditLog.create failed (nudge):', e)
+    }
 
     return { success: true, recipientCount: users.length, notifCount, emailCount }
 }
