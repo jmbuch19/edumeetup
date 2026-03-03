@@ -21,6 +21,7 @@ import { ProctorTab } from '@/components/university/proctor-tab'
 import { OutreachTab } from '@/components/university/outreach-tab'
 import { getNudgeableStudents } from '@/app/university/actions/outreach'
 import { maskName } from '@/lib/outreach-utils'
+import { ActionCentre } from '@/components/university/action-centre'
 
 export const dynamic = 'force-dynamic'
 
@@ -173,6 +174,48 @@ export default async function UniversityDashboard() {
         }),
     ])
 
+    // 8. Discoverable students for Action Centre (not already interested, not dismissed)
+    const actionCentreFields = [...new Set(uni.programs.map(p => p.fieldCategory))]
+    const discoverableStudents = await prisma.student.findMany({
+        where: {
+            profileComplete: true,
+            user: { consentMarketing: true, consentWithdrawnAt: null, isActive: true },
+            interests: { none: { universityId: uni.id } },
+            dismissals: { none: { universityId: uni.id } },
+            ...(actionCentreFields.length > 0 ? { fieldOfInterest: { in: actionCentreFields } } : {}),
+        },
+        select: {
+            id: true,
+            city: true,
+            fieldOfInterest: true,
+            preferredDegree: true,
+            currentStatus: true,
+            user: { select: { name: true } },
+        },
+        take: 10,
+        orderBy: { updatedAt: 'desc' },
+    })
+    const discoverableForUI = discoverableStudents.map(s => ({
+        id: s.id,
+        fullName: s.user.name ?? null,
+        city: s.city,
+        fieldOfInterest: s.fieldOfInterest,
+        preferredDegree: s.preferredDegree,
+        currentStatus: s.currentStatus,
+    }))
+
+    // 9. Profile completeness
+    const completenessTasks = [
+        { id: 'logo', label: 'Upload your university logo', done: !!uni.logo, actionUrl: '/university/settings', actionLabel: 'Add logo' },
+        { id: 'about', label: 'Add an About section (50+ chars)', done: (uni.about?.length ?? 0) > 50, actionUrl: '/university/settings', actionLabel: 'Write about' },
+        { id: 'programs', label: 'Add at least one programme', done: uni.programs.length > 0, actionUrl: '/university/dashboard?tab=programs', actionLabel: 'Add programme' },
+        { id: 'contactEmail', label: 'Set a contact email', done: !!uni.contactEmail, actionUrl: '/university/settings', actionLabel: 'Set email' },
+        { id: 'repName', label: 'Add rep name & designation', done: !!uni.repName && !!uni.repDesignation, actionUrl: '/university/settings', actionLabel: 'Update rep' },
+        { id: 'website', label: 'Add your website URL', done: !!uni.website, actionUrl: '/university/settings', actionLabel: 'Add website' },
+        { id: 'meetingLink', label: 'Add a meeting/calendar link', done: !!uni.meetingLink, actionUrl: '/university/settings', actionLabel: 'Add link' },
+    ]
+    const completenessScore = Math.round((completenessTasks.filter(t => t.done).length / completenessTasks.length) * 100)
+
     // Stats
     const stats = {
         totalPrograms: uni.programs.length,
@@ -255,6 +298,14 @@ export default async function UniversityDashboard() {
                 </div>
 
                 <TabsContent value="overview" className="space-y-6">
+                    <ActionCentre
+                        universityId={uni.id}
+                        repId={user.id}
+                        completeness={{ score: completenessScore, tasks: completenessTasks }}
+                        discoverableStudents={discoverableForUI}
+                        programNames={uni.programs.map(p => p.programName)}
+                    />
+
                     <DashboardStats
                         stats={stats}
                         meetingCount={upcomingMeetings.length}

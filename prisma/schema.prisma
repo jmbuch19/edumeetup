@@ -133,6 +133,7 @@ model Student {
   user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   notifications      StudentNotification[]
   proactiveMessages  ProactiveMessage[]
+  dismissals         StudentDiscoveryDismissal[]
 }
 
 model ProfileChangeLog {
@@ -235,6 +236,7 @@ model University {
   notifications           UniversityNotification[]
   proctorRequests         ProctorRequest[]
   proactiveMessages       ProactiveMessage[]
+  dismissals              StudentDiscoveryDismissal[]
   reps                    User[]                   @relation("UniversityReps")
 
   @@index([verificationStatus])
@@ -886,3 +888,19 @@ enum RepBadgeType {
   MEETING_MAKER
   CONSISTENT_NUDGER
 }
+
+// ── Student Discovery Dismissals ──────────────────────────────────────
+model StudentDiscoveryDismissal {
+  id           String     @id @default(cuid())
+  universityId String
+  studentId    String
+  dismissedAt  DateTime   @default(now())
+
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([universityId, studentId])
+  @@index([universityId])
+  @@index([studentId])
+}
+
