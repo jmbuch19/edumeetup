@@ -42,6 +42,9 @@ model User {
   systemReports         SystemReport[]
   university            University?
   representedUniversity University?           @relation("UniversityReps", fields: [universityId], references: [id])
+  proactiveMessagesSent ProactiveMessage[]    @relation("RepMessages")
+  repPerformance        RepPerformance?
+  repBadges             RepBadge[]
 
   @@index([role])
   @@index([isActive])
@@ -129,6 +132,7 @@ model Student {
   changeLogs         ProfileChangeLog[]
   user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   notifications      StudentNotification[]
+  proactiveMessages  ProactiveMessage[]
 }
 
 model ProfileChangeLog {
@@ -185,6 +189,7 @@ model University {
   isPublic                Boolean                  @default(true)
   notifQuota              Int                      @default(3)    // weekly campaigns admin can set
   notifPaused             Boolean                  @default(false) // admin kill switch
+  proactiveCooldownDays   Int                      @default(21)   // nudge cooldown per student
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
   universityNameFromEmail String?
@@ -810,4 +815,73 @@ model ProctorRequest {
   @@index([universityId])
   @@index([status])
   @@index([examStartDate])
+}
+
+// ── Proactive Outreach ────────────────────────────────────────────────
+model ProactiveMessage {
+  id           String                 @id @default(cuid())
+  repId        String?
+  studentId    String
+  universityId String
+  programId    String?
+  subject      String?
+  content      String
+  sentAt       DateTime               @default(now())
+  openedAt     DateTime?
+  repliedAt    DateTime?
+  status       ProactiveMessageStatus @default(SENT)
+
+  rep          User?      @relation("RepMessages", fields: [repId], references: [id], onDelete: SetNull)
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@index([repId])
+  @@index([studentId])
+  @@index([universityId])
+  @@index([sentAt])
+  @@index([status])
+}
+
+enum ProactiveMessageStatus {
+  SENT
+  OPENED
+  REPLIED
+  CONVERTED
+  NO_RESPONSE
+}
+
+// ── Rep Performance Tracking ──────────────────────────────────────────
+model RepPerformance {
+  id                     String   @id @default(cuid())
+  repId                  String   @unique
+  totalProactiveSent     Int      @default(0)
+  totalReplies           Int      @default(0)
+  replyRate              Float?   @default(0)
+  totalMeetingsFromNudge Int      @default(0)
+  points                 Int      @default(0)
+  lastCalculatedAt       DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  rep                    User     @relation(fields: [repId], references: [id], onDelete: Cascade)
+}
+
+// ── Rep Badges ────────────────────────────────────────────────────────
+model RepBadge {
+  id        String       @id @default(cuid())
+  repId     String
+  badgeType RepBadgeType
+  name      String
+  earnedAt  DateTime     @default(now())
+
+  rep       User         @relation(fields: [repId], references: [id], onDelete: Cascade)
+
+  @@index([repId])
+  @@index([badgeType])
+}
+
+enum RepBadgeType {
+  FIRST_NUDGE
+  RESPONSE_STAR
+  MEETING_MAKER
+  CONSISTENT_NUDGER
 }

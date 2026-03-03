@@ -18,6 +18,9 @@ import { UniversityLogo } from '@/components/university/university-logo'
 import { NotificationsCenter } from '@/components/notifications-center'
 import { UniDocManager } from '@/components/university/uni-doc-manager'
 import { ProctorTab } from '@/components/university/proctor-tab'
+import { OutreachTab } from '@/components/university/outreach-tab'
+import { getNudgeableStudents } from '@/app/university/actions/outreach'
+import { maskName } from '@/app/university/actions/outreach'
 
 export const dynamic = 'force-dynamic'
 
@@ -130,6 +133,35 @@ export default async function UniversityDashboard() {
         orderBy: { createdAt: 'desc' },
     })
 
+    // 6. Proactive Outreach
+    const nudgeableStudents = await getNudgeableStudents(uni.id)
+    const outreachHistory = await prisma.proactiveMessage.findMany({
+        where: { universityId: uni.id },
+        orderBy: { sentAt: 'desc' },
+        take: 50,
+        include: {
+            student: {
+                include: { user: { select: { name: true } } }
+            }
+        }
+    })
+    const serialisedHistory = outreachHistory.map(r => ({
+        id: r.id,
+        subject: r.subject,
+        content: r.content,
+        sentAt: r.sentAt.toISOString(),
+        status: r.status as 'SENT' | 'OPENED' | 'REPLIED' | 'CONVERTED' | 'NO_RESPONSE',
+        student: {
+            maskedName: maskName(r.student.user.name),
+            fieldOfInterest: r.student.fieldOfInterest,
+            country: r.student.country,
+        }
+    }))
+    const serialisedNudgeable = nudgeableStudents.map(s => ({
+        ...s,
+        lastNudgedAt: s.lastNudgedAt ? s.lastNudgedAt.toISOString() : null,
+    }))
+
     // Stats
     const stats = {
         totalPrograms: uni.programs.length,
@@ -200,6 +232,12 @@ export default async function UniversityDashboard() {
                             Proctor Services
                             {proctorRequests.some(r => r.status === 'CONFIRMED') && (
                                 <span className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full" />
+                            )}
+                        </TabsTrigger>
+                        <TabsTrigger value="outreach" className="relative">
+                            Discover Students
+                            {nudgeableStudents.length > 0 && (
+                                <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full animate-pulse" />
                             )}
                         </TabsTrigger>
                     </TabsList>
@@ -391,6 +429,14 @@ export default async function UniversityDashboard() {
                         universityId={uni.id}
                         universityName={uni.institutionName}
                         requests={JSON.parse(JSON.stringify(proctorRequests))}
+                    />
+                </TabsContent>
+
+                <TabsContent value="outreach" className="space-y-6">
+                    <OutreachTab
+                        students={serialisedNudgeable}
+                        history={serialisedHistory}
+                        universityName={uni.institutionName}
                     />
                 </TabsContent>
             </Tabs>
