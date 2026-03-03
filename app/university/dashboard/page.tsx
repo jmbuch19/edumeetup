@@ -20,7 +20,7 @@ import { UniDocManager } from '@/components/university/uni-doc-manager'
 import { ProctorTab } from '@/components/university/proctor-tab'
 import { OutreachTab } from '@/components/university/outreach-tab'
 import { getNudgeableStudents } from '@/app/university/actions/outreach'
-import { maskName } from '@/app/university/actions/outreach'
+import { maskName } from '@/lib/outreach-utils'
 
 export const dynamic = 'force-dynamic'
 

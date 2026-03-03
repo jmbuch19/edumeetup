@@ -21,29 +21,9 @@ import { sendEmail, generateEmailHtml } from '@/lib/email'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
+import { maskName, maskScore } from '@/lib/outreach-utils'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'
-
-// ── Masking helpers ────────────────────────────────────────────────────
-export function maskName(fullName: string | null | undefined): string {
-    if (!fullName) return 'A student'
-    const parts = fullName.trim().split(' ')
-    if (parts.length === 1) return parts[0]
-    return `${parts[0]} ${parts[parts.length - 1][0]}.`
-}
-
-export function maskScore(score: string | null | undefined, type: string | null | undefined): string {
-    if (!score || !type) return ''
-    const num = parseFloat(score)
-    if (isNaN(num)) return `${type} ${score}`
-    // Round to nearest 0.5 for IELTS/TOEFL, nearest 10 for GRE/GMAT
-    if (type.toUpperCase().includes('IELTS') || type.toUpperCase().includes('TOEFL')) {
-        const rounded = Math.round(num * 2) / 2
-        return `${type} ~${rounded}`
-    }
-    const rounded = Math.round(num / 10) * 10
-    return `${type} ~${rounded}`
-}
 
 // ── Main action ────────────────────────────────────────────────────────
 export async function sendProactiveMessage(
