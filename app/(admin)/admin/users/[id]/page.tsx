@@ -9,10 +9,9 @@ import {
     CheckCircle2, AlertCircle, XCircle, Phone, Mail,
     Calendar, Globe, BookOpen
 } from "lucide-react"
-import { UserAdminActions } from '../user-admin-actions'
 import { computeProfileComplete } from '@/lib/admin/student-filters'
 import { Button } from '@/components/ui/button'
-import { updateUserEmail } from '../actions'
+import { updateUserEmail, blockUser, unblockUser } from '../actions'
 
 
 export const dynamic = 'force-dynamic'
@@ -96,14 +95,26 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
                 </div>
             </div>
 
-            {/* Admin action buttons */}
-            <UserAdminActions
-                userId={user.id}
-                studentId={s?.id}
-                isActive={user.isActive}
-                profileComplete={s?.profileComplete}
-                isActuallyComplete={s ? isActuallyComplete : undefined}
-            />
+            {/* Admin action buttons — Block / Unblock */}
+            <div className="flex flex-wrap gap-2">
+                {user.isActive ? (
+                    <form action={blockUser}>
+                        <input type="hidden" name="userId" value={user.id} />
+                        <Button type="submit" variant="outline"
+                            className="border-red-200 text-red-600 hover:bg-red-50">
+                            Block User
+                        </Button>
+                    </form>
+                ) : (
+                    <form action={unblockUser}>
+                        <input type="hidden" name="userId" value={user.id} />
+                        <Button type="submit" variant="outline"
+                            className="border-green-200 text-green-600 hover:bg-green-50">
+                            Unblock User
+                        </Button>
+                    </form>
+                )}
+            </div>
 
             {/* Missing fields warning */}
             {completeness && !completeness.isComplete && (
