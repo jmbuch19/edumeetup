@@ -21,7 +21,8 @@ export async function searchUniversities({
 
     try {
         const where: Prisma.UniversityWhereInput = {
-            verificationStatus: 'VERIFIED'
+            verificationStatus: 'VERIFIED',
+            isPublic: true,
         }
 
         // 1. Text Search (Name or Location)
