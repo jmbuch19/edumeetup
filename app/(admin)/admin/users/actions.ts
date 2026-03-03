@@ -108,13 +108,16 @@ export async function sendSegmentNudge(formData: FormData) {
     if (message.length > 500) return { error: 'Message must be under 500 characters' }
 
     const where = buildFilterWhere(filter)
+    // Only fetch users who actually have a linked Student profile
     const users = await prisma.user.findMany({
-        where: { ...where, isActive: true },
+        where: { ...where, isActive: true, student: { isNot: null } },
         select: { id: true, email: true, name: true, student: { select: { id: true, fullName: true } } },
         take: 500,
     })
 
-    if (users.length === 0) return { error: 'No active students match this filter' }
+    console.log(`[NUDGE] filter=${filter} users=${users.length} sendEmail=${sendEmailFlag}`)
+
+    if (users.length === 0) return { error: 'No active students with profiles match this filter' }
 
     let notifCount = 0
     let emailCount = 0
@@ -124,11 +127,14 @@ export async function sendSegmentNudge(formData: FormData) {
         const msg = message.replace(/\{\{name\}\}/g, firstName)
         const ttl = title.replace(/\{\{name\}\}/g, firstName)
 
-        if (user.student?.id) {
+        // Create in-app notification (student record is guaranteed by query)
+        try {
             await prisma.studentNotification.create({
-                data: { studentId: user.student.id, title: ttl, message: msg, type: 'INFO', actionUrl: '/student/dashboard' }
+                data: { studentId: user.student!.id, title: ttl, message: msg, type: 'INFO', actionUrl: '/student/dashboard' }
             })
             notifCount++
+        } catch (e) {
+            console.error(`[NUDGE] Failed notification for studentId=${user.student?.id}:`, e)
         }
 
         if (sendEmailFlag) {
@@ -140,10 +146,9 @@ export async function sendSegmentNudge(formData: FormData) {
             <p>Hi ${firstName},</p>
             <p>${msg}</p>
             <p style="text-align:center;margin-top:24px;">
-              <a href="${BASE_URL}/student/dashboard" class="btn">Go to Dashboard →</a>
+              <a href="${BASE_URL}/student/dashboard" style="background:#6366f1;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Go to Dashboard →</a>
             </p>
-            <p style="font-size:12px;color:#94a3b8;">Sent by the EdUmeetup team.
-              <a href="${BASE_URL}/student/settings">Manage notifications</a></p>
+            <p style="font-size:12px;color:#94a3b8;">Sent by the EdUmeetup team.</p>
           `),
                 })
                 emailCount++
@@ -153,7 +158,9 @@ export async function sendSegmentNudge(formData: FormData) {
         }
     }
 
-    // Audit log — non-critical, don't let it fail the action
+    console.log(`[NUDGE] Done: notifCount=${notifCount} emailCount=${emailCount}`)
+
+    // Audit log — non-critical
     try {
         await prisma.auditLog.create({
             data: {
@@ -165,7 +172,7 @@ export async function sendSegmentNudge(formData: FormData) {
         console.error('[AUDIT] auditLog.create failed (nudge):', e)
     }
 
-    return { success: true, recipientCount: users.length, notifCount, emailCount }
+    return { success: true, recipientCount: notifCount, notifCount, emailCount }
 }
 
 // ── Targeted in-app notification (called from filter bar client component) ────

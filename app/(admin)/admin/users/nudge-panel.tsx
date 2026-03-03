@@ -19,8 +19,11 @@ export function NudgePanel({ filter, preset }: { filter: StudentFilter; preset: 
         fd.set('sendEmail', String(sendEmail))
         startTransition(async () => {
             const res = await sendSegmentNudge(fd)
-            if ('success' in res && res.success) setResult(`Sent to ${res.recipientCount} student${(res.recipientCount ?? 0) !== 1 ? 's' : ''}`)
-            else setResult(('error' in res && res.error) ? res.error : 'Failed')
+            if ('success' in res && res.success) {
+                const notifPart = `${res.notifCount} notification${res.notifCount !== 1 ? 's' : ''}`
+                const emailPart = sendEmail ? ` + ${res.emailCount} email${res.emailCount !== 1 ? 's' : ''}` : ''
+                setResult(`✅ Sent: ${notifPart}${emailPart}`)
+            } else setResult(('error' in res && res.error) ? res.error : 'Failed')
         })
     }
 
