@@ -3,135 +3,179 @@
 /**
  * app/university/actions/engage.ts
  *
- * Action Centre server actions:
- *   sendProactiveMessage — send a nudge to a discoverable student
- *   dismissStudent       — hide a student from the discovery feed for this university
+ * Two server actions for the Action Centre:
+ * 1. sendProactiveMessage — creates ProactiveMessage, notifies student, updates RepPerformance
+ * 2. dismissStudent — creates StudentDiscoveryDismissal so rep doesn't see them again
  */
 
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { requireUser } from '@/lib/auth'
 import { sendEmail, generateEmailHtml } from '@/lib/email'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'
 
-// ── Send proactive message (Action Centre version) ────────────────────
+// ── 1. Send Proactive Message ─────────────────────────────────────────────────
 export async function sendProactiveMessage(
     formData: FormData
 ): Promise<{ success?: boolean; error?: string }> {
-    const session = await auth()
-    if (!session?.user) redirect('/login')
 
-    const studentId = formData.get('studentId')?.toString().trim()
-    const universityId = formData.get('universityId')?.toString().trim()
-    const repId = formData.get('repId')?.toString().trim()
-    const content = formData.get('content')?.toString().trim()
+    const user = await requireUser()
 
-    if (!studentId || !universityId || !repId || !content) {
+    const studentId = formData.get('studentId') as string
+    const universityId = formData.get('universityId') as string
+    const repId = (formData.get('repId') as string) || user.id
+    const content = (formData.get('content') as string)?.trim()
+
+    if (!studentId || !universityId || !content) {
         return { error: 'Missing required fields.' }
     }
-    if (content.length < 20) return { error: 'Message must be at least 20 characters.' }
-    if (content.length > 1000) return { error: 'Message must be under 1000 characters.' }
+    if (content.length < 20) {
+        return { error: 'Message is too short. Write at least a sentence.' }
+    }
+    if (content.length > 1000) {
+        return { error: 'Message is too long. Keep it under 1000 characters.' }
+    }
 
-    // Load university
-    const uni = await prisma.university.findUnique({
-        where: { id: universityId },
-        select: { id: true, institutionName: true, verificationStatus: true, proactiveCooldownDays: true },
+    // ── Verify university ownership ───────────────────────────────────────────
+    const university = await prisma.university.findFirst({
+        where: { id: universityId, userId: user.id },
+        select: { id: true, institutionName: true, proactiveCooldownDays: true },
     })
-    if (!uni) return { error: 'University not found.' }
-    if (uni.verificationStatus !== 'VERIFIED') return { error: 'Only verified universities can send messages.' }
+    if (!university) return { error: 'University not found.' }
 
-    // Load student (consent check)
-    const student = await prisma.student.findUnique({
-        where: { id: studentId },
-        include: {
-            user: { select: { name: true, email: true, consentMarketing: true, consentWithdrawnAt: true } },
-            bookmarks: { where: { universityId }, orderBy: { createdAt: 'desc' }, take: 1 },
+    // ── Cooldown check — don't message same student twice within cooldown ──────
+    const cooldownDate = new Date(
+        Date.now() - university.proactiveCooldownDays * 24 * 60 * 60 * 1000
+    )
+    const recentMessage = await prisma.proactiveMessage.findFirst({
+        where: {
+            universityId,
+            studentId,
+            sentAt: { gte: cooldownDate },
         },
     })
+    if (recentMessage) {
+        return { error: `You already messaged this student within the last ${university.proactiveCooldownDays} days.` }
+    }
+
+    // ── Fetch student for notification ────────────────────────────────────────
+    const student = await prisma.student.findUnique({
+        where: { id: studentId },
+        include: { user: { select: { email: true, name: true } } },
+    })
     if (!student) return { error: 'Student not found.' }
-    if (!student.user.consentMarketing || student.user.consentWithdrawnAt) {
-        return { error: 'Student has not consented to marketing messages.' }
-    }
 
-    // Cooldown check (per universityId + studentId)
-    const cooldownDays = uni.proactiveCooldownDays ?? 21
-    const cooldownDate = new Date(Date.now() - cooldownDays * 24 * 60 * 60 * 1000)
-    const recentNudge = await prisma.proactiveMessage.findFirst({
-        where: { universityId, studentId, sentAt: { gte: cooldownDate } },
-        orderBy: { sentAt: 'desc' },
-    })
-
-    if (recentNudge) {
-        const newBookmark = student.bookmarks[0] && student.bookmarks[0].createdAt > recentNudge.sentAt
-        const profileUpdated = student.updatedAt > recentNudge.sentAt
-        if (!newBookmark && !profileUpdated) {
-            const daysAgo = Math.floor((Date.now() - recentNudge.sentAt.getTime()) / (1000 * 60 * 60 * 24))
-            return { error: `Already nudged ${daysAgo} day(s) ago. ${cooldownDays - daysAgo} days left on cooldown.` }
-        }
-    }
-
-    // Rep name for email
-    const rep = await prisma.user.findUnique({ where: { id: repId }, select: { name: true } })
-    const repName = rep?.name || 'The Admissions Team'
-
-    // Create message record
+    // ── 1. Create ProactiveMessage record ─────────────────────────────────────
     await prisma.proactiveMessage.create({
-        data: { repId, studentId, universityId, content, status: 'SENT' },
+        data: {
+            repId,
+            studentId,
+            universityId,
+            content,
+            status: 'SENT',
+        },
     })
 
-    // In-app notification for student
+    // ── 2. In-app notification for student ────────────────────────────────────
     await prisma.studentNotification.create({
         data: {
             studentId,
-            title: `${uni.institutionName} reached out to you`,
-            message: `A representative from ${uni.institutionName} sent you a personal message.`,
+            title: `💌 ${university.institutionName} wants to connect`,
+            message: content.slice(0, 120) + (content.length > 120 ? '...' : ''),
             type: 'INFO',
-            actionUrl: `/universities`,
+            actionUrl: '/student/messages',
         },
     })
 
-    // Email to student
-    const firstName = student.user.name?.split(' ')[0] ?? 'there'
-    const html = generateEmailHtml(
-        `A message from ${uni.institutionName}`,
-        `<p>Hi ${firstName},</p>
-     <p><strong>${uni.institutionName}</strong> found your profile and wanted to reach out personally.</p>
-     <div class="info-box" style="background:#f0f4ff;border-color:#c7d2fe;">
-       <p style="margin:0 0 6px 0;font-size:13px;font-weight:700;color:#3333cc;">Message from ${repName}:</p>
-       <p style="margin:0;white-space:pre-wrap;">${content}</p>
-     </div>
-     <p style="text-align:center;margin-top:24px;">
-       <a href="${BASE_URL}/universities" class="btn">View ${uni.institutionName}'s Profile →</a>
-     </p>`
-    )
+    // ── 3. Email to student ───────────────────────────────────────────────────
+    const studentName = student.user.name || 'there'
+    const emailContent = `
+    <p>Hi ${studentName},</p>
+    <p>A university representative from <strong>${university.institutionName}</strong> has reached out to you on <strong>EdUmeetup</strong>.</p>
+    <div class="info-box" style="background:#f0f4ff;border-color:#c7d2fe;">
+      <p style="margin:0 0 10px 0;font-weight:600;color:#3730a3;">Their message:</p>
+      <p style="margin:0;color:#374151;white-space:pre-line;">${content}</p>
+    </div>
+    <p>You can reply to this message and explore ${university.institutionName}'s programmes directly on EdUmeetup.</p>
+    <p style="text-align:center;margin-top:24px;">
+      <a href="${BASE_URL}/student/dashboard" class="btn">View Message &amp; Reply →</a>
+    </p>
+    <p style="font-size:13px;color:#94a3b8;">
+      You're receiving this because a verified university partner found your profile on EdUmeetup.
+    </p>
+  `
+
     await sendEmail({
         to: student.user.email,
-        subject: `${uni.institutionName} would love to connect with you`,
-        html,
+        subject: `💌 ${university.institutionName} wants to connect with you`,
+        html: generateEmailHtml(`Message from ${university.institutionName}`, emailContent),
     })
+
+    // ── 4. Update RepPerformance ──────────────────────────────────────────────
+    await prisma.repPerformance.upsert({
+        where: { repId },
+        update: {
+            totalProactiveSent: { increment: 1 },
+            points: { increment: 5 },
+            lastCalculatedAt: new Date(),
+        },
+        create: {
+            repId,
+            totalProactiveSent: 1,
+            points: 5,
+        },
+    })
+
+    // ── 5. Check and award FIRST_NUDGE badge ─────────────────────────────────
+    const performance = await prisma.repPerformance.findUnique({
+        where: { repId },
+        select: { totalProactiveSent: true },
+    })
+
+    if (performance?.totalProactiveSent === 1) {
+        const alreadyHasBadge = await prisma.repBadge.findFirst({
+            where: { repId, badgeType: 'FIRST_NUDGE' },
+        })
+        if (!alreadyHasBadge) {
+            await prisma.repBadge.create({
+                data: {
+                    repId,
+                    badgeType: 'FIRST_NUDGE',
+                    name: 'First Nudge — Sent your first proactive message',
+                },
+            })
+        }
+    }
 
     revalidatePath('/university/dashboard')
     return { success: true }
 }
 
-// ── Dismiss student from discovery feed ────────────────────────────────
+// ── 2. Dismiss Student from Discovery Feed ───────────────────────────────────
 export async function dismissStudent(
     formData: FormData
 ): Promise<{ success?: boolean; error?: string }> {
-    const session = await auth()
-    if (!session?.user) redirect('/login')
 
-    const studentId = formData.get('studentId')?.toString().trim()
-    const universityId = formData.get('universityId')?.toString().trim()
+    const user = await requireUser()
+    const studentId = formData.get('studentId') as string
+    const universityId = formData.get('universityId') as string
 
     if (!studentId || !universityId) return { error: 'Missing fields.' }
 
-    // Upsert — safe to call multiple times
+    // Verify ownership
+    const university = await prisma.university.findFirst({
+        where: { id: universityId, userId: user.id },
+        select: { id: true },
+    })
+    if (!university) return { error: 'University not found.' }
+
+    // Upsert — safe if already dismissed
     await prisma.studentDiscoveryDismissal.upsert({
-        where: { universityId_studentId: { universityId, studentId } },
-        update: { dismissedAt: new Date() },
+        where: {
+            universityId_studentId: { universityId, studentId },
+        },
+        update: {},
         create: { universityId, studentId },
     })
 
