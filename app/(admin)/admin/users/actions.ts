@@ -28,33 +28,27 @@ export async function syncProfileComplete(studentId: string) {
 }
 
 // ── Block ─────────────────────────────────────────────────────────────────────
-export async function blockUser(formData: FormData): Promise<void>
-export async function blockUser(userId: string): Promise<{ success: boolean }>
-export async function blockUser(input: FormData | string) {
+export async function blockUser(formData: FormData) {
     const admin = await requireAdmin()
-    const userId = typeof input === 'string' ? input : (input.get('userId') as string)
+    const userId = formData.get('userId') as string
     await prisma.user.update({ where: { id: userId }, data: { isActive: false } })
     await prisma.auditLog.create({
         data: { action: 'ADMIN_USER_BLOCKED', entityType: 'USER', entityId: userId, actorId: admin.id }
     })
     revalidatePath('/admin/users')
     revalidatePath(`/admin/users/${userId}`)
-    return { success: true }
 }
 
 // ── Unblock ───────────────────────────────────────────────────────────────────
-export async function unblockUser(formData: FormData): Promise<void>
-export async function unblockUser(userId: string): Promise<{ success: boolean }>
-export async function unblockUser(input: FormData | string) {
+export async function unblockUser(formData: FormData) {
     const admin = await requireAdmin()
-    const userId = typeof input === 'string' ? input : (input.get('userId') as string)
+    const userId = formData.get('userId') as string
     await prisma.user.update({ where: { id: userId }, data: { isActive: true } })
     await prisma.auditLog.create({
         data: { action: 'ADMIN_USER_UNBLOCKED', entityType: 'USER', entityId: userId, actorId: admin.id }
     })
     revalidatePath('/admin/users')
     revalidatePath(`/admin/users/${userId}`)
-    return { success: true }
 }
 
 // ── Delete user ───────────────────────────────────────────────────────────────
