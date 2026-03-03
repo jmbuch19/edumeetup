@@ -7,12 +7,11 @@ import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import Link from "next/link"
 import { AlertCircle, CheckCircle2, ChevronRight } from "lucide-react"
-import { Suspense } from "react"
-import { StudentFilterBar } from "./student-filter-bar"
 import {
-    buildFilterWhere,
+    buildFilterWhere, FILTER_PRESETS,
     StudentFilter
 } from "@/lib/admin/student-filters"
+import { NudgePanel } from "./nudge-panel"
 
 export const dynamic = 'force-dynamic'
 
@@ -43,10 +42,6 @@ export default async function AdminUsersPage({
         orderBy: { createdAt: 'desc' },
     })
 
-    // IDs of student records in the current filtered view (for notify panel)
-    const filteredStudentIds = users
-        .filter(u => u.role === 'STUDENT' && u.student)
-        .map(u => u.student!.id)
 
     return (
         <div className="space-y-4">
@@ -54,14 +49,25 @@ export default async function AdminUsersPage({
                 <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
             </div>
 
-            {/* Smart filter bar */}
-            <Suspense>
-                <StudentFilterBar
-                    totalCount={users.length}
-                    filteredStudentIds={filteredStudentIds}
-                    activeFilter={filter}
-                />
-            </Suspense>
+            {/* Filter chips — server-rendered, no JS required */}
+            <div className="flex gap-2 flex-wrap">
+                {FILTER_PRESETS.map(preset => (
+                    <a key={preset.id}
+                        href={`/admin/users?filter=${preset.id}`}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${filter === preset.id
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-primary/40'
+                            }`}>
+                        {preset.label}
+                        {preset.nudgeTemplate && <span className="ml-1 opacity-50">📣</span>}
+                    </a>
+                ))}
+            </div>
+
+            {/* Nudge panel — shown when active filter has a nudge template */}
+            {FILTER_PRESETS.find(p => p.id === filter)?.nudgeTemplate && (
+                <NudgePanel filter={filter} preset={FILTER_PRESETS.find(p => p.id === filter)!} />
+            )}
 
             <div className="border rounded-lg bg-white shadow-sm overflow-x-auto">
                 <Table>
