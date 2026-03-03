@@ -2,65 +2,170 @@
 
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
-import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { computeProfileComplete } from '@/lib/admin/student-filters'
+import { revalidatePath } from 'next/cache'
+import { sendEmail, generateEmailHtml } from '@/lib/email'
+import { buildFilterWhere, computeProfileComplete } from '@/lib/admin/student-filters'
+import type { StudentFilter } from '@/lib/admin/student-filters'
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'
 
 async function requireAdmin() {
     const session = await auth()
-    if (session?.user?.role !== 'ADMIN') throw new Error('Unauthorized')
-    return session
+    if (!session?.user || session.user.role !== 'ADMIN') redirect('/admin/dashboard')
+    return session.user
 }
 
-// ── Sync profile complete flag for one student ────────────────────────────────
+// ── Sync profile complete flag ────────────────────────────────────────────────
 export async function syncProfileComplete(studentId: string) {
     await requireAdmin()
-
     const student = await prisma.student.findUnique({ where: { id: studentId } })
     if (!student) return { error: 'Student not found' }
-
     const { isComplete } = computeProfileComplete(student)
-
-    await prisma.student.update({
-        where: { id: studentId },
-        data: { profileComplete: isComplete },
-    })
-
+    await prisma.student.update({ where: { id: studentId }, data: { profileComplete: isComplete } })
     revalidatePath(`/admin/users/${student.userId}`)
     return { success: true, isComplete }
 }
 
-// ── Block / Unblock user ──────────────────────────────────────────────────────
-export async function blockUser(userId: string) {
-    await requireAdmin()
+// ── Block ─────────────────────────────────────────────────────────────────────
+export async function blockUser(formData: FormData): Promise<void>
+export async function blockUser(userId: string): Promise<{ success: boolean }>
+export async function blockUser(input: FormData | string) {
+    const admin = await requireAdmin()
+    const userId = typeof input === 'string' ? input : (input.get('userId') as string)
     await prisma.user.update({ where: { id: userId }, data: { isActive: false } })
-    revalidatePath(`/admin/users/${userId}`)
+    await prisma.auditLog.create({
+        data: { action: 'ADMIN_USER_BLOCKED', entityType: 'USER', entityId: userId, actorId: admin.id }
+    })
     revalidatePath('/admin/users')
+    revalidatePath(`/admin/users/${userId}`)
     return { success: true }
 }
 
-export async function unblockUser(userId: string) {
-    await requireAdmin()
+// ── Unblock ───────────────────────────────────────────────────────────────────
+export async function unblockUser(formData: FormData): Promise<void>
+export async function unblockUser(userId: string): Promise<{ success: boolean }>
+export async function unblockUser(input: FormData | string) {
+    const admin = await requireAdmin()
+    const userId = typeof input === 'string' ? input : (input.get('userId') as string)
     await prisma.user.update({ where: { id: userId }, data: { isActive: true } })
-    revalidatePath(`/admin/users/${userId}`)
+    await prisma.auditLog.create({
+        data: { action: 'ADMIN_USER_UNBLOCKED', entityType: 'USER', entityId: userId, actorId: admin.id }
+    })
     revalidatePath('/admin/users')
+    revalidatePath(`/admin/users/${userId}`)
     return { success: true }
 }
 
-// ── Delete user (hard delete, cascades via Prisma) ───────────────────────────
+// ── Delete user ───────────────────────────────────────────────────────────────
 export async function deleteUser(userId: string) {
     await requireAdmin()
-
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
     if (!user) return { error: 'User not found' }
     if (user.role === 'ADMIN') return { error: 'Cannot delete admin accounts' }
-
     await prisma.user.delete({ where: { id: userId } })
     revalidatePath('/admin/users')
     return { success: true }
 }
 
-// ── Targeted notifications ────────────────────────────────────────────────────
+// ── Edit email ────────────────────────────────────────────────────────────────
+export async function updateUserEmail(formData: FormData) {
+    const admin = await requireAdmin()
+    const userId = formData.get('userId') as string
+    const newEmail = (formData.get('newEmail') as string)?.trim().toLowerCase()
+
+    if (!newEmail?.includes('@')) return { error: 'Invalid email format' }
+
+    const existing = await prisma.user.findUnique({ where: { email: newEmail } })
+    if (existing && existing.id !== userId) return { error: 'Email already registered to another account' }
+
+    const old = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
+
+    await prisma.user.update({
+        where: { id: userId },
+        data: { email: newEmail, emailVerified: null }, // reset verification
+    })
+
+    await prisma.auditLog.create({
+        data: {
+            action: 'ADMIN_EMAIL_UPDATED', entityType: 'USER', entityId: userId,
+            actorId: admin.id, metadata: { oldEmail: old?.email, newEmail },
+        }
+    })
+
+    revalidatePath(`/admin/users/${userId}`)
+    return { success: true }
+}
+
+// ── Segment nudge ─────────────────────────────────────────────────────────────
+export async function sendSegmentNudge(formData: FormData) {
+    const admin = await requireAdmin()
+    const filter = formData.get('filter') as StudentFilter
+    const title = (formData.get('title') as string)?.trim()
+    const message = (formData.get('message') as string)?.trim()
+    const sendEmailFlag = formData.get('sendEmail') === 'true'
+
+    if (!filter || !title || !message) return { error: 'Missing required fields' }
+    if (message.length > 500) return { error: 'Message must be under 500 characters' }
+
+    const where = buildFilterWhere(filter)
+    const users = await prisma.user.findMany({
+        where: { ...where, isActive: true },
+        select: { id: true, email: true, name: true, student: { select: { id: true, fullName: true } } },
+        take: 500,
+    })
+
+    if (users.length === 0) return { error: 'No active students match this filter' }
+
+    let notifCount = 0
+    let emailCount = 0
+
+    for (const user of users) {
+        const firstName = user.student?.fullName?.split(' ')[0] || user.name?.split(' ')[0] || 'there'
+        const msg = message.replace(/\{\{name\}\}/g, firstName)
+        const ttl = title.replace(/\{\{name\}\}/g, firstName)
+
+        if (user.student?.id) {
+            await prisma.studentNotification.create({
+                data: { studentId: user.student.id, title: ttl, message: msg, type: 'INFO', actionUrl: '/student/dashboard' }
+            })
+            notifCount++
+        }
+
+        if (sendEmailFlag) {
+            try {
+                await sendEmail({
+                    to: user.email,
+                    subject: ttl,
+                    html: generateEmailHtml(ttl, `
+            <p>Hi ${firstName},</p>
+            <p>${msg}</p>
+            <p style="text-align:center;margin-top:24px;">
+              <a href="${BASE_URL}/student/dashboard" class="btn">Go to Dashboard →</a>
+            </p>
+            <p style="font-size:12px;color:#94a3b8;">Sent by the EdUmeetup team.
+              <a href="${BASE_URL}/student/settings">Manage notifications</a></p>
+          `),
+                })
+                emailCount++
+            } catch (e) {
+                console.error(`[NUDGE] Failed email to ${user.email}:`, e)
+            }
+        }
+    }
+
+    await prisma.auditLog.create({
+        data: {
+            action: 'ADMIN_SEGMENT_NUDGE_SENT', entityType: 'CAMPAIGN',
+            entityId: filter, actorId: admin.id,
+            metadata: { filter, title, recipientCount: users.length, notifCount, emailCount },
+        }
+    })
+
+    return { success: true, recipientCount: users.length, notifCount, emailCount }
+}
+
+// ── Targeted in-app notification (called from filter bar client component) ────
 export async function notifyFilteredStudents(
     studentIds: string[],
     title: string,
@@ -72,11 +177,7 @@ export async function notifyFilteredStudents(
 
     await prisma.studentNotification.createMany({
         data: studentIds.map((id) => ({
-            studentId: id,
-            title,
-            message,
-            type: 'INFO' as const,
-            actionUrl: null,
+            studentId: id, title, message, type: 'INFO' as const, actionUrl: null,
         })),
         skipDuplicates: true,
     })

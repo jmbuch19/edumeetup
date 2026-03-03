@@ -11,6 +11,8 @@ import {
 } from "lucide-react"
 import { UserAdminActions } from '../user-admin-actions'
 import { computeProfileComplete } from '@/lib/admin/student-filters'
+import { EditEmailForm } from './edit-email-form'
+
 
 export const dynamic = 'force-dynamic'
 
@@ -134,12 +136,16 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
                         <User className="h-4 w-4" /> Account Info
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-5">
-                    <Field label="User ID" value={user.id} />
-                    <Field label="Role" value={user.role} />
-                    <Field label="Active" value={user.isActive} />
-                    <Field label="Email Verified" value={user.emailVerified ? format(new Date(user.emailVerified), 'MMM d, yyyy') : null} />
-                    <Field label="Joined" value={format(new Date(user.createdAt), 'MMM d, yyyy, HH:mm')} />
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+                        <Field label="User ID" value={user.id} />
+                        <Field label="Role" value={user.role} />
+                        <Field label="Active" value={user.isActive} />
+                        <Field label="Email Verified" value={user.emailVerified ? format(new Date(user.emailVerified), 'MMM d, yyyy') : null} />
+                        <Field label="Joined" value={format(new Date(user.createdAt), 'MMM d, yyyy, HH:mm')} />
+                    </div>
+                    {/* ── Edit Email ───────────────────────────── */}
+                    <EditEmailForm userId={user.id} currentEmail={user.email} />
                 </CardContent>
             </Card>
 
