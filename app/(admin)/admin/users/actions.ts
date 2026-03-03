@@ -108,16 +108,16 @@ export async function sendSegmentNudge(formData: FormData) {
     if (message.length > 500) return { error: 'Message must be under 500 characters' }
 
     const where = buildFilterWhere(filter)
-    // Only fetch users who actually have a linked Student profile
+    // Query all matching active students — no need for student relation since we use userId
     const users = await prisma.user.findMany({
-        where: { ...where, isActive: true, student: { isNot: null } },
-        select: { id: true, email: true, name: true, student: { select: { id: true, fullName: true } } },
+        where: { ...where, isActive: true },
+        select: { id: true, email: true, name: true, student: { select: { fullName: true } } },
         take: 500,
     })
 
     console.log(`[NUDGE] filter=${filter} users=${users.length} sendEmail=${sendEmailFlag}`)
 
-    if (users.length === 0) return { error: 'No active students with profiles match this filter' }
+    if (users.length === 0) return { error: 'No active students match this filter' }
 
     let notifCount = 0
     let emailCount = 0
@@ -127,14 +127,14 @@ export async function sendSegmentNudge(formData: FormData) {
         const msg = message.replace(/\{\{name\}\}/g, firstName)
         const ttl = title.replace(/\{\{name\}\}/g, firstName)
 
-        // Create in-app notification (student record is guaranteed by query)
+        // Write to the Notification table (what the header bell reads from)
         try {
-            await prisma.studentNotification.create({
-                data: { studentId: user.student!.id, title: ttl, message: msg, type: 'INFO', actionUrl: '/student/dashboard' }
+            await prisma.notification.create({
+                data: { userId: user.id, title: ttl, message: msg, type: 'INFO' }
             })
             notifCount++
         } catch (e) {
-            console.error(`[NUDGE] Failed notification for studentId=${user.student?.id}:`, e)
+            console.error(`[NUDGE] Failed notification for userId=${user.id}:`, e)
         }
 
         if (sendEmailFlag) {
@@ -163,10 +163,7 @@ export async function sendSegmentNudge(formData: FormData) {
     // Audit log — non-critical
     try {
         await prisma.auditLog.create({
-            data: {
-                action: 'ADMIN_SEGMENT_NUDGE_SENT', entityType: 'CAMPAIGN',
-                entityId: filter, actorId: admin.id,
-            }
+            data: { action: 'ADMIN_SEGMENT_NUDGE_SENT', entityType: 'CAMPAIGN', entityId: filter, actorId: admin.id }
         })
     } catch (e) {
         console.error('[AUDIT] auditLog.create failed (nudge):', e)
@@ -177,7 +174,7 @@ export async function sendSegmentNudge(formData: FormData) {
 
 // ── Targeted in-app notification (called from filter bar client component) ────
 export async function notifyFilteredStudents(
-    studentIds: string[],
+    studentIds: string[], // in this context these are userIds
     title: string,
     message: string
 ) {
@@ -185,9 +182,10 @@ export async function notifyFilteredStudents(
     if (!studentIds.length) return { error: 'No students selected' }
     if (!title || !message) return { error: 'Title and message required' }
 
-    await prisma.studentNotification.createMany({
-        data: studentIds.map((id) => ({
-            studentId: id, title, message, type: 'INFO' as const, actionUrl: null,
+    // Write to Notification table (userId-based) — what the header bell reads
+    await prisma.notification.createMany({
+        data: studentIds.map((userId) => ({
+            userId, title, message, type: 'INFO' as const,
         })),
         skipDuplicates: true,
     })
