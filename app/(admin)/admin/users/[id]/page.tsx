@@ -11,7 +11,8 @@ import {
 } from "lucide-react"
 import { UserAdminActions } from '../user-admin-actions'
 import { computeProfileComplete } from '@/lib/admin/student-filters'
-import { EditEmailForm } from './edit-email-form'
+import { Button } from '@/components/ui/button'
+import { updateUserEmail } from '../actions'
 
 
 export const dynamic = 'force-dynamic'
@@ -86,8 +87,8 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
                     {/* Use isActuallyComplete (computed) not stored boolean */}
                     {completeness && (
                         <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${completeness.isComplete
-                                ? 'bg-green-50 text-green-700 border-green-200'
-                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                            ? 'bg-green-50 text-green-700 border-green-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
                             }`}>
                             {completeness.isComplete ? 'Profile Complete' : `${completeness.score}% Complete`}
                         </span>
@@ -128,16 +129,29 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
                         <User className="h-4 w-4" /> Account Info
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-                        <Field label="User ID" value={user.id} />
-                        <Field label="Role" value={user.role} />
-                        <Field label="Active" value={user.isActive} />
-                        <Field label="Email Verified" value={user.emailVerified ? format(new Date(user.emailVerified), 'MMM d, yyyy') : null} />
-                        <Field label="Joined" value={format(new Date(user.createdAt), 'MMM d, yyyy, HH:mm')} />
-                    </div>
-                    {/* ── Edit Email ───────────────────────────── */}
-                    <EditEmailForm userId={user.id} currentEmail={user.email} />
+                <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-5">
+                    <Field label="User ID" value={user.id} />
+                    <Field label="Role" value={user.role} />
+                    <Field label="Active" value={user.isActive} />
+                    <Field label="Email Verified" value={user.emailVerified ? format(new Date(user.emailVerified), 'MMM d, yyyy') : null} />
+                    <Field label="Joined" value={format(new Date(user.createdAt), 'MMM d, yyyy, HH:mm')} />
+                </CardContent>
+            </Card>
+
+            {/* Correct Email Address */}
+            <Card>
+                <CardHeader><CardTitle className="text-sm">Correct Email Address</CardTitle></CardHeader>
+                <CardContent>
+                    <form action={updateUserEmail} className="flex gap-3">
+                        <input type="hidden" name="userId" value={user.id} />
+                        <input type="email" name="newEmail" defaultValue={user.email}
+                            className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm"
+                            placeholder="corrected@email.com" />
+                        <Button type="submit" variant="outline" size="sm">Update Email</Button>
+                    </form>
+                    <p className="text-xs text-slate-400 mt-2">
+                        Email verification will be reset. Student will need to re-verify.
+                    </p>
                 </CardContent>
             </Card>
 
