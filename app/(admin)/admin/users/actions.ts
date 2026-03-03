@@ -4,12 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-
-// ── Required fields used for profileComplete calculation ──────────────────────
-const REQUIRED_STUDENT_FIELDS = [
-    'fullName', 'phone', 'city', 'country',
-    'fieldOfInterest', 'preferredDegree', 'preferredCountries', 'currentStatus',
-] as const
+import { computeProfileComplete } from '@/lib/admin/student-filters'
 
 async function requireAdmin() {
     const session = await auth()
@@ -24,9 +19,7 @@ export async function syncProfileComplete(studentId: string) {
     const student = await prisma.student.findUnique({ where: { id: studentId } })
     if (!student) return { error: 'Student not found' }
 
-    const isComplete = REQUIRED_STUDENT_FIELDS.every(
-        (f) => !!student[f as keyof typeof student]
-    )
+    const { isComplete } = computeProfileComplete(student)
 
     await prisma.student.update({
         where: { id: studentId },

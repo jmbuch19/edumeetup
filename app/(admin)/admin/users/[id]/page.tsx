@@ -9,7 +9,8 @@ import {
     CheckCircle2, AlertCircle, XCircle, Phone, Mail,
     Calendar, Globe, BookOpen
 } from "lucide-react"
-import { UserAdminActions } from './user-admin-actions'
+import { UserAdminActions } from '../user-admin-actions'
+import { computeProfileComplete } from '@/lib/admin/student-filters'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,21 +65,9 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
 
     const s = user.student
 
-    // Compute missing required fields for students
-    const requiredFields = [
-        { key: 'fullName', label: 'Full Name', value: s?.fullName },
-        { key: 'phone', label: 'Phone', value: s?.phone },
-        { key: 'city', label: 'City', value: s?.city },
-        { key: 'country', label: 'Country', value: s?.country },
-        { key: 'fieldOfInterest', label: 'Field of Interest', value: s?.fieldOfInterest },
-        { key: 'preferredDegree', label: 'Preferred Degree', value: s?.preferredDegree },
-        { key: 'preferredCountries', label: 'Target Countries', value: s?.preferredCountries },
-        { key: 'currentStatus', label: 'Current Status', value: s?.currentStatus },
-    ]
-    const missingCount = requiredFields.filter(f => !f.value).length
-    // Computed dynamically — the stored s.profileComplete may be stale if fields were
-    // added as required after the student registered
-    const isActuallyComplete = missingCount === 0
+    // Use canonical 10-field completeness check (matches DB sync logic)
+    const completeness = s ? computeProfileComplete(s) : null
+    const isActuallyComplete = completeness?.isComplete ?? false
 
     return (
         <div className="max-w-5xl mx-auto space-y-6">
@@ -118,18 +107,20 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
             />
 
             {/* Action Alert — only for students with missing fields */}
-            {s && missingCount > 0 && (
+            {s && completeness && !completeness.isComplete && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
                     <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
                     <div>
-                        <p className="text-sm font-semibold text-amber-800">Profile needs attention</p>
+                        <p className="text-sm font-semibold text-amber-800">
+                            Profile needs attention — {completeness.score}% complete
+                        </p>
                         <p className="text-sm text-amber-700 mt-0.5">
-                            {missingCount} key field{missingCount > 1 ? 's are' : ' is'} missing.
+                            {completeness.missingFields.length} field{completeness.missingFields.length > 1 ? 's are' : ' is'} missing.
                             Student should complete their profile to get matched with universities.
                         </p>
                         <ul className="text-xs text-amber-700 mt-2 list-disc pl-4 space-y-0.5">
-                            {requiredFields.filter(f => !f.value).map(f => (
-                                <li key={f.key}>{f.label}</li>
+                            {completeness.missingFields.map(f => (
+                                <li key={f}>{f}</li>
                             ))}
                         </ul>
                     </div>
