@@ -9,9 +9,9 @@ import { InteractiveCard } from '@/components/ui/interactive-card'
 const features = [
     {
         id: 'verified',
-        title: 'Verified',
+        title: 'Official Profile',
         icon: ShieldCheck,
-        description: 'Every university on our platform is properly accredited and verified manually by our team.',
+        description: 'Every university on our platform holds an Official Profile — manually reviewed by our team so you always know who you\u2019re talking to.',
         color: 'bg-blue-100/50',
         iconColor: 'text-blue-600',
         borderColor: 'border-blue-600'
@@ -20,7 +20,7 @@ const features = [
         id: 'free',
         title: 'Free',
         icon: Coins,
-        description: 'No hidden costs for students. Apply to as many programs as you like, completely free of charge.',
+        description: 'No hidden costs for students — ever. Browse Official Profiles, express interest, and connect with university teams completely free of charge.',
         color: 'bg-green-100/50',
         iconColor: 'text-green-600',
         borderColor: 'border-green-600'
