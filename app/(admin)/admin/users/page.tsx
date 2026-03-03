@@ -10,8 +10,8 @@ import { AlertCircle, CheckCircle2, ChevronRight } from "lucide-react"
 import { Suspense } from "react"
 import { StudentFilterBar } from "./student-filter-bar"
 import {
-    buildFilterWhere, computeProfileComplete,
-    StudentFilter, FILTER_PRESETS
+    buildFilterWhere,
+    StudentFilter
 } from "@/lib/admin/student-filters"
 
 export const dynamic = 'force-dynamic'
@@ -21,39 +21,26 @@ export default async function AdminUsersPage({
 }: {
     searchParams: Record<string, string>
 }) {
-    const filter = (searchParams.filter as StudentFilter) ?? 'ALL'
+    const filter = (searchParams?.filter as StudentFilter) || 'ALL'
 
-    // Only apply student-specific where if filter targets students
-    const isStudentFilter = filter !== 'ALL' && FILTER_PRESETS.find(p => p.id === filter)
-    const where = isStudentFilter ? buildFilterWhere(filter) : {}
-
+    const where = buildFilterWhere(filter)
     const users = await prisma.user.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
         include: {
             student: {
                 select: {
                     id: true,
                     fullName: true,
                     profileComplete: true,
-                    phone: true,
-                    city: true,
-                    country: true,
-                    fieldOfInterest: true,
-                    preferredDegree: true,
-                    preferredCountries: true,
-                    budgetRange: true,
-                    currentStatus: true,
-                    ageGroup: true,
-                    gender: true,
                     cvUrl: true,
-                    englishTestType: true,
-                    greScore: true,
-                    gmatScore: true,
+                    fieldOfInterest: true,
+                    city: true,
+                    _count: { select: { interests: true, meetings: true, advisoryRequests: true } }
                 }
             },
             university: { select: { institutionName: true } }
-        }
+        },
+        orderBy: { createdAt: 'desc' },
     })
 
     // IDs of student records in the current filtered view (for notify panel)
@@ -67,10 +54,10 @@ export default async function AdminUsersPage({
                 <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
             </div>
 
-            {/* Smart filter bar — only for student-mode pages */}
+            {/* Smart filter bar */}
             <Suspense>
                 <StudentFilterBar
-                    totalCount={users.filter(u => u.role === 'STUDENT').length || users.length}
+                    totalCount={users.length}
                     filteredStudentIds={filteredStudentIds}
                     activeFilter={filter}
                 />
@@ -82,9 +69,10 @@ export default async function AdminUsersPage({
                         <TableRow>
                             <TableHead>Email</TableHead>
                             <TableHead>Role</TableHead>
-                            <TableHead>Name / Institution</TableHead>
-                            <TableHead>Profile %</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Profile</TableHead>
                             <TableHead>CV</TableHead>
+                            <TableHead>Activity</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Joined</TableHead>
                             <TableHead></TableHead>
@@ -100,7 +88,8 @@ export default async function AdminUsersPage({
                         ) : (
                             users.map((user) => {
                                 const s = user.student
-                                const completeness = s ? computeProfileComplete(s) : null
+                                // Use stored boolean for list — full 10-field check is on detail page
+                                const complete = s?.profileComplete ?? null
 
                                 return (
                                     <TableRow key={user.id} className="hover:bg-muted/40 cursor-pointer transition-colors">
@@ -119,20 +108,19 @@ export default async function AdminUsersPage({
                                         </TableCell>
                                         <TableCell>
                                             {s?.fullName || user.university?.institutionName || '-'}
+                                            {s?.city && <span className="text-xs text-muted-foreground ml-1">· {s.city}</span>}
                                         </TableCell>
                                         <TableCell>
-                                            {completeness ? (
-                                                <div className="flex items-center gap-2">
-                                                    {completeness.isComplete ? (
-                                                        <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
-                                                            <CheckCircle2 className="h-4 w-4" /> {completeness.score}%
-                                                        </span>
-                                                    ) : (
-                                                        <span className="flex items-center gap-1 text-amber-600 text-sm font-medium">
-                                                            <AlertCircle className="h-4 w-4" /> {completeness.score}%
-                                                        </span>
-                                                    )}
-                                                </div>
+                                            {s ? (
+                                                complete ? (
+                                                    <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                                                        <CheckCircle2 className="h-4 w-4" /> Complete
+                                                    </span>
+                                                ) : (
+                                                    <span className="flex items-center gap-1 text-amber-600 text-sm font-medium">
+                                                        <AlertCircle className="h-4 w-4" /> Incomplete
+                                                    </span>
+                                                )
                                             ) : (
                                                 <span className="text-muted-foreground text-sm">—</span>
                                             )}
@@ -142,6 +130,16 @@ export default async function AdminUsersPage({
                                                 s.cvUrl
                                                     ? <span className="text-xs text-green-600 font-medium">✅ Yes</span>
                                                     : <span className="text-xs text-muted-foreground">—</span>
+                                            ) : <span className="text-muted-foreground text-sm">—</span>}
+                                        </TableCell>
+                                        {/* Activity: interests / meetings / advisory */}
+                                        <TableCell>
+                                            {s?._count ? (
+                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                    <span title="Interests">⭐ {s._count.interests}</span>
+                                                    <span title="Meetings">📅 {s._count.meetings}</span>
+                                                    <span title="Advisory">🎓 {s._count.advisoryRequests}</span>
+                                                </div>
                                             ) : <span className="text-muted-foreground text-sm">—</span>}
                                         </TableCell>
                                         <TableCell>
