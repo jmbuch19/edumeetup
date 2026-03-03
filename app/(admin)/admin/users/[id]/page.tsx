@@ -9,6 +9,7 @@ import {
     CheckCircle2, AlertCircle, XCircle, Phone, Mail,
     Calendar, Globe, BookOpen
 } from "lucide-react"
+import { UserAdminActions } from './user-admin-actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,6 +76,9 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
         { key: 'currentStatus', label: 'Current Status', value: s?.currentStatus },
     ]
     const missingCount = requiredFields.filter(f => !f.value).length
+    // Computed dynamically — the stored s.profileComplete may be stale if fields were
+    // added as required after the student registered
+    const isActuallyComplete = missingCount === 0
 
     return (
         <div className="max-w-5xl mx-auto space-y-6">
@@ -99,9 +103,19 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
                     <Badge variant={user.isActive ? 'outline' : 'destructive'} className={user.isActive ? 'text-green-600 border-green-200 bg-green-50' : ''}>
                         {user.isActive ? 'ACTIVE' : 'INACTIVE'}
                     </Badge>
-                    {s && <CompletionBadge complete={s.profileComplete} />}
+                    {/* Use isActuallyComplete (computed) not stored boolean */}
+                    {s && <CompletionBadge complete={isActuallyComplete} />}
                 </div>
             </div>
+
+            {/* Admin action buttons */}
+            <UserAdminActions
+                userId={user.id}
+                studentId={s?.id}
+                isActive={user.isActive}
+                profileComplete={s?.profileComplete}
+                isActuallyComplete={s ? isActuallyComplete : undefined}
+            />
 
             {/* Action Alert — only for students with missing fields */}
             {s && missingCount > 0 && (
