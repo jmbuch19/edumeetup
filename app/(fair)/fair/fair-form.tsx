@@ -157,7 +157,8 @@ export function FairRegistrationForm({
     const [phone, setPhone] = useState(prefilled.phone ?? '')
     const [currentInstitution, setCurrentInstitution] = useState('')
     const [currentCourse, setCurrentCourse] = useState('')
-    const [yearOfPassing, setYearOfPassing] = useState('')
+    const [currentSemester, setCurrentSemester] = useState('')
+    const [englishExam, setEnglishExam] = useState('')
     const [fieldOfInterest, setFieldOfInterest] = useState(prefilled.fieldOfInterest ?? '')
     const [budgetRange, setBudgetRange] = useState(prefilled.budgetRange ?? '')
     const [preferredCountries, setPreferredCountries] = useState(prefilled.preferredCountries ?? '')
@@ -198,13 +199,9 @@ export function FairRegistrationForm({
 
         if (!isLoggedIn) {
             if (!currentInstitution.trim()) { setError('Current institution is required.'); return }
-            if (!currentCourse.trim()) { setError('Current course is required.'); return }
-            if (!yearOfPassing.trim()) { setError('Year of passing is required.'); return }
-            const yr = parseInt(yearOfPassing, 10)
-            if (isNaN(yr) || yr < 2025 || yr > 2030) {
-                setError('Year of passing must be between 2025 and 2030.')
-                return
-            }
+            if (!currentCourse.trim()) { setError('Current course / major is required.'); return }
+            if (!currentSemester.trim()) { setError('Current year / semester is required.'); return }
+            if (!fieldOfInterest.trim()) { setError('Field of interest is required.'); return }
         }
 
         setLoading(true)
@@ -215,7 +212,8 @@ export function FairRegistrationForm({
                 phone,
                 currentInstitution: currentInstitution || undefined,
                 currentCourse: currentCourse || undefined,
-                yearOfPassing: yearOfPassing || undefined,
+                currentSemester: currentSemester || undefined,
+                englishExam: englishExam || undefined,
                 fieldOfInterest: fieldOfInterest || undefined,
                 budgetRange: budgetRange || undefined,
                 preferredCountries: preferredCountries || undefined,
@@ -404,31 +402,46 @@ export function FairRegistrationForm({
                     <CardDescription>Fill in your details to receive a QR code pass for today's fair.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 pb-6">
-                    {/* Required fields */}
                     <Field id="fullName" label="Full Name" required value={fullName} onChange={setFullName} placeholder="Your full name" />
                     <Field id="email" label="Email" required value={email} onChange={setEmail} type="email" placeholder="you@example.com" />
                     <Field id="phone" label="Phone / WhatsApp Number" required value={phone} onChange={setPhone} placeholder="+91 98765 43210" />
-                    <Field id="currentInstitution" label="Current Institution" required value={currentInstitution} onChange={setCurrentInstitution} placeholder="e.g. IIT Bombay" />
-                    <Field id="currentCourse" label="Current Course / Major" required value={currentCourse} onChange={setCurrentCourse} placeholder="e.g. B.E. Mechanical Engineering" />
+                    <Field id="currentInstitution" label="Current School / College" required value={currentInstitution} onChange={setCurrentInstitution} placeholder="e.g. Pune University" />
+                    <Field id="currentCourse" label="Current Major / Program" required value={currentCourse} onChange={setCurrentCourse} placeholder="e.g. Mechanical Engineering" />
+                    <Field id="currentSemester" label="Current Year / Semester" required value={currentSemester} onChange={setCurrentSemester} placeholder="e.g. 3rd Year / 6th Semester" />
 
+                    {/* English proficiency */}
                     <div className="space-y-1.5">
-                        <Label htmlFor="yearOfPassing" className="text-sm font-medium text-gray-700">
-                            Year of Passing<span className="text-red-500 ml-0.5">*</span>
+                        <Label className="text-sm font-medium text-gray-700">
+                            English Proficiency Test
+                            <span className="ml-1 text-gray-400 text-xs">(optional)</span>
                         </Label>
-                        <Input
-                            id="yearOfPassing"
-                            type="number"
-                            min={2025}
-                            max={2030}
-                            value={yearOfPassing}
-                            onChange={(e) => setYearOfPassing(e.target.value)}
-                            placeholder="e.g. 2026"
-                            className="rounded-xl border-gray-200"
-                        />
+                        <Select value={englishExam} onValueChange={setEnglishExam}>
+                            <SelectTrigger className="rounded-xl border-gray-200">
+                                <SelectValue placeholder="Have you taken IELTS / TOEFL / PTE?" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Not attempted">Not attempted yet</SelectItem>
+                                <SelectItem value="IELTS">IELTS (score to be added)</SelectItem>
+                                <SelectItem value="TOEFL">TOEFL (score to be added)</SelectItem>
+                                <SelectItem value="PTE">PTE Academic (score to be added)</SelectItem>
+                                <SelectItem value="Duolingo">Duolingo English Test</SelectItem>
+                                <SelectItem value="Other">Other exam</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        {englishExam && englishExam !== 'Not attempted' && (
+                            <Input
+                                className="mt-1.5 rounded-xl border-gray-200 text-sm"
+                                placeholder={`e.g. ${englishExam} 6.5 (optional — enter your score)`}
+                                value={englishExam.includes(' ') ? englishExam.split(' ').slice(1).join(' ') : ''}
+                                onChange={(e) => setEnglishExam(
+                                    e.target.value ? `${englishExam.split(' ')[0]} ${e.target.value}` : englishExam.split(' ')[0]
+                                )}
+                            />
+                        )}
                     </div>
 
-                    {/* Optional fields */}
-                    <Field id="fieldOfInterest" label="Field of Interest" value={fieldOfInterest} onChange={setFieldOfInterest} placeholder="e.g. Data Science" />
+                    {/* Field of Interest — required */}
+                    <Field id="fieldOfInterest" label="Field of Interest" required value={fieldOfInterest} onChange={setFieldOfInterest} placeholder="e.g. Computer Science, Business, Architecture" />
 
                     <div className="space-y-1.5">
                         <Label className="text-sm font-medium text-gray-700">Budget Range</Label>

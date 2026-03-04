@@ -9,7 +9,9 @@ export type FairPassFormData = {
     phone: string
     currentInstitution?: string
     currentCourse?: string
-    yearOfPassing?: string
+    yearOfPassing?: string       // legacy — no longer shown in new form
+    currentSemester?: string     // e.g. "6th Semester / 3rd Year"
+    englishExam?: string         // e.g. "IELTS 6.5", "Not attempted"
     fieldOfInterest?: string
     budgetRange?: string
     preferredCountries?: string
@@ -70,7 +72,9 @@ export async function createFairPass(
                     formData.phone || existingUser?.student?.phone || '',
                 currentInstitution: formData.currentInstitution || '',
                 currentCourse: formData.currentCourse || '',
-                yearOfPassing: yearOfPassing ?? 0,
+                yearOfPassing: yearOfPassing ?? undefined,
+                currentSemester: formData.currentSemester || null,
+                englishExam: formData.englishExam || null,
                 // optional fields
                 fieldOfInterest:
                     formData.fieldOfInterest ||

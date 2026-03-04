@@ -955,7 +955,9 @@ model FairStudentPass {
 
   currentInstitution String
   currentCourse      String
-  yearOfPassing      Int
+  yearOfPassing      Int?      @default(0)  // kept for legacy data
+  currentSemester    String?               // e.g. "6th Semester / 3rd Year"
+  englishExam        String?               // e.g. "IELTS 6.5", "Not attempted"
 
   fieldOfInterest    String?
   budgetRange        String?
