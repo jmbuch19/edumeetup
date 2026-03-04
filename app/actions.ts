@@ -105,7 +105,7 @@ export async function registerStudent(prevState: any, formData: FormData) {
         }
 
         // Create User and Student (No Password, No OTP)
-        await prisma.user.create({
+        const newUser = await prisma.user.create({
             data: {
                 email,
                 name: fullName,
@@ -149,17 +149,21 @@ export async function registerStudent(prevState: any, formData: FormData) {
                         pincodeMismatch
                     }
                 }
-            }
+            },
+            include: { student: true },
         })
 
-        // Return success so client can trigger signIn('email') OR we can redirect to a page that starts it?
-        // Server Action calling `signIn` might work if configured.
-        // For MVP simplicity: We created the user. Now let the client know to "Log In".
-        // Actually, better UX: Trigger the magic link email RIGHT HERE via Auth.js?
-        // `signIn` in server actions sends the email.
-
-        // await signIn("email", { email, redirect: false })
-        // Note: signIn needs to be imported from 'auth'. user provided 'lib/auth' but standard is 'auth' or '@/auth'.
+        // ── Auto-claim walk-in fair passes ────────────────────────────────────
+        // If this email was used at a fair before registering, retroactively
+        // link those passes so fair visits appear immediately on the dashboard.
+        if (newUser.student) {
+            await prisma.fairStudentPass
+                .updateMany({
+                    where: { email, studentId: null },
+                    data: { studentId: newUser.student.id, isPartialProfile: false },
+                })
+                .catch(() => null) // best-effort — never block registration
+        }
 
         await logAudit({
             action: 'REGISTER_STUDENT',
