@@ -169,3 +169,68 @@ export async function getFairDetail(id: string) {
 }
 
 export type FairDetail = Awaited<ReturnType<typeof getFairDetail>>
+
+// ── Q&A — Submit a question ────────────────────────────────────────────────────
+export async function createFairQuestion(
+    fairEventId: string,
+    question: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+    const session = await auth()
+    if (!session?.user) return { ok: false, error: 'Please sign in to ask a question.' }
+
+    const trimmed = question.trim()
+    if (!trimmed || trimmed.length < 5)
+        return { ok: false, error: 'Question must be at least 5 characters.' }
+    if (trimmed.length > 500)
+        return { ok: false, error: 'Question must be under 500 characters.' }
+
+    try {
+        await prisma.fairQuestion.create({
+            data: {
+                fairEventId,
+                question: trimmed,
+                askerRole: session.user.role ?? 'STUDENT',
+                askerId: session.user.id ?? '',
+                isPublic: true,
+            },
+        })
+        revalidatePath(`/fair`)
+        revalidatePath(`/admin/fairs/${fairEventId}`)
+        return { ok: true }
+    } catch (err) {
+        console.error('[createFairQuestion]', err)
+        return { ok: false, error: 'Failed to submit question. Please try again.' }
+    }
+}
+
+// ── Q&A — Admin answers a question ────────────────────────────────────────────
+export async function answerFairQuestion(
+    questionId: string,
+    answer: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+    await requireAdmin()
+
+    const trimmed = answer.trim()
+    if (!trimmed) return { ok: false, error: 'Answer cannot be empty.' }
+
+    try {
+        await prisma.fairQuestion.update({
+            where: { id: questionId },
+            data: { answer: trimmed, answeredAt: new Date() },
+        })
+        revalidatePath('/admin/fairs')
+        return { ok: true }
+    } catch (err) {
+        console.error('[answerFairQuestion]', err)
+        return { ok: false, error: 'Failed to save answer. Please try again.' }
+    }
+}
+
+export type FairQuestionRow = {
+    id: string
+    question: string
+    askerRole: string
+    answer: string | null
+    answeredAt: string | null
+    createdAt: string
+}

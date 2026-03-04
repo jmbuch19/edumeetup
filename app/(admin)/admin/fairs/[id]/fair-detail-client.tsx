@@ -6,11 +6,11 @@ import { useRouter } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { setFairLive, endFair, type FairDetail } from '../actions'
+import { setFairLive, endFair, answerFairQuestion, type FairDetail, type FairQuestionRow } from '../actions'
 import {
     ArrowLeft, QrCode, Printer, ExternalLink,
     Users, ScanLine, Building2, UserCheck,
-    Zap, CheckCircle2, MapPin, Calendar,
+    Zap, CheckCircle2, MapPin, Calendar, MessageCircleQuestion, Loader2,
 } from 'lucide-react'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -36,7 +36,12 @@ function StatCard({ label, value, icon: Icon, color }: {
     )
 }
 
-export function FairDetailClient({ fair }: { fair: NonNullable<FairDetail> }) {
+export function FairDetailClient({
+    fair, questions = [],
+}: {
+    fair: NonNullable<FairDetail>
+    questions?: FairQuestionRow[]
+}) {
     const router = useRouter()
     const [pending, startTransition] = useTransition()
     const [action, setAction] = useState<'live' | 'end' | null>(null)
@@ -231,6 +236,100 @@ export function FairDetailClient({ fair }: { fair: NonNullable<FairDetail> }) {
                         </div>
                     </CardContent>
                 </Card>
+            </div>
+
+            {/* ── Q&A Answer Panel ── */}
+            <AdminQAPanel questions={questions} />
+        </div>
+    )
+}
+
+// ── Admin Q&A answer panel ────────────────────────────────────────────────────
+function AdminQAPanel({ questions }: { questions: FairQuestionRow[] }) {
+    if (questions.length === 0) return null
+
+    const unanswered = questions.filter(q => !q.answer)
+    const answered = questions.filter(q => q.answer)
+    const ordered = [...unanswered, ...answered]
+
+    return (
+        <Card className="border-indigo-100">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                    <MessageCircleQuestion className="w-5 h-5 text-indigo-600" />
+                    Questions &amp; Answers
+                    {unanswered.length > 0 && (
+                        <span className="ml-1 bg-amber-100 text-amber-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                            {unanswered.length} unanswered
+                        </span>
+                    )}
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 divide-y divide-gray-100">
+                {ordered.map(q => <QRow key={q.id} q={q} />)}
+            </CardContent>
+        </Card>
+    )
+}
+
+function QRow({ q }: { q: FairQuestionRow }) {
+    const [ansText, setAnsText] = useState(q.answer ?? '')
+    const [saved, setSaved] = useState(!!q.answer)
+    const [err, setErr] = useState('')
+    const [pending, start] = useTransition()
+
+    const handleSave = () => {
+        setErr('')
+        start(async () => {
+            const res = await answerFairQuestion(q.id, ansText)
+            if (res.ok) { setSaved(true) }
+            else { setErr(res.error) }
+        })
+    }
+
+    return (
+        <div className="pt-4 first:pt-0 space-y-2">
+            <div className="flex items-start gap-2">
+                <span className="mt-0.5 text-xs font-bold text-indigo-400 uppercase tracking-wide min-w-[18px]">Q</span>
+                <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-800">{q.question}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] uppercase font-semibold text-gray-400 tracking-wide">{q.askerRole}</span>
+                        <span className="text-[10px] text-gray-300">·</span>
+                        <span className="text-[10px] text-gray-400">
+                            {new Date(q.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </span>
+                        {!q.answer && (
+                            <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
+                                Unanswered
+                            </span>
+                        )}
+                    </div>
+                </div>
+            </div>
+            <div className="flex items-start gap-2">
+                <span className="mt-2 text-xs font-bold text-emerald-500 uppercase tracking-wide min-w-[18px]">A</span>
+                <div className="flex-1 space-y-1.5">
+                    <textarea
+                        value={ansText}
+                        onChange={e => { setAnsText(e.target.value); setSaved(false) }}
+                        rows={2}
+                        placeholder="Type your answer…"
+                        className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 resize-none"
+                    />
+                    <div className="flex items-center justify-between">
+                        {err && <span className="text-xs text-red-500">{err}</span>}
+                        {saved && !pending && <span className="text-xs text-emerald-600 font-medium">✓ Saved &amp; live</span>}
+                        <button
+                            onClick={handleSave}
+                            disabled={pending || !ansText.trim() || saved}
+                            className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-xs font-semibold px-3 py-1.5 transition-colors"
+                        >
+                            {pending && <Loader2 className="w-3 h-3 animate-spin" />}
+                            {saved ? 'Saved' : 'Save Answer'}
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     )

@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { FairRegistrationForm } from './fair-form'
+import { FairQAPanel, type QAItem } from '@/components/fair/fair-qa-panel'
 
 interface PageProps {
     searchParams: { eventId?: string }
@@ -29,7 +30,7 @@ export default async function FairPage({ searchParams }: PageProps) {
     // ── Fetch fair event ──────────────────────────────────────────────────────
     const fairEvent = await prisma.fairEvent.findUnique({
         where: { id: eventId },
-        select: { id: true, name: true, city: true, startDate: true, endDate: true, status: true },
+        select: { id: true, name: true, slug: true, city: true, startDate: true, endDate: true, status: true },
     })
 
     if (!fairEvent) {
@@ -99,17 +100,39 @@ export default async function FairPage({ searchParams }: PageProps) {
         }
     }
 
+    // ── Fetch public answered questions for this event ────────────────────────
+    const rawQuestions = await prisma.fairQuestion.findMany({
+        where: { fairEventId: eventId, answer: { not: null }, isPublic: true },
+        orderBy: { answeredAt: 'asc' },
+        select: { id: true, question: true, askerRole: true, answer: true, answeredAt: true, createdAt: true },
+    })
+    const publicQuestions: QAItem[] = rawQuestions.map(q => ({
+        id: q.id,
+        question: q.question,
+        askerRole: q.askerRole,
+        answer: q.answer,
+        answeredAt: q.answeredAt?.toISOString() ?? null,
+        createdAt: q.createdAt.toISOString(),
+    }))
+
     return (
         <main className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 py-12 px-4">
-            <FairRegistrationForm
-                fairEventId={eventId}
-                fairEventTitle={fairEvent.name}
-                fairEventCity={fairEvent.city ?? ''}
-                prefilled={prefilled}
-                isLoggedIn={isLoggedIn}
-                profileComplete={profileComplete}
-                sessionEmail={session?.user?.email ?? null}
-            />
+            <div className="max-w-xl mx-auto space-y-4">
+                <FairRegistrationForm
+                    fairEventId={eventId}
+                    fairEventTitle={fairEvent.name}
+                    fairEventCity={fairEvent.city ?? ''}
+                    prefilled={prefilled}
+                    isLoggedIn={isLoggedIn}
+                    profileComplete={profileComplete}
+                    sessionEmail={session?.user?.email ?? null}
+                />
+                <FairQAPanel
+                    fairEventId={eventId}
+                    questions={publicQuestions}
+                    isLoggedIn={isLoggedIn}
+                />
+            </div>
         </main>
     )
 }
