@@ -11,7 +11,10 @@ async function getHeroSlides() {
       status: "ACTIVE",
       placement: "BANNER",
       startDate: { lte: now },
-      endDate: { gte: now }
+      OR: [
+        { endDate: null },           // null = runs indefinitely
+        { endDate: { gte: now } }    // or future end date
+      ]
     },
     orderBy: [
       { priority: 'desc' },

@@ -134,6 +134,7 @@ model Student {
   notifications      StudentNotification[]
   proactiveMessages  ProactiveMessage[]
   dismissals         StudentDiscoveryDismissal[]
+  fairPasses         FairStudentPass[]
 }
 
 model ProfileChangeLog {
@@ -237,6 +238,7 @@ model University {
   proctorRequests         ProctorRequest[]
   proactiveMessages       ProactiveMessage[]
   dismissals              StudentDiscoveryDismissal[]
+  fairAttendances         FairAttendance[]
   reps                    User[]                   @relation("UniversityReps")
 
   @@index([verificationStatus])
@@ -252,10 +254,14 @@ model UniversityDocument {
   fileUrl      String
   mimeType     String     @default("application/pdf")
   sizeBytes    Int
+  programId    String?
+  isFairReady  Boolean    @default(false)
   uploadedAt   DateTime   @default(now())
   university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  program      Program?   @relation(fields: [programId], references: [id], onDelete: SetNull)
 
   @@index([universityId])
+  @@index([programId])
 }
 
 model Program {
@@ -277,6 +283,7 @@ model Program {
   updatedAt       DateTime   @updatedAt
   interests       Interest[]
   meetings        Meeting[]
+  documents       UniversityDocument[]
   university      University @relation(fields: [universityId], references: [id], onDelete: Cascade)
 }
 
@@ -318,7 +325,7 @@ model AuditLog {
   actorId    String?
   metadata   Json?
   createdAt  DateTime @default(now())
-  actor      User?    @relation(fields: [actorId], references: [id])
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
 }
 
 model AdvisoryRequest {
@@ -599,7 +606,7 @@ model SystemReport {
   path          String?
   screenshotUrl String?
   createdAt     DateTime @default(now())
-  user          User?    @relation(fields: [userId], references: [id])
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
 model BotMisses {
@@ -790,7 +797,7 @@ enum ProctorRequestStatus {
 model ProctorRequest {
   id             String               @id @default(cuid())
   universityId   String
-  university     University           @relation(fields: [universityId], references: [id])
+  university     University           @relation(fields: [universityId], references: [id], onDelete: Cascade)
 
   // Exam details
   examType        String               // "midterm" | "final" | "multiple" | "other"
@@ -904,3 +911,118 @@ model StudentDiscoveryDismissal {
   @@index([studentId])
 }
 
+// ── Fair Mode ─────────────────────────────────────────────────────────
+
+model FairEvent {
+  id          String          @id @default(cuid())
+  name        String
+  slug        String          @unique
+  description String?
+  city        String?
+  venue       String?
+  country     String?
+  startDate   DateTime
+  endDate     DateTime
+  endedAt     DateTime?
+  isHybrid    Boolean         @default(false)
+  onlineUrl   String?
+  status      FairEventStatus @default(UPCOMING)
+  capacity    Int?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  studentPasses FairStudentPass[]
+  attendances   FairAttendance[]
+
+  @@index([status])
+  @@index([startDate])
+  @@index([city])
+  @@index([slug])
+}
+
+model FairStudentPass {
+  id                 String    @id @default(cuid())
+  uuid               String    @unique @default(uuid())
+  fairEventId        String
+  fairEvent          FairEvent @relation(fields: [fairEventId], references: [id], onDelete: Cascade)
+  studentId          String?
+  student            Student?  @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  email              String
+  fullName           String
+  phone              String
+
+  currentInstitution String
+  currentCourse      String
+  yearOfPassing      Int
+
+  fieldOfInterest    String?
+  budgetRange        String?
+  preferredCountries String?
+
+  whatsappConsent    Boolean   @default(false)
+  emailConsent       Boolean   @default(true)
+  marketingConsent   Boolean   @default(false)
+  consentTimestamp   DateTime  @default(now())
+
+  checkedIn          Boolean   @default(false)
+  checkedInAt        DateTime?
+  isPartialProfile   Boolean   @default(true)
+  parentToken        String?   @unique
+
+  attendances        FairAttendance[]
+  createdAt          DateTime  @default(now())
+
+  @@unique([email, fairEventId])
+  @@index([fairEventId])
+  @@index([studentId])
+}
+
+model FairAttendance {
+  id           String          @id @default(cuid())
+  passId       String
+  pass         FairStudentPass @relation(fields: [passId], references: [id], onDelete: Cascade)
+  universityId String
+  university   University      @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  fairEventId  String
+  fairEvent    FairEvent       @relation(fields: [fairEventId], references: [id], onDelete: Cascade)
+
+  scannedAt       DateTime  @default(now())
+  boothNumber     String?
+  status          String    @default("SCANNED")
+  repNotes        String?
+  matchedPrograms String[]  @default([])
+  emailSent       Boolean   @default(false)
+  whatsappSent    Boolean   @default(false)
+  followUpStatus  String    @default("PENDING")
+  followUpNote    String?
+  followUpAt      DateTime?
+
+  messages        FairMessage[]
+
+  @@unique([passId, universityId, fairEventId])
+  @@index([universityId, fairEventId])
+  @@index([fairEventId])
+  @@index([passId])
+}
+
+model FairMessage {
+  id               String         @id @default(cuid())
+  fairAttendanceId String
+  fairAttendance   FairAttendance @relation(fields: [fairAttendanceId], references: [id], onDelete: Cascade)
+  senderRole       String
+  senderId         String
+  content          String
+  readAt           DateTime?
+  createdAt        DateTime       @default(now())
+
+  @@index([fairAttendanceId])
+  @@index([senderId])
+}
+
+enum FairEventStatus {
+  UPCOMING
+  LIVE
+  COMPLETED
+  CANCELLED
+}

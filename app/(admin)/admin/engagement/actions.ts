@@ -165,11 +165,13 @@ export async function createSponsoredContent(formData: FormData) {
     const sponsorType = (formData.get("sponsorType") as string) || "UNIVERSITY"
     const priority = parseInt(formData.get("priority") as string) || 5
     const status = (formData.get("status") as string) || "DRAFT"
-    const startDate = formData.get("startDate") ? new Date(formData.get("startDate") as string) : new Date()
-    const endDate = formData.get("endDate") ? new Date(formData.get("endDate") as string) : null
+    const startDateRaw = (formData.get("startDate") as string | null)?.trim()
+    const endDateRaw = (formData.get("endDate") as string | null)?.trim()
+    // Use 1 minute ago as default so content is immediately past the `startDate ≤ now` filter
+    const startDate = startDateRaw ? new Date(startDateRaw) : new Date(Date.now() - 60_000)
+    const endDate = endDateRaw ? new Date(endDateRaw) : null
 
     if (!title || !imageUrl || !targetUrl) return { error: "Missing fields" }
-    if (status === "ACTIVE" && !endDate) return { error: "Active campaigns require an end date" }
 
     try {
         await prisma.sponsoredContent.create({
