@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getAdminOverviewMetrics } from '../overview/actions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, Building2, Calendar, Clock, BookOpen, MapPin, ArrowRight } from 'lucide-react'
+import { Users, Building2, Calendar, Clock, BookOpen, MapPin, ArrowRight, QrCode } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic'
 const QUICK_LINKS = [
     { href: '/admin/universities', label: 'Universities', icon: Building2, desc: 'Verify & manage institutions' },
     { href: '/admin/users', label: 'Users', icon: Users, desc: 'Manage all platform users' },
+    { href: '/admin/fairs', label: 'Fair Events', icon: QrCode, desc: 'Create fairs & generate entrance QR' },
     { href: '/admin/engagement', label: 'Engagement', icon: BookOpen, desc: 'Announcements & notifications' },
     { href: '/admin/host-requests', label: 'Host Requests', icon: MapPin, desc: 'Campus fair requests' },
     { href: '/admin/advisory', label: 'Advisory', icon: Clock, desc: 'Student advisory requests' },

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import {
     LayoutDashboard, Users, School, LogOut, Ticket,
     Globe, Megaphone, CalendarDays, FileBarChart2,
-    Sparkles
+    Sparkles, QrCode
 } from "lucide-react"
 import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav"
@@ -73,6 +73,7 @@ export default async function AdminLayout({
                     <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-3 pt-4 pb-1">Operations</p>
                     <ActiveNavItem href="/admin/advisory" iconNode={<Users className="h-5 w-5 shrink-0" />} label="Advisory Requests" />
                     <ActiveNavItem href="/admin/host-requests" iconNode={<Globe className="h-5 w-5 shrink-0" />} label="Host Requests" />
+                    <ActiveNavItem href="/admin/fairs" iconNode={<QrCode className="h-5 w-5 shrink-0" />} label="Fair Events" />
                     <ActiveNavItem href="/admin/engagement" iconNode={<Megaphone className="h-5 w-5 shrink-0" />} label="Engagement" />
 
                     <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-3 pt-4 pb-1">Insights</p>
