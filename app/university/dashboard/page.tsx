@@ -10,7 +10,7 @@ import { FairOutreachList } from '@/components/university/FairOutreachList'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardStats } from "@/components/university/DashboardStats"
-import { School, Download, BookOpen, Clock } from 'lucide-react'
+import { School, Download, BookOpen, Clock, QrCode, Zap, FileText, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { DegreeLevels } from '@/lib/constants'
@@ -22,6 +22,7 @@ import { OutreachTab } from '@/components/university/outreach-tab'
 import { getNudgeableStudents } from '@/app/university/actions/outreach'
 import { maskName } from '@/lib/outreach-utils'
 import { ActionCentre } from '@/components/university/action-centre'
+import { FairReportCard } from '@/components/university/fair-report-card'
 
 export const dynamic = 'force-dynamic'
 
@@ -281,6 +282,49 @@ export default async function UniversityDashboard() {
     const completeness = calculateCompleteness(uni)
     const { score: completenessScore, tasks: completenessTasks } = completeness
 
+    // 10. Fair Mode — live banner, report card, and history tab
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    const [liveFair, upcomingFair, recentlyEndedFair] = await Promise.all([
+        prisma.fairEvent.findFirst({ where: { status: 'LIVE' }, orderBy: { startDate: 'desc' } }),
+        prisma.fairEvent.findFirst({
+            where: { status: 'UPCOMING', startDate: { gte: new Date() } },
+            orderBy: { startDate: 'asc' },
+        }),
+        prisma.fairEvent.findFirst({
+            where: { status: 'COMPLETED', endedAt: { gte: sevenDaysAgo } },
+            orderBy: { endedAt: 'desc' },
+        }),
+    ])
+    const [todayScans, recentLeadCount] = await Promise.all([
+        liveFair
+            ? prisma.fairAttendance.count({
+                where: {
+                    universityId: uni.id, fairEventId: liveFair.id,
+                    scannedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) }
+                },
+            })
+            : Promise.resolve(0),
+        recentlyEndedFair
+            ? prisma.fairAttendance.count({
+                where: { universityId: uni.id, fairEventId: recentlyEndedFair.id },
+            })
+            : Promise.resolve(0),
+    ])
+    const fairHistoryGroups = await prisma.fairAttendance.groupBy({
+        by: ['fairEventId'],
+        where: { universityId: uni.id },
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+    })
+    const fairHistoryWithDetails = await Promise.all(
+        fairHistoryGroups.map(async (record) => {
+            const fair = await prisma.fairEvent.findUnique({ where: { id: record.fairEventId } })
+            return { fair, leadCount: record._count.id }
+        })
+    )
+    const upcomingWithin7 = upcomingFair &&
+        (new Date(upcomingFair.startDate).getTime() - Date.now()) < 7 * 24 * 60 * 60 * 1000
+
     // Stats
     const stats = {
         totalPrograms: uni.programs.length,
@@ -329,6 +373,72 @@ export default async function UniversityDashboard() {
                 </div>
             </div>
 
+            {/* ── Addition 1: Live / Upcoming Fair Banner ── */}
+            {liveFair ? (
+                <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-5 md:p-6 shadow-lg">
+                    <div className="flex flex-col md:flex-row md:items-center gap-4">
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+                                <span className="text-white font-bold text-sm tracking-widest uppercase">Live Now</span>
+                            </div>
+                            <h2 className="text-white font-bold text-xl md:text-2xl truncate">{liveFair.name}</h2>
+                            {(liveFair.venue || liveFair.city) && (
+                                <p className="text-emerald-100 text-sm mt-1">{[liveFair.venue, liveFair.city].filter(Boolean).join(' · ')}</p>
+                            )}
+                            <p className="text-emerald-200 text-xs mt-3">Scanner works on any phone browser — no app needed</p>
+                        </div>
+                        <div className="flex flex-col gap-2 shrink-0 w-full md:w-auto">
+                            <Link
+                                href={`/event/${liveFair.slug}/scan`}
+                                className="inline-flex items-center justify-center gap-2 bg-white text-emerald-700 font-bold rounded-xl px-5 py-3 text-sm shadow-sm hover:bg-emerald-50 transition-colors w-full md:w-auto"
+                            >
+                                <QrCode className="w-4 h-4" /> Open Booth Scanner
+                            </Link>
+                            <Link
+                                href={`/dashboard/university/fair-report/${liveFair.id}`}
+                                className="inline-flex items-center justify-center gap-2 border border-white/40 text-white font-semibold rounded-xl px-5 py-2.5 text-sm hover:bg-white/10 transition-colors w-full md:w-auto"
+                            >
+                                My Leads Today ({todayScans})
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            ) : upcomingWithin7 && upcomingFair ? (
+                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-5 md:p-6 shadow-lg">
+                    <div className="flex flex-col md:flex-row md:items-center gap-4">
+                        <div className="flex-1 min-w-0">
+                            <span className="inline-block bg-white/20 text-white text-xs font-bold tracking-widest uppercase px-3 py-1 rounded-full mb-2">Coming Soon</span>
+                            <h2 className="text-white font-bold text-xl md:text-2xl truncate">{upcomingFair.name}</h2>
+                            <p className="text-blue-100 text-sm mt-1">
+                                {new Date(upcomingFair.startDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                {(upcomingFair.venue || upcomingFair.city) &&
+                                    ` · ${[upcomingFair.venue, upcomingFair.city].filter(Boolean).join(', ')}`}
+                            </p>
+                            <p className="text-blue-200 text-xs mt-2">You will receive your scanner link when the fair goes live</p>
+                        </div>
+                        <div className="shrink-0">
+                            <Link
+                                href={`/fair?eventId=${upcomingFair.id}`}
+                                className="inline-flex items-center gap-2 bg-white text-blue-700 font-bold rounded-xl px-5 py-3 text-sm shadow-sm hover:bg-blue-50 transition-colors"
+                            >
+                                <Zap className="w-4 h-4" /> Register for This Fair
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {/* ── Addition 2: Recently Completed Fair Report Card ── */}
+            {recentlyEndedFair && recentLeadCount > 0 && (
+                <FairReportCard
+                    fairName={recentlyEndedFair.name}
+                    fairId={recentlyEndedFair.id}
+                    leadCount={recentLeadCount}
+                    endedAt={recentlyEndedFair.endedAt?.toISOString() ?? recentlyEndedFair.endDate.toISOString()}
+                />
+            )}
+
             <div className="mb-8">
                 <NotificationsCenter userRole="UNIVERSITY" />
             </div>
@@ -359,6 +469,14 @@ export default async function UniversityDashboard() {
                                 <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full animate-pulse" />
                             )}
                         </TabsTrigger>
+                        {fairHistoryWithDetails.length > 0 && (
+                            <TabsTrigger value="fair-leads" className="relative">
+                                Fair Leads
+                                {liveFair && (
+                                    <span className="ml-1.5 inline-block bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">LIVE</span>
+                                )}
+                            </TabsTrigger>
+                        )}
                     </TabsList>
                 </div>
 
@@ -581,6 +699,90 @@ export default async function UniversityDashboard() {
                         universityName={uni.institutionName}
                     />
                 </TabsContent>
+
+                {/* ── Addition 3: Fair Leads History Tab ── */}
+                {fairHistoryWithDetails.length > 0 && (
+                    <TabsContent value="fair-leads" className="space-y-4">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">Fair Participation History</h2>
+                            <p className="text-sm text-gray-500 mt-1">All fairs your booth has participated in</p>
+                        </div>
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            {/* Mobile cards */}
+                            <div className="md:hidden divide-y divide-gray-100">
+                                {fairHistoryWithDetails.map(({ fair, leadCount }) => fair && (
+                                    <div key={fair.id} className="p-4 space-y-3">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div>
+                                                <p className="font-semibold text-gray-900">{fair.name}</p>
+                                                {fair.city && <p className="text-xs text-gray-400 mt-0.5">{fair.city}</p>}
+                                            </div>
+                                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${fair.status === 'LIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                    : fair.status === 'COMPLETED' ? 'bg-gray-100 text-gray-600 border-gray-300'
+                                                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                                                }`}>{fair.status}</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500">{new Date(fair.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                        <p className="text-sm font-semibold text-indigo-600">{leadCount} leads</p>
+                                        <div className="flex gap-2">
+                                            {fair.status === 'LIVE' && (
+                                                <Link href={`/event/${fair.slug}/scan`} className="text-xs font-semibold bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors flex items-center gap-1">
+                                                    <QrCode className="w-3.5 h-3.5" /> Open Scanner
+                                                </Link>
+                                            )}
+                                            <Link href={`/dashboard/university/fair-report/${fair.id}`} className="text-xs font-semibold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1">
+                                                <FileText className="w-3.5 h-3.5" /> View Report
+                                            </Link>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {/* Desktop table */}
+                            <div className="hidden md:block overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-gray-100 bg-gray-50">
+                                            <th className="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Fair Name</th>
+                                            <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">City</th>
+                                            <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
+                                            <th className="text-right px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Leads</th>
+                                            <th className="text-center px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                                            <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {fairHistoryWithDetails.map(({ fair, leadCount }) => fair && (
+                                            <tr key={fair.id} className="hover:bg-gray-50/50 transition-colors">
+                                                <td className="px-5 py-3.5 font-semibold text-gray-900">{fair.name}</td>
+                                                <td className="px-4 py-3.5 text-gray-500">{fair.city ?? '—'}</td>
+                                                <td className="px-4 py-3.5 text-gray-500">{new Date(fair.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                                <td className="px-4 py-3.5 text-right font-semibold text-indigo-600">{leadCount}</td>
+                                                <td className="px-4 py-3.5 text-center">
+                                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${fair.status === 'LIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                            : fair.status === 'COMPLETED' ? 'bg-gray-100 text-gray-600 border-gray-300'
+                                                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                                                        }`}>{fair.status}</span>
+                                                </td>
+                                                <td className="px-4 py-3.5">
+                                                    <div className="flex items-center gap-2">
+                                                        {fair.status === 'LIVE' && (
+                                                            <Link href={`/event/${fair.slug}/scan`} className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 px-2.5 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
+                                                                <QrCode className="w-3.5 h-3.5" /> Scanner
+                                                            </Link>
+                                                        )}
+                                                        <Link href={`/dashboard/university/fair-report/${fair.id}`} className="inline-flex items-center gap-1 text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors">
+                                                            <ChevronRight className="w-3.5 h-3.5" /> Report
+                                                        </Link>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </TabsContent>
+                )}
             </Tabs>
         </div>
     )

@@ -3,8 +3,9 @@ import { Button } from '@/components/ui/button'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { UniversityMobileNav } from '@/components/university/university-mobile-nav'
+import { prisma } from '@/lib/prisma'
 
-const navItems = [
+const BASE_NAV = [
     { href: '/university/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
     { href: '/university/analytics', label: 'Analytics', icon: 'BarChart3' },
     { href: '/university/availability', label: 'Availability', icon: 'Clock' },
@@ -24,6 +25,21 @@ export default async function UniversityLayout({
     if (!session || ((session.user as any).role !== 'UNIVERSITY' && (session.user as any).role !== 'UNIVERSITY_REP')) {
         redirect('/login')
     }
+
+    // Check for live fair — used to show LIVE badge on sidebar nav
+    const liveFair = await prisma.fairEvent
+        .findFirst({ where: { status: 'LIVE' } })
+        .catch(() => null)
+
+    // Build final nav list including fair entries
+    const navItems = [
+        ...BASE_NAV,
+        {
+            href: '/dashboard/university/fair-report',
+            label: liveFair ? '🟢 Fair Leads · LIVE' : 'My Fair Leads',
+            icon: 'QrCode',
+        },
+    ]
 
     return (
         <div className="flex min-h-screen bg-gray-50">
