@@ -16,33 +16,36 @@ export default async function FairReportPage({ params }: PageProps) {
     const session = await auth()
     const role = session?.user?.role
 
-    if (!session?.user || (role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP')) {
-        redirect('/unauthorized')
+    const allowed = role === 'UNIVERSITY' || role === 'UNIVERSITY_REP' || role === 'ADMIN'
+    if (!session?.user || !allowed) {
+        redirect('/login')
     }
 
     const userId = session.user.id
+    const isAdmin = role === 'ADMIN'
 
     // ── Resolve universityId ──────────────────────────────────────────────────
     let universityId: string | null = null
-    let universityName = ''
+    let universityName = 'Admin View (All Universities)'
 
-    if (role === 'UNIVERSITY') {
-        const uni = await prisma.university.findUnique({
-            where: { userId },
-            select: { id: true, institutionName: true },
-        })
-        universityId = uni?.id ?? null
-        universityName = uni?.institutionName ?? ''
-    } else {
-        const repUser = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { universityId: true, representedUniversity: { select: { institutionName: true } } },
-        })
-        universityId = repUser?.universityId ?? null
-        universityName = repUser?.representedUniversity?.institutionName ?? ''
+    if (!isAdmin) {
+        if (role === 'UNIVERSITY') {
+            const uni = await prisma.university.findUnique({
+                where: { userId },
+                select: { id: true, institutionName: true },
+            })
+            universityId = uni?.id ?? null
+            universityName = uni?.institutionName ?? ''
+        } else {
+            const repUser = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { universityId: true, representedUniversity: { select: { institutionName: true } } },
+            })
+            universityId = repUser?.universityId ?? null
+            universityName = repUser?.representedUniversity?.institutionName ?? ''
+        }
+        if (!universityId) redirect('/unauthorized')
     }
-
-    if (!universityId) redirect('/unauthorized')
 
     // ── Fetch fair event ──────────────────────────────────────────────────────
     const fairEvent = await prisma.fairEvent.findUnique({
@@ -71,9 +74,12 @@ export default async function FairReportPage({ params }: PageProps) {
         )
     }
 
-    // ── Fetch leads ───────────────────────────────────────────────────────────
+    // ── Fetch leads (all if admin, filtered by uni if university) ─────────────
     const leads = await prisma.fairAttendance.findMany({
-        where: { universityId, fairEventId },
+        where: {
+            fairEventId,
+            ...(universityId ? { universityId } : {}),
+        },
         include: {
             pass: {
                 select: {
@@ -115,7 +121,7 @@ export default async function FairReportPage({ params }: PageProps) {
         <FairReportDashboard
             fairEvent={serializedFairEvent}
             leads={serializedLeads}
-            universityId={universityId}
+            universityId={universityId ?? 'admin'}
             universityName={universityName}
         />
     )
