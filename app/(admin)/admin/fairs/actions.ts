@@ -4,6 +4,11 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import {
+    triggerFairCreatedNotifications,
+    triggerFairGoLiveNotifications,
+    triggerFairEndedNotifications,
+} from '@/lib/fair/notifications'
 
 async function requireAdmin() {
     const session = await auth()
@@ -86,6 +91,8 @@ export async function createFairEvent(formData: {
             },
         })
         revalidatePath('/admin/fairs')
+        // Non-blocking: notify all verified universities + students
+        triggerFairCreatedNotifications(event.id).catch(console.error)
         return { ok: true, id: event.id }
     } catch (err) {
         console.error('[createFairEvent]', err)
@@ -99,6 +106,8 @@ export async function setFairLive(id: string) {
     await prisma.fairEvent.update({ where: { id }, data: { status: 'LIVE', endedAt: null } })
     revalidatePath('/admin/fairs')
     revalidatePath(`/admin/fairs/${id}`)
+    // Non-blocking: scanner links to universities, live alert to city students
+    triggerFairGoLiveNotifications(id).catch(console.error)
 }
 
 // ── End a fair (set endedAt + status COMPLETED) ────────────────────────────────
@@ -110,6 +119,8 @@ export async function endFair(id: string) {
     })
     revalidatePath('/admin/fairs')
     revalidatePath(`/admin/fairs/${id}`)
+    // Non-blocking: lead reports to universities, wrap-up to checked-in students
+    triggerFairEndedNotifications(id).catch(console.error)
 }
 
 // ── Get single fair + detailed stats ──────────────────────────────────────────
