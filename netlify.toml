@@ -47,3 +47,14 @@
 #   CRON_SECRET           Random secret shared with the process-deletions function
 #   SUPPORT_EMAIL         support@edumeetup.com  ← used in deletion confirmation emails and server-side error messages
 #   NEXT_PUBLIC_SUPPORT_EMAIL support@edumeetup.com  ← same address, exposed to client error/auth pages
+#
+# ⏳ ADD TODAY:
+#   DIRECT_URL            Neon direct (non-pooled) connection string — required for Prisma migrations
+#
+# ⏳ ADD BEFORE FIRST FAIR:
+#   NEXT_PUBLIC_APP_URL   https://www.edumeetup.com  ← used in client-side fair pass / QR links
+#
+# ⏳ ADD WHEN WHATSAPP ACTIVATED:
+#   WHATSAPP_TOKEN        Meta Cloud API permanent token
+#   WHATSAPP_PHONE_ID     WhatsApp Business phone number ID
+
