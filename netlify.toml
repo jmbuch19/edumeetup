@@ -16,12 +16,13 @@
 [functions."process-deletions"]
   schedule = "0 2 * * *"
 
-[functions."triggers"]
+# Hourly agent — student + university + 4 fair triggers
+[functions."agent"]
   schedule = "0 * * * *"
 
-
-[functions."refresh-university-domains"]
-  schedule = "@weekly"
+# Every 15 min — fair-auto-live + fair-auto-complete
+[functions."fair-fast-agent"]
+  schedule = "*/15 * * * *"
 
 # ─── Required Environment Variables ─────────────────────────────────────────
 # Set all of the following in the Netlify dashboard → Site Settings → Env vars:
