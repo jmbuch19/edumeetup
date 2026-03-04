@@ -85,3 +85,33 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Print: show ONLY the QR card, hide everything else ───────────────────── */
+@media print {
+  /* Hide the entire page */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Show only the printable QR section and all its children */
+  #fair-qr-printable,
+  #fair-qr-printable * {
+    visibility: visible !important;
+  }
+
+  /* Position it to fill the page from top-left */
+  #fair-qr-printable {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 2rem !important;
+    background: white !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
