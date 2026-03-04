@@ -933,6 +933,7 @@ model FairEvent {
 
   studentPasses FairStudentPass[]
   attendances   FairAttendance[]
+  questions     FairQuestion[]
 
   @@index([status])
   @@index([startDate])
@@ -1025,4 +1026,21 @@ enum FairEventStatus {
   LIVE
   COMPLETED
   CANCELLED
+}
+
+// ── Fair Event Q&A ─────────────────────────────────────────────────
+model FairQuestion {
+  id          String    @id @default(cuid())
+  fairEventId String
+  fairEvent   FairEvent @relation(fields: [fairEventId], references: [id], onDelete: Cascade)
+  askerRole   String    // "STUDENT" | "UNIVERSITY"
+  askerId     String    // userId of asker
+  question    String
+  answer      String?
+  answeredAt  DateTime?
+  isPublic    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@index([fairEventId])
+  @@index([askerId])
 }
