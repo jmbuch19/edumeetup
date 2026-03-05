@@ -102,6 +102,7 @@ export async function triggerNewInterestAlerts(): Promise<UniversityAgentAction[
   })
 
   for (const interest of newInterests) {
+    if (!interest.student) continue   // orphaned record — student was deleted
     if (await alreadyFired('AGENT_NEW_INTEREST_ALERTED', interest.id)) continue
     const prefs = mergePrefs(interest.university.notificationPrefs)
     if (!prefs.alertNewInterest || isQuietHour(prefs)) continue

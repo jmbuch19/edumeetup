@@ -167,6 +167,7 @@ export async function triggerUniversityResponseDelay(): Promise<AgentAction[]> {
   })
 
   for (const interest of stalledInterests) {
+    if (!interest.student) continue   // orphaned record — student was deleted
     const actionKey = 'AGENT_RESPONSE_DELAY_NOTIFIED'
     if (await alreadyFired(actionKey, interest.id)) continue
 
@@ -181,7 +182,7 @@ export async function triggerUniversityResponseDelay(): Promise<AgentAction[]> {
       universityName: interest.university.institutionName,
       interestId: interest.id,
       payload: {
-        studentName: interest.student.fullName || 'A student',
+        studentName: interest.student?.fullName || 'A student',
         hoursWaiting,
       },
     })

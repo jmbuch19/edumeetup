@@ -70,18 +70,17 @@ export async function exportMeetingsToCSV(filters?: any) {
         'Purpose', 'Questions', 'Rep Email', 'University', 'Created At', 'Updated At'
     ].join(',')
 
-    const rows = meetings.map((m: any) => {
+    const rows = meetings.filter((m: any) => m.student !== null).map((m: any) => {
         return [
             m.id,
             m.status,
             m.startTime.toISOString(),
-            `"${m.student.fullName.replace(/"/g, '""')}"`,
-            m.student.user.email,
-            m.student.country || '',
+            `"${(m.student?.fullName ?? 'Unknown').replace(/"/g, '""')}"`,
+            m.student?.user?.email ?? '',
+            m.student?.country || '',
             `"${m.purpose.replace(/"/g, '""')}"`,
             `"${(m.agenda || '').replace(/"/g, '""')}"`,
-            // m.rep is a user.email? Meeting model has optional repId and rep relation
-            m.availabilitySlot?.repUser.email || '',
+            m.availabilitySlot?.repUser?.email || '',
             `"${m.university.institutionName.replace(/"/g, '""')}"`,
             m.createdAt.toISOString(),
             m.updatedAt.toISOString()

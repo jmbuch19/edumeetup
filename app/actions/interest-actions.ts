@@ -43,8 +43,8 @@ export async function getProgramInterestStats(programId: string): Promise<Intere
 
     // Aggregate by Country
     const countryMap = new Map<string, number>()
-    interests.forEach(i => {
-        const country = i.student.country || 'Unknown'
+    interests.filter(i => i.student !== null).forEach(i => {
+        const country = i.student?.country || 'Unknown'
         countryMap.set(country, (countryMap.get(country) || 0) + 1)
     })
     const byCountry = Array.from(countryMap.entries())
@@ -54,8 +54,8 @@ export async function getProgramInterestStats(programId: string): Promise<Intere
 
     // Aggregate by Status
     const statusMap = new Map<string, number>()
-    interests.forEach(i => {
-        const status = i.student.currentStatus || 'Unknown'
+    interests.filter(i => i.student !== null).forEach(i => {
+        const status = i.student?.currentStatus || 'Unknown'
         statusMap.set(status, (statusMap.get(status) || 0) + 1)
     })
     const byStatus = Array.from(statusMap.entries())
@@ -85,10 +85,10 @@ export async function getInterestedStudents(programId: string): Promise<Interest
 
     // Check for existing meetings to flag "hasMeeting"
     // This is a bit expensive in loop, maybe optimize later
-    const students = await Promise.all(interests.map(async (i) => {
+    const students = await Promise.all(interests.filter(i => i.student !== null).map(async (i) => {
         const meeting = await prisma.meetingParticipant.findFirst({
             where: {
-                participantUserId: i.student.userId,
+                participantUserId: i.student!.userId,
                 meeting: {
                     universityId: uni.id
                 }
@@ -97,11 +97,11 @@ export async function getInterestedStudents(programId: string): Promise<Interest
 
         return {
             id: i.studentId,
-            fullName: i.student.fullName || 'Unknown Student',
-            country: i.student.country,
-            currentStatus: i.student.currentStatus,
-            fieldOfInterest: i.student.fieldOfInterest,
-            preferredDegree: i.student.preferredDegree,
+            fullName: i.student?.fullName || 'Unknown Student',
+            country: i.student?.country ?? null,
+            currentStatus: i.student?.currentStatus ?? null,
+            fieldOfInterest: i.student?.fieldOfInterest ?? null,
+            preferredDegree: i.student?.preferredDegree ?? null,
             interestDate: i.createdAt,
             hasMeeting: !!meeting
         }
@@ -134,7 +134,7 @@ export async function sendBulkNotification(programId: string, subject: string, m
 
     // Create Notifications (generic table + role-specific bell)
     await prisma.notification.createMany({
-        data: interests.map(i => ({
+        data: interests.filter(i => i.student !== null).map(i => ({
             userId: i.student.userId,
             type: 'UNIVERSITY_MESSAGE',
             title: subject,
@@ -155,6 +155,7 @@ export async function sendBulkNotification(programId: string, subject: string, m
 
     // Send Emails
     for (const interest of interests) {
+        if (!interest.student?.user?.email) continue
         await sendEmail({
             to: interest.student.user.email,
             subject: `Message from ${uni.institutionName}: ${subject}`,
