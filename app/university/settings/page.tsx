@@ -15,6 +15,7 @@ import { Bell, Zap, Calendar, Clock, Users, BarChart2 } from 'lucide-react'
 import { saveUniversityNotificationPrefs } from './actions'
 import type { UniversityNotificationPrefs } from '@/lib/agent/university-triggers'
 import { mergePrefs } from '@/lib/agent/university-triggers'
+import SettingsForm from './SettingsForm'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +33,19 @@ export default async function UniversitySettingsPage() {
       notificationPrefs: true,
       responseRate: true,
       verificationStatus: true,
+      // Profile fields for SettingsForm
+      logo: true,
+      brandColor: true,
+      website: true,
+      contactEmail: true,
+      about: true,
+      isPublic: true,
+      defaultDuration: true,
+      dailyCapPerRep: true,
+      minLeadTimeHours: true,
+      bufferMinutes: true,
+      cancellationWindowHours: true,
+      approvalMode: true,
     },
   })
 
@@ -45,11 +59,11 @@ export default async function UniversitySettingsPage() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-1">
-          <h1 className="text-3xl font-bold text-gray-900">Notification Settings</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
           <Badge className="bg-primary/10 text-primary border-0">Premium Partner</Badge>
         </div>
         <p className="text-muted-foreground text-sm">
-          Control exactly how and when EdUmeetup contacts your team.
+          Manage your public profile, logo, and notification preferences.
         </p>
         {university.responseRate != null && (
           <div className="mt-3 inline-flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
@@ -64,6 +78,29 @@ export default async function UniversitySettingsPage() {
           </div>
         )}
       </div>
+
+      {/* Public Profile + Logo Upload */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Public Profile</h2>
+        <SettingsForm settings={{
+          institutionName: university.institutionName,
+          logo: university.logo,
+          brandColor: university.brandColor,
+          website: university.website,
+          contactEmail: university.contactEmail,
+          description: university.about,
+          isPublic: university.isPublic,
+          defaultDuration: university.defaultDuration,
+          dailyCapPerRep: university.dailyCapPerRep,
+          minLeadTimeHours: university.minLeadTimeHours,
+          bufferMinutes: university.bufferMinutes,
+          cancellationWindowHours: university.cancellationWindowHours,
+          approvalMode: university.approvalMode,
+        }} />
+      </div>
+
+      <hr className="my-6 border-gray-100" />
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">Notification Settings</h2>
 
       <form action={saveUniversityNotificationPrefs} className="space-y-6">
 
