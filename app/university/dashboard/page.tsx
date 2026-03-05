@@ -201,7 +201,7 @@ export default async function UniversityDashboard() {
             }
         }
     })
-    const serialisedHistory = outreachHistory.map(r => ({
+    const serialisedHistory = outreachHistory.filter(r => r.student !== null).map(r => ({
         id: r.id,
         subject: r.subject,
         content: r.content,
@@ -718,8 +718,8 @@ export default async function UniversityDashboard() {
                                                 {fair.city && <p className="text-xs text-gray-400 mt-0.5">{fair.city}</p>}
                                             </div>
                                             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${fair.status === 'LIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                    : fair.status === 'COMPLETED' ? 'bg-gray-100 text-gray-600 border-gray-300'
-                                                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                                                : fair.status === 'COMPLETED' ? 'bg-gray-100 text-gray-600 border-gray-300'
+                                                    : 'bg-blue-50 text-blue-700 border-blue-200'
                                                 }`}>{fair.status}</span>
                                         </div>
                                         <p className="text-xs text-gray-500">{new Date(fair.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
@@ -759,8 +759,8 @@ export default async function UniversityDashboard() {
                                                 <td className="px-4 py-3.5 text-right font-semibold text-indigo-600">{leadCount}</td>
                                                 <td className="px-4 py-3.5 text-center">
                                                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${fair.status === 'LIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                            : fair.status === 'COMPLETED' ? 'bg-gray-100 text-gray-600 border-gray-300'
-                                                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                                                        : fair.status === 'COMPLETED' ? 'bg-gray-100 text-gray-600 border-gray-300'
+                                                            : 'bg-blue-50 text-blue-700 border-blue-200'
                                                         }`}>{fair.status}</span>
                                                 </td>
                                                 <td className="px-4 py-3.5">
