@@ -75,7 +75,9 @@ export default async function StudentLayout({ children }: { children: React.Reac
 
                 {/* Page content */}
                 <main className="flex-1 overflow-y-auto">
-                    {children}
+                    <div className="w-full max-w-[680px] mx-auto">
+                        {children}
+                    </div>
                 </main>
             </div>
 

@@ -112,8 +112,10 @@ export default async function AdminLayout({
 
             {/* Main content */}
             <main className="flex-1 md:ml-64 p-4 md:p-8 min-w-0 pt-[3.75rem] md:pt-8">
-                <AdminBreadcrumbs />
-                {children}
+                <div className="w-full max-w-[680px] mx-auto">
+                    <AdminBreadcrumbs />
+                    {children}
+                </div>
             </main>
         </div>
     )
