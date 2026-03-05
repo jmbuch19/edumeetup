@@ -63,6 +63,9 @@ function UniversityLoginForm() {
 
     const ALLOWED_TLDS = ['.edu', '.ac.in', '.ac.uk', '.edu.au', '.ac.nz', '.edu.in', '.ac.za', '.edu.sg']
 
+    // Manually allowlisted domains (testing / non-standard institutional TLDs)
+    const MANUAL_ALLOWLIST = ['iaesgujarat.org']
+
     const validateEmail = (email: string) => {
         const domain = email.split('@')[1]?.toLowerCase()
         if (!domain) return null // Let HTML validation handle empty/invalid format first
@@ -71,15 +74,11 @@ function UniversityLoginForm() {
             return "Please use your official university email (e.g. name@university.edu or name@college.ac.in). Gmail, Yahoo and other personal emails are not accepted."
         }
 
-        // Check Allowed TLDs (Optional strictness, but requested to "Allow only..." implies strict whitelist logic or at least exclude public)
-        // User request: "Block these domains... Allow only emails ending in..."
-        // So we strictly enforce ending with one of the allowed TLDs if not in blocked list?
-        // "Allow only emails ending in:..." suggests a whitelist approach for extensions.
+        // Manual override — passes regardless of TLD
+        if (MANUAL_ALLOWLIST.includes(domain)) return null
+
         const hasValidTLD = ALLOWED_TLDS.some(tld => domain.endsWith(tld))
         if (!hasValidTLD && !BLOCKED_DOMAINS.includes(domain)) {
-            // If strictly enforcing, we block everything else.
-            // But simpler approach requested: Block specific, Allow specific.
-            // Let's stick to the prompt: "Allow only emails ending in..." -> Whitelist check.
             return "Please use an institutional email ending in .edu, .ac.in, etc."
         }
 

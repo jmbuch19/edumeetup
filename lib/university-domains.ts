@@ -36,6 +36,14 @@ const ALLOWED_CODES = new Set([
     'SE', 'SI', 'SK',
 ])
 
+/**
+ * Manual domain allowlist — for testing or verified institutions not in the Hipo list.
+ * To add a domain temporarily: add an entry below and re-deploy.
+ */
+const MANUAL_DOMAIN_ALLOWLIST = new Map<string, UniversityInfo>([
+    ['iaesgujarat.org', { name: 'IAES Gujarat', country: 'India' }],
+])
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface HipoEntry {
@@ -206,6 +214,9 @@ export function isDisposableDomain(domain: string): boolean {
  */
 export function getUniversityInfo(domain: string): UniversityInfo | null {
     const d = domain.toLowerCase().trim()
+
+    // 0. Manual allowlist — overrides Hipo list (for testing / non-standard domains)
+    if (MANUAL_DOMAIN_ALLOWLIST.has(d)) return MANUAL_DOMAIN_ALLOWLIST.get(d)!
 
     // 1. Exact match
     if (domainMap.has(d)) return domainMap.get(d)!

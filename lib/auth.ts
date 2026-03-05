@@ -65,6 +65,10 @@ const ALLOWED_SUFFIXES = [
     ".edu", ".ac.in", ".ac.uk", ".edu.au", ".ac.nz", ".edu.in", ".ac.za", ".edu.sg"
 ]
 
+/** Manual domain allowlist — testing / institutions with non-standard TLDs. Keep in sync with lib/university-domains.ts. */
+const MANUAL_DOMAIN_ALLOWLIST = new Set([
+    'iaesgujarat.org',
+])
 
 // isUniversityEmail is async so it can fall back to the DB for verified
 // universities with non-standard domains (e.g. gtu.ac.in, mu.edu, etc.)
@@ -75,6 +79,9 @@ export async function isUniversityEmail(email: string): Promise<boolean> {
 
     // 1. Block known personal / disposable email providers
     if (BLOCKED_DOMAINS.includes(domain)) return false
+
+    // 1.5 Manual allowlist — beats TLD restrictions for testing / non-standard domains
+    if (MANUAL_DOMAIN_ALLOWLIST.has(domain)) return true
 
     // 2. Accept well-known academic TLD suffixes
     if (ALLOWED_SUFFIXES.some(suffix => domain.endsWith(suffix))) return true
