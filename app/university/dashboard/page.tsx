@@ -514,9 +514,11 @@ export default async function UniversityDashboard() {
 
                     <div className="grid md:grid-cols-2 gap-6">
                         <Card>
-                            <CardHeader>
-                                <CardTitle>Recent Student Interests</CardTitle>
-                                <CardDescription>Latest students interested in your programs</CardDescription>
+                            <CardHeader className="flex flex-row justify-between items-center">
+                                <div>
+                                    <CardTitle>Recent Student Interests</CardTitle>
+                                    <CardDescription>Latest students interested in your programs</CardDescription>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <InterestedStudentsTable

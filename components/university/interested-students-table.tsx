@@ -94,16 +94,32 @@ export function InterestedStudentsTable({ interests, availabilitySlots = [], pro
 
     return (
         <div>
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
-                <h2 className="text-xl font-bold">Interested Students ({interests.length})</h2>
-                <Button
-                    onClick={handleScheduleClick}
-                    disabled={selectedIds.length === 0}
-                    className="w-full sm:w-auto"
-                >
-                    Schedule Meeting ({selectedIds.length})
-                </Button>
-            </div>
+            {/* Header row — hidden in compact mode since the Card already provides a title + the button below */}
+            {!compact && (
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+                    <h2 className="text-xl font-bold">Interested Students ({interests.length})</h2>
+                    <Button
+                        onClick={handleScheduleClick}
+                        disabled={selectedIds.length === 0}
+                        className="w-full sm:w-auto"
+                    >
+                        Schedule Meeting ({selectedIds.length})
+                    </Button>
+                </div>
+            )}
+
+            {/* In compact mode, show the action button flush-right above the table */}
+            {compact && (
+                <div className="flex justify-end mb-3">
+                    <Button
+                        size="sm"
+                        onClick={handleScheduleClick}
+                        disabled={selectedIds.length === 0}
+                    >
+                        Schedule Meeting {selectedIds.length > 0 && `(${selectedIds.length})`}
+                    </Button>
+                </div>
+            )}
 
             <div className="rounded-md border overflow-x-auto">
                 <Table>
@@ -125,24 +141,30 @@ export function InterestedStudentsTable({ interests, availabilitySlots = [], pro
                             const urgency = hoursWaiting >= 72 ? 'text-red-600 font-semibold' : hoursWaiting >= 48 ? 'text-amber-600 font-medium' : 'text-gray-500'
                             const waitLabel = daysWaiting > 0 ? `${daysWaiting}d` : `${hoursWaiting}h`
                             return (
-                            <TableRow key={interest.id} className={hoursWaiting >= 72 ? 'bg-red-50/40' : hoursWaiting >= 48 ? 'bg-amber-50/40' : ''}>
-                                <TableCell>
-                                    <input
-                                        type="checkbox"
-                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                        checked={selectedIds.includes(interest.student?.user?.id ?? '')}
-                                        onChange={() => toggleSelection(interest.student?.user?.id ?? '')}
-                                    />
-                                </TableCell>
-                                <TableCell className="font-medium">{interest.student?.fullName || interest.student?.user?.email || '—'}</TableCell>
-                                <TableCell>{interest.program?.programName || 'General Interest'}</TableCell>
-                                <TableCell>{interest.student?.country || 'N/A'}</TableCell>
-                                <TableCell>
-                                    <Badge variant="outline" className={hoursWaiting >= 48 ? 'border-amber-300 text-amber-700' : ''}>{interest.status}</Badge>
-                                </TableCell>
-                                <TableCell className="text-xs text-muted-foreground">{new Date(interest.createdAt).toLocaleDateString()}</TableCell>
-                                <TableCell className={`text-sm ${urgency}`}>{waitLabel}</TableCell>
-                            </TableRow>
+                                <TableRow key={interest.id} className={hoursWaiting >= 72 ? 'bg-red-50/40' : hoursWaiting >= 48 ? 'bg-amber-50/40' : ''}>
+                                    <TableCell>
+                                        <input
+                                            type="checkbox"
+                                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            checked={selectedIds.includes(interest.student?.user?.id ?? '')}
+                                            onChange={() => toggleSelection(interest.student?.user?.id ?? '')}
+                                        />
+                                    </TableCell>
+                                    <TableCell className="font-medium">
+                                        {(() => {
+                                            const name = interest.student?.fullName
+                                                ?? [interest.student?.firstName, interest.student?.lastName].filter(Boolean).join(' ')
+                                            return name?.trim() || interest.student?.user?.email || 'Student'
+                                        })()}
+                                    </TableCell>
+                                    <TableCell>{interest.program?.programName || 'General Interest'}</TableCell>
+                                    <TableCell>{interest.student?.country ?? interest.student?.profile?.country ?? 'International'}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className={hoursWaiting >= 48 ? 'border-amber-300 text-amber-700' : ''}>{interest.status}</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">{new Date(interest.createdAt).toLocaleDateString()}</TableCell>
+                                    <TableCell className={`text-sm ${urgency}`}>{waitLabel}</TableCell>
+                                </TableRow>
                             )
                         })}
                         {interests.length === 0 && (
