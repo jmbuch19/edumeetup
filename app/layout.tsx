@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
 import { PublicShell } from "@/components/layout/public-shell";
 import { Toaster } from "sonner";
 import dynamic from "next/dynamic";
@@ -43,11 +45,26 @@ export default async function RootLayout({
 }>) {
   const session = await auth();
 
+  const banner = session ? (
+    <div className="bg-amber-100 text-amber-900 text-center py-2 text-sm font-medium border-b border-amber-200">
+      🚧 Beta Version – Testing Phase. System is active for demonstration.
+    </div>
+  ) : undefined;
+
   return (
     <html lang="en">
       <body className={`${inter.className} overflow-x-hidden`}>
         <ThemeProvider>
-          <PublicShell isLoggedIn={!!session}>
+          {/*
+            PublicShell is a 'use client' component that reads usePathname().
+            Header/Footer are passed as server-rendered ReactNode props so they
+            never get bundled into the client (avoids nodemailer / fs / net / dns errors).
+          */}
+          <PublicShell
+            header={<Header />}
+            footer={<Footer />}
+            banner={banner}
+          >
             {children}
           </PublicShell>
           <ChatWidget />

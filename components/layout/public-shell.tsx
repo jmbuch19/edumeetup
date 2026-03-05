@@ -1,23 +1,25 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { Header } from './header'
-import { Footer } from './footer'
 
 /**
- * Renders the public Header + beta banner + Footer only for non-dashboard routes.
- * Dashboard portals (/university/*, /student/*, /admin/*) are self-contained
- * and must NOT receive the public shell.
+ * Client-side route guard that hides the public header/footer on dashboard routes.
+ * Header and Footer are passed as React nodes rendered by the server layout —
+ * this component never imports them directly (avoids bundling Node.js-only deps).
  */
 
 const DASHBOARD_PREFIXES = ['/university', '/student', '/admin']
 
 export function PublicShell({
     children,
-    isLoggedIn,
+    header,
+    footer,
+    banner,
 }: {
     children: React.ReactNode
-    isLoggedIn: boolean
+    header: React.ReactNode
+    footer: React.ReactNode
+    banner?: React.ReactNode
 }) {
     const pathname = usePathname()
     const isDashboard = DASHBOARD_PREFIXES.some(p => pathname.startsWith(p))
@@ -28,14 +30,10 @@ export function PublicShell({
 
     return (
         <>
-            <Header />
-            {isLoggedIn && (
-                <div className="bg-amber-100 text-amber-900 text-center py-2 text-sm font-medium border-b border-amber-200">
-                    🚧 Beta Version – Testing Phase. System is active for demonstration.
-                </div>
-            )}
+            {header}
+            {banner}
             <main className="min-h-screen">{children}</main>
-            <Footer />
+            {footer}
         </>
     )
 }
