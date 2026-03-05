@@ -45,6 +45,32 @@ const nextConfig = {
                         key: 'Permissions-Policy',
                         value: 'camera=(self), microphone=(), geolocation=(), browsing-topics=()'
                     },
+                    {
+                        key: 'Content-Security-Policy',
+                        value: [
+                            "default-src 'self'",
+                            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+                            "style-src 'self' 'unsafe-inline'",
+                            "img-src 'self' data: blob: https://files.edumeetup.com https://lh3.googleusercontent.com https://*.googleusercontent.com",
+                            "font-src 'self' data:",
+                            "connect-src 'self' https://*.neon.tech https://api.resend.com https://o4508957447987200.ingest.sentry.io",
+                            "media-src 'self'",
+                            "object-src 'none'",
+                            "frame-src 'none'",
+                            "frame-ancestors 'none'",
+                            "base-uri 'self'",
+                            "form-action 'self'",
+                            "upgrade-insecure-requests",
+                        ].join('; ')
+                    },
+                    {
+                        key: 'Cross-Origin-Opener-Policy',
+                        value: 'same-origin'
+                    },
+                    {
+                        key: 'Cross-Origin-Resource-Policy',
+                        value: 'same-origin'
+                    },
                 ]
             },
             {
