@@ -12,6 +12,8 @@
   node_bundler = "esbuild"
   # Increase timeout for data-heavy routes (delete route cancels meetings + sends emails)
   included_files = ["prisma/**"]
+  # Prevent esbuild from bundling the Prisma query engine binary — must stay as a node_module
+  external_node_modules = ["@prisma/client", "prisma"]
 
 [functions."process-deletions"]
   schedule = "0 2 * * *"

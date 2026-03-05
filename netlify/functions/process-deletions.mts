@@ -1,7 +1,6 @@
 import type { Config } from '@netlify/functions'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../../lib/prisma'
 
-const prisma = new PrismaClient()
 
 /**
  * Netlify Scheduled Function — runs daily at 2:00 AM UTC
