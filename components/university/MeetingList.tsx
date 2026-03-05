@@ -147,7 +147,7 @@ export default function MeetingList({ meetings, compact }: { meetings: Meeting[]
                                         </CardTitle>
                                         <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                                             <MapPin className="h-3 w-3" />
-                                            {meeting.student.country || 'International'}
+                                            {meeting.student?.country || 'International'}
                                             <span className="mx-1 text-gray-300">·</span>
                                             <Calendar className="h-3 w-3" />
                                             {fmtDate(dt)}
@@ -159,7 +159,7 @@ export default function MeetingList({ meetings, compact }: { meetings: Meeting[]
                                 </div>
 
                                 <div className="flex items-center gap-2 flex-shrink-0">
-                                    {meeting.student.id && meeting.student.cvFileName && (
+                                    {meeting.student?.id && meeting.student?.cvFileName && (
                                         <a
                                             href={`/api/cv/${meeting.student.id}`}
                                             target="_blank"
@@ -227,8 +227,8 @@ export default function MeetingList({ meetings, compact }: { meetings: Meeting[]
                                         <User className="h-4 w-4 text-primary flex-shrink-0" />
                                         <span className="font-medium">{meeting.student?.fullName || meeting.student?.user?.email || 'Unknown Student'}</span>
                                         <span className="text-gray-400">·</span>
-                                        <a href={`mailto:${meeting.student.user.email}`} className="text-blue-600 hover:underline">
-                                            {meeting.student.user.email}
+                                        <a href={`mailto:${meeting.student?.user?.email}`} className="text-blue-600 hover:underline">
+                                            {meeting.student?.user?.email}
                                         </a>
                                     </div>
                                     <div className="pl-6 text-gray-600">
