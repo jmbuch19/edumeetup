@@ -347,7 +347,7 @@ export default async function UniversityDashboard() {
 
 
     return (
-        <div className="space-y-8 container max-w-7xl mx-auto px-4 py-10">
+        <div className="space-y-8 max-w-full px-4 md:px-6 py-6">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <UniversityLogo

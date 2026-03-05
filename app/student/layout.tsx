@@ -1,42 +1,37 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { UniversityNav } from '@/components/university/university-nav'
-import { UniversityRightSidebar } from '@/components/university/university-right-sidebar'
+import { StudentNav } from '@/components/student/student-nav'
+import { StudentRightSidebar } from '@/components/student/student-right-sidebar'
 import '@/app/dashboard-tokens.css'
 
-export default async function UniversityLayout({ children }: { children: React.ReactNode }) {
+export default async function StudentLayout({ children }: { children: React.ReactNode }) {
     const session = await auth()
-    if (!session || (
-        (session.user as any).role !== 'UNIVERSITY' &&
-        (session.user as any).role !== 'UNIVERSITY_REP'
-    )) {
+    if (!session || (session.user as any).role !== 'STUDENT') {
         redirect('/login')
     }
 
-    // Fetch university basics for the nav + header
-    const uni = await prisma.university.findFirst({
+    const student = await prisma.student.findFirst({
         where: { userId: session.user.id },
-        select: { institutionName: true, interests: { select: { id: true }, where: { status: 'INTERESTED' }, take: 20 } },
+        select: { fullName: true, city: true },
     })
 
-    // Check for live fair — live scanner link in sidebar
-    const liveFair = await prisma.fairEvent.findFirst({ where: { status: 'LIVE' } }).catch(() => null)
-
-    const pendingCount = uni?.interests.length ?? 0
-    const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    const today = new Date()
+    const hours = today.getHours()
+    const greeting = hours < 12 ? 'Good morning' : hours < 17 ? 'Good afternoon' : 'Good evening'
+    const dateStr = today.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
+    const firstName = (student?.fullName ?? session.user.name ?? 'there').split(' ')[0]
 
     return (
         <div className="flex h-screen overflow-hidden" style={{ background: 'var(--surface)', fontFamily: 'var(--font-body)' }}>
 
             {/* ── Left Navigation ─────────────────────────────────────────────── */}
-            <UniversityNav
-                userName={session.user.name}
-                institutionName={uni?.institutionName}
-                liveFairHref={liveFair ? `/event/${(liveFair as any).slug}/scan` : undefined}
+            <StudentNav
+                userName={student?.fullName ?? session.user.name}
+                city={student?.city}
             />
 
-            {/* ── Centre — scrollable content ─────────────────────────────────── */}
+            {/* ── Centre ──────────────────────────────────────────────────────── */}
             <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
                 {/* Sticky header */}
@@ -46,35 +41,34 @@ export default async function UniversityLayout({ children }: { children: React.R
                         backdropFilter: 'blur(12px)',
                         borderColor: 'var(--border-dash)',
                     }}>
-                    {/* Left — mobile hamburger + title */}
+                    {/* Left — mobile hamburger (only shows on mobile) + greeting */}
                     <div className="flex items-center gap-3 min-w-0">
-                        {/* hamburgerOnly — desktop sidebar already rendered above */}
-                        <UniversityNav
+                        <StudentNav
                             hamburgerOnly
-                            userName={session.user.name}
-                            institutionName={uni?.institutionName}
-                            liveFairHref={liveFair ? `/event/${(liveFair as any).slug}/scan` : undefined}
+                            userName={student?.fullName ?? session.user.name}
+                            city={student?.city}
                         />
                         <div className="min-w-0">
                             <p className="text-lg font-semibold truncate" style={{ fontFamily: 'var(--font-display)', color: 'var(--navy)' }}>
-                                {uni?.institutionName ?? 'University Dashboard'}
+                                {greeting}, {firstName} 👋
                             </p>
                             <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                                {today}{pendingCount > 0 ? ` · ${pendingCount} new interests` : ''}
+                                {dateStr}
                             </p>
                         </div>
                     </div>
 
                     {/* Right — CTAs */}
                     <div className="flex items-center gap-2 flex-shrink-0">
-                        <button className="hidden sm:inline-flex items-center border rounded-full px-4 py-1.5 text-xs font-semibold transition-colors hover:bg-teal-50"
+                        <a href="/student/profile"
+                            className="hidden sm:inline-flex items-center border rounded-full px-4 py-1.5 text-xs font-semibold transition-colors hover:bg-teal-50"
                             style={{ borderColor: 'var(--teal)', color: 'var(--teal)', background: 'transparent' }}>
-                            Filter
-                        </button>
-                        <a href="/university/dashboard?tab=outreach"
+                            My Profile
+                        </a>
+                        <a href="/universities"
                             className="inline-flex items-center rounded-full px-4 py-1.5 text-xs font-semibold text-white transition-all hover:opacity-90"
                             style={{ background: 'var(--teal)' }}>
-                            + Invite Students
+                            Explore All
                         </a>
                     </div>
                 </header>
@@ -86,7 +80,7 @@ export default async function UniversityLayout({ children }: { children: React.R
             </div>
 
             {/* ── Right Sidebar ────────────────────────────────────────────────── */}
-            <UniversityRightSidebar />
+            <StudentRightSidebar />
         </div>
     )
 }
