@@ -23,17 +23,15 @@ export default function Error({
                 We apologize for the inconvenience. Our team has been notified of this issue.
             </p>
 
-            {/* Show error details in dev mode only */}
-            {isDev && (
-                <div className="mb-6 max-w-2xl w-full text-left bg-red-50 border border-red-200 rounded-lg p-4">
-                    <p className="text-xs font-mono font-bold text-red-700 mb-1">DEV ERROR:</p>
-                    <p className="text-sm font-mono text-red-800 break-all">{error.message}</p>
-                    {error.digest && <p className="text-xs font-mono text-red-500 mt-1">Digest: {error.digest}</p>}
-                    {error.stack && (
-                        <pre className="text-xs font-mono text-red-600 mt-2 whitespace-pre-wrap overflow-auto max-h-48">{error.stack}</pre>
-                    )}
-                </div>
-            )}
+            {/* Show error details - DEBUG: always show to identify production crash */}
+            <div className="mb-6 max-w-2xl w-full text-left bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-xs font-mono font-bold text-red-700 mb-1">ERROR:</p>
+                <p className="text-sm font-mono text-red-800 break-all">{error.message || '(no message)'}</p>
+                {error.digest && <p className="text-xs font-mono text-red-500 mt-1">Digest: {error.digest}</p>}
+                {error.stack && (
+                    <pre className="text-xs font-mono text-red-600 mt-2 whitespace-pre-wrap overflow-auto max-h-48">{error.stack}</pre>
+                )}
+            </div>
 
             <div className="flex gap-4">
                 <Button onClick={() => reset()}>Try again</Button>

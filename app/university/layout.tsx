@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { Suspense } from 'react'
 import { UniversityNav } from '@/components/university/university-nav'
 import { UniversityRightSidebar } from '@/components/university/university-right-sidebar'
 import '@/app/dashboard-tokens.css'
@@ -86,7 +87,9 @@ export default async function UniversityLayout({ children }: { children: React.R
             </div>
 
             {/* ── Right Sidebar ────────────────────────────────────────────────── */}
-            <UniversityRightSidebar />
+            <Suspense fallback={<aside className="hidden lg:flex w-[300px] min-w-[300px] border-l" />}>
+                <UniversityRightSidebar />
+            </Suspense>
         </div>
     )
 }
