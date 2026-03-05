@@ -48,7 +48,8 @@ export default async function ScanPage({ params }: PageProps) {
         universityId = firstAttendance?.universityId ?? null
     }
 
-    if (!universityId) {
+    // ADMIN can view without a universityId (no universities attending yet is valid)
+    if (!universityId && role !== 'ADMIN') {
         redirect('/unauthorized')
     }
 
@@ -71,12 +72,12 @@ export default async function ScanPage({ params }: PageProps) {
     }
 
     // ── Today's scan count for this university at this fair ───────────────────
-    const scanCount = await getTodayScanCount(universityId, fairEventId)
+    const scanCount = universityId ? await getTodayScanCount(universityId, fairEventId) : 0
 
     return (
         <ScannerClient
             fairEventId={fairEventId}
-            universityId={universityId}
+            universityId={universityId ?? 'admin-view'}
             fairEventTitle={fairEvent.name}
             initialScanCount={scanCount}
         />
