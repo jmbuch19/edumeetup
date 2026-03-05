@@ -1,16 +1,24 @@
 'use client'
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getUserNotifications, markNotificationRead } from "@/app/notifications/actions"
+import {
+    getUserNotifications,
+    dismissNotification,
+    dismissAllNotifications,
+} from "@/app/notifications/actions"
 import { Bell, Megaphone, ExternalLink, X } from "lucide-react"
 
 export function NotificationsCenter({ userRole }: { userRole: string }) {
-    const [data, setData] = useState<{ notifications: any[], announcements: any[], sponsored: any[] }>({ notifications: [], announcements: [], sponsored: [] })
+    const [data, setData] = useState<{ notifications: any[], announcements: any[], sponsored: any[] }>({
+        notifications: [], announcements: [], sponsored: []
+    })
     const [loading, setLoading] = useState(true)
+
+    const notifType: "STUDENT" | "UNIVERSITY" = userRole === "STUDENT" ? "STUDENT" : "UNIVERSITY"
 
     useEffect(() => {
         loadData()
@@ -22,19 +30,28 @@ export function NotificationsCenter({ userRole }: { userRole: string }) {
         setLoading(false)
     }
 
-    async function handleMarkRead(id: string) {
-        // Optimistic update
+    // ── Dismiss single — optimistic removal ───────────────────────────────
+    async function handleDismiss(id: string) {
         setData(prev => ({
             ...prev,
-            notifications: prev.notifications.map(n => n.id === id ? { ...n, isRead: true } : n)
+            notifications: prev.notifications.filter(n => n.id !== id)
         }))
-
-        await markNotificationRead(id, userRole === "STUDENT" ? "STUDENT" : "UNIVERSITY")
+        await dismissNotification(id, notifType)
     }
 
-    if (loading) return <div className="p-4 text-center text-muted-foreground">Loading updates...</div>
+    // ── Mark all as read — optimistic clear ───────────────────────────────
+    async function handleMarkAllRead() {
+        setData(prev => ({ ...prev, notifications: [] }))
+        await dismissAllNotifications(notifType)
+    }
 
-    const unreadCount = data.notifications.filter(n => !n.isRead).length
+    if (loading) return (
+        <div className="p-4 text-center text-muted-foreground">Loading updates...</div>
+    )
+
+    // Show only first 5 undismissed (fetch already filters isRead=false)
+    const visible = data.notifications.slice(0, 5)
+    const hasMore = data.notifications.length > 5
 
     return (
         <div className="space-y-6">
@@ -62,36 +79,74 @@ export function NotificationsCenter({ userRole }: { userRole: string }) {
                         <TabsList>
                             <TabsTrigger value="notifications" className="relative">
                                 Notifications
-                                {unreadCount > 0 && <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">{unreadCount}</Badge>}
+                                {data.notifications.length > 0 && (
+                                    <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
+                                        {data.notifications.length}
+                                    </Badge>
+                                )}
                             </TabsTrigger>
                             <TabsTrigger value="announcements">Announcements</TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="notifications" className="space-y-4 pt-4">
+                        <TabsContent value="notifications" className="pt-4">
+                            {/* Panel header with Mark all as read */}
+                            {data.notifications.length > 0 && (
+                                <div className="flex justify-between items-center mb-3">
+                                    <p className="text-sm text-muted-foreground">
+                                        {data.notifications.length} unread
+                                    </p>
+                                    <button
+                                        onClick={handleMarkAllRead}
+                                        className="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                                    >
+                                        Mark all as read
+                                    </button>
+                                </div>
+                            )}
+
                             {data.notifications.length === 0 ? (
                                 <div className="text-center py-8 text-muted-foreground">You're all caught up!</div>
                             ) : (
-                                data.notifications.map(n => (
-                                    <div key={n.id} className={`p-4 rounded-lg border ${n.isRead ? 'bg-background' : 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800'}`}>
-                                        <div className="flex justify-between items-start gap-4">
-                                            <div className="flex gap-3">
-                                                <div className={`mt-1 p-2 rounded-full ${n.isRead ? 'bg-slate-100 text-slate-500' : 'bg-blue-100 text-blue-600'}`}>
-                                                    <Bell className="h-4 w-4" />
+                                /* Scrollable list — max 5 items, max-height 400px */
+                                <div
+                                    className="space-y-3 overflow-y-auto pr-1"
+                                    style={{ maxHeight: '400px' }}
+                                >
+                                    {visible.map(n => (
+                                        <div
+                                            key={n.id}
+                                            className="p-4 rounded-lg border bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                                        >
+                                            <div className="flex justify-between items-start gap-3">
+                                                <div className="flex gap-3 min-w-0">
+                                                    <div className="mt-1 p-2 rounded-full bg-blue-100 text-blue-600 shrink-0">
+                                                        <Bell className="h-4 w-4" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <h4 className="font-semibold text-sm">{n.title}</h4>
+                                                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{n.message}</p>
+                                                        <div className="text-xs text-muted-foreground mt-2">
+                                                            {new Date(n.createdAt).toLocaleDateString()}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h4 className="font-semibold text-sm">{n.title}</h4>
-                                                    <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{n.message}</p>
-                                                    <div className="text-xs text-muted-foreground mt-2">{new Date(n.createdAt).toLocaleDateString()}</div>
-                                                </div>
+                                                {/* Dismiss ✕ */}
+                                                <button
+                                                    onClick={() => handleDismiss(n.id)}
+                                                    title="Dismiss"
+                                                    className="shrink-0 h-6 w-6 flex items-center justify-center rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 text-muted-foreground hover:text-foreground transition-colors"
+                                                >
+                                                    <X className="h-3.5 w-3.5" />
+                                                </button>
                                             </div>
-                                            {!n.isRead && (
-                                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleMarkRead(n.id)} title="Mark as read">
-                                                    <X className="h-3 w-3" />
-                                                </Button>
-                                            )}
                                         </div>
-                                    </div>
-                                ))
+                                    ))}
+                                    {hasMore && (
+                                        <p className="text-xs text-center text-muted-foreground pt-1">
+                                            + {data.notifications.length - 5} more — scroll to see all
+                                        </p>
+                                    )}
+                                </div>
                             )}
                         </TabsContent>
 
@@ -108,10 +163,14 @@ export function NotificationsCenter({ userRole }: { userRole: string }) {
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     <h4 className="font-semibold text-sm">{a.title}</h4>
-                                                    {a.priority === "HIGH" && <Badge variant="destructive" className="text-[10px] h-5">Urgent</Badge>}
+                                                    {a.priority === "HIGH" && (
+                                                        <Badge variant="destructive" className="text-[10px] h-5">Urgent</Badge>
+                                                    )}
                                                 </div>
                                                 <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{a.content}</p>
-                                                <div className="text-xs text-muted-foreground mt-2">{new Date(a.createdAt).toLocaleDateString()}</div>
+                                                <div className="text-xs text-muted-foreground mt-2">
+                                                    {new Date(a.createdAt).toLocaleDateString()}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

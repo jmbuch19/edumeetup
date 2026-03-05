@@ -22,14 +22,13 @@ export async function getUserNotifications() {
     // 1. Fetch Targeted Notifications
     if (role === "STUDENT" && dbUser.student) {
         notifications = await prisma.studentNotification.findMany({
-            where: { studentId: dbUser.student.id },
+            where: { studentId: dbUser.student.id, isRead: false },
             orderBy: { createdAt: "desc" },
             take: 20
         })
     } else if ((role === "UNIVERSITY" || role === "UNIVERSITY_REP") && dbUser.university) {
-        // Note: For reps, we show university-wide notifications
         notifications = await prisma.universityNotification.findMany({
-            where: { universityId: dbUser.university.id },
+            where: { universityId: dbUser.university.id, isRead: false },
             orderBy: { createdAt: "desc" },
             take: 20
         })
@@ -84,5 +83,49 @@ export async function markNotificationRead(id: string, type: "STUDENT" | "UNIVER
         return { success: true }
     } catch (error) {
         return { error: "Failed to update" }
+    }
+}
+
+export async function dismissNotification(id: string, type: "STUDENT" | "UNIVERSITY") {
+    const session = await auth()
+    if (!session?.user) return { error: "Unauthorized" }
+
+    try {
+        if (type === "STUDENT") {
+            await prisma.studentNotification.update({ where: { id }, data: { isRead: true } })
+        } else {
+            await prisma.universityNotification.update({ where: { id }, data: { isRead: true } })
+        }
+        return { success: true }
+    } catch {
+        return { error: "Failed to dismiss" }
+    }
+}
+
+export async function dismissAllNotifications(type: "STUDENT" | "UNIVERSITY") {
+    const session = await auth()
+    if (!session?.user) return { error: "Unauthorized" }
+
+    const dbUser = await prisma.user.findUnique({
+        where: { email: session.user.email! },
+        include: { student: true, university: true }
+    })
+    if (!dbUser) return { error: "User not found" }
+
+    try {
+        if (type === "STUDENT" && dbUser.student) {
+            await prisma.studentNotification.updateMany({
+                where: { studentId: dbUser.student.id, isRead: false },
+                data: { isRead: true }
+            })
+        } else if (type === "UNIVERSITY" && dbUser.university) {
+            await prisma.universityNotification.updateMany({
+                where: { universityId: dbUser.university.id, isRead: false },
+                data: { isRead: true }
+            })
+        }
+        return { success: true }
+    } catch {
+        return { error: "Failed to dismiss all" }
     }
 }
