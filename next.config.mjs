@@ -15,7 +15,17 @@ const nextConfig = {
         remotePatterns: [
             {
                 protocol: 'https',
-                hostname: 'files.edumeetup.com',  // Cloudflare R2 — logos & documents
+                hostname: 'files.edumeetup.com',       // Cloudflare R2 — primary CDN domain
+                pathname: '/**',
+            },
+            {
+                protocol: 'https',
+                hostname: '*.r2.dev',                  // Cloudflare R2 — public dev / preview URLs
+                pathname: '/**',
+            },
+            {
+                protocol: 'https',
+                hostname: 'res.cloudinary.com',        // Legacy logos uploaded before R2 migration
                 pathname: '/**',
             },
             {
