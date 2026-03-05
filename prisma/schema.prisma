@@ -618,17 +618,20 @@ model BotMisses {
 }
 
 model StudentNotification {
-  id        String   @id @default(cuid())
-  studentId String
-  title     String
-  message   String
-  type      String   @default("INFO")
-  isRead    Boolean  @default(false)
-  actionUrl String?
-  createdAt DateTime @default(now())
-  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  studentId   String
+  title       String
+  message     String
+  type        String    @default("INFO")
+  isRead      Boolean   @default(false)
+  dismissed   Boolean   @default(false)
+  dismissedAt DateTime?
+  actionUrl   String?
+  createdAt   DateTime  @default(now())
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
+  @@index([dismissed])
 }
 
 model UniversityNotification {
@@ -638,11 +641,14 @@ model UniversityNotification {
   message      String
   type         String     @default("INFO")
   isRead       Boolean    @default(false)
+  dismissed    Boolean    @default(false)
+  dismissedAt  DateTime?
   actionUrl    String?
   createdAt    DateTime   @default(now())
   university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
 
   @@index([universityId])
+  @@index([dismissed])
 }
 
 model AdminAnnouncement {
