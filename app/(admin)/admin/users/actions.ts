@@ -195,3 +195,98 @@ export async function notifyFilteredStudents(
     revalidatePath('/admin/users')
     return { success: true, count: studentIds.length }
 }
+
+// ── Fair filter counts ─────────────────────────────────────────────────────────
+export async function getFairFilterCounts() {
+    await requireAdmin()
+    const [fairRegistered, fairAttended, fairNotAttended, fairWalkins] = await Promise.all([
+        // Students with at least one fair pass linked to their account
+        prisma.student.count({
+            where: { fairPasses: { some: {} } },
+        }),
+        // Students who visited at least one university booth
+        prisma.student.count({
+            where: { fairPasses: { some: { attendances: { some: {} } } } },
+        }),
+        // Students who registered but never scanned at a booth
+        prisma.student.count({
+            where: { fairPasses: { some: { attendances: { none: {} } } } },
+        }),
+        // Walk-in pass holders — no edUmeetup account (studentId IS NULL)
+        prisma.fairStudentPass.count({
+            where: { studentId: null },
+        }),
+    ])
+    return { fairRegistered, fairAttended, fairNotAttended, fairWalkins }
+}
+
+// ── Nudge fair walk-ins via email ──────────────────────────────────────────────
+export async function nudgeFairWalkins(message: string, ctaUrl: string) {
+    const admin = await requireAdmin()
+    if (!message?.trim()) return { error: 'Message is required' }
+
+    const walkIns = await prisma.fairStudentPass.findMany({
+        where: {
+            studentId: null,           // no edUmeetup account
+            emailConsent: true,        // only those who consented
+        },
+        select: {
+            id: true,
+            email: true,
+            fullName: true,
+            fairEvent: { select: { name: true } },
+        },
+        take: 500,
+    })
+
+    if (walkIns.length === 0) return { success: true, sent: 0, skipped: 0 }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || BASE_URL
+    let sent = 0
+    let skipped = 0
+
+    for (const pass of walkIns) {
+        if (!pass.email) { skipped++; continue }
+        const firstName = pass.fullName?.split(' ')[0] || 'there'
+        const subject = 'Your EdUmeetup fair visit summary'
+        const body = message.replace(/\{\{name\}\}/g, firstName)
+        const htmlContent = `
+            <p>Hi ${firstName},</p>
+            <p>${body}</p>
+            <p>You visited <strong>${pass.fairEvent.name}</strong>. The universities you spoke with are ready to connect.</p>
+            <p style="text-align:center;margin-top:24px;">
+              <a href="${appUrl}${ctaUrl}" style="background:#6366f1;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Get Started →</a>
+            </p>
+            <p style="font-size:12px;color:#94a3b8;">Sent by the EdUmeetup team. You received this because you registered a fair pass at ${pass.fairEvent.name}.</p>
+        `
+        try {
+            await sendEmail({
+                to: pass.email,
+                subject,
+                html: generateEmailHtml(subject, htmlContent),
+            })
+            sent++
+            // Throttle: avoid Resend free-tier rate limits
+            await new Promise(r => setTimeout(r, 300))
+        } catch (e) {
+            console.error(`[FAIR_WALKIN_NUDGE] Email failed for pass ${pass.id}:`, e)
+            skipped++
+        }
+    }
+
+    // Audit to SystemLog
+    try {
+        await prisma.systemLog.create({
+            data: {
+                level: 'INFO',
+                type: 'ADMIN_FAIR_WALKIN_NUDGE',
+                message: `[done] sent:${sent} skipped:${skipped} adminId:${admin.id}`,
+                metadata: JSON.stringify({ sent, skipped, ctaUrl, adminId: admin.id }),
+            },
+        })
+    } catch (e) {
+        console.error('[FAIR_WALKIN_NUDGE] systemLog.create failed:', e)
+    }
+
+    return { success: true, sent, skipped }
+}

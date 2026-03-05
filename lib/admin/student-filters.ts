@@ -46,12 +46,19 @@ export type StudentFilter =
     | 'HAS_MEETING' | 'NO_MEETING'
     | 'HAS_ADVISORY' | 'NO_ADVISORY'
     | 'EMAIL_UNVERIFIED' | 'INACTIVE'
+    // ── Fair Mode ────────────────────────────────────────────────────────
+    | 'fair_registered'
+    | 'fair_walkin'
+    | 'fair_attended'
+    | 'fair_registered_not_attended'
 
 export type FilterPreset = {
     id: StudentFilter
     label: string
     description: string
     nudgeTemplate?: string
+    /** Groups the preset visually in the filter bar without breaking existing behaviour */
+    group?: 'FAIR'
 }
 
 export const FILTER_PRESETS: FilterPreset[] = [
@@ -86,6 +93,27 @@ export const FILTER_PRESETS: FilterPreset[] = [
         nudgeTemplate: 'Hi {{name}}, your email has not been verified. Please check your inbox or contact us if there is a typo.'
     },
     { id: 'INACTIVE', label: 'Blocked', description: 'isActive is false' },
+    // ── Fair Mode ─────────────────────────────────────────────────────────
+    {
+        id: 'fair_registered', label: 'Registered for Fair', group: 'FAIR' as const,
+        description: 'Has at least one fair pass linked to their profile',
+        nudgeTemplate: 'Hi {{name}}, complete your profile to apply directly to the universities you met at the fair!',
+    },
+    {
+        id: 'fair_attended', label: 'Visited University Booth', group: 'FAIR' as const,
+        description: 'Scanned at one or more university booths',
+        nudgeTemplate: 'Hi {{name}}, the universities you visited at the fair are waiting. Apply directly through EdUmeetup today!',
+    },
+    {
+        id: 'fair_registered_not_attended', label: 'Registered but Didn\u2019t Attend', group: 'FAIR' as const,
+        description: 'Got a QR pass but never visited a booth',
+        nudgeTemplate: 'Hi {{name}}, you registered for a fair but we didn\u2019t see you at any booths. Explore our partner universities and book a free 1-on-1 meeting!',
+    },
+    {
+        id: 'fair_walkin', label: 'Walk-in (No Full Profile)', group: 'FAIR' as const,
+        description: 'Registered at fair venue — no full edUmeetup profile yet. Email only.',
+        nudgeTemplate: 'Join edUmeetup to apply directly to the universities you visited at the fair.',
+    },
 ]
 
 export function buildFilterWhere(filter: StudentFilter) {
@@ -103,6 +131,17 @@ export function buildFilterWhere(filter: StudentFilter) {
         case 'NO_ADVISORY': return { ...base, student: { advisoryRequests: { none: {} } } }
         case 'EMAIL_UNVERIFIED': return { ...base, emailVerified: null }
         case 'INACTIVE': return { ...base, isActive: false }
+        // ── Fair Mode ─────────────────────────────────────────────────────
+        case 'fair_registered':
+            return { ...base, student: { fairPasses: { some: {} } } }
+        case 'fair_attended':
+            return { ...base, student: { fairPasses: { some: { attendances: { some: {} } } } } }
+        case 'fair_registered_not_attended':
+            return { ...base, student: { fairPasses: { some: { attendances: { none: {} } } } } }
+        case 'fair_walkin':
+            // Walk-ins have no User row — placeholder returns 0 results.
+            // The actual list comes from FairStudentPass (see nudgeFairWalkins action).
+            return { ...base, id: '__fair_walkin_placeholder__' }
         default: return { ...base }
     }
 }

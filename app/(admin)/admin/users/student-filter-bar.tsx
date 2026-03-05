@@ -3,7 +3,6 @@
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useCallback, useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Bell, X } from 'lucide-react'
 import { FILTER_PRESETS, StudentFilter } from '@/lib/admin/student-filters'
 import { notifyFilteredStudents } from './actions'
@@ -27,6 +26,11 @@ export function StudentFilterBar({ totalCount, filteredStudentIds, activeFilter 
 
     const preset = FILTER_PRESETS.find(p => p.id === activeFilter) ?? FILTER_PRESETS[0]
     const hasNudge = !!preset.nudgeTemplate && filteredStudentIds.length > 0
+    const isWalkin = activeFilter === 'fair_walkin'
+
+    // Split into core and fair groups
+    const corePresets = FILTER_PRESETS.filter(p => !p.group)
+    const fairPresets = FILTER_PRESETS.filter(p => p.group === 'FAIR')
 
     const setFilter = useCallback((f: StudentFilter) => {
         const params = new URLSearchParams(searchParams.toString())
@@ -54,25 +58,62 @@ export function StudentFilterBar({ totalCount, filteredStudentIds, activeFilter 
         })
     }
 
+    const chipBase = 'text-xs px-3 py-1.5 rounded-full border font-medium transition-all'
+    const chipActive = 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+    const chipInactive = 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-700'
+    const chipWalkinActive = 'bg-amber-500 text-white border-amber-500 shadow-sm'
+    const chipWalkinInactive = 'bg-white text-amber-600 border-amber-200 hover:border-amber-400 hover:text-amber-700'
+
     return (
         <div className="space-y-3">
-            {/* Preset chips */}
+            {/* Core filter chips */}
             <div className="flex flex-wrap gap-2">
-                {FILTER_PRESETS.map(p => (
+                {corePresets.map(p => (
                     <button
                         key={p.id}
                         onClick={() => setFilter(p.id)}
                         title={p.description}
-                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${activeFilter === p.id
-                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                            : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-700'
-                            }`}
+                        className={`${chipBase} ${activeFilter === p.id ? chipActive : chipInactive}`}
                     >
                         {p.label}
                         {p.nudgeTemplate && <span className="ml-1 opacity-60">📣</span>}
                     </button>
                 ))}
             </div>
+
+            {/* Fair Mode group */}
+            <div className="space-y-2">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">🎪 Fair Mode</p>
+                <div className="flex flex-wrap gap-2">
+                    {fairPresets.map(p => {
+                        const walkin = p.id === 'fair_walkin'
+                        const isActive = activeFilter === p.id
+                        return (
+                            <button
+                                key={p.id}
+                                onClick={() => setFilter(p.id)}
+                                title={p.description}
+                                className={`${chipBase} ${walkin
+                                        ? isActive ? chipWalkinActive : chipWalkinInactive
+                                        : isActive ? chipActive : chipInactive
+                                    }`}
+                            >
+                                {walkin && <span className="mr-1">⚠️</span>}
+                                {p.label}
+                                {p.nudgeTemplate && <span className="ml-1 opacity-60">📣</span>}
+                            </button>
+                        )
+                    })}
+                </div>
+            </div>
+
+            {/* Walk-in info banner */}
+            {isWalkin && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+                    ⚠️ These students registered at the fair venue but don't have a full edUmeetup profile yet.
+                    You can reach them via <strong>email only</strong>. They won't appear in the student table below.
+                </div>
+            )}
 
             {/* Results row */}
             <div className="flex items-center justify-between flex-wrap gap-2">
@@ -87,7 +128,7 @@ export function StudentFilterBar({ totalCount, filteredStudentIds, activeFilter 
                     )}
                 </div>
 
-                {hasNudge && (
+                {hasNudge && !isWalkin && (
                     <Button size="sm" variant="outline"
                         className="gap-1.5 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
                         onClick={() => setNotifyMode(v => !v)}>
@@ -97,8 +138,8 @@ export function StudentFilterBar({ totalCount, filteredStudentIds, activeFilter 
                 )}
             </div>
 
-            {/* Notification composer */}
-            {notifyMode && hasNudge && (
+            {/* Notification composer — standard filters only */}
+            {notifyMode && hasNudge && !isWalkin && (
                 <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4 space-y-3">
                     <p className="text-sm font-semibold text-indigo-800">
                         📣 Send to {filteredStudentIds.length} {preset.label} student{filteredStudentIds.length !== 1 ? 's' : ''}
