@@ -17,7 +17,7 @@ export default async function ScanPage({ params }: PageProps) {
     const session = await auth()
     const role = session?.user?.role
 
-    if (!session?.user || (role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP')) {
+    if (!session?.user || (role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP' && role !== 'ADMIN')) {
         redirect('/unauthorized')
     }
 
@@ -32,13 +32,20 @@ export default async function ScanPage({ params }: PageProps) {
             select: { id: true },
         })
         universityId = uni?.id ?? null
-    } else {
+    } else if (role === 'UNIVERSITY_REP') {
         // UNIVERSITY_REP — universityId stored on User model
         const repUser = await prisma.user.findUnique({
             where: { id: userId },
             select: { universityId: true },
         })
         universityId = repUser?.universityId ?? null
+    } else if (role === 'ADMIN') {
+        // ADMIN — pick the first attending university for this fair (view-only context)
+        const firstAttendance = await prisma.fairAttendance.findFirst({
+            where: { fairEventId },
+            select: { universityId: true },
+        })
+        universityId = firstAttendance?.universityId ?? null
     }
 
     if (!universityId) {
