@@ -15,52 +15,52 @@ const nextConfig = {
         remotePatterns: [
             {
                 protocol: 'https',
-                hostname: 'res.cloudinary.com',
+                hostname: 'files.edumeetup.com',  // Cloudflare R2 — logos & documents
                 pathname: '/**',
             },
             {
                 protocol: 'https',
-                hostname: '**.edu',
-                pathname: '/**',
+                hostname: 'lh3.googleusercontent.com', // Google profile pictures
             },
             {
                 protocol: 'https',
-                hostname: '*',
-                pathname: '/**',
+                hostname: '*.googleusercontent.com',   // Google profile pictures (other subdomains)
             },
         ],
     },
     async headers() {
         return [
             {
-                source: '/:path*',
+                source: '/(.*)',
                 headers: [
                     {
                         key: 'X-DNS-Prefetch-Control',
                         value: 'on'
                     },
                     {
-                        key: 'Strict-Transport-Security',
-                        value: 'max-age=63072000; includeSubDomains; preload'
-                    },
-                    {
-                        key: 'X-XSS-Protection',
-                        value: '1; mode=block'
-                    },
-                    {
-                        key: 'X-Frame-Options',
-                        value: 'SAMEORIGIN'
-                    },
-                    {
-                        key: 'X-Content-Type-Options',
-                        value: 'nosniff'
-                    },
-                    {
                         key: 'Referrer-Policy',
-                        value: 'origin-when-cross-origin'
-                    }
+                        value: 'strict-origin-when-cross-origin'
+                    },
+                    {
+                        key: 'Permissions-Policy',
+                        value: 'camera=(self), microphone=(), geolocation=(), browsing-topics=()'
+                    },
                 ]
-            }
+            },
+            {
+                // API routes — no caching, no indexing
+                source: '/api/(.*)',
+                headers: [
+                    {
+                        key: 'Cache-Control',
+                        value: 'no-store, no-cache, must-revalidate'
+                    },
+                    {
+                        key: 'X-Robots-Tag',
+                        value: 'noindex'
+                    },
+                ]
+            },
         ]
     }
 };
