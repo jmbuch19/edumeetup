@@ -127,5 +127,7 @@ export default async function middleware(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/((?!_next/static|_next/image|favicon.ico|login|register|api).*)" ],
+    // login and register are included so they receive the nonce-based CSP.
+    // Auth redirect logic inside the middleware handles them safely.
+    matcher: ['/((?!_next/static|_next/image|favicon.ico|api).*)'],
 }
