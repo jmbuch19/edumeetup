@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
+import { PublicShell } from "@/components/layout/public-shell";
 import { Toaster } from "sonner";
 import dynamic from "next/dynamic";
 import { BugReporter } from "@/components/bug-reporter";
@@ -48,23 +47,15 @@ export default async function RootLayout({
     <html lang="en">
       <body className={`${inter.className} overflow-x-hidden`}>
         <ThemeProvider>
-          <Header />
-          {/* Beta Banner - Only for Logged In Users */}
-          {session && (
-            <div className="bg-amber-100 text-amber-900 text-center py-2 text-sm font-medium border-b border-amber-200">
-              🚧 Beta Version – Testing Phase. System is active for demonstration.
-            </div>
-          )}
-          <main className="min-h-screen">
+          <PublicShell isLoggedIn={!!session}>
             {children}
-          </main>
+          </PublicShell>
           <ChatWidget />
           <SessionGuard />
           <BugReporter />
           <Toaster richColors position="top-center" />
-          <Footer />
         </ThemeProvider>
       </body>
-    </html >
+    </html>
   );
 }
