@@ -130,13 +130,13 @@ export function InterestedStudentsTable({ interests, availabilitySlots = [], pro
                                     <input
                                         type="checkbox"
                                         className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                        checked={selectedIds.includes(interest.student.user.id)}
-                                        onChange={() => toggleSelection(interest.student.user.id)}
+                                        checked={selectedIds.includes(interest.student?.user?.id ?? '')}
+                                        onChange={() => toggleSelection(interest.student?.user?.id ?? '')}
                                     />
                                 </TableCell>
-                                <TableCell className="font-medium">{interest.student.fullName}</TableCell>
+                                <TableCell className="font-medium">{interest.student?.fullName || interest.student?.user?.email || '—'}</TableCell>
                                 <TableCell>{interest.program?.programName || 'General Interest'}</TableCell>
-                                <TableCell>{interest.student.country || 'N/A'}</TableCell>
+                                <TableCell>{interest.student?.country || 'N/A'}</TableCell>
                                 <TableCell>
                                     <Badge variant="outline" className={hoursWaiting >= 48 ? 'border-amber-300 text-amber-700' : ''}>{interest.status}</Badge>
                                 </TableCell>

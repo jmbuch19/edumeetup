@@ -139,11 +139,11 @@ export default function MeetingList({ meetings, compact }: { meetings: Meeting[]
                             <div className="flex justify-between items-start gap-2">
                                 <div className="flex items-center gap-3">
                                     <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg flex-shrink-0">
-                                        {meeting.student.fullName.charAt(0)}
+                                        {(meeting.student?.fullName || meeting.student?.user?.email || '?').charAt(0).toUpperCase()}
                                     </div>
                                     <div>
                                         <CardTitle className="text-base font-bold text-gray-900">
-                                            {meeting.student.fullName}
+                                            {meeting.student?.fullName || meeting.student?.user?.email || 'Unknown Student'}
                                         </CardTitle>
                                         <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                                             <MapPin className="h-3 w-3" />
@@ -225,7 +225,7 @@ export default function MeetingList({ meetings, compact }: { meetings: Meeting[]
                                 <div className="bg-gray-50 rounded-lg p-3 space-y-2 text-sm">
                                     <div className="flex items-center gap-2 text-gray-600">
                                         <User className="h-4 w-4 text-primary flex-shrink-0" />
-                                        <span className="font-medium">{meeting.student.fullName}</span>
+                                        <span className="font-medium">{meeting.student?.fullName || meeting.student?.user?.email || 'Unknown Student'}</span>
                                         <span className="text-gray-400">·</span>
                                         <a href={`mailto:${meeting.student.user.email}`} className="text-blue-600 hover:underline">
                                             {meeting.student.user.email}
