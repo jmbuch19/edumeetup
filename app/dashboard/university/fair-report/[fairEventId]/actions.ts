@@ -1,9 +1,37 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
 import { sendEmail, generateEmailHtml } from '@/lib/email'
 
-// ── 1. Update follow-up status ───────────────────────────────────────────────
+// ── Auth guard ────────────────────────────────────────────────────────────────
+// Verifies the calling session is a university/rep that owns `universityId`.
+// Returns the verified universityId on success; throws on failure.
+async function requireCallerOwnsUniversity(universityId: string): Promise<void> {
+    const session = await auth()
+    if (!session?.user?.id) throw new Error('Unauthorized')
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { role: true, universityId: true },
+    })
+
+    if (!user || (user.role !== 'UNIVERSITY' && user.role !== 'UNIVERSITY_REP')) {
+        throw new Error('Forbidden')
+    }
+    if (user.universityId !== universityId) {
+        throw new Error('Forbidden')
+    }
+}
+
+function authError(err: unknown): { success: false; error: string } {
+    if (err instanceof Error && (err.message === 'Unauthorized' || err.message === 'Forbidden')) {
+        return { success: false, error: err.message }
+    }
+    return { success: false, error: 'Unexpected error' }
+}
+
+// ── 1. Update follow-up status ────────────────────────────────────────────────
 export async function updateFollowUpStatus(
     attendanceId: string,
     status: 'PENDING' | 'CONTACTED' | 'APPLIED' | 'REJECTED',
@@ -11,23 +39,36 @@ export async function updateFollowUpStatus(
     if (!attendanceId || !status) return { success: false, error: 'Missing parameters' }
 
     try {
+        // B3 fix: look up the attendance's owner BEFORE updating
+        const attendance = await prisma.fairAttendance.findUnique({
+            where: { id: attendanceId },
+            select: { universityId: true },
+        })
+        if (!attendance) return { success: false, error: 'Record not found' }
+        await requireCallerOwnsUniversity(attendance.universityId)
+
         await prisma.fairAttendance.update({
             where: { id: attendanceId },
             data: { followUpStatus: status },
         })
         return { success: true }
     } catch (error) {
+        if (error instanceof Error && (error.message === 'Unauthorized' || error.message === 'Forbidden')) {
+            return { success: false, error: error.message }
+        }
         console.error('[updateFollowUpStatus] Error:', error)
         return { success: false, error: 'Failed to update status' }
     }
 }
 
-// ── 2. Bulk follow-up email ──────────────────────────────────────────────────
+// ── 2. Bulk follow-up email ───────────────────────────────────────────────────
 export async function sendBulkFollowUp(
     fairEventId: string,
     universityId: string,
 ): Promise<{ sent: number; skipped: number; error?: string }> {
     try {
+        await requireCallerOwnsUniversity(universityId)
+
         const university = await prisma.university.findUnique({
             where: { id: universityId },
             select: { institutionName: true, contactEmail: true },
@@ -71,13 +112,12 @@ export async function sendBulkFollowUp(
            <p style="text-align:center;margin-top:24px;">
              <a href="https://edumeetup.com/universities/${universityId}" class="btn">Visit Our Profile →</a>
            </p>
-           <p style="font-size:12px;color:#94a3b8;">You received this because you scanned your pass at the EdUmeetup Fair. Reply to unsubscribe.</p>`,
+           <p style="font-size:12px;color:#94a3b8;">You received this because you scanned your pass at the EdUmeetup Fair. Reply UNSUBSCRIBE to opt out.</p>`,
                 ),
             })
 
             if (result.success || result.error === undefined) {
                 sent++
-                // Mark as CONTACTED
                 await prisma.fairAttendance.update({
                     where: { id: lead.id },
                     data: { followUpStatus: 'CONTACTED' },
@@ -89,17 +129,22 @@ export async function sendBulkFollowUp(
 
         return { sent, skipped }
     } catch (error) {
+        if (error instanceof Error && (error.message === 'Unauthorized' || error.message === 'Forbidden')) {
+            return { sent: 0, skipped: 0, error: error.message }
+        }
         console.error('[sendBulkFollowUp] Error:', error)
         return { sent: 0, skipped: 0, error: 'Failed to send bulk follow-up emails' }
     }
 }
 
-// ── 3. Export leads CSV (returns raw CSV string) ─────────────────────────────
+// ── 3. Export leads CSV (returns raw CSV string) ──────────────────────────────
 export async function exportLeadsCSV(
     fairEventId: string,
     universityId: string,
 ): Promise<{ csv?: string; error?: string }> {
     try {
+        await requireCallerOwnsUniversity(universityId)
+
         const leads = await prisma.fairAttendance.findMany({
             where: { universityId, fairEventId },
             include: { pass: true },
@@ -133,12 +178,15 @@ export async function exportLeadsCSV(
         const csv = [header.join(','), ...rows].join('\n')
         return { csv }
     } catch (error) {
+        if (error instanceof Error && (error.message === 'Unauthorized' || error.message === 'Forbidden')) {
+            return { error: error.message }
+        }
         console.error('[exportLeadsCSV] Error:', error)
         return { error: 'Failed to generate CSV' }
     }
 }
 
-// ── 4. Bulk-request meetings with selected leads ──────────────────────────────
+// ── 4. Bulk-request meetings with selected leads ───────────────────────────────
 export async function requestMeetingsWithLeads(
     attendanceIds: string[],
     universityId: string,
@@ -146,6 +194,8 @@ export async function requestMeetingsWithLeads(
     if (!attendanceIds.length) return { created: 0 }
 
     try {
+        await requireCallerOwnsUniversity(universityId)
+
         const attendances = await prisma.fairAttendance.findMany({
             where: { id: { in: attendanceIds }, universityId },
             include: { pass: true },
@@ -192,6 +242,9 @@ export async function requestMeetingsWithLeads(
 
         return { created }
     } catch (error) {
+        if (error instanceof Error && (error.message === 'Unauthorized' || error.message === 'Forbidden')) {
+            return { created: 0, error: error.message }
+        }
         console.error('[requestMeetingsWithLeads] Error:', error)
         return { created: 0, error: 'Failed to create meetings' }
     }

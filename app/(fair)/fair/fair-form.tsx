@@ -505,7 +505,16 @@ export function FairRegistrationForm({
                         {/* Consent footnote */}
                         <p className="text-xs text-gray-400 leading-relaxed pt-1">
                             Your details are shared only with universities whose table you scan at this fair.
-                            You can withdraw consent anytime from your dashboard.
+                            By registering you agree to our{' '}
+                            <a
+                                href="/privacy-policy"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline text-indigo-500 hover:text-indigo-700"
+                            >
+                                Privacy Policy
+                            </a>.{' '}
+                            You can withdraw consent anytime.
                         </p>
                     </div>
 

@@ -505,9 +505,8 @@ export async function sendNudgeEmail({
             <a href="${fullCtaUrl}" class="btn">${ctaText} →</a>
         </p>
         <p style="font-size:12px;color:#94a3b8;">
-            Sent by the EdUmeetup team.
-            If you no longer wish to receive these emails, please contact
-            <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@edumeetup.com'}">support</a>.
+            Sent by the EdUmeetup team. You received this because you registered for an EdUmeetup Fair.<br/>
+            To unsubscribe from future emails, reply to this email with the word <strong>UNSUBSCRIBE</strong>.
         </p>
     `
     return sendEmail({ to, subject, html: generateEmailHtml(subject, content) })

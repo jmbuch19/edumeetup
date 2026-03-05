@@ -98,10 +98,38 @@ export default async function handler(req: Request): Promise<Response> {
         }
     }
 
+    // ── G1 fix: purge walk-in PII after 90 days ─────────────────────────────
+    // FairStudentPass rows where studentId IS NULL have no linked account.
+    // Names, emails, and phones must be deleted within 90 days (PDPA / GDPR baseline).
+    let walkInsDeleted = 0
+    try {
+        const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+        const { count } = await prisma.fairStudentPass.deleteMany({
+            where: {
+                studentId: null,              // walk-ins only
+                createdAt: { lte: ninetyDaysAgo },
+            },
+        })
+        walkInsDeleted = count
+        if (count > 0) {
+            await prisma.systemLog.create({
+                data: {
+                    level: 'INFO',
+                    type: 'WALKIN_PII_PURGE',
+                    message: `Purged ${count} walk-in pass records older than 90 days`,
+                    metadata: JSON.stringify({ count, cutoffDate: ninetyDaysAgo.toISOString() }),
+                },
+            })
+        }
+    } catch (err) {
+        console.error('[process-deletions] Walk-in PII purge failed:', err)
+    }
+
     const result = {
         success: true,
         processed: usersToDelete.length,
         deleted: deletedCount,
+        walkInsPurged: walkInsDeleted,
         ...(errors.length > 0 ? { errors } : {}),
     }
 

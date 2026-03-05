@@ -55,6 +55,8 @@ export const interestRateLimiter = new RateLimiter(60_000, 10)
 export const inviteRateLimiter = new RateLimiter(60_000, 20)
 /** 1 notification campaign per 6 hours per university */
 export const uniNotifRateLimiter = new RateLimiter(6 * 60 * 60_000, 1)
+/** 3 fair pass registrations per email per hour — public unauthenticated endpoint */
+export const fairPassRateLimiter = new RateLimiter(60 * 60_000, 3)
 
 // ---------------------------------------------------------------------------
 // Functional helper used by lib/email.ts (replaces the old lib/rate-limit.ts)

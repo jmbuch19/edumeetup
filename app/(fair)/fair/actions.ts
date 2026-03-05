@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { nanoid } from 'nanoid'
+import { fairPassRateLimiter } from '@/lib/ratelimit'
 
 export type FairPassFormData = {
     fullName: string
@@ -37,6 +38,11 @@ export async function createFairPass(
     // Basic email format guard
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return { error: 'Please enter a valid email address' }
+    }
+
+    // C1 fix: rate limit by email — 3 attempts per hour per address
+    if (!fairPassRateLimiter.check(`fair_register:${email}`)) {
+        return { error: 'Too many registration attempts. Please try again later.' }
     }
 
     try {
