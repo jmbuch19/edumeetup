@@ -234,3 +234,105 @@ export type FairQuestionRow = {
     answeredAt: string | null
     createdAt: string
 }
+
+// ── All registrations (every FairStudentPass for a fair) ─────────────────────
+export async function getRegistrations(fairEventId: string) {
+    await requireAdmin()
+
+    const passes = await prisma.fairStudentPass.findMany({
+        where: { fairEventId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            currentInstitution: true,
+            currentCourse: true,
+            currentSemester: true,
+            fieldOfInterest: true,
+            budgetRange: true,
+            preferredCountries: true,
+            emailConsent: true,
+            whatsappConsent: true,
+            isPartialProfile: true,
+            studentId: true,
+            createdAt: true,
+            // count how many booths they visited
+            _count: { select: { attendances: true } },
+        },
+    })
+
+    return passes.map((p) => ({
+        id: p.id,
+        fullName: p.fullName,
+        email: p.email,
+        phone: p.phone,
+        currentInstitution: p.currentInstitution,
+        currentCourse: p.currentCourse,
+        currentSemester: p.currentSemester,
+        fieldOfInterest: p.fieldOfInterest,
+        budgetRange: p.budgetRange,
+        preferredCountries: p.preferredCountries,
+        emailConsent: p.emailConsent,
+        whatsappConsent: p.whatsappConsent,
+        isPartialProfile: p.isPartialProfile,
+        isRegistered: !!p.studentId,
+        boothVisits: p._count.attendances,
+        createdAt: p.createdAt.toISOString(),
+    }))
+}
+
+export type RegistrationRow = Awaited<ReturnType<typeof getRegistrations>>[number]
+
+// ── Export all registrations as CSV (admin only) ──────────────────────────────
+export async function exportAllRegistrationsCSV(
+    fairEventId: string,
+): Promise<{ csv?: string; error?: string }> {
+    await requireAdmin()
+
+    try {
+        const passes = await prisma.fairStudentPass.findMany({
+            where: { fairEventId },
+            orderBy: { createdAt: 'asc' },
+            include: {
+                _count: { select: { attendances: true } },
+            },
+        })
+
+        const header = [
+            'Name', 'Email', 'Phone', 'Institution', 'Course', 'Semester',
+            'Field of Interest', 'Budget', 'Preferred Countries',
+            'Email Consent', 'WhatsApp Consent', 'Profile Type',
+            'Booth Visits', 'Registered At',
+        ]
+
+        const escape = (v: string | null | undefined) =>
+            `"${String(v ?? '').replace(/"/g, '""')}"`
+
+        const rows = passes.map((p) =>
+            [
+                escape(p.fullName),
+                escape(p.email),
+                escape(p.phone),
+                escape(p.currentInstitution),
+                escape(p.currentCourse),
+                escape(p.currentSemester),
+                escape(p.fieldOfInterest),
+                escape(p.budgetRange),
+                escape(p.preferredCountries),
+                escape(p.emailConsent ? 'Yes' : 'No'),
+                escape(p.whatsappConsent ? 'Yes' : 'No'),
+                escape(p.isPartialProfile ? 'Walk-in' : 'Registered'),
+                escape(p._count.attendances.toString()),
+                escape(p.createdAt.toISOString()),
+            ].join(','),
+        )
+
+        const csv = [header.join(','), ...rows].join('\n')
+        return { csv }
+    } catch (error) {
+        console.error('[exportAllRegistrationsCSV]', error)
+        return { error: 'Failed to generate CSV' }
+    }
+}

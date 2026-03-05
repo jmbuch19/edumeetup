@@ -6,11 +6,12 @@ import { useRouter } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { setFairLive, endFair, answerFairQuestion, type FairDetail, type FairQuestionRow } from '../actions'
+import { setFairLive, endFair, answerFairQuestion, exportAllRegistrationsCSV, type FairDetail, type FairQuestionRow, type RegistrationRow } from '../actions'
 import {
     ArrowLeft, QrCode, Printer, ExternalLink,
     Users, ScanLine, Building2, UserCheck,
     Zap, CheckCircle2, MapPin, Calendar, MessageCircleQuestion, Loader2,
+    Download, Mail, MessageCircle, ShieldCheck, Eye,
 } from 'lucide-react'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -37,10 +38,11 @@ function StatCard({ label, value, icon: Icon, color }: {
 }
 
 export function FairDetailClient({
-    fair, questions = [],
+    fair, questions = [], registrations = [],
 }: {
     fair: NonNullable<FairDetail>
     questions?: FairQuestionRow[]
+    registrations?: RegistrationRow[]
 }) {
     const router = useRouter()
     const [pending, startTransition] = useTransition()
@@ -240,6 +242,9 @@ export function FairDetailClient({
 
             {/* ── Q&A Answer Panel ── */}
             <AdminQAPanel questions={questions} />
+
+            {/* ── All Registrations Panel ── */}
+            <AllRegistrationsPanel registrations={registrations} fairId={fair.id} fairName={fair.name} />
         </div>
     )
 }
@@ -349,5 +354,166 @@ function LinkRow({ label, desc, href }: { label: string; desc: string; href: str
             </div>
             <ExternalLink className="w-4 h-4 text-gray-300 group-hover:text-indigo-500 shrink-0" />
         </a>
+    )
+}
+
+// ── All Registrations Panel (admin only) ──────────────────────────────────────
+// Shows every student who got a gate pass — booth visitors AND browse-only attendees.
+// Per data share agreement, all registrant data belongs to edumeetup + participating universities.
+function AllRegistrationsPanel({
+    registrations,
+    fairId,
+    fairName,
+}: {
+    registrations: RegistrationRow[]
+    fairId: string
+    fairName: string
+}) {
+    const [exporting, setExporting] = useState(false)
+    const [open, setOpen] = useState(false)
+
+    const handleExport = async () => {
+        setExporting(true)
+        const result = await exportAllRegistrationsCSV(fairId)
+        setExporting(false)
+        if (result.csv) {
+            const blob = new Blob([result.csv], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `${fairName.replace(/\s+/g, '_')}_all_registrations.csv`
+            a.click()
+            URL.revokeObjectURL(url)
+        }
+    }
+
+    const browsersOnly = registrations.filter(r => r.boothVisits === 0)
+    const boothVisitors = registrations.filter(r => r.boothVisits > 0)
+
+    return (
+        <Card className="border-indigo-100">
+            <CardHeader>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                            <Users className="w-5 h-5 text-indigo-600" />
+                            All Registrations
+                            <span className="ml-1 bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                                {registrations.length}
+                            </span>
+                        </CardTitle>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Every student who generated a gate pass — including {browsersOnly.length} browse-only (no booth visit)
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setOpen(o => !o)}
+                            className="rounded-xl gap-1.5 text-xs"
+                        >
+                            <Eye className="w-3.5 h-3.5" />
+                            {open ? 'Hide' : 'View All'}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleExport}
+                            disabled={exporting || registrations.length === 0}
+                            className="rounded-xl gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50 text-xs"
+                        >
+                            {exporting
+                                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                : <Download className="w-3.5 h-3.5" />
+                            }
+                            Export CSV
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Summary stats */}
+                <div className="flex gap-4 text-xs text-gray-500 mt-2 flex-wrap">
+                    <span className="flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                        {registrations.filter(r => r.isRegistered).length} registered accounts
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5 text-gray-400" />
+                        {registrations.filter(r => r.isPartialProfile).length} walk-ins
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5 text-violet-500" />
+                        {boothVisitors.length} visited ≥1 booth
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <Mail className="w-3.5 h-3.5 text-blue-500" />
+                        {registrations.filter(r => r.emailConsent).length} email consent
+                    </span>
+                </div>
+            </CardHeader>
+
+            {open && registrations.length > 0 && (
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-t border-b border-gray-100 bg-gray-50/70">
+                                    {['Name / Email', 'Institution', 'Course', 'Field', 'Booths', 'Type', 'Consent'].map(h => (
+                                        <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3 whitespace-nowrap">
+                                            {h}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {registrations.map(r => (
+                                    <tr key={r.id} className="hover:bg-indigo-50/30 transition-colors">
+                                        <td className="px-4 py-3">
+                                            <p className="font-medium text-gray-900 whitespace-nowrap">{r.fullName ?? '—'}</p>
+                                            <p className="text-xs text-gray-400">{r.email}</p>
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">{r.currentInstitution ?? '—'}</td>
+                                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">{r.currentCourse ?? '—'}</td>
+                                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">{r.fieldOfInterest ?? '—'}</td>
+                                        <td className="px-4 py-3 text-center">
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                                r.boothVisits > 0
+                                                    ? 'bg-violet-100 text-violet-700'
+                                                    : 'bg-gray-100 text-gray-500'
+                                            }`}>
+                                                {r.boothVisits}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                                r.isPartialProfile
+                                                    ? 'bg-amber-100 text-amber-700'
+                                                    : 'bg-emerald-100 text-emerald-700'
+                                            }`}>
+                                                {r.isPartialProfile ? 'Walk-in' : 'Registered'}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex gap-1.5">
+                                                {r.emailConsent && <Mail className="w-3.5 h-3.5 text-blue-500" />}
+                                                {r.whatsappConsent && <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />}
+                                                {!r.emailConsent && !r.whatsappConsent && <span className="text-xs text-gray-300">—</span>}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+            )}
+
+            {registrations.length === 0 && (
+                <CardContent>
+                    <p className="text-sm text-gray-400 text-center py-6">No registrations yet for this fair.</p>
+                </CardContent>
+            )}
+        </Card>
     )
 }

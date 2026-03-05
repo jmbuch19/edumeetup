@@ -38,6 +38,7 @@ import {
     updateFollowUpStatus,
     sendBulkFollowUp,
     exportLeadsCSV,
+    exportAllPassesCSV,
     requestMeetingsWithLeads,
 } from './actions'
 
@@ -287,6 +288,7 @@ export function FairReportDashboard({
     const [showMeetingModal, setShowMeetingModal] = useState(false)
     const [bulkEmailLoading, setBulkEmailLoading] = useState(false)
     const [bulkEmailResult, setBulkEmailResult] = useState<string | null>(null)
+    const [exportingAll, setExportingAll] = useState(false)
     const [, startTransition] = useTransition()
 
     const isEnded = fairEvent.endedAt !== null || new Date(fairEvent.endDate) < new Date()
@@ -359,7 +361,23 @@ export function FairReportDashboard({
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a')
             a.href = url
-            a.download = `${fairEvent.name.replace(/\s+/g, '_')}_leads.csv`
+            a.download = `${fairEvent.name.replace(/\s+/g, '_')}_booth_leads.csv`
+            a.click()
+            URL.revokeObjectURL(url)
+        }
+    }
+
+    // ── Export ALL fair attendees CSV (data share agreement) ─────────────────
+    const handleExportAllCSV = async () => {
+        setExportingAll(true)
+        const result = await exportAllPassesCSV(fairEvent.id)
+        setExportingAll(false)
+        if (result.csv) {
+            const blob = new Blob([result.csv], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `${fairEvent.name.replace(/\s+/g, '_')}_all_attendees.csv`
             a.click()
             URL.revokeObjectURL(url)
         }
@@ -415,14 +433,30 @@ export function FairReportDashboard({
                             {new Date(fairEvent.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </p>
                     </div>
-                    <Button
-                        variant="outline"
-                        onClick={handleExportCSV}
-                        className="rounded-xl border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-                    >
-                        <Download className="w-4 h-4 mr-2" />
-                        Export CSV
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={handleExportCSV}
+                            className="rounded-xl border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                            title="Booth leads only — students who visited your booth"
+                        >
+                            <Download className="w-4 h-4 mr-2" />
+                            Booth Leads CSV
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={handleExportAllCSV}
+                            disabled={exportingAll}
+                            className="rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50"
+                            title="All fair attendees — per data share agreement"
+                        >
+                            {exportingAll
+                                ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                : <Download className="w-4 h-4 mr-2" />
+                            }
+                            All Attendees CSV
+                        </Button>
+                    </div>
                 </div>
             </div>
 

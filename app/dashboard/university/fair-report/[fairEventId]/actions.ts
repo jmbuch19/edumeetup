@@ -249,3 +249,59 @@ export async function requestMeetingsWithLeads(
         return { created: 0, error: 'Failed to create meetings' }
     }
 }
+
+// ── 5. Export ALL fair registrations (data share agreement) ───────────────────
+// Universities receive every gate-pass holder for the fair, not just booth scans.
+// This fulfils the data share agreement: edumeetup provides full attendee list.
+export async function exportAllPassesCSV(
+    fairEventId: string,
+): Promise<{ csv?: string; error?: string }> {
+    const session = await auth()
+    const role = session?.user?.role
+    if (!session?.user || (role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP' && role !== 'ADMIN')) {
+        return { error: 'Unauthorized' }
+    }
+
+    try {
+        const passes = await prisma.fairStudentPass.findMany({
+            where: { fairEventId },
+            orderBy: { createdAt: 'asc' },
+            include: { _count: { select: { attendances: true } } },
+        })
+
+        const header = [
+            'Name', 'Email', 'Phone', 'Institution', 'Course', 'Semester',
+            'Field of Interest', 'Budget', 'Preferred Countries',
+            'Email Consent', 'WhatsApp Consent', 'Profile Type',
+            'Booth Visits', 'Registered At',
+        ]
+
+        const escape = (v: string | null | undefined) =>
+            `"${String(v ?? '').replace(/"/g, '""')}"`
+
+        const rows = passes.map((p) =>
+            [
+                escape(p.fullName),
+                escape(p.email),
+                escape(p.phone),
+                escape(p.currentInstitution),
+                escape(p.currentCourse),
+                escape(p.currentSemester),
+                escape(p.fieldOfInterest),
+                escape(p.budgetRange),
+                escape(p.preferredCountries),
+                escape(p.emailConsent ? 'Yes' : 'No'),
+                escape(p.whatsappConsent ? 'Yes' : 'No'),
+                escape(p.isPartialProfile ? 'Walk-in' : 'Registered'),
+                escape(p._count.attendances.toString()),
+                escape(p.createdAt.toISOString()),
+            ].join(','),
+        )
+
+        const csv = [header.join(','), ...rows].join('\n')
+        return { csv }
+    } catch (error) {
+        console.error('[exportAllPassesCSV]', error)
+        return { error: 'Failed to generate CSV' }
+    }
+}

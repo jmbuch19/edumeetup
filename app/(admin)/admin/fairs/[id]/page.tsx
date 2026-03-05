@@ -1,9 +1,9 @@
 import { auth } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { getFairDetail } from '../actions'
+import { getFairDetail, getRegistrations } from '../actions'
 import { FairDetailClient } from './fair-detail-client'
-import type { FairQuestionRow } from '../actions'
+import type { FairQuestionRow, RegistrationRow } from '../actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +13,10 @@ export default async function AdminFairDetailPage({ params }: Props) {
     const session = await auth()
     if (!session || session.user?.role !== 'ADMIN') redirect('/login')
 
-    const fair = await getFairDetail(params.id)
+    const [fair, registrations] = await Promise.all([
+        getFairDetail(params.id),
+        getRegistrations(params.id),
+    ])
     if (!fair) notFound()
 
     // Fetch all questions for this fair (unanswered first)
@@ -33,7 +36,7 @@ export default async function AdminFairDetailPage({ params }: Props) {
 
     return (
         <div className="max-w-4xl mx-auto py-4 md:py-8 px-4">
-            <FairDetailClient fair={fair} questions={questions} />
+            <FairDetailClient fair={fair} questions={questions} registrations={registrations} />
         </div>
     )
 }
