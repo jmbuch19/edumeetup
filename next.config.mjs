@@ -49,7 +49,7 @@ const nextConfig = {
                         key: 'Content-Security-Policy',
                         value: [
                             "default-src 'self'",
-                            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+                            "script-src 'self' 'strict-dynamic'",
                             "style-src 'self' 'unsafe-inline'",
                             "img-src 'self' data: blob: https://files.edumeetup.com https://lh3.googleusercontent.com https://*.googleusercontent.com",
                             "font-src 'self' data:",
