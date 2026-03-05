@@ -111,8 +111,8 @@ export default async function AdminLayout({
             <AdminMobileNav adminEmail={session.user?.email} />
 
             {/* Main content */}
-            <main className="flex-1 md:ml-64 p-4 md:p-8 min-w-0 pt-[3.75rem] md:pt-8">
-                <div className="w-full max-w-[680px] mx-auto">
+            <main className="flex-1 md:ml-64 min-w-0 p-4 md:p-8 pt-[3.75rem] md:pt-8 flex overflow-hidden">
+                <div className="flex-1 w-full max-w-[640px] mx-auto overflow-y-auto">
                     <AdminBreadcrumbs />
                     {children}
                 </div>
