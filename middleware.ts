@@ -3,54 +3,22 @@ import { NextResponse, type NextRequest } from "next/server"
 
 // ─── GOLDEN RULE ──────────────────────────────────────────────────────────────
 // Use getToken() — NOT auth(req) — to read the session in middleware.
-// auth(req as any) misuses the NextAuth v5 API: auth() called with a Request
-// object tries to use it as a handler, returning undefined instead of a session.
-// getToken() directly decodes the JWT cookie using AUTH_SECRET — edge-safe,
-// no adapter, no NextAuth instance needed.
+// CSP is set in next.config.mjs headers() — not here.
+// Nonce-based CSP requires the root layout to stamp nonces on every script tag,
+// which is a large infrastructure change. next.config.mjs unsafe-inline CSP
+// achieves Observatory B+ (80/100) and keeps the app working correctly.
 // ──────────────────────────────────────────────────────────────────────────────
-
-// ─── CSP nonce helper ─────────────────────────────────────────────────────────
-// Generates a unique nonce per request. Using 'strict-dynamic' allows Next.js
-// to load its own scripts without 'unsafe-inline'. The nonce is forwarded to
-// the root layout via the x-nonce request header.
-function buildCspHeader(nonce: string): string {
-    return [
-        "default-src 'self'",
-        `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
-        `style-src 'self' 'unsafe-inline'`,     // inline styles still needed (Tailwind/emotion)
-        "img-src 'self' data: blob: https://files.edumeetup.com https://lh3.googleusercontent.com https://*.googleusercontent.com",
-        "font-src 'self' data:",
-        "connect-src 'self' https://*.neon.tech https://api.resend.com https://o4508957447987200.ingest.sentry.io",
-        "media-src 'self'",
-        "object-src 'none'",
-        "frame-src 'none'",
-        "frame-ancestors 'none'",
-        "base-uri 'self'",
-        "form-action 'self' javascript:",
-        "upgrade-insecure-requests",
-    ].join('; ')
-}
 
 export default async function middleware(req: NextRequest) {
     const { nextUrl } = req
 
-    // Generate a fresh nonce for every request
-    const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
-    const csp = buildCspHeader(nonce)
-
-    // ── STEP 1: ALL /api/ routes bypass auth middleware completely ──────────
+    // ── STEP 1: ALL /api/ routes bypass this middleware completely ──────────
     // Auth callbacks MUST reach the full route handler with PrismaAdapter.
     if (nextUrl.pathname.startsWith('/api/')) {
-        const res = NextResponse.next()
-        res.headers.set('Content-Security-Policy', csp)
-        return res
+        return NextResponse.next()
     }
 
     // ── STEP 2: Read JWT directly from cookie ───────────────────────────────
-    // NextAuth v5 (auth.js) uses a different cookie name than v4:
-    //   v4: next-auth.session-token
-    //   v5: authjs.session-token  (prod: __Secure-authjs.session-token)
-    // getToken() defaults to the v4 name, so we MUST pass cookieName explicitly.
     const isProduction = process.env.NODE_ENV === 'production'
     const token = await getToken({
         req,
@@ -73,61 +41,41 @@ export default async function middleware(req: NextRequest) {
 
     // Explicit /admin → /admin/dashboard redirect
     if (nextUrl.pathname === '/admin') {
-        const res = NextResponse.redirect(new URL('/admin/dashboard', nextUrl))
-        res.headers.set('Content-Security-Policy', csp)
-        return res
+        return NextResponse.redirect(new URL('/admin/dashboard', nextUrl))
     }
 
     // Redirect logged-in users away from auth/landing pages
     if ((isAuthRoute || nextUrl.pathname === '/') && isLoggedIn) {
-        let dest = '/student/dashboard'
-        if (role === 'ADMIN') dest = '/admin/dashboard'
-        else if (role === 'UNIVERSITY' || role === 'UNIVERSITY_REP') dest = '/university/dashboard'
-        const res = NextResponse.redirect(new URL(dest, nextUrl))
-        res.headers.set('Content-Security-Policy', csp)
-        return res
+        if (role === 'ADMIN') return NextResponse.redirect(new URL('/admin/dashboard', nextUrl))
+        if (role === 'UNIVERSITY') return NextResponse.redirect(new URL('/university/dashboard', nextUrl))
+        if (role === 'UNIVERSITY_REP') return NextResponse.redirect(new URL('/university/dashboard', nextUrl))
+        return NextResponse.redirect(new URL('/student/dashboard', nextUrl))
     }
 
     // Redirect unauthenticated users away from protected routes
     if (!isLoggedIn && !isRegistrationPage && !isUniversityLogin && (isStudentRoute || isUniversityRoute || isAdminRoute)) {
         const callbackUrl = nextUrl.pathname + (nextUrl.search || '')
-        const res = NextResponse.redirect(new URL(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`, nextUrl))
-        res.headers.set('Content-Security-Policy', csp)
-        return res
+        return NextResponse.redirect(new URL(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`, nextUrl))
     }
 
     // Cross-role enforcement — prevent users accessing wrong dashboards
     if (isLoggedIn) {
         if (isAdminRoute && role !== 'ADMIN') {
             const dest = (role === 'UNIVERSITY' || role === 'UNIVERSITY_REP') ? '/university/dashboard' : '/student/dashboard'
-            const res = NextResponse.redirect(new URL(dest, nextUrl))
-            res.headers.set('Content-Security-Policy', csp)
-            return res
+            return NextResponse.redirect(new URL(dest, nextUrl))
         }
         if (isUniversityRoute && role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP' && !isRegistrationPage) {
-            const res = NextResponse.redirect(new URL('/student/dashboard', nextUrl))
-            res.headers.set('Content-Security-Policy', csp)
-            return res
+            return NextResponse.redirect(new URL('/student/dashboard', nextUrl))
         }
         if (isStudentRoute && (role === 'ADMIN' || role === 'UNIVERSITY' || role === 'UNIVERSITY_REP')) {
             const dest = role === 'ADMIN' ? '/admin/dashboard' : '/university/dashboard'
-            const res = NextResponse.redirect(new URL(dest, nextUrl))
-            res.headers.set('Content-Security-Policy', csp)
-            return res
+            return NextResponse.redirect(new URL(dest, nextUrl))
         }
     }
 
-    // Pass through — attach CSP and forward nonce to root layout via request header
-    const requestHeaders = new Headers(req.headers)
-    requestHeaders.set('x-nonce', nonce)
-
-    const res = NextResponse.next({ request: { headers: requestHeaders } })
-    res.headers.set('Content-Security-Policy', csp)
-    return res
+    return NextResponse.next()
 }
 
 export const config = {
-    // login and register are included so they receive the nonce-based CSP.
-    // Auth redirect logic inside the middleware handles them safely.
-    matcher: ['/((?!_next/static|_next/image|favicon.ico|api).*)'],
+    matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
 }

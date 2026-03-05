@@ -49,7 +49,7 @@ const nextConfig = {
                         key: 'Content-Security-Policy',
                         value: [
                             "default-src 'self'",
-                            "script-src 'self' 'unsafe-inline' 'strict-dynamic'",
+                            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
                             "style-src 'self' 'unsafe-inline'",
                             "img-src 'self' data: blob: https://files.edumeetup.com https://lh3.googleusercontent.com https://*.googleusercontent.com",
                             "font-src 'self' data:",
@@ -59,7 +59,7 @@ const nextConfig = {
                             "frame-src 'none'",
                             "frame-ancestors 'none'",
                             "base-uri 'self'",
-                            "form-action 'self' javascript:",
+                            "form-action 'self'",
                             "upgrade-insecure-requests",
                         ].join('; ')
                     },
