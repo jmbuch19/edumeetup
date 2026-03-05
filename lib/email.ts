@@ -474,3 +474,42 @@ export const EmailTemplates = {
         <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'}/admin/host-requests" class="btn">View Details →</a></p>
     `,
 }
+
+// ─── Nudge Email ──────────────────────────────────────────────────────────────
+/**
+ * Sends a personalised nudge email to a single recipient.
+ * Wraps sendEmail with a consistent CTA-button layout.
+ * Use for admin-triggered fair registrant and walk-in nudges.
+ */
+export async function sendNudgeEmail({
+    to,
+    subject,
+    message,
+    ctaText,
+    ctaUrl,
+}: {
+    to: string
+    subject: string
+    message: string
+    ctaText: string
+    ctaUrl: string
+}): Promise<{ success?: boolean; error?: string }> {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL
+        || process.env.NEXT_PUBLIC_BASE_URL
+        || 'https://edumeetup.com'
+    const fullCtaUrl = ctaUrl.startsWith('http') ? ctaUrl : `${appUrl}${ctaUrl}`
+
+    const content = `
+        <p>${message}</p>
+        <p style="text-align:center;margin-top:24px;">
+            <a href="${fullCtaUrl}" class="btn">${ctaText} →</a>
+        </p>
+        <p style="font-size:12px;color:#94a3b8;">
+            Sent by the EdUmeetup team.
+            If you no longer wish to receive these emails, please contact
+            <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@edumeetup.com'}">support</a>.
+        </p>
+    `
+    return sendEmail({ to, subject, html: generateEmailHtml(subject, content) })
+}
+

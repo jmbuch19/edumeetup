@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { sendEmail, generateEmailHtml } from '@/lib/email'
+import { sendNudgeEmail } from '@/lib/email'
 import { buildFilterWhere, computeProfileComplete } from '@/lib/admin/student-filters'
 import type { StudentFilter } from '@/lib/admin/student-filters'
 
@@ -108,59 +108,65 @@ export async function sendSegmentNudge(formData: FormData) {
     if (message.length > 500) return { error: 'Message must be under 500 characters' }
 
     const where = buildFilterWhere(filter)
-    // Query all matching active students — no need for student relation since we use userId
     const users = await prisma.user.findMany({
         where: { ...where, isActive: true },
-        select: { id: true, email: true, name: true, student: { select: { fullName: true } } },
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            consentMarketing: true,
+            student: { select: { fullName: true } },
+        },
         take: 500,
     })
 
     console.log(`[NUDGE] filter=${filter} users=${users.length} sendEmail=${sendEmailFlag}`)
-
     if (users.length === 0) return { error: 'No active students match this filter' }
 
-    let notifCount = 0
-    let emailCount = 0
+    // Determine CTA for fair segments
+    const isFairFilter = filter.startsWith('fair_')
+    const ctaText = filter === 'fair_registered' ? 'Complete Your Profile' : 'Open EdUmeetup'
+    const ctaUrl = filter === 'fair_registered' ? '/onboarding/student' : '/student/dashboard'
 
-    for (const user of users) {
+    // Batch in-app notifications (single round trip)
+    const notifData = users.map(user => {
         const firstName = user.student?.fullName?.split(' ')[0] || user.name?.split(' ')[0] || 'there'
-        const msg = message.replace(/\{\{name\}\}/g, firstName)
-        const ttl = title.replace(/\{\{name\}\}/g, firstName)
-
-        // Write to the Notification table (what the header bell reads from)
-        try {
-            await prisma.notification.create({
-                data: { userId: user.id, title: ttl, message: msg, type: 'INFO' }
-            })
-            notifCount++
-        } catch (e) {
-            console.error(`[NUDGE] Failed notification for userId=${user.id}:`, e)
+        return {
+            userId: user.id,
+            title: title.replace(/\{\{name\}\}/g, firstName),
+            message: message.replace(/\{\{name\}\}/g, firstName),
+            type: 'INFO' as const,
         }
+    })
+    const { count: notified } = await prisma.notification.createMany({
+        data: notifData,
+        skipDuplicates: true,
+    })
 
-        if (sendEmailFlag) {
-            try {
-                await sendEmail({
+    // Emails — non-blocking, respect consentMarketing for fair segments
+    let emailed = 0
+    let failed = 0
+    if (sendEmailFlag) {
+        const emailTargets = isFairFilter
+            ? users.filter(u => u.consentMarketing)
+            : users
+        const emailResults = await Promise.allSettled(
+            emailTargets.map(user => {
+                const firstName = user.student?.fullName?.split(' ')[0] || user.name?.split(' ')[0] || 'there'
+                return sendNudgeEmail({
                     to: user.email,
-                    subject: ttl,
-                    html: generateEmailHtml(ttl, `
-            <p>Hi ${firstName},</p>
-            <p>${msg}</p>
-            <p style="text-align:center;margin-top:24px;">
-              <a href="${BASE_URL}/student/dashboard" style="background:#6366f1;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Go to Dashboard →</a>
-            </p>
-            <p style="font-size:12px;color:#94a3b8;">Sent by the EdUmeetup team.</p>
-          `),
+                    subject: title.replace(/\{\{name\}\}/g, firstName),
+                    message: message.replace(/\{\{name\}\}/g, firstName),
+                    ctaText,
+                    ctaUrl,
                 })
-                emailCount++
-                // Throttle: Resend free tier allows ~2 req/sec — avoid silent drops
-                await new Promise(r => setTimeout(r, 300))
-            } catch (e) {
-                console.error(`[NUDGE] Failed email to ${user.email}:`, e)
-            }
-        }
+            })
+        )
+        emailed = emailResults.filter(r => r.status === 'fulfilled').length
+        failed = emailResults.filter(r => r.status === 'rejected').length
     }
 
-    console.log(`[NUDGE] Done: notifCount=${notifCount} emailCount=${emailCount}`)
+    console.log(`[NUDGE] Done: notified=${notified} emailed=${emailed} failed=${failed}`)
 
     // Audit log — non-critical
     try {
@@ -171,8 +177,9 @@ export async function sendSegmentNudge(formData: FormData) {
         console.error('[AUDIT] auditLog.create failed (nudge):', e)
     }
 
-    return { success: true, recipientCount: notifCount, notifCount, emailCount }
+    return { success: true, notified, emailed, failed }
 }
+
 
 // ── Targeted in-app notification (called from filter bar client component) ────
 export async function notifyFilteredStudents(
@@ -220,7 +227,7 @@ export async function getFairFilterCounts() {
     return { fairRegistered, fairAttended, fairNotAttended, fairWalkins }
 }
 
-// ── Nudge fair walk-ins via email ──────────────────────────────────────────────
+// ── Nudge fair walk-ins via email (only) ───────────────────────────────────────
 export async function nudgeFairWalkins(message: string, ctaUrl: string) {
     const admin = await requireAdmin()
     if (!message?.trim()) return { error: 'Message is required' }
@@ -239,54 +246,38 @@ export async function nudgeFairWalkins(message: string, ctaUrl: string) {
         take: 500,
     })
 
-    if (walkIns.length === 0) return { success: true, sent: 0, skipped: 0 }
+    if (walkIns.length === 0) return { success: true, notified: 0, emailed: 0, failed: 0 }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || BASE_URL
-    let sent = 0
-    let skipped = 0
-
-    for (const pass of walkIns) {
-        if (!pass.email) { skipped++; continue }
-        const firstName = pass.fullName?.split(' ')[0] || 'there'
-        const subject = 'Your EdUmeetup fair visit summary'
-        const body = message.replace(/\{\{name\}\}/g, firstName)
-        const htmlContent = `
-            <p>Hi ${firstName},</p>
-            <p>${body}</p>
-            <p>You visited <strong>${pass.fairEvent.name}</strong>. The universities you spoke with are ready to connect.</p>
-            <p style="text-align:center;margin-top:24px;">
-              <a href="${appUrl}${ctaUrl}" style="background:#6366f1;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Get Started →</a>
-            </p>
-            <p style="font-size:12px;color:#94a3b8;">Sent by the EdUmeetup team. You received this because you registered a fair pass at ${pass.fairEvent.name}.</p>
-        `
-        try {
-            await sendEmail({
+    const emailResults = await Promise.allSettled(
+        walkIns.map(pass => {
+            const firstName = pass.fullName?.split(' ')[0] || 'there'
+            const personalised = message.replace(/\{\{name\}\}/g, firstName)
+            const body = `${personalised}\n\nYou visited <strong>${pass.fairEvent.name}</strong>. The universities you spoke with are ready to connect.`
+            return sendNudgeEmail({
                 to: pass.email,
-                subject,
-                html: generateEmailHtml(subject, htmlContent),
+                subject: 'Your EdUmeetup fair visit summary',
+                message: body,
+                ctaText: 'Join edUmeetup Free',
+                ctaUrl,
             })
-            sent++
-            // Throttle: avoid Resend free-tier rate limits
-            await new Promise(r => setTimeout(r, 300))
-        } catch (e) {
-            console.error(`[FAIR_WALKIN_NUDGE] Email failed for pass ${pass.id}:`, e)
-            skipped++
-        }
-    }
+        })
+    )
 
-    // Audit to SystemLog
+    const emailed = emailResults.filter(r => r.status === 'fulfilled').length
+    const failed = emailResults.filter(r => r.status === 'rejected').length
+
     try {
         await prisma.systemLog.create({
             data: {
                 level: 'INFO',
                 type: 'ADMIN_FAIR_WALKIN_NUDGE',
-                message: `[done] sent:${sent} skipped:${skipped} adminId:${admin.id}`,
-                metadata: JSON.stringify({ sent, skipped, ctaUrl, adminId: admin.id }),
+                message: `[summary] sent:${emailed} failed:${failed}`,
+                metadata: JSON.stringify({ sent: emailed, failed, total: walkIns.length, ctaUrl, adminId: admin.id }),
             },
         })
     } catch (e) {
         console.error('[FAIR_WALKIN_NUDGE] systemLog.create failed:', e)
     }
 
-    return { success: true, sent, skipped }
+    return { success: true, notified: 0, emailed, failed }
 }

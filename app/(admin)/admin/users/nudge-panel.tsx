@@ -10,6 +10,7 @@ export function NudgePanel({ filter, preset }: { filter: StudentFilter; preset: 
     const [ctaUrl, setCtaUrl] = useState(filter === 'fair_walkin' ? '/register' : '/onboarding/student')
     const [sendEmail, setSendEmail] = useState(true)
     const [result, setResult] = useState<string>('')
+    const [resultOk, setResultOk] = useState(true)
     const [isPending, startTransition] = useTransition()
 
     const isWalkin = filter === 'fair_walkin'
@@ -20,9 +21,15 @@ export function NudgePanel({ filter, preset }: { filter: StudentFilter; preset: 
             startTransition(async () => {
                 const res = await nudgeFairWalkins(message, ctaUrl)
                 if ('success' in res && res.success) {
-                    setResult(`✅ Sent: ${res.sent} email${res.sent !== 1 ? 's' : ''} (${res.skipped} skipped — no email consent)`)
+                    const parts = [
+                        res.emailed > 0 ? `${res.emailed} email${res.emailed !== 1 ? 's' : ''} sent` : 'No emails sent',
+                        res.failed > 0 ? `${res.failed} failed` : null,
+                    ].filter(Boolean).join(' · ')
+                    setResult(res.failed > 0 ? `⚠️ ${parts}` : `✓ ${parts}`)
+                    setResultOk(res.failed === 0)
                 } else {
                     setResult(('error' in res && res.error) ? res.error as string : 'Failed')
+                    setResultOk(false)
                 }
             })
         }
@@ -64,7 +71,11 @@ export function NudgePanel({ filter, preset }: { filter: StudentFilter; preset: 
                         {isPending ? 'Sending…' : 'Send Email to Walk-ins'}
                     </button>
                 </div>
-                {result && <p className="text-sm font-medium text-amber-800">{result}</p>}
+                {result && (
+                    <p className={`text-sm font-medium ${resultOk ? 'text-amber-800' : 'text-red-700'}`}>
+                        {result}
+                    </p>
+                )}
             </div>
         )
     }
@@ -79,9 +90,13 @@ export function NudgePanel({ filter, preset }: { filter: StudentFilter; preset: 
         startTransition(async () => {
             const res = await sendSegmentNudge(fd)
             if ('success' in res && res.success) {
-                const notifPart = `${res.notifCount} notification${res.notifCount !== 1 ? 's' : ''}`
-                const emailPart = sendEmail ? ` + ${res.emailCount} email${res.emailCount !== 1 ? 's' : ''}` : ''
-                setResult(`✅ Sent: ${notifPart}${emailPart}`)
+                const parts = [
+                    `${res.notified} notified`,
+                    res.emailed > 0 ? `${res.emailed} emails sent` : null,
+                    res.failed > 0 ? `${res.failed} failed` : null,
+                ].filter(Boolean).join(' · ')
+                setResult(res.failed > 0 ? `⚠️ ${parts}` : `✓ ${parts}`)
+                setResultOk(res.failed === 0)
             } else setResult(('error' in res && res.error) ? res.error : 'Failed')
         })
     }
@@ -107,7 +122,11 @@ export function NudgePanel({ filter, preset }: { filter: StudentFilter; preset: 
                     {isPending ? 'Sending…' : 'Send Nudge'}
                 </button>
             </div>
-            {result && <p className="text-sm font-medium text-blue-800">{result}</p>}
+            {result && (
+                <p className={`text-sm font-medium ${resultOk ? 'text-blue-800' : 'text-amber-700'}`}>
+                    {result}
+                </p>
+            )}
         </div>
     )
 }
