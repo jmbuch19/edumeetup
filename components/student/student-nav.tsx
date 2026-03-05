@@ -3,26 +3,29 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, LayoutDashboard, Search, Heart, FileText, CalendarDays, MessageSquare, UserCircle, Settings } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Search, Heart, FileText, CalendarDays, MessageSquare, UserCircle, Settings, HelpCircle } from 'lucide-react'
+import { ContactAdminPanel } from '@/components/layout/contact-admin-panel'
 
 const NAV_ITEMS = [
-    { href: '/student/dashboard', label: 'Home',                   icon: <LayoutDashboard className="h-4 w-4" /> },
-    { href: '/universities',       label: 'Discover Universities',  icon: <Search className="h-4 w-4" /> },
-    { href: '/student/saved',      label: 'Saved',                  icon: <Heart className="h-4 w-4" /> },
+    { href: '/student/dashboard', label: 'Home', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { href: '/universities', label: 'Discover Universities', icon: <Search className="h-4 w-4" /> },
+    { href: '/student/saved', label: 'Saved', icon: <Heart className="h-4 w-4" /> },
     { href: '/student/dashboard?tab=applications', label: 'My Applications', icon: <FileText className="h-4 w-4" /> },
-    { href: '/student/meetings',   label: 'My Meetings',            icon: <CalendarDays className="h-4 w-4" /> },
-    { href: '/student/messages',   label: 'Messages',               icon: <MessageSquare className="h-4 w-4" /> },
-    { href: '/student/profile',    label: 'My Profile',             icon: <UserCircle className="h-4 w-4" /> },
-    { href: '/student/settings',   label: 'Settings',               icon: <Settings className="h-4 w-4" /> },
+    { href: '/student/meetings', label: 'My Meetings', icon: <CalendarDays className="h-4 w-4" /> },
+    { href: '/student/messages', label: 'Messages', icon: <MessageSquare className="h-4 w-4" /> },
+    { href: '/student/profile', label: 'My Profile', icon: <UserCircle className="h-4 w-4" /> },
+    { href: '/student/settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> },
 ]
 
 interface StudentNavProps {
     userName?: string | null
+    senderEmail?: string | null
     city?: string | null
 }
 
-function NavContent({ userName, city, onClose }: StudentNavProps & { onClose?: () => void }) {
+function NavContent({ userName, senderEmail, city, onClose }: StudentNavProps & { onClose?: () => void }) {
     const pathname = usePathname()
+    const [helpOpen, setHelpOpen] = useState(false)
 
     return (
         <div className="flex flex-col h-full" style={{ background: 'var(--navy)' }}>
@@ -69,6 +72,20 @@ function NavContent({ userName, city, onClose }: StudentNavProps & { onClose?: (
                 })}
             </nav>
 
+            {/* Help & Contact Admin */}
+            <div className="px-3 pb-1">
+                <button
+                    onClick={() => setHelpOpen(true)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150"
+                    style={{ color: 'rgba(255,255,255,0.5)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                    <HelpCircle className="h-4 w-4 opacity-70" />
+                    Help & Contact Admin
+                </button>
+            </div>
+
             {/* User strip */}
             <div className="px-4 py-4 border-t flex items-center gap-3" style={{ borderColor: 'var(--navy-mid)' }}>
                 <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white border-2"
@@ -80,6 +97,15 @@ function NavContent({ userName, city, onClose }: StudentNavProps & { onClose?: (
                     <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>Student · {city ?? 'India'}</p>
                 </div>
             </div>
+
+            <ContactAdminPanel
+                open={helpOpen}
+                onClose={() => setHelpOpen(false)}
+                senderName={userName ?? 'Student'}
+                senderEmail={senderEmail ?? ''}
+                senderOrg={'Student'}
+                portalType="Student"
+            />
         </div>
     )
 }

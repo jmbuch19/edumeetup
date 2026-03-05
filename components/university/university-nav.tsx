@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, LayoutDashboard, Users, Zap, CalendarDays, MessageSquare, BookOpen, BarChart2, Settings, Shield, MapPin } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Users, Zap, CalendarDays, MessageSquare, BookOpen, BarChart2, Settings, Shield, MapPin, HelpCircle } from 'lucide-react'
 import { UniversityAvatar } from './university-avatar'
+import { ContactAdminPanel } from '@/components/layout/contact-admin-panel'
 
 interface NavItem {
     href: string
@@ -35,11 +36,13 @@ interface UniversityNavProps {
     institutionName?: string | null
     logoUrl?: string | null
     uniId?: string | null
+    senderEmail?: string | null
     liveFairHref?: string | null
 }
 
-function NavContent({ userName, institutionName, logoUrl, uniId, liveFairHref, onClose }: UniversityNavProps & { onClose?: () => void }) {
+function NavContent({ userName, institutionName, logoUrl, uniId, senderEmail, liveFairHref, onClose }: UniversityNavProps & { onClose?: () => void }) {
     const pathname = usePathname()
+    const [helpOpen, setHelpOpen] = useState(false)
 
     return (
         <div className="flex flex-col h-full" style={{ background: 'var(--navy)' }}>
@@ -119,6 +122,20 @@ function NavContent({ userName, institutionName, logoUrl, uniId, liveFairHref, o
                 </div>
             </nav>
 
+            {/* Help & Contact Admin */}
+            <div className="px-3 pb-1">
+                <button
+                    onClick={() => setHelpOpen(true)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150"
+                    style={{ color: 'rgba(255,255,255,0.5)', background: 'transparent' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                    <HelpCircle className="h-4 w-4 opacity-70" />
+                    Help & Contact Admin
+                </button>
+            </div>
+
             {/* User / institution strip */}
             <div className="px-4 py-4 border-t flex items-center gap-3" style={{ borderColor: 'var(--navy-mid)' }}>
                 {uniId ? (
@@ -139,6 +156,15 @@ function NavContent({ userName, institutionName, logoUrl, uniId, liveFairHref, o
                     </>
                 )}
             </div>
+
+            <ContactAdminPanel
+                open={helpOpen}
+                onClose={() => setHelpOpen(false)}
+                senderName={userName ?? 'University Rep'}
+                senderEmail={senderEmail ?? ''}
+                senderOrg={institutionName ?? 'University'}
+                portalType="University"
+            />
         </div>
     )
 }

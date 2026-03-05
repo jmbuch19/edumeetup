@@ -29,6 +29,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
             <StudentNav
                 userName={student?.fullName ?? session.user.name}
                 city={student?.city}
+                senderEmail={session.user.email}
             />
 
             {/* ── Centre ──────────────────────────────────────────────────────── */}
@@ -47,6 +48,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
                             hamburgerOnly
                             userName={student?.fullName ?? session.user.name}
                             city={student?.city}
+                            senderEmail={session.user.email}
                         />
                         <div className="min-w-0">
                             <p className="text-lg font-semibold truncate" style={{ fontFamily: 'var(--font-display)', color: 'var(--navy)' }}>

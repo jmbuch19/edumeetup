@@ -41,6 +41,7 @@ export default async function UniversityLayout({ children }: { children: React.R
                 institutionName={uni?.institutionName}
                 logoUrl={uni?.logo}
                 uniId={uni?.id}
+                senderEmail={session.user.email}
                 liveFairHref={liveFair ? `/event/${(liveFair as any).slug}/scan` : undefined}
             />
 
@@ -63,6 +64,7 @@ export default async function UniversityLayout({ children }: { children: React.R
                             institutionName={uni?.institutionName}
                             logoUrl={uni?.logo}
                             uniId={uni?.id}
+                            senderEmail={session.user.email}
                             liveFairHref={liveFair ? `/event/${(liveFair as any).slug}/scan` : undefined}
                         />
                         <div className="min-w-0">
