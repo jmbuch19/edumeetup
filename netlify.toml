@@ -60,3 +60,15 @@
 #   WHATSAPP_TOKEN        Meta Cloud API permanent token
 #   WHATSAPP_PHONE_ID     WhatsApp Business phone number ID
 
+
+# --- Security Headers -----------------------------------------------------------
+# These run at Netlify CDN edge - applied to ALL responses including static assets.
+# next.config.mjs also sets headers for SSR-only paths; these complement it.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(self)"
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
