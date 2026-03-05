@@ -26,7 +26,7 @@ function buildCspHeader(nonce: string): string {
         "frame-src 'none'",
         "frame-ancestors 'none'",
         "base-uri 'self'",
-        "form-action 'self'",
+        "form-action 'self' javascript:",
         "upgrade-insecure-requests",
     ].join('; ')
 }
