@@ -2,7 +2,8 @@
 
 import { prisma } from '@/lib/prisma'
 import { nanoid } from 'nanoid'
-import { fairPassRateLimiter } from '@/lib/ratelimit'
+import { fairPassRateLimiter, fairPassUpstashLimiter } from '@/lib/ratelimit'
+import { headers } from 'next/headers'
 
 export type FairPassFormData = {
     fullName: string
@@ -40,9 +41,22 @@ export async function createFairPass(
         return { error: 'Please enter a valid email address' }
     }
 
-    // C1 fix: rate limit by email — 3 attempts per hour per address
-    if (!fairPassRateLimiter.check(`fair_register:${email}`)) {
-        return { error: 'Too many registration attempts. Please try again later.' }
+    // ── Rate limiting — Upstash (distributed) with in-memory fallback ──────────
+    // Upstash: keyed by IP — enforced across all serverless instances
+    // Fallback: keyed by email — per-instance only (resets on cold start)
+    const headersList = await headers()
+    const ip = headersList.get('x-forwarded-for') ?? headersList.get('x-real-ip') ?? 'unknown'
+
+    if (fairPassUpstashLimiter) {
+        const { success } = await fairPassUpstashLimiter.limit(ip)
+        if (!success) {
+            return { error: 'Too many registration attempts. Please try again later.' }
+        }
+    } else {
+        // In-memory fallback (single instance only)
+        if (!fairPassRateLimiter.check(`fair_register:${email}`)) {
+            return { error: 'Too many registration attempts. Please try again later.' }
+        }
     }
 
     try {
