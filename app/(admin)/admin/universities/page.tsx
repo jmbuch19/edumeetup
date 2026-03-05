@@ -92,7 +92,7 @@ export default async function AdminUniversitiesPage() {
                                         {uni.contactEmail || uni.user.email}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Link href={`/universities/${uni.id}`}>
+                                        <Link href={`/admin/universities/${uni.id}`}>
                                             <Button size="icon" variant="ghost">
                                                 <Eye className="h-4 w-4" />
                                             </Button>
