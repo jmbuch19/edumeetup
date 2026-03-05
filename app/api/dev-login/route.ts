@@ -6,30 +6,32 @@ import { prisma } from '@/lib/prisma'
 // CSRF is fetched CLIENT-SIDE so browser gets both token + cookie together
 
 const DEMO_ACCOUNTS = [
-    { label: 'Admin', email: 'admin@edumeetup.com', emoji: '🔐' },
-    { label: 'University Admin', email: 'demo@testuniversity.edu', emoji: '🏛️' },
+  { label: 'Admin', email: 'admin@edumeetup.com', emoji: '🔐' },
+  { label: 'University Admin', email: 'demo@testuniversity.edu', emoji: '🏛️' },
 ]
 
 export async function GET(req: NextRequest) {
-    if (process.env.NODE_ENV === 'production') {
-        return NextResponse.json({ error: 'Not available in production' }, { status: 404 })
-    }
+  // Requires BOTH: non-production env AND explicit opt-in flag.
+  // NODE_ENV alone is insufficient — netlify dev can run with NODE_ENV=production.
+  if (process.env.NODE_ENV === 'production' || !process.env.ENABLE_DEV_LOGIN) {
+    return NextResponse.json({ error: 'Not available' }, { status: 404 })
+  }
 
-    const accountsWithRedirects = await Promise.all(
-        DEMO_ACCOUNTS.map(async (a) => {
-            const user = await prisma.user.findUnique({
-                where: { email: a.email },
-                select: { role: true }
-            })
-            const redirectTo = !user ? '/student/dashboard'
-                : user.role === 'ADMIN' ? '/admin/dashboard'
-                    : user.role === 'UNIVERSITY' || user.role === 'UNIVERSITY_REP' ? '/university/dashboard'
-                        : '/student/dashboard'
-            return { ...a, redirectTo, found: !!user }
-        })
-    )
+  const accountsWithRedirects = await Promise.all(
+    DEMO_ACCOUNTS.map(async (a) => {
+      const user = await prisma.user.findUnique({
+        where: { email: a.email },
+        select: { role: true }
+      })
+      const redirectTo = !user ? '/student/dashboard'
+        : user.role === 'ADMIN' ? '/admin/dashboard'
+          : user.role === 'UNIVERSITY' || user.role === 'UNIVERSITY_REP' ? '/university/dashboard'
+            : '/student/dashboard'
+      return { ...a, redirectTo, found: !!user }
+    })
+  )
 
-    const buttons = accountsWithRedirects.map(a => `
+  const buttons = accountsWithRedirects.map(a => `
     <button
       class="btn"
       ${!a.found ? 'disabled style="opacity:0.4"' : ''}
@@ -43,7 +45,7 @@ export async function GET(req: NextRequest) {
       <span class="arrow">→</span>
     </button>`).join('')
 
-    const html = `<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -144,7 +146,7 @@ export async function GET(req: NextRequest) {
 </body>
 </html>`
 
-    return new NextResponse(html, {
-        headers: { 'Content-Type': 'text/html' },
-    })
+  return new NextResponse(html, {
+    headers: { 'Content-Type': 'text/html' },
+  })
 }

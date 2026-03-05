@@ -12,7 +12,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Not configured" }, { status: 503 })
     }
 
-    const secret = new URL(request.url).searchParams.get("secret")
+    // ⚠️  Secret MUST be in the Authorization header — NOT a query param.
+    // Query params appear in Netlify logs, browser history, and proxy logs.
+    // Usage: curl -H "Authorization: Bearer <ADMIN_SECRET>" /api/setup-admin
+    const authHeader = request.headers.get('Authorization')
+    const secret = authHeader?.replace('Bearer ', '').trim()
     if (secret !== adminSecret) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }

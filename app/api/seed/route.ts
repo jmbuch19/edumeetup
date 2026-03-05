@@ -2,15 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
-    // Only runnable with the admin secret (or in development without one configured)
+    // ⛔ Never available in production — this route creates demo admin accounts
+    if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json({ error: 'Not available' }, { status: 404 })
+    }
+
+    // In development, still require ADMIN_SECRET as a basic access control
     const adminSecret = process.env.ADMIN_SECRET
     if (adminSecret) {
         const authHeader = request.headers.get('Authorization')
         if (authHeader !== `Bearer ${adminSecret}`) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
-    } else if (process.env.NODE_ENV === 'production') {
-        return NextResponse.json({ error: 'ADMIN_SECRET not configured' }, { status: 503 })
     }
 
 
