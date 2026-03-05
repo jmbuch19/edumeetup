@@ -19,6 +19,7 @@ export default async function UniversityLayout({ children }: { children: React.R
     const uni = await prisma.university.findFirst({
         where: { userId: session.user.id },
         select: {
+            id: true,
             institutionName: true,
             logo: true,
             interests: { select: { id: true }, where: { status: 'INTERESTED' }, take: 20 }
@@ -39,6 +40,7 @@ export default async function UniversityLayout({ children }: { children: React.R
                 userName={session.user.name}
                 institutionName={uni?.institutionName}
                 logoUrl={uni?.logo}
+                uniId={uni?.id}
                 liveFairHref={liveFair ? `/event/${(liveFair as any).slug}/scan` : undefined}
             />
 
@@ -60,6 +62,7 @@ export default async function UniversityLayout({ children }: { children: React.R
                             userName={session.user.name}
                             institutionName={uni?.institutionName}
                             logoUrl={uni?.logo}
+                            uniId={uni?.id}
                             liveFairHref={liveFair ? `/event/${(liveFair as any).slug}/scan` : undefined}
                         />
                         <div className="min-w-0">

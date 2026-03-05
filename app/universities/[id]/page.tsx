@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import {
   MapPin, Globe, GraduationCap, BookOpen, Clock,
-  DollarSign, Users, Lock, Phone, Mail, Calendar
+  DollarSign, Users, Lock, Phone, Mail, Calendar, ExternalLink
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -83,29 +83,51 @@ export default async function UniversityDetailPage({
       <div className="bg-white border-b border-slate-100">
         <div className="max-w-5xl mx-auto px-4 py-8">
           <div className="flex items-start gap-5">
-            <UniversityLogo
-              src={uni.logo}
-              alt={uni.institutionName}
-              size="lg"
-              isVerified
-            />
+            {/* Logo — links to external website if available */}
+            {uni.website ? (
+              <a href={uni.website} target="_blank" rel="noopener noreferrer" title={`Visit ${uni.institutionName} website`}>
+                <UniversityLogo src={uni.logo} alt={uni.institutionName} size="lg" isVerified />
+              </a>
+            ) : (
+              <span title="Website not added yet">
+                <UniversityLogo src={uni.logo} alt={uni.institutionName} size="lg" isVerified />
+              </span>
+            )}
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <h1 className="text-2xl font-bold text-slate-900">
-                    {uni.institutionName}
-                  </h1>
+                  {/* Institution name — links to external website */}
+                  {uni.website ? (
+                    <a
+                      href={uni.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group inline-flex items-center gap-1.5 hover:text-primary transition-colors"
+                      title={`Visit ${uni.institutionName} website`}
+                    >
+                      <h1 className="text-2xl font-bold text-slate-900 group-hover:text-primary transition-colors">
+                        {uni.institutionName}
+                      </h1>
+                      <ExternalLink className="h-4 w-4 text-slate-400 group-hover:text-primary transition-colors shrink-0 mt-1" />
+                    </a>
+                  ) : (
+                    <h1
+                      className="text-2xl font-bold text-slate-900"
+                      title="Website not added yet"
+                    >
+                      {uni.institutionName}
+                    </h1>
+                  )}
                   <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                     <span className="flex items-center gap-1 text-sm text-slate-500">
                       <MapPin className="h-3.5 w-3.5" />
                       {[uni.city, uni.country].filter(Boolean).join(', ')}
                     </span>
-                    {uni.website && (
-                      <a href={uni.website} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-sm text-primary hover:underline">
+                    {!uni.website && (
+                      <span className="flex items-center gap-1 text-sm text-slate-400 cursor-default" title="Website not added yet">
                         <Globe className="h-3.5 w-3.5" />
-                        Website
-                      </a>
+                        Website not added
+                      </span>
                     )}
                     {uni.foundedYear && (
                       <span className="text-sm text-slate-400">Est. {uni.foundedYear}</span>

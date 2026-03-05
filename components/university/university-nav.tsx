@@ -34,10 +34,11 @@ interface UniversityNavProps {
     userName?: string | null
     institutionName?: string | null
     logoUrl?: string | null
+    uniId?: string | null
     liveFairHref?: string | null
 }
 
-function NavContent({ userName, institutionName, logoUrl, liveFairHref, onClose }: UniversityNavProps & { onClose?: () => void }) {
+function NavContent({ userName, institutionName, logoUrl, uniId, liveFairHref, onClose }: UniversityNavProps & { onClose?: () => void }) {
     const pathname = usePathname()
 
     return (
@@ -120,15 +121,23 @@ function NavContent({ userName, institutionName, logoUrl, liveFairHref, onClose 
 
             {/* User / institution strip */}
             <div className="px-4 py-4 border-t flex items-center gap-3" style={{ borderColor: 'var(--navy-mid)' }}>
-                <UniversityAvatar
-                    logoUrl={logoUrl}
-                    name={institutionName}
-                    size={36}
-                />
-                <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate text-white">{userName ?? 'University'}</p>
-                    <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{institutionName ?? 'University Admin'}</p>
-                </div>
+                {uniId ? (
+                    <Link href={`/universities/${uniId}`} onClick={onClose} title="View public profile" className="flex items-center gap-3 min-w-0 flex-1 group">
+                        <UniversityAvatar logoUrl={logoUrl} name={institutionName} size={36} />
+                        <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate text-white group-hover:text-teal-300 transition-colors">{userName ?? 'University'}</p>
+                            <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{institutionName ?? 'University Admin'}</p>
+                        </div>
+                    </Link>
+                ) : (
+                    <>
+                        <UniversityAvatar logoUrl={logoUrl} name={institutionName} size={36} />
+                        <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate text-white">{userName ?? 'University'}</p>
+                            <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{institutionName ?? 'University Admin'}</p>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     )
