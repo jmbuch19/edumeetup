@@ -18,7 +18,11 @@ export default async function UniversityLayout({ children }: { children: React.R
     // Fetch university basics for the nav + header
     const uni = await prisma.university.findFirst({
         where: { userId: session.user.id },
-        select: { institutionName: true, interests: { select: { id: true }, where: { status: 'INTERESTED' }, take: 20 } },
+        select: {
+            institutionName: true,
+            logo: true,
+            interests: { select: { id: true }, where: { status: 'INTERESTED' }, take: 20 }
+        },
     })
 
     // Check for live fair — live scanner link in sidebar
@@ -34,6 +38,7 @@ export default async function UniversityLayout({ children }: { children: React.R
             <UniversityNav
                 userName={session.user.name}
                 institutionName={uni?.institutionName}
+                logoUrl={uni?.logo}
                 liveFairHref={liveFair ? `/event/${(liveFair as any).slug}/scan` : undefined}
             />
 
@@ -54,6 +59,7 @@ export default async function UniversityLayout({ children }: { children: React.R
                             hamburgerOnly
                             userName={session.user.name}
                             institutionName={uni?.institutionName}
+                            logoUrl={uni?.logo}
                             liveFairHref={liveFair ? `/event/${(liveFair as any).slug}/scan` : undefined}
                         />
                         <div className="min-w-0">

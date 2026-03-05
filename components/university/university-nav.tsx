@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, LayoutDashboard, Users, Zap, CalendarDays, MessageSquare, BookOpen, BarChart2, Settings, Shield, MapPin, Star } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Users, Zap, CalendarDays, MessageSquare, BookOpen, BarChart2, Settings, Shield, MapPin } from 'lucide-react'
+import { UniversityAvatar } from './university-avatar'
 
 interface NavItem {
     href: string
@@ -14,28 +15,29 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-    { href: '/university/dashboard',  label: 'Dashboard',          icon: <LayoutDashboard className="h-4.5 w-4.5" /> },
+    { href: '/university/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-4.5 w-4.5" /> },
     { href: '/university/dashboard?tab=interests', label: 'Student Discovery', icon: <Users className="h-4.5 w-4.5" /> },
-    { href: '/university/dashboard?tab=overview',  label: 'Action Centre',     icon: <Zap className="h-4.5 w-4.5" /> },
-    { href: '/university/meetings',   label: 'Meetings',           icon: <CalendarDays className="h-4.5 w-4.5" /> },
-    { href: '/university/engagement', label: 'Engagement',         icon: <MessageSquare className="h-4.5 w-4.5" /> },
+    { href: '/university/dashboard?tab=overview', label: 'Action Centre', icon: <Zap className="h-4.5 w-4.5" /> },
+    { href: '/university/meetings', label: 'Meetings', icon: <CalendarDays className="h-4.5 w-4.5" /> },
+    { href: '/university/engagement', label: 'Engagement', icon: <MessageSquare className="h-4.5 w-4.5" /> },
     { href: '/university/dashboard?tab=programs', label: 'Programs', icon: <BookOpen className="h-4.5 w-4.5" /> },
-    { href: '/university/analytics',  label: 'Analytics',          icon: <BarChart2 className="h-4.5 w-4.5" /> },
-    { href: '/university/settings',   label: 'Settings',           icon: <Settings className="h-4.5 w-4.5" /> },
+    { href: '/university/analytics', label: 'Analytics', icon: <BarChart2 className="h-4.5 w-4.5" /> },
+    { href: '/university/settings', label: 'Settings', icon: <Settings className="h-4.5 w-4.5" /> },
 ]
 
 const EXTRA_ITEMS: NavItem[] = [
-    { href: '/university/proctor',    label: 'Proctor Services',   icon: <Shield className="h-4.5 w-4.5" /> },
-    { href: '/university/fairs',      label: 'Campus Fairs',       icon: <MapPin className="h-4.5 w-4.5" /> },
+    { href: '/university/proctor', label: 'Proctor Services', icon: <Shield className="h-4.5 w-4.5" /> },
+    { href: '/university/fairs', label: 'Campus Fairs', icon: <MapPin className="h-4.5 w-4.5" /> },
 ]
 
 interface UniversityNavProps {
     userName?: string | null
     institutionName?: string | null
+    logoUrl?: string | null
     liveFairHref?: string | null
 }
 
-function NavContent({ userName, institutionName, liveFairHref, onClose }: UniversityNavProps & { onClose?: () => void }) {
+function NavContent({ userName, institutionName, logoUrl, liveFairHref, onClose }: UniversityNavProps & { onClose?: () => void }) {
     const pathname = usePathname()
 
     return (
@@ -116,12 +118,13 @@ function NavContent({ userName, institutionName, liveFairHref, onClose }: Univer
                 </div>
             </nav>
 
-            {/* User strip */}
+            {/* User / institution strip */}
             <div className="px-4 py-4 border-t flex items-center gap-3" style={{ borderColor: 'var(--navy-mid)' }}>
-                <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white border-2"
-                    style={{ background: 'linear-gradient(135deg, var(--teal), var(--navy-mid))', borderColor: 'var(--teal)' }}>
-                    {(userName ?? 'U').charAt(0).toUpperCase()}
-                </div>
+                <UniversityAvatar
+                    logoUrl={logoUrl}
+                    name={institutionName}
+                    size={36}
+                />
                 <div className="min-w-0">
                     <p className="text-sm font-semibold truncate text-white">{userName ?? 'University'}</p>
                     <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{institutionName ?? 'University Admin'}</p>
