@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, LayoutDashboard, Search, Heart, FileText, CalendarDays, MessageSquare, UserCircle, Settings, HelpCircle } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Search, Heart, FileText, CalendarDays, MessageSquare, UserCircle, Settings, HelpCircle, User, LogOut } from 'lucide-react'
 import { ContactAdminPanel } from '@/components/layout/contact-admin-panel'
+import { signOut } from 'next-auth/react'
 
 const NAV_ITEMS = [
     { href: '/student/dashboard', label: 'Home', icon: <LayoutDashboard className="h-4 w-4" /> },
@@ -26,6 +27,19 @@ interface StudentNavProps {
 function NavContent({ userName, senderEmail, city, onClose }: StudentNavProps & { onClose?: () => void }) {
     const pathname = usePathname()
     const [helpOpen, setHelpOpen] = useState(false)
+    const [popoverOpen, setPopoverOpen] = useState(false)
+    const stripRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (!popoverOpen) return
+        const handler = (e: MouseEvent) => {
+            if (stripRef.current && !stripRef.current.contains(e.target as Node)) {
+                setPopoverOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handler)
+        return () => document.removeEventListener('mousedown', handler)
+    }, [popoverOpen])
 
     return (
         <div className="flex flex-col h-full" style={{ background: 'var(--navy)' }}>
@@ -86,16 +100,69 @@ function NavContent({ userName, senderEmail, city, onClose }: StudentNavProps & 
                 </button>
             </div>
 
-            {/* User strip */}
-            <div className="px-4 py-4 border-t flex items-center gap-3" style={{ borderColor: 'var(--navy-mid)' }}>
-                <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white border-2"
-                    style={{ background: 'linear-gradient(135deg, var(--teal), var(--navy-mid))', borderColor: 'var(--teal)' }}>
-                    {(userName ?? 'S').charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate text-white">{userName ?? 'Student'}</p>
-                    <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>Student · {city ?? 'India'}</p>
-                </div>
+            {/* Profile strip — clickable, opens popover */}
+            <div ref={stripRef} className="relative">
+                {popoverOpen && (
+                    <div
+                        className="absolute bottom-full left-3 right-3 mb-2 rounded-xl overflow-hidden shadow-xl z-50"
+                        style={{ background: 'var(--navy-mid)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    >
+                        <Link
+                            href="/student/profile"
+                            onClick={() => { setPopoverOpen(false); onClose?.() }}
+                            className="flex items-center gap-3 px-4 py-3 text-sm transition-colors"
+                            style={{ color: 'rgba(255,255,255,0.8)' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                            <User className="h-4 w-4 opacity-70" />
+                            View Profile
+                        </Link>
+                        <Link
+                            href="/student/settings"
+                            onClick={() => { setPopoverOpen(false); onClose?.() }}
+                            className="flex items-center gap-3 px-4 py-3 text-sm transition-colors"
+                            style={{ color: 'rgba(255,255,255,0.8)' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                            <Settings className="h-4 w-4 opacity-70" />
+                            Settings
+                        </Link>
+                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }} />
+                        <button
+                            onClick={() => signOut({ callbackUrl: '/' })}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors"
+                            style={{ color: '#EF4444' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                            <LogOut className="h-4 w-4 opacity-80" />
+                            Sign Out
+                        </button>
+                    </div>
+                )}
+
+                <button
+                    onClick={() => setPopoverOpen(p => !p)}
+                    className="w-full px-4 py-4 border-t flex items-center gap-3 transition-colors text-left"
+                    style={{
+                        borderColor: 'var(--navy-mid)',
+                        background: popoverOpen ? 'rgba(255,255,255,0.05)' : 'transparent',
+                    }}
+                    aria-label="Account menu"
+                    aria-expanded={popoverOpen}
+                >
+                    <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white border-2"
+                        style={{ background: 'linear-gradient(135deg, var(--teal), var(--navy-mid))', borderColor: 'var(--teal)' }}>
+                        {(userName ?? 'S').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold truncate text-white">{userName ?? 'Student'}</p>
+                        <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>Student · {city ?? 'India'}</p>
+                    </div>
+                    <span className="text-white/30 text-xs">···</span>
+                </button>
             </div>
 
             <ContactAdminPanel

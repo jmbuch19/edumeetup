@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, LayoutDashboard, Users, Zap, CalendarDays, MessageSquare, BookOpen, BarChart2, Settings, Shield, MapPin, HelpCircle } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Users, Zap, CalendarDays, MessageSquare, BookOpen, BarChart2, Settings, Shield, MapPin, HelpCircle, User, LogOut } from 'lucide-react'
 import { UniversityAvatar } from './university-avatar'
 import { ContactAdminPanel } from '@/components/layout/contact-admin-panel'
+import { signOut } from 'next-auth/react'
 
 interface NavItem {
     href: string
@@ -43,6 +44,20 @@ interface UniversityNavProps {
 function NavContent({ userName, institutionName, logoUrl, uniId, senderEmail, liveFairHref, onClose }: UniversityNavProps & { onClose?: () => void }) {
     const pathname = usePathname()
     const [helpOpen, setHelpOpen] = useState(false)
+    const [popoverOpen, setPopoverOpen] = useState(false)
+    const stripRef = useRef<HTMLDivElement>(null)
+
+    // Close popover when clicking outside
+    useEffect(() => {
+        if (!popoverOpen) return
+        const handler = (e: MouseEvent) => {
+            if (stripRef.current && !stripRef.current.contains(e.target as Node)) {
+                setPopoverOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handler)
+        return () => document.removeEventListener('mousedown', handler)
+    }, [popoverOpen])
 
     return (
         <div className="flex flex-col h-full" style={{ background: 'var(--navy)' }}>
@@ -136,25 +151,68 @@ function NavContent({ userName, institutionName, logoUrl, uniId, senderEmail, li
                 </button>
             </div>
 
-            {/* User / institution strip */}
-            <div className="px-4 py-4 border-t flex items-center gap-3" style={{ borderColor: 'var(--navy-mid)' }}>
-                {uniId ? (
-                    <Link href={`/universities/${uniId}`} onClick={onClose} title="View public profile" className="flex items-center gap-3 min-w-0 flex-1 group">
-                        <UniversityAvatar logoUrl={logoUrl} name={institutionName} size={36} />
-                        <div className="min-w-0">
-                            <p className="text-sm font-semibold truncate text-white group-hover:text-teal-300 transition-colors">{userName ?? 'University'}</p>
-                            <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{institutionName ?? 'University Admin'}</p>
-                        </div>
-                    </Link>
-                ) : (
-                    <>
-                        <UniversityAvatar logoUrl={logoUrl} name={institutionName} size={36} />
-                        <div className="min-w-0">
-                            <p className="text-sm font-semibold truncate text-white">{userName ?? 'University'}</p>
-                            <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{institutionName ?? 'University Admin'}</p>
-                        </div>
-                    </>
+            {/* Profile strip — clickable, opens popover */}
+            <div ref={stripRef} className="relative">
+                {/* Popover menu — appears above the strip */}
+                {popoverOpen && (
+                    <div
+                        className="absolute bottom-full left-3 right-3 mb-2 rounded-xl overflow-hidden shadow-xl z-50"
+                        style={{ background: 'var(--navy-mid)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    >
+                        <Link
+                            href={uniId ? `/universities/${uniId}` : '/university/settings'}
+                            onClick={() => { setPopoverOpen(false); onClose?.() }}
+                            className="flex items-center gap-3 px-4 py-3 text-sm transition-colors"
+                            style={{ color: 'rgba(255,255,255,0.8)' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                            <User className="h-4 w-4 opacity-70" />
+                            View Profile
+                        </Link>
+                        <Link
+                            href="/university/settings"
+                            onClick={() => { setPopoverOpen(false); onClose?.() }}
+                            className="flex items-center gap-3 px-4 py-3 text-sm transition-colors"
+                            style={{ color: 'rgba(255,255,255,0.8)' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                            <Settings className="h-4 w-4 opacity-70" />
+                            Settings
+                        </Link>
+                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }} />
+                        <button
+                            onClick={() => signOut({ callbackUrl: '/' })}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors"
+                            style={{ color: '#EF4444' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                            <LogOut className="h-4 w-4 opacity-80" />
+                            Sign Out
+                        </button>
+                    </div>
                 )}
+
+                {/* Clickable strip */}
+                <button
+                    onClick={() => setPopoverOpen(p => !p)}
+                    className="w-full px-4 py-4 border-t flex items-center gap-3 transition-colors text-left"
+                    style={{
+                        borderColor: 'var(--navy-mid)',
+                        background: popoverOpen ? 'rgba(255,255,255,0.05)' : 'transparent',
+                    }}
+                    aria-label="Account menu"
+                    aria-expanded={popoverOpen}
+                >
+                    <UniversityAvatar logoUrl={logoUrl} name={institutionName} size={36} />
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold truncate text-white">{userName ?? 'University'}</p>
+                        <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{institutionName ?? 'University Admin'}</p>
+                    </div>
+                    <span className="text-white/30 text-xs">···</span>
+                </button>
             </div>
 
             <ContactAdminPanel
