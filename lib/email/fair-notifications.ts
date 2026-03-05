@@ -232,3 +232,52 @@ export async function sendFairEndReportToUniversity(
 
     return dispatch(email, subject, generateEmailHtml(subject, content))
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. Partial Profile Nudge → Walk-in Attendee (no studentId yet)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function sendPartialProfileNudge(
+    email: string,
+    passData: { fairName: string; universitiesVisited: number },
+): Promise<{ success: boolean; error?: string }> {
+    const { fairName, universitiesVisited } = passData
+    const subject = 'Complete your profile — universities are waiting'
+
+    const content = `
+        <p>Hi there,</p>
+        <p>
+            You visited <strong>${universitiesVisited > 0 ? universitiesVisited : 'several'}</strong>
+            ${universitiesVisited === 1 ? 'university' : 'universities'} at
+            <strong>${fairName}</strong>. The universities you spoke with can see your basic
+            registration info, but a complete profile unlocks direct applications and personalised
+            follow-ups.
+        </p>
+
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px;margin:20px 0;">
+            <p style="margin:0 0 8px 0;font-weight:600;color:#0369a1;">What completing your profile unlocks</p>
+            <ul style="margin:0;padding-left:20px;color:#0c4a6e;font-size:14px;">
+                <li>Direct scholarship and admission enquiries from universities</li>
+                <li>Your fair visit summary &amp; matched programs</li>
+                <li>Book 1-on-1 meetings with university reps</li>
+                <li>Track your applications in one place</li>
+            </ul>
+        </div>
+
+        <p style="margin:28px 0;text-align:center;">
+            <a href="${BASE_URL}/onboarding/student?email=${encodeURIComponent(email)}" class="btn">
+                Complete My Profile →
+            </a>
+        </p>
+
+        <p style="font-size:14px;color:#64748b;">
+            Takes less than 2 minutes. Free, always.
+        </p>
+        <hr>
+        <p style="font-size:12px;color:#94a3b8;">
+            You're receiving this because you registered a QR pass at ${fairName}.
+            If you did not attend this fair, please ignore this email.
+        </p>
+    `
+
+    return dispatch(email, subject, generateEmailHtml(subject, content))
+}
