@@ -471,7 +471,7 @@ export function FairRegistrationForm({
                                 className="mt-0.5"
                             />
                             <Label htmlFor="consentEmail" className="text-sm text-gray-700 leading-snug cursor-pointer">
-                                I agree to receive my digital brochures via Email
+                                I agree to receive digital brochures, programme details, and follow-up emails from universities I visit at this fair via Email
                                 <span className="text-red-500 ml-0.5">*</span>
                             </Label>
                         </div>

@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
 import { sendEmail, generateEmailHtml } from '@/lib/email'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -60,7 +61,35 @@ export async function processQRScan(
         return { error: 'Missing required parameters' }
     }
 
+    // A3 fix: verify the scanning rep belongs to the university they are scanning for
+    const session = await auth()
+    if (!session?.user?.id) return { error: 'Authentication required to scan' }
+    const callerUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { role: true, universityId: true },
+    })
+    if (
+        !callerUser ||
+        (callerUser.role !== 'UNIVERSITY' && callerUser.role !== 'UNIVERSITY_REP') ||
+        callerUser.universityId !== universityId
+    ) {
+        return { error: 'Unauthorized — you may only scan for your own university' }
+    }
+
     try {
+        // A2 fix: fetch fairEvent first and reject scans > 24h after fair ends
+        const fairEvent = await prisma.fairEvent.findUnique({
+            where: { id: fairEventId },
+            select: { name: true, endDate: true, endedAt: true, status: true },
+        })
+        if (!fairEvent) {
+            return { error: 'Fair event not found' }
+        }
+        const fairEndMs = (fairEvent.endedAt ?? fairEvent.endDate)?.getTime()
+        if (fairEndMs && Date.now() > fairEndMs + 24 * 60 * 60 * 1000) {
+            return { error: 'QR scanning window has closed — this fair ended more than 24 hours ago' }
+        }
+
         // ── 1. Find pass by uuid ──────────────────────────────────────────────
         const pass = await prisma.fairStudentPass.findUnique({
             where: { uuid },
@@ -107,11 +136,7 @@ export async function processQRScan(
         if (!university) {
             return { error: 'University not found' }
         }
-
-        const fairEvent = await prisma.fairEvent.findUnique({
-            where: { id: fairEventId },
-            select: { name: true },
-        })
+        // fairEvent was already fetched above for expiry check, reuse its name
 
         // Match programs by fieldOfInterest (simple substring check)
         const interestLower = (pass.fieldOfInterest ?? '').toLowerCase()

@@ -95,13 +95,15 @@ export async function registerStudent(prevState: any, formData: FormData) {
         // Check if user exists
         const existingUser = await prisma.user.findUnique({ where: { email } })
         if (existingUser) {
-            // Check if they are already a STUDENT
             if (existingUser.role === 'STUDENT') {
-                // For Magic Link, we can just say "Check your email to login"
-                // typically we don't return error to avoid enumeration, but for UX we might.
-                return { error: 'User already exists. Please login.' }
+                // B2 fix: don't reveal account exists — silently send magic link
+                if (existingUser.isActive) {
+                    await sendMagicLink(email, '/student/dashboard').catch(() => null)
+                }
+                return { success: true, email, message: "Account created! Check your email to login." }
             }
-            return { error: 'Email already registered with a different role.' }
+            // Different role — generic error, no role/email leakage
+            return { error: 'Registration failed. Please contact support if you need help.' }
         }
 
         // Create User and Student (No Password, No OTP)
@@ -582,7 +584,8 @@ export async function login(formData: FormData) {
         })
 
         if (!user) {
-            return { error: "No account found with this email." }
+            // B2 fix: don't reveal whether email is in DB — constant-time same response
+            return { success: true, message: "Check your email for the login link!" }
         }
 
         if (!user.isActive) {
