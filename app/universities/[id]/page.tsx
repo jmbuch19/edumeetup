@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { UniversityLogo } from '@/components/university/university-logo'
 import Link from 'next/link'
 import { expressInterest } from '@/app/actions'
+import ExpressInterestButton from '@/components/university/express-interest-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,9 +63,17 @@ export default async function UniversityDetailPage({
   // 404 if not found, not verified, or not public
   if (!uni) notFound()
 
-  async function handleExpressInterest() {
-    'use server'
-    await expressInterest(id)
+  // Check if this student has already expressed interest
+  let alreadyExpressed = false
+  if (session?.user?.role === 'STUDENT') {
+    const existing = await prisma.interest.findFirst({
+      where: {
+        universityId: id,
+        student: { user: { email: session.user.email ?? '' } },
+      },
+      select: { id: true },
+    })
+    alreadyExpressed = !!existing
   }
 
   return (
@@ -123,21 +132,19 @@ export default async function UniversityDetailPage({
                       </Link>
                     )
                   )}
-                  {isLoggedIn ? (
-                    <form action={handleExpressInterest}>
-                      <Button className="gap-2">
-                        <Mail className="h-4 w-4" />
-                        Express Interest
-                      </Button>
-                    </form>
-                  ) : (
+                  {session?.user?.role === 'STUDENT' ? (
+                    <ExpressInterestButton
+                      universityId={uni.id}
+                      alreadyExpressed={alreadyExpressed}
+                    />
+                  ) : !isLoggedIn ? (
                     <Link href="/login">
                       <Button className="gap-2">
                         <Mail className="h-4 w-4" />
                         Connect with Us
                       </Button>
                     </Link>
-                  )}
+                  ) : null}
                 </div>
               </div>
 
