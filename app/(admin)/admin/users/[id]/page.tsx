@@ -48,7 +48,8 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
                     meetings: { orderBy: { createdAt: 'desc' }, take: 3 },
                 }
             },
-            university: { select: { institutionName: true, verificationStatus: true, logo: true } },
+            university: { select: { institutionName: true, verificationStatus: true, logo: true, website: true } },
+
         }
     })
 
@@ -322,17 +323,36 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
                     <CardContent className="grid grid-cols-2 gap-5">
                         <div className="col-span-2 flex items-center gap-3">
                             {user.university.logo ? (
-                                <img
-                                    src={user.university.logo}
-                                    alt={`${user.university.institutionName} logo`}
-                                    className="w-10 h-10 rounded-lg object-contain border border-gray-100 bg-white p-0.5 flex-shrink-0"
-                                />
+                                user.university.website ? (
+                                    <a href={user.university.website} target="_blank" rel="noopener noreferrer"
+                                        title={`Visit ${user.university.institutionName} website ↗`}
+                                        className="flex-shrink-0">
+                                        <img
+                                            src={user.university.logo}
+                                            alt={`${user.university.institutionName} logo`}
+                                            className="w-10 h-10 rounded-lg object-contain border border-gray-100 bg-white p-0.5 hover:ring-2 hover:ring-teal-400/60 transition-all"
+                                        />
+                                    </a>
+                                ) : (
+                                    <img
+                                        src={user.university.logo}
+                                        alt={`${user.university.institutionName} logo`}
+                                        className="w-10 h-10 rounded-lg object-contain border border-gray-100 bg-white p-0.5 flex-shrink-0"
+                                    />
+                                )
                             ) : (
                                 <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex-shrink-0 flex items-center justify-center text-indigo-600 font-semibold text-sm">
                                     {user.university.institutionName.charAt(0).toUpperCase()}
                                 </div>
                             )}
-                            <span className="font-medium text-gray-900 truncate">{user.university.institutionName}</span>
+                            {user.university.website ? (
+                                <a href={user.university.website} target="_blank" rel="noopener noreferrer"
+                                    className="font-medium text-gray-900 truncate hover:text-teal-600 hover:underline transition-colors">
+                                    {user.university.institutionName} ↗
+                                </a>
+                            ) : (
+                                <span className="font-medium text-gray-900 truncate">{user.university.institutionName}</span>
+                            )}
                         </div>
                         <Field label="Verification Status" value={user.university.verificationStatus} />
                     </CardContent>

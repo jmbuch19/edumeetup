@@ -29,12 +29,12 @@ export async function StudentRightSidebar() {
 
     // ── Profile completeness tasks ────────────────────────────────────────
     const compTasks = [
-        { done: !!student.fullName,                              label: 'Personal info' },
-        { done: !!student.country,                               label: 'Academic history' },
+        { done: !!student.fullName, label: 'Personal info' },
+        { done: !!student.country, label: 'Academic history' },
         { done: !!student.preferredCountries && student.preferredCountries.length > 0, label: 'Preferred countries' },
-        { done: !!student.englishScore,                          label: 'English test scores' },
-        { done: !!student.currentStatus,                         label: 'Current status' },
-        { done: !!student.fieldOfInterest,                       label: 'Field of interest' },
+        { done: !!student.englishScore, label: 'English test scores' },
+        { done: !!student.currentStatus, label: 'Current status' },
+        { done: !!student.fieldOfInterest, label: 'Field of interest' },
     ]
     const pct = Math.round((compTasks.filter(t => t.done).length / compTasks.length) * 100)
 
@@ -46,7 +46,7 @@ export async function StudentRightSidebar() {
 
     const stats = [
         { num: interestCount, label: 'Expressed Interest', sub: 'universities' },
-        { num: meetingCount,  label: 'Meetings',           sub: 'all time' },
+        { num: meetingCount, label: 'Meetings', sub: 'all time' },
     ]
 
     // ── Suggested universities (verified, not already interested) ─────────
@@ -61,7 +61,8 @@ export async function StudentRightSidebar() {
             verificationStatus: 'VERIFIED',
             ...(excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {}),
         },
-        select: { id: true, institutionName: true, country: true, logo: true },
+        select: { id: true, institutionName: true, country: true, logo: true, website: true },
+
         take: 3,
         orderBy: { createdAt: 'desc' },
     })
@@ -137,13 +138,25 @@ export async function StudentRightSidebar() {
                             <div key={u.id}
                                 className={`flex items-center gap-3 py-2.5 ${i < suggested.length - 1 ? 'border-b' : ''}`}
                                 style={{ borderColor: 'var(--border-dash)' }}>
-                                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 border overflow-hidden"
-                                    style={{ borderColor: 'var(--border-dash)', background: 'var(--surface)' }}>
-                                    {u.logo
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        ? <img src={u.logo} alt={u.institutionName} className="w-full h-full object-contain" />
-                                        : '🎓'}
-                                </div>
+                                {u.website ? (
+                                    <a href={u.website} target="_blank" rel="noopener noreferrer" title={`Visit ${u.institutionName} website ↗`}
+                                        className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 border overflow-hidden block"
+                                        style={{ borderColor: 'var(--border-dash)', background: 'var(--surface)' }}
+                                        onClick={e => e.stopPropagation()}>
+                                        {u.logo
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            ? <img src={u.logo} alt={u.institutionName} className="w-full h-full object-contain" />
+                                            : '🎓'}
+                                    </a>
+                                ) : (
+                                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 border overflow-hidden"
+                                        style={{ borderColor: 'var(--border-dash)', background: 'var(--surface)' }}>
+                                        {u.logo
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            ? <img src={u.logo} alt={u.institutionName} className="w-full h-full object-contain" />
+                                            : '🎓'}
+                                    </div>
+                                )}
                                 <div className="flex-1 min-w-0">
                                     <p className="text-xs font-semibold truncate" style={{ color: 'var(--navy)' }}>{u.institutionName}</p>
                                     <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{u.country ?? 'International'}</p>

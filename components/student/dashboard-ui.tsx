@@ -229,13 +229,26 @@ export function DashboardUI({
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {recommendedUniversities.map((uni) => (
                                     <div key={uni.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                                        <div className="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-100">
-                                            <UniversityLogo
-                                                src={uni.logo}
-                                                alt={uni.institutionName}
-                                                size="xl"
-                                            />
-                                        </div>
+                                        {uni.website ? (
+                                            <a href={uni.website} target="_blank" rel="noopener noreferrer" title={`Visit ${uni.institutionName} website ↗`} className="block">
+                                                <div className="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-100">
+                                                    <UniversityLogo
+                                                        src={uni.logo}
+                                                        alt={uni.institutionName}
+                                                        size="xl"
+                                                        websiteUrl={uni.website}
+                                                    />
+                                                </div>
+                                            </a>
+                                        ) : (
+                                            <div className="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-100">
+                                                <UniversityLogo
+                                                    src={uni.logo}
+                                                    alt={uni.institutionName}
+                                                    size="xl"
+                                                />
+                                            </div>
+                                        )}
                                         <div className="p-6">
                                             <h3 className="text-xl font-bold text-gray-900 mb-2">{uni.institutionName}</h3>
                                             <div className="flex items-center text-gray-500 mb-4 text-sm">

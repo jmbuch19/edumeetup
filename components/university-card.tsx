@@ -42,6 +42,7 @@ export function UniversityCard({ university, userRole }: UniversityCardProps) {
                         size="lg"
                         isVerified={university.verificationStatus === 'VERIFIED'}
                         className="shadow-md"
+                        websiteUrl={university.website}
                     />
 
                     {/* Admin Action Badge */}

@@ -12,6 +12,8 @@ interface UniversityLogoProps {
     size?: 'sm' | 'md' | 'lg' | 'xl'
     isVerified?: boolean
     className?: string
+    /** If provided, the logo becomes a clickable link opening in a new tab */
+    websiteUrl?: string | null
 }
 
 const sizeMap = {
@@ -26,7 +28,8 @@ export function UniversityLogo({
     alt,
     size = 'md',
     isVerified = false,
-    className
+    className,
+    websiteUrl,
 }: UniversityLogoProps) {
     const [error, setError] = useState(false)
     const [showTooltip, setShowTooltip] = useState(false)
@@ -41,12 +44,13 @@ export function UniversityLogo({
 
     const iconSize = size === 'sm' ? 8 : size === 'md' ? 10 : size === 'lg' ? 14 : 18
 
-    return (
+    const inner = (
         <div className={cn("relative inline-block shrink-0", sizeClass, className)}>
             <div className={cn(
                 "relative w-full h-full rounded-lg border bg-white overflow-hidden flex items-center justify-center",
                 isVerified ? "ring-2 ring-indigo-400/40 ring-offset-1" : "",
-                "shadow-sm"
+                "shadow-sm",
+                websiteUrl ? "cursor-pointer hover:ring-2 hover:ring-teal-400/50 transition-all" : ""
             )}>
                 {src && !error ? (
                     <Image
@@ -86,4 +90,20 @@ export function UniversityLogo({
             )}
         </div>
     )
+
+    if (websiteUrl) {
+        return (
+            <a
+                href={websiteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={`Visit ${alt} website ↗`}
+                onClick={e => e.stopPropagation()}
+            >
+                {inner}
+            </a>
+        )
+    }
+
+    return inner
 }
