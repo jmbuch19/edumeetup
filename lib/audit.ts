@@ -10,7 +10,7 @@ export async function logAudit({
     action: string
     entityType: string
     entityId: string
-    actorId: string
+    actorId: string | null          // matches schema: actorId String?
     metadata?: Record<string, unknown>
 }) {
     try {

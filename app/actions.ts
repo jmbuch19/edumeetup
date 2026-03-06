@@ -172,7 +172,7 @@ export async function registerStudent(prevState: any, formData: FormData) {
             action: 'REGISTER_STUDENT',
             entityType: 'USER',
             entityId: email,
-            actorId: null as any,
+            actorId: null,
             metadata: { ip, email, role: 'STUDENT' }
         }).catch(() => null)
 
