@@ -69,7 +69,7 @@ export default async function AdminLayout({
                             Admin
                         </p>
                     </div>
-                    <NotificationsCenter />
+                    <NotificationsCenter userRole="ADMIN" />
                 </header>
 
                 {/* Page content */}
