@@ -1,5 +1,5 @@
 [build]
-  command = "rm -rf .next && npm run build"
+  command = "rm -rf .next && npx prisma migrate deploy --schema=./prisma/schema.prisma && npm run build"
 
 [build.environment]
   NETLIFY_USE_YARN = "false"
@@ -50,8 +50,7 @@
 #   SUPPORT_EMAIL         support@edumeetup.com  ← used in deletion confirmation emails and server-side error messages
 #   NEXT_PUBLIC_SUPPORT_EMAIL support@edumeetup.com  ← same address, exposed to client error/auth pages
 #
-# ⏳ ADD TODAY:
-#   DIRECT_URL            Neon direct (non-pooled) connection string — required for Prisma migrations
+# ⚠️  REQUIRED: DIRECT_URL — Neon direct (non-pooled) connection string — required for Prisma migrate deploy (runs in build command)
 #
 # ⏳ ADD BEFORE FIRST FAIR:
 #   NEXT_PUBLIC_APP_URL   https://www.edumeetup.com  ← used in client-side fair pass / QR links
