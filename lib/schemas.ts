@@ -141,6 +141,19 @@ export const publicInquirySchema = z.object({
     orgName: z.string().optional()
 })
 
+export const pdoRegistrationSchema = z.object({
+    fullName: z.string().min(2, 'Please enter your full name'),
+    email: emailValidator,
+    phone: z.string().min(7, 'Please enter a valid phone number'),
+    universityName: z.string().min(2, 'Please enter your admitted university name'),
+    programName: z.string().min(2, 'Please enter your course of study'),
+    degreeLevel: z.string().min(1, 'Please select your degree level'),
+    intakeSemester: z.string().min(1, 'Please select your intake semester'),
+    visaStatus: z.string().min(1, 'Please select your visa status'),
+    city: z.string().min(2, 'Please enter your city'),
+    questions: z.string().optional(),
+})
+
 export const studentProfileSchema = z.object({
     fullName: z.string().min(2, 'Full name must be at least 2 characters'),
     country: z.string().optional().default('India'),

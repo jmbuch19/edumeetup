@@ -14,7 +14,6 @@ import {
     DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
 import { Menu } from "lucide-react"
-import { AuthButtons } from "./auth-buttons"
 import { MobileLoginButton, MobileSignUpItem } from "./mobile-auth-buttons"
 
 export async function Header() {
@@ -32,9 +31,10 @@ export async function Header() {
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-md">
+            {/* Single container — desktop nav + mobile menu both live here */}
             <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                 {/* Logo */}
-                <Link href="/" className="flex items-center gap-2">
+                <Link href="/" className="flex items-center gap-2 shrink-0">
                     <div className="bg-primary p-1.5 rounded-lg">
                         <GraduationCap className="h-6 w-6 text-white" />
                     </div>
@@ -61,15 +61,12 @@ export async function Header() {
                             Admin
                         </Link>
                     )}
-
                     <Link href="/host-a-fair" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
                         Host a Campus Fair
                     </Link>
-
                     <Link href="/services" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
                         Services
                     </Link>
-
                     <Link href="/about" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
                         About
                     </Link>
@@ -79,142 +76,137 @@ export async function Header() {
                     <Link href="mailto:support@edumeetup.com?subject=Report%20Issue" className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors">
                         Report Issue
                     </Link>
-
                 </nav>
 
-                <div className="hidden md:flex items-center gap-4">
-                    {user ? (
-                        <div className="flex items-center gap-3">
-                            <NotificationBell notifications={notifications} />
-
-                            <span className="text-sm text-gray-600 hidden md:inline-block">
-                                {user.email}
-                            </span>
-
-                            {/* Dashboard Icon Link for Mobile/Quick Access */}
-                            <Link href={
-                                user.role === 'STUDENT' ? '/student/dashboard' :
-                                    user.role === 'UNIVERSITY' ? '/university/dashboard' :
-                                        '/admin/dashboard'
-                            }>
-                                <Button variant="ghost" size="icon" title="Dashboard" aria-label="Go to dashboard">
-                                    <LayoutDashboard className="h-5 w-5 text-gray-600" />
-                                </Button>
-                            </Link>
-
-                            <form action={logout}>
-                                <Button variant="ghost" size="icon" title="Sign Out" aria-label="Sign out">
-                                    <LogOut className="h-5 w-5 text-red-500" />
-                                </Button>
-                            </form>
-                        </div>
-                    ) : (
-                        <>
-                            <Link href="/login">
-                                <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
-                                    Log in
-                                </Button>
-                            </Link>
-                            <Link href="/student/register">
-                                <Button variant="default" size="sm">
-                                    Sign up
-                                </Button>
-                            </Link>
-                        </>
-                    )}
-                </div>
-            </div>
-            {/* Mobile Menu */}
-            <div className="md:hidden flex items-center gap-4">
-                {user ? (
-                    <div className="flex items-center gap-3">
-                        {/* Bell - Keep visible on mobile */}
-                        <NotificationBell notifications={notifications} />
-
-                        {/* Dashboard Quick Link - Keep visible */}
-                        <Link href={
-                            user.role === 'STUDENT' ? '/student/dashboard' :
-                                user.role === 'UNIVERSITY' ? '/university/dashboard' :
-                                    '/admin/dashboard'
-                        }>
-                            <Button variant="ghost" size="icon" title="Dashboard">
-                                <LayoutDashboard className="h-5 w-5 text-gray-600" />
-                            </Button>
-                        </Link>
-                    </div>
-                ) : (
-                    <MobileLoginButton />
-                )}
-
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" aria-label="Open navigation menu">
-                            <Menu className="h-6 w-6" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuItem asChild>
-                            <Link href="/universities" className="w-full cursor-pointer">Browse Universities</Link>
-                        </DropdownMenuItem>
-
-                        {user?.role === 'STUDENT' && (
-                            <DropdownMenuItem asChild>
-                                <Link href="/student/dashboard" className="w-full cursor-pointer">Dashboard</Link>
-                            </DropdownMenuItem>
-                        )}
-                        {user?.role === 'UNIVERSITY' && (
-                            <DropdownMenuItem asChild>
-                                <Link href="/university/dashboard" className="w-full cursor-pointer">Dashboard</Link>
-                            </DropdownMenuItem>
-                        )}
-                        {user?.role === 'ADMIN' && (
-                            <DropdownMenuItem asChild>
-                                <Link href="/admin/dashboard" className="w-full cursor-pointer">Admin Panel</Link>
-                            </DropdownMenuItem>
-                        )}
-
-                        <DropdownMenuItem asChild>
-                            <Link href="/host-a-fair" className="w-full cursor-pointer">Host a Campus Fair</Link>
-                        </DropdownMenuItem>
-
-                        <DropdownMenuItem asChild>
-                            <Link href="/services" className="w-full cursor-pointer">All Services</Link>
-                        </DropdownMenuItem>
-
-                        <DropdownMenuItem asChild>
-                            <Link href="/about" className="w-full cursor-pointer">About</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                            <Link href="/contact" className="w-full cursor-pointer">Contact</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                            <Link href="mailto:support@edumeetup.com?subject=Report%20Issue" className="w-full cursor-pointer text-red-600">Report Issue</Link>
-                        </DropdownMenuItem>
-
-
-                        {!user && (
+                {/* Desktop Actions + Mobile Menu — all inside the container */}
+                <div className="flex items-center gap-3">
+                    {/* Desktop-only auth buttons / user actions */}
+                    <div className="hidden md:flex items-center gap-3">
+                        {user ? (
                             <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
-                                    <MobileSignUpItem />
-                                </DropdownMenuItem>
-                            </>
-                        )}
-
-                        {user && (
-                            <>
-                                <DropdownMenuSeparator />
-                                <form action={logout} className="w-full">
-                                    <button type="submit" className="w-full text-left px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-sm flex items-center gap-2">
-                                        <LogOut className="h-4 w-4" />
-                                        Sign Out
-                                    </button>
+                                <NotificationBell notifications={notifications} />
+                                <span className="text-sm text-gray-600 hidden lg:inline-block">
+                                    {user.email}
+                                </span>
+                                <Link href={
+                                    user.role === 'STUDENT' ? '/student/dashboard' :
+                                        user.role === 'UNIVERSITY' ? '/university/dashboard' :
+                                            '/admin/dashboard'
+                                }>
+                                    <Button variant="ghost" size="icon" title="Dashboard" aria-label="Go to dashboard">
+                                        <LayoutDashboard className="h-5 w-5 text-gray-600" />
+                                    </Button>
+                                </Link>
+                                <form action={logout}>
+                                    <Button variant="ghost" size="icon" title="Sign Out" aria-label="Sign out">
+                                        <LogOut className="h-5 w-5 text-red-500" />
+                                    </Button>
                                 </form>
                             </>
+                        ) : (
+                            <>
+                                <Link href="/login">
+                                    <Button variant="ghost" size="sm">
+                                        Log in
+                                    </Button>
+                                </Link>
+                                <Link href="/student/register">
+                                    <Button variant="default" size="sm">
+                                        Create Profile
+                                    </Button>
+                                </Link>
+                            </>
                         )}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                    </div>
+
+                    {/* Mobile-only: show notification bell (if logged in) or login button */}
+                    <div className="flex md:hidden items-center gap-2">
+                        {user ? (
+                            <>
+                                <NotificationBell notifications={notifications} />
+                                <Link href={
+                                    user.role === 'STUDENT' ? '/student/dashboard' :
+                                        user.role === 'UNIVERSITY' ? '/university/dashboard' :
+                                            '/admin/dashboard'
+                                }>
+                                    <Button variant="ghost" size="icon" title="Dashboard">
+                                        <LayoutDashboard className="h-5 w-5 text-gray-600" />
+                                    </Button>
+                                </Link>
+                            </>
+                        ) : (
+                            <MobileLoginButton />
+                        )}
+                    </div>
+
+                    {/* Hamburger — always visible on mobile */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild className="md:hidden">
+                            <Button variant="ghost" size="icon" aria-label="Open navigation menu">
+                                <Menu className="h-6 w-6" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuItem asChild>
+                                <Link href="/universities" className="w-full cursor-pointer">Browse Universities</Link>
+                            </DropdownMenuItem>
+
+                            {user?.role === 'STUDENT' && (
+                                <DropdownMenuItem asChild>
+                                    <Link href="/student/dashboard" className="w-full cursor-pointer">Dashboard</Link>
+                                </DropdownMenuItem>
+                            )}
+                            {user?.role === 'UNIVERSITY' && (
+                                <DropdownMenuItem asChild>
+                                    <Link href="/university/dashboard" className="w-full cursor-pointer">Dashboard</Link>
+                                </DropdownMenuItem>
+                            )}
+                            {user?.role === 'ADMIN' && (
+                                <DropdownMenuItem asChild>
+                                    <Link href="/admin/dashboard" className="w-full cursor-pointer">Admin Panel</Link>
+                                </DropdownMenuItem>
+                            )}
+
+                            <DropdownMenuItem asChild>
+                                <Link href="/host-a-fair" className="w-full cursor-pointer">Host a Campus Fair</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href="/services" className="w-full cursor-pointer">All Services</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href="/about" className="w-full cursor-pointer">About</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href="/contact" className="w-full cursor-pointer">Contact</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href="mailto:support@edumeetup.com?subject=Report%20Issue" className="w-full cursor-pointer text-red-600">Report Issue</Link>
+                            </DropdownMenuItem>
+
+                            {!user && (
+                                <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem asChild>
+                                        <MobileSignUpItem />
+                                    </DropdownMenuItem>
+                                </>
+                            )}
+
+                            {user && (
+                                <>
+                                    <DropdownMenuSeparator />
+                                    <form action={logout} className="w-full">
+                                        <button type="submit" className="w-full text-left px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-sm flex items-center gap-2">
+                                            <LogOut className="h-4 w-4" />
+                                            Sign Out
+                                        </button>
+                                    </form>
+                                </>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
             </div>
-        </header >
+        </header>
     )
 }

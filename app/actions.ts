@@ -10,7 +10,7 @@ import { sendMagicLink } from '@/lib/magic-link'
 import { logAudit } from '@/lib/audit'
 import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateLimiter, interestRateLimiter, inviteRateLimiter } from '@/lib/ratelimit'
 import { headers } from 'next/headers'
-import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema, studentProfileSchema } from '@/lib/schemas'
+import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema, studentProfileSchema, pdoRegistrationSchema } from '@/lib/schemas'
 import { createNotification } from '@/lib/notifications'
 import { notifyStudent, notifyUniversity } from '@/lib/notify'
 import { getIpFromHeaders, getIpGeoInfo } from '@/lib/getIpInfo'
@@ -874,6 +874,90 @@ export async function submitPublicInquiry(prevState: any, formData: FormData) {
     } catch (error) {
         console.error("Failed to submit inquiry:", error)
         return { error: "Failed to submit inquiry" }
+    }
+}
+
+export async function submitPdoRegistration(prevState: any, formData: FormData) {
+    const rawData = Object.fromEntries(formData.entries())
+
+    // RATE LIMIT (IP Based)
+    const ip = headers().get('x-forwarded-for') || 'unknown'
+    if (!contactRateLimiter.check(ip)) {
+        return { error: "Too many submissions. Please try again later." }
+    }
+
+    const validation = pdoRegistrationSchema.safeParse(rawData)
+
+    if (!validation.success) {
+        return { errors: validation.error.flatten().fieldErrors, error: 'Please fix the errors below.' }
+    }
+
+    const { fullName, email, phone, universityName, programName, degreeLevel, intakeSemester, visaStatus, city, questions } = validation.data
+
+    const timestamp = new Date().toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    })
+
+    try {
+        // Admin notification email
+        const adminHtml = generateEmailHtml('New PDO Registration', `
+            <p>A student has registered for a <strong>Pre-Departure Orientation (PDO)</strong> session at the Ahmedabad office.</p>
+            <div class="info-box">
+                <div class="info-row"><span class="info-label">Name:</span> ${fullName}</div>
+                <div class="info-row"><span class="info-label">Email:</span> <a href="mailto:${email}">${email}</a></div>
+                <div class="info-row"><span class="info-label">Phone / WhatsApp:</span> ${phone}</div>
+                <div class="info-row"><span class="info-label">City (Departing From):</span> ${city}</div>
+                <div class="info-row"><span class="info-label">Admitted University:</span> ${universityName}</div>
+                <div class="info-row"><span class="info-label">Program:</span> ${programName}</div>
+                <div class="info-row"><span class="info-label">Degree Level:</span> ${degreeLevel}</div>
+                <div class="info-row"><span class="info-label">Intake Semester:</span> ${intakeSemester}</div>
+                <div class="info-row"><span class="info-label">Visa Status:</span> ${visaStatus}</div>
+                <div class="info-row"><span class="info-label">Submitted:</span> ${timestamp} IST</div>
+            </div>
+            ${questions ? `
+                <h3 style="margin:20px 0 8px;">Questions / Comments</h3>
+                <blockquote style="border-left:4px solid #0d9488;padding-left:16px;margin:0;color:#1e293b;white-space:pre-wrap;">${questions.trim()}</blockquote>
+            ` : ''}
+            <p style="margin-top:24px;">
+                <a href="mailto:${email}" class="btn">Reply to ${fullName} →</a>
+            </p>
+        `)
+
+        await sendEmail({
+            to: process.env.INFO_EMAIL || 'info@edumeetup.com',
+            subject: `[PDO Registration] ${fullName} — ${universityName} (${intakeSemester})`,
+            html: adminHtml,
+            replyTo: email,
+        })
+
+        // Auto-reply to student
+        const studentHtml = generateEmailHtml('PDO Registration Confirmed 🎓', `
+            <p>Hi <strong>${fullName}</strong>,</p>
+            <p>Thank you for registering for the <strong>Pre-Departure Orientation (PDO)</strong> at the EdUmeetup Ahmedabad office!</p>
+            <p>We have received your details and our team will get in touch with you shortly to confirm your session schedule for <strong>${intakeSemester}</strong>.</p>
+            <div class="info-box">
+                <div class="info-row"><span class="info-label">University:</span> ${universityName}</div>
+                <div class="info-row"><span class="info-label">Program:</span> ${programName} (${degreeLevel})</div>
+                <div class="info-row"><span class="info-label">Intake:</span> ${intakeSemester}</div>
+                <div class="info-row"><span class="info-label">Visa Status:</span> ${visaStatus}</div>
+            </div>
+            <p>The PDO session covers everything you need to know before you fly — from setting up your bank account to navigating campus life in the US.</p>
+            <p>If you have any immediate questions, feel free to reply to this email.</p>
+            <p>We look forward to seeing you! 🌟</p>
+        `)
+
+        await sendEmail({
+            to: email,
+            subject: `Your PDO Registration is Confirmed — EdUmeetup Ahmedabad`,
+            html: studentHtml,
+        })
+
+        return { success: true }
+    } catch (error) {
+        console.error("Failed to submit PDO registration:", error)
+        return { error: "Failed to submit registration. Please try again." }
     }
 }
 
