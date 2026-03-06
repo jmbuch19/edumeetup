@@ -28,6 +28,8 @@ export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: Prof
 
     const [greTaken, setGreTaken] = useState<boolean>(!!initialData.greScore)
     const [gmatTaken, setGmatTaken] = useState<boolean>(!!initialData.gmatScore)
+    const [satTaken, setSatTaken] = useState<boolean>(!!initialData.satScore)
+    const [actTaken, setActTaken] = useState<boolean>(!!initialData.actScore)
     const [savedVersion, setSavedVersion] = useState<number | null>(null)
 
     const formatEnum = (key: string) => key.replace(/_/g, ' ')
@@ -332,6 +334,86 @@ export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: Prof
                                 </div>
                             )}
                             {!gmatTaken && <input type="hidden" name="gmatScore" value="" />}
+                        </div>
+
+                        {/* SAT */}
+                        <div className="space-y-2 col-span-full">
+                            <Label>SAT <span className="text-xs text-muted-foreground font-normal">(optional — for UG applicants)</span></Label>
+                            <div className="flex gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="satTakenUI"
+                                        value="yes"
+                                        checked={satTaken}
+                                        onChange={() => setSatTaken(true)}
+                                        className="accent-primary"
+                                    />
+                                    Yes, I have taken SAT
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="satTakenUI"
+                                        value="no"
+                                        checked={!satTaken}
+                                        onChange={() => { setSatTaken(false) }}
+                                        className="accent-primary"
+                                    />
+                                    Not taken / Not applicable
+                                </label>
+                            </div>
+                            {satTaken && (
+                                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="id_sat_score">SAT Score</Label>
+                                        <Input id="id_sat_score" name="satScore" type="number" min={400} max={1600}
+                                            defaultValue={initialData.satScore || ''} placeholder="e.g. 1350" />
+                                        <p className="text-xs text-muted-foreground">Scale: 400–1600</p>
+                                    </div>
+                                </div>
+                            )}
+                            {!satTaken && <input type="hidden" name="satScore" value="" />}
+                        </div>
+
+                        {/* ACT */}
+                        <div className="space-y-2 col-span-full">
+                            <Label>ACT <span className="text-xs text-muted-foreground font-normal">(optional — for UG applicants)</span></Label>
+                            <div className="flex gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="actTakenUI"
+                                        value="yes"
+                                        checked={actTaken}
+                                        onChange={() => setActTaken(true)}
+                                        className="accent-primary"
+                                    />
+                                    Yes, I have taken ACT
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="actTakenUI"
+                                        value="no"
+                                        checked={!actTaken}
+                                        onChange={() => { setActTaken(false) }}
+                                        className="accent-primary"
+                                    />
+                                    Not taken / Not applicable
+                                </label>
+                            </div>
+                            {actTaken && (
+                                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="id_act_score">ACT Score</Label>
+                                        <Input id="id_act_score" name="actScore" type="number" min={1} max={36}
+                                            defaultValue={initialData.actScore || ''} placeholder="e.g. 28" />
+                                        <p className="text-xs text-muted-foreground">Scale: 1–36</p>
+                                    </div>
+                                </div>
+                            )}
+                            {!actTaken && <input type="hidden" name="actScore" value="" />}
                         </div>
                     </CardContent>
                     <CardFooter className="flex flex-col items-end gap-2">

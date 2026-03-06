@@ -1145,7 +1145,8 @@ export async function updateStudentProfile(formData: FormData) {
             'fullName', 'city', 'pincode', 'phone', 'whatsappNumber',
             'ageGroup', 'currentStatus', 'fieldOfInterest', 'preferredDegree',
             'budgetRange', 'englishTestType', 'englishScore',
-            'greScore', 'gmatScore', 'preferredIntake', 'preferredCountries',
+            'greScore', 'gmatScore', 'satScore', 'actScore',
+            'preferredIntake', 'preferredCountries',
         ] as const
 
         const changedFields: Record<string, { from: string | null; to: string | null }> = {}

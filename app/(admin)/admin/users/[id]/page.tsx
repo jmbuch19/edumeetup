@@ -221,6 +221,8 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
                             <Field label="English Score" value={s.englishScore} />
                             <Field label="GRE Score" value={s.greScore} />
                             <Field label="GMAT Score" value={s.gmatScore} />
+                            <Field label="SAT Score" value={s.satScore} />
+                            <Field label="ACT Score" value={s.actScore} />
                         </CardContent>
                     </Card>
 

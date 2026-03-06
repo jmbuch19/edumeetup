@@ -114,6 +114,8 @@ model Student {
   englishScore       String?
   greScore           String?
   gmatScore          String?
+  satScore           String?
+  actScore           String?
   preferredIntake    String?
   profileComplete    Boolean               @default(false)
   profileVersion     Int                   @default(1)
