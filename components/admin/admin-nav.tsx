@@ -69,15 +69,20 @@ function NavContent({ adminName, adminEmail, onClose }: AdminNavProps & { onClos
                     style={{ background: 'linear-gradient(135deg, var(--teal), var(--teal-light))', boxShadow: '0 0 0 3px rgba(13,148,136,0.3)' }}>
                     🌐
                 </div>
-                <div className="flex items-center gap-2 min-w-0">
-                    <p style={{ fontFamily: 'var(--font-display)', color: 'white', fontSize: 17, lineHeight: 1.1 }}>
-                        edu<span style={{ color: 'var(--gold)' }}>meetup</span>
+                <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                        <p style={{ fontFamily: 'var(--font-display)', color: 'white', fontSize: 17, lineHeight: 1.1 }}>
+                            edu<span style={{ color: 'var(--gold)' }}>meetup</span>
+                        </p>
+                        {/* Gold ADMIN badge */}
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                            style={{ background: 'var(--gold)', color: 'var(--navy)', letterSpacing: '0.5px' }}>
+                            ADMIN
+                        </span>
+                    </div>
+                    <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+                        Where Dreams Meet Destinations
                     </p>
-                    {/* Gold ADMIN badge */}
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                        style={{ background: 'var(--gold)', color: 'var(--navy)', letterSpacing: '0.5px' }}>
-                        ADMIN
-                    </span>
                 </div>
                 {onClose && (
                     <button onClick={onClose} className="ml-auto text-white/50 hover:text-white">

@@ -58,7 +58,7 @@ function CreateDialog({ onClose, onCreated }: { onClose: () => void; onCreated: 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2 space-y-1.5">
                         <Label>Event Name <span className="text-red-500">*</span></Label>
-                        <Input value={form.name} onChange={set('name')} placeholder="EduMeetup Mumbai Fair 2026" className="rounded-xl" />
+                        <Input value={form.name} onChange={set('name')} placeholder="EdUmeetup Mumbai Fair 2026" className="rounded-xl" />
                     </div>
                     <div className="col-span-2 space-y-1.5">
                         <Label>Slug <span className="text-red-500">*</span></Label>

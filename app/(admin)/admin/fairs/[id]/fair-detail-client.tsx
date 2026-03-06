@@ -155,7 +155,7 @@ export function FairDetailClient({
                     <CardContent className="flex flex-col items-center gap-5">
                         {/* printable area */}
                         <div id="fair-qr-printable" className="flex flex-col items-center gap-4 p-6 bg-white rounded-2xl border border-gray-100 w-full">
-                            <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">edUmeetup Fair</p>
+                            <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">EdUmeetup Fair</p>
                             <p className="text-lg font-bold text-gray-900 text-center">{fair.name}</p>
                             {(fair.city || fair.venue) && (
                                 <p className="text-sm text-gray-500">{[fair.venue, fair.city].filter(Boolean).join(' · ')}</p>
@@ -477,20 +477,18 @@ function AllRegistrationsPanel({
                                         <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">{r.currentCourse ?? '—'}</td>
                                         <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">{r.fieldOfInterest ?? '—'}</td>
                                         <td className="px-4 py-3 text-center">
-                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                                                r.boothVisits > 0
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${r.boothVisits > 0
                                                     ? 'bg-violet-100 text-violet-700'
                                                     : 'bg-gray-100 text-gray-500'
-                                            }`}>
+                                                }`}>
                                                 {r.boothVisits}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap">
-                                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                                                r.isPartialProfile
+                                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${r.isPartialProfile
                                                     ? 'bg-amber-100 text-amber-700'
                                                     : 'bg-emerald-100 text-emerald-700'
-                                            }`}>
+                                                }`}>
                                                 {r.isPartialProfile ? 'Walk-in' : 'Registered'}
                                             </span>
                                         </td>

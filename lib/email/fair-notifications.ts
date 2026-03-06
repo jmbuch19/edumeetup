@@ -16,7 +16,7 @@ function getResend() {
     return _resend
 }
 
-const FROM = process.env.EMAIL_FROM || 'edUmeetup <noreply@edumeetup.com>'
+const FROM = process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>'
 const BASE_URL = process.env.NEXTAUTH_URL || 'https://edumeetup.com'
 
 async function dispatch(to: string, subject: string, html: string): Promise<{ success: boolean; error?: string }> {
@@ -71,7 +71,7 @@ export async function sendFairInviteToUniversity(
     if (!email) return { success: false, error: 'No email address for university' }
 
     const year = new Date(fairEvent.startDate).getFullYear()
-    const subject = `You're invited — edUmeetup ${fairEvent.city ?? ''} Fair ${year}`
+    const subject = `You're invited — EdUmeetup ${fairEvent.city ?? ''} Fair ${year}`
     const repGreeting = university.repName ? `Hi ${university.repName.split(' ')[0]},` : 'Hello,'
 
     const content = `
@@ -93,7 +93,7 @@ export async function sendFairInviteToUniversity(
 
         <hr>
         <p style="font-size:12px;color:#94a3b8;">
-            You're receiving this because your institution is registered with edUmeetup and has fair-opportunity notifications enabled.
+            You're receiving this because your institution is registered with EdUmeetup and has fair-opportunity notifications enabled.
             To opt out, log in to your university dashboard → Settings.
         </p>
     `
@@ -133,7 +133,7 @@ export async function sendFairAnnouncementToStudent(
 
         <hr>
         <p style="font-size:12px;color:#94a3b8;">
-            You're receiving this because you're registered on edUmeetup.
+            You're receiving this because you're registered on EdUmeetup.
             <a href="${BASE_URL}/student/settings" style="color:#94a3b8;">Update notification preferences</a>
         </p>
     `
@@ -181,7 +181,7 @@ export async function sendFairGoLiveToUniversity(
 
         <p style="font-size:14px;color:#64748b;">Leads appear in your report automatically as students are scanned. No need to contact admin.</p>
         <hr>
-        <p style="font-size:12px;color:#94a3b8;">Sent on behalf of edUmeetup fair management.</p>
+        <p style="font-size:12px;color:#94a3b8;">Sent on behalf of EdUmeetup fair management.</p>
     `
 
     return dispatch(email, subject, generateEmailHtml(subject, content))
@@ -227,7 +227,7 @@ export async function sendFairEndReportToUniversity(
 
         <p style="font-size:14px;color:#64748b;">Leads are available immediately. No need to contact admin — everything is in your dashboard.</p>
         <hr>
-        <p style="font-size:12px;color:#94a3b8;">edUmeetup Fair Management · ${fairEvent.name}</p>
+        <p style="font-size:12px;color:#94a3b8;">EdUmeetup Fair Management · ${fairEvent.name}</p>
     `
 
     return dispatch(email, subject, generateEmailHtml(subject, content))

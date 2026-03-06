@@ -45,7 +45,7 @@ export function NudgePanel({ filter, preset }: { filter: StudentFilter; preset: 
                     </span>
                 </div>
                 <p className="text-xs text-amber-700">
-                    These users registered at a fair venue but have no edUmeetup account. You can only reach them via email.
+                    These users registered at a fair venue but have no EdUmeetup account. You can only reach them via email.
                     Only recipients who gave email consent will receive this message.
                 </p>
                 <textarea

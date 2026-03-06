@@ -94,8 +94,8 @@ export function StudentFilterBar({ totalCount, filteredStudentIds, activeFilter 
                                 onClick={() => setFilter(p.id)}
                                 title={p.description}
                                 className={`${chipBase} ${walkin
-                                        ? isActive ? chipWalkinActive : chipWalkinInactive
-                                        : isActive ? chipActive : chipInactive
+                                    ? isActive ? chipWalkinActive : chipWalkinInactive
+                                    : isActive ? chipActive : chipInactive
                                     }`}
                             >
                                 {walkin && <span className="mr-1">⚠️</span>}
@@ -110,7 +110,7 @@ export function StudentFilterBar({ totalCount, filteredStudentIds, activeFilter 
             {/* Walk-in info banner */}
             {isWalkin && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
-                    ⚠️ These students registered at the fair venue but don't have a full edUmeetup profile yet.
+                    ⚠️ These students registered at the fair venue but don't have a full EdUmeetup profile yet.
                     You can reach them via <strong>email only</strong>. They won't appear in the student table below.
                 </div>
             )}

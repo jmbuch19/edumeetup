@@ -54,7 +54,7 @@ function NavContent({ userName, senderEmail, city, onClose }: StudentNavProps & 
                         edu<span style={{ color: 'var(--gold)' }}>meetup</span>
                     </p>
                     <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
-                        Student Portal
+                        Where Dreams Meet Destinations
                     </p>
                 </div>
                 {onClose && (

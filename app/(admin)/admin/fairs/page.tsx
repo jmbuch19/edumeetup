@@ -17,7 +17,7 @@ export default async function AdminFairsPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Fair Events</h1>
                     <p className="text-muted-foreground mt-1">
-                        Create and manage edUmeetup fair events. Each event generates a unique entrance QR.
+                        Create and manage EdUmeetup fair events. Each event generates a unique entrance QR.
                     </p>
                 </div>
             </div>

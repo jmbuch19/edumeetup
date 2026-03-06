@@ -202,7 +202,7 @@ export function ParentViewClient({
 
                 {/* ── Footer ── */}
                 <p className="text-center text-xs text-gray-300 pb-4">
-                    This is a read-only parent view · Powered by edUmeetup
+                    This is a read-only parent view · Powered by EdUmeetup
                 </p>
             </div>
         </main>

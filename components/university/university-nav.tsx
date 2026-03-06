@@ -72,7 +72,7 @@ function NavContent({ userName, institutionName, logoUrl, uniId, senderEmail, li
                         edu<span style={{ color: 'var(--gold)' }}>meetup</span>
                     </p>
                     <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
-                        University Portal
+                        Where Dreams Meet Destinations
                     </p>
                 </div>
                 {onClose && (

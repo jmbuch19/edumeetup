@@ -111,8 +111,8 @@ export const FILTER_PRESETS: FilterPreset[] = [
     },
     {
         id: 'fair_walkin', label: 'Walk-in (No Full Profile)', group: 'FAIR' as const,
-        description: 'Registered at fair venue — no full edUmeetup profile yet. Email only.',
-        nudgeTemplate: 'Join edUmeetup to apply directly to the universities you visited at the fair.',
+        description: 'Registered at fair venue — no full EdUmeetup profile yet. Email only.',
+        nudgeTemplate: 'Join EdUmeetup to apply directly to the universities you visited at the fair.',
     },
 ]
 

@@ -247,7 +247,7 @@ export function FairRegistrationForm({
     const header = (
         <div className="text-center mb-8">
             <p className="text-sm font-semibold text-indigo-600 tracking-wider uppercase mb-2">
-                edUmeetup
+                EdUmeetup
             </p>
             <h1 className="text-3xl font-bold text-gray-900">{fairEventTitle}</h1>
             {fairEventCity && (

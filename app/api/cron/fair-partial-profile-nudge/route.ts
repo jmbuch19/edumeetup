@@ -58,7 +58,7 @@ export async function GET(request: Request) {
                             'Your fair connections are waiting',
                             `<p>Hi ${firstName},</p>
                              <p>You met several universities at <strong>${fair.name}</strong>. 
-                                Create a free edUmeetup profile so they can view your full details 
+                                Create a free EdUmeetup profile so they can view your full details 
                                 and reach out directly.</p>
                              <p>It takes less than 2 minutes and gives you:</p>
                              <ul>

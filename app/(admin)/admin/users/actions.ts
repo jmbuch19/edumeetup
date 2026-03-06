@@ -257,7 +257,7 @@ export async function nudgeFairWalkins(message: string, ctaUrl: string) {
                 to: pass.email,
                 subject: 'Your EdUmeetup fair visit summary',
                 message: body,
-                ctaText: 'Join edUmeetup Free',
+                ctaText: 'Join EdUmeetup Free',
                 ctaUrl,
             })
         })

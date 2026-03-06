@@ -328,7 +328,7 @@ export function ScannerClient({
 
             {/* ── Header ── */}
             <div className="absolute top-0 left-0 right-0 z-10 px-5 pt-safe pt-4 pb-3 bg-gradient-to-b from-black/80 to-transparent">
-                <p className="text-white/60 text-xs font-semibold uppercase tracking-wider">edUmeetup</p>
+                <p className="text-white/60 text-xs font-semibold uppercase tracking-wider">EdUmeetup</p>
                 <h1 className="text-white font-bold text-lg leading-tight truncate">{fairEventTitle}</h1>
                 <div className="flex items-center gap-1.5 mt-1">
                     <Users className="w-3.5 h-3.5 text-indigo-300" />
