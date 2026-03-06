@@ -141,8 +141,7 @@ export async function StudentRightSidebar() {
                                 {u.website ? (
                                     <a href={u.website} target="_blank" rel="noopener noreferrer" title={`Visit ${u.institutionName} website ↗`}
                                         className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 border overflow-hidden block"
-                                        style={{ borderColor: 'var(--border-dash)', background: 'var(--surface)' }}
-                                        onClick={e => e.stopPropagation()}>
+                                        style={{ borderColor: 'var(--border-dash)', background: 'var(--surface)' }}>
                                         {u.logo
                                             // eslint-disable-next-line @next/next/no-img-element
                                             ? <img src={u.logo} alt={u.institutionName} className="w-full h-full object-contain" />
