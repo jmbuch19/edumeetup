@@ -1,3 +1,5 @@
+'use client'
+
 import { School, Users, CalendarDays, AlertTriangle, TrendingUp, Activity } from 'lucide-react'
 
 interface AdminRightSidebarProps {
