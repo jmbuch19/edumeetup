@@ -73,7 +73,7 @@ export function generateEmailHtml(title: string, content: string) {
 <body style="margin:0;padding:24px;background-color:#f1f5f9;">
     <!-- Header -->
     <div style="max-width:600px;margin:0 auto 0 auto;background-color:#3333CC;padding:24px 32px;border-radius:12px 12px 0 0;text-align:center;">
-        <span style="font-size:22px;font-weight:800;color:white;letter-spacing:-0.5px;">edU<span style="color:#c7d2fe;">meetup</span></span>
+        <span style="font-size:22px;font-weight:800;color:white;letter-spacing:-0.5px;">Ed<span style="color:#c7d2fe;">U</span>meetup</span>
         <p style="font-size:11px;color:#c7d2fe;margin:4px 0 0 0;letter-spacing:1px;text-transform:uppercase;">Where Dreams Meet Destinations</p>
     </div>
     <!-- Body -->
@@ -83,7 +83,7 @@ export function generateEmailHtml(title: string, content: string) {
     </div>
     <!-- Footer -->
     <div style="max-width:600px;margin:0 auto;background-color:#f8fafc;padding:20px 32px;border-radius:0 0 12px 12px;text-align:center;font-size:12px;color:#94a3b8;border-top:1px solid #e2e8f0;">
-        <p style="margin:0 0 4px 0;">© ${new Date().getFullYear()} EdUmeetup · IAES (International Academic &amp; Education Services)</p>
+        <p style="margin:0 0 4px 0;">© ${new Date().getFullYear()} EdUmeetup · IAES (Indo American Education Society)</p>
         <p style="margin:0;"><a href="https://www.edumeetup.com" style="color:#64748b;">www.edumeetup.com</a> · <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@edumeetup.com'}" style="color:#64748b;">Contact Support</a></p>
     </div>
 </body>

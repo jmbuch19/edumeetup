@@ -37,7 +37,7 @@ function buildEmailHtml(url: string, isUniversity = false): string {
     <a href="${confirmUrl}" class="button" target="_blank">Sign in to EdUmeetup</a>
     <p style="font-size:14px;color:#6b7280;margin-top:20px;">If you did not request this email, you can safely ignore it.</p>
     <div class="footer">
-      <p>&copy; ${new Date().getFullYear()} IAES (International Academic &amp; Education Services). All rights reserved.</p>
+      <p>&copy; ${new Date().getFullYear()} IAES (Indo American Education Society). All rights reserved.</p>
       <p>EdUmeetup is an initiative by IAES.</p>
     </div>
   </div>
