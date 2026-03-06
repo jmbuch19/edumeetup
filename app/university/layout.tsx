@@ -93,7 +93,7 @@ export default async function UniversityLayout({ children }: { children: React.R
 
                 {/* Page content */}
                 <main className="flex-1 flex overflow-hidden">
-                    <div className="flex-1 w-full max-w-[640px] mx-auto overflow-y-auto">
+                    <div className="flex-1 w-full max-w-[860px] mx-auto overflow-y-auto px-3">
                         {children}
                     </div>
                 </main>
