@@ -52,7 +52,7 @@ export async function GET(request: Request) {
                             action: 'STATUS_CHANGE',
                             entityType: 'MEETING',
                             entityId: mtg.id,
-                            actorId: 'SYSTEM', // Assuming user exists or needs mapping
+                            actorId: null, // System-initiated, no user actor
                             metadata: { reason: 'Auto-completed by Cron', oldStatus: 'CONFIRMED', newStatus: 'COMPLETED' }
                         }
                     })

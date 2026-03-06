@@ -293,7 +293,7 @@ export async function registerUniversity(formData: FormData) {
             action: 'REGISTER_UNIVERSITY',
             entityType: 'USER',
             entityId: email,
-            actorId: 'SYSTEM',
+            actorId: null,
             metadata: { ip, email, institutionName, role: 'UNIVERSITY' }
         })
 
