@@ -4,8 +4,12 @@ import { prisma } from '@/lib/prisma'
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
-const VALID_CATEGORIES = ['BROCHURE', 'PROGRAM_INFO', 'LEAFLET', 'OTHER']
 
+// ---------------------------------------------------------------------------
+// R2-only upload for the replace flow.
+// Uploads the new file to R2 and returns { fileUrl, fileName, sizeBytes }.
+// Does NOT create or modify any DB record — the caller's server action handles that.
+// ---------------------------------------------------------------------------
 async function uploadToR2(buffer: Buffer, key: string, mimeType: string): Promise<string> {
     const accountId = process.env.R2_ACCOUNT_ID
     const accessKey = process.env.R2_ACCESS_KEY_ID
@@ -39,7 +43,8 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if ((session.user.role !== 'UNIVERSITY' && session.user.role !== 'UNIVERSITY_REP')) {
+    const role = session.user.role as string
+    if (role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP') {
         return NextResponse.json({ error: 'Only universities can upload documents' }, { status: 403 })
     }
 
@@ -59,23 +64,12 @@ export async function POST(req: NextRequest) {
     }
 
     const file = formData.get('file') as File | null
-    const displayName = (formData.get('displayName') as string | null)?.trim()
-    const category = (formData.get('category') as string | null) ?? 'OTHER'
-
     if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
-    if (!displayName) return NextResponse.json({ error: 'Document name is required' }, { status: 400 })
-    if (!VALID_CATEGORIES.includes(category)) return NextResponse.json({ error: 'Invalid category' }, { status: 422 })
     if (!ALLOWED_TYPES.includes(file.type)) {
         return NextResponse.json({ error: 'Only PDF or image files (JPG/PNG/WebP) are accepted' }, { status: 422 })
     }
     if (file.size > MAX_SIZE_BYTES) {
         return NextResponse.json({ error: `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max 10 MB.` }, { status: 422 })
-    }
-
-    // Limit per university (prevent abuse)
-    const count = await prisma.universityDocument.count({ where: { universityId: university.id, deletedAt: null } })
-    if (count >= 20) {
-        return NextResponse.json({ error: 'Maximum 20 documents allowed. Please delete some first.' }, { status: 429 })
     }
 
     const fileName = file.name.replace(/[^a-zA-Z0-9._\-]/g, '_')
@@ -86,30 +80,15 @@ export async function POST(req: NextRequest) {
         const buffer = Buffer.from(await file.arrayBuffer())
         fileUrl = await uploadToR2(buffer, r2Key, file.type)
     } catch (err) {
-        console.error('R2 upload failed:', err)
+        console.error('[Uni Doc Replace] R2 upload failed:', err)
         return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 })
     }
 
-    const doc = await prisma.universityDocument.create({
-        data: {
-            universityId: university.id,
-            displayName,
-            category,
-            fileName,
-            fileUrl,
-            mimeType: file.type,
-            sizeBytes: file.size,
-        },
-    })
-
+    // Return new file metadata — NO DB write here
     return NextResponse.json({
-        success: true,
-        id: doc.id,
-        displayName: doc.displayName,
-        category: doc.category,
-        fileName: doc.fileName,
-        mimeType: doc.mimeType,
-        sizeBytes: doc.sizeBytes,
-        uploadedAt: doc.uploadedAt,
+        fileUrl,
+        fileName,
+        sizeBytes: file.size,
+        mimeType: file.type,
     })
 }

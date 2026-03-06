@@ -18,15 +18,23 @@ export default async function middleware(req: NextRequest) {
         return NextResponse.next()
     }
 
-    // ── STEP 2: Read JWT directly from cookie ───────────────────────────────
-    const isProduction = process.env.NODE_ENV === 'production'
-    const token = await getToken({
+    // ── STEP 2: Read JWT — try Secure cookie first (HTTPS/prod), fall back to plain ──
+    // NextAuth v5 writes __Secure-authjs.session-token on HTTPS and authjs.session-token
+    // on HTTP. If the middleware only reads one name it returns null for the other,
+    // causing a redirect loop immediately after magic-link sign-in.
+    const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET
+    let token = await getToken({
         req,
-        secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
-        cookieName: isProduction
-            ? '__Secure-authjs.session-token'
-            : 'authjs.session-token',
+        secret,
+        cookieName: '__Secure-authjs.session-token',
     })
+    if (!token) {
+        token = await getToken({
+            req,
+            secret,
+            cookieName: 'authjs.session-token',
+        })
+    }
     const isLoggedIn = !!token
     const role = token?.role as "ADMIN" | "UNIVERSITY" | "UNIVERSITY_REP" | "STUDENT" | undefined
 

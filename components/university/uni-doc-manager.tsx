@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { toast } from 'sonner'
-import { Upload, FileText, Image, Trash2, ExternalLink, Loader2, Plus, BookOpen } from 'lucide-react'
+import { Upload, FileText, Image, Trash2, ExternalLink, Loader2, Plus, BookOpen, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -15,6 +15,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import {
+    deleteUniversityDocument,
+    replaceUniversityDocument,
+} from '@/app/university/documents/actions'
 
 interface UniDoc {
     id: string
@@ -54,9 +58,13 @@ export function UniDocManager({ initialDocs }: UniDocManagerProps) {
     const [docs, setDocs] = useState<UniDoc[]>(initialDocs)
     const [uploading, setUploading] = useState(false)
     const [deletingId, setDeletingId] = useState<string | null>(null)
+    const [replacingId, setReplacingId] = useState<string | null>(null)
     const [displayName, setDisplayName] = useState('')
     const [category, setCategory] = useState('BROCHURE')
     const [pendingFile, setPendingFile] = useState<File | null>(null)
+
+    // One hidden file input per doc row, keyed by doc.id
+    const replaceInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         const file = acceptedFiles[0]
@@ -112,20 +120,53 @@ export function UniDocManager({ initialDocs }: UniDocManagerProps) {
     }
 
     const handleDelete = async (docId: string, name: string) => {
-        if (!confirm(`Remove "${name}"?`)) return
+        if (!confirm(`Remove "${name}"? This cannot be undone.`)) return
         setDeletingId(docId)
+        const result = await deleteUniversityDocument(docId)
+        if (result.ok) {
+            setDocs(prev => prev.filter(d => d.id !== docId))
+            toast.success('Document removed')
+        } else {
+            toast.error(result.error)
+        }
+        setDeletingId(null)
+    }
+
+    const handleReplace = async (docId: string, file: File) => {
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error(`File too large (${formatBytes(file.size)}). Max 10 MB.`)
+            return
+        }
+        setReplacingId(docId)
         try {
-            const res = await fetch(`/api/uni-docs/${docId}`, { method: 'DELETE' })
-            if (res.ok) {
-                setDocs(prev => prev.filter(d => d.id !== docId))
-                toast.success('Document removed')
-            } else {
-                toast.error('Could not remove document')
-            }
+            // Upload new file to R2 via dedicated replace endpoint (no DB write)
+            const fd = new FormData()
+            fd.append('file', file)
+
+            const res = await fetch('/api/uni-docs/replace', { method: 'POST', body: fd })
+            const data = await res.json()
+            if (!res.ok) { toast.error(data.error ?? 'Upload failed'); return }
+
+            // Call server action: update DB record in-place + delete old R2 file
+            const result = await replaceUniversityDocument(
+                docId,
+                data.fileUrl ?? '',  // server returns new R2 URL
+                data.fileName,
+                data.sizeBytes,
+            )
+            if (!result.ok) { toast.error(result.error); return }
+
+            // Update local state
+            setDocs(prev => prev.map(d =>
+                d.id === docId
+                    ? { ...d, fileName: data.fileName, sizeBytes: data.sizeBytes, uploadedAt: data.uploadedAt }
+                    : d
+            ))
+            toast.success('Document replaced!')
         } catch {
-            toast.error('Could not remove document')
+            toast.error('Replace failed — try again')
         } finally {
-            setDeletingId(null)
+            setReplacingId(null)
         }
     }
 
@@ -247,23 +288,50 @@ export function UniDocManager({ initialDocs }: UniDocManagerProps) {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1.5 flex-shrink-0">
+                                        {/* View */}
                                         <a href={`/api/uni-docs/${doc.id}`} target="_blank" rel="noopener noreferrer">
                                             <Button variant="outline" size="sm" className="flex items-center gap-1.5">
                                                 <ExternalLink className="h-3.5 w-3.5" />
                                                 View
                                             </Button>
                                         </a>
+
+                                        {/* Replace — triggers hidden file input */}
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={!!deletingId || !!replacingId}
+                                            onClick={() => replaceInputRefs.current[doc.id]?.click()}
+                                            className="flex items-center gap-1.5 border-teal-500 text-teal-700 hover:bg-teal-50"
+                                        >
+                                            {replacingId === doc.id
+                                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                : <RefreshCw className="h-3.5 w-3.5" />}
+                                            Replace
+                                        </Button>
+                                        <input
+                                            type="file"
+                                            accept="application/pdf,.pdf,image/jpeg,image/png,image/webp"
+                                            className="hidden"
+                                            ref={el => { replaceInputRefs.current[doc.id] = el }}
+                                            onChange={e => {
+                                                const file = e.target.files?.[0]
+                                                e.target.value = ''
+                                                if (file) handleReplace(doc.id, file)
+                                            }}
+                                        />
+
+                                        {/* Delete */}
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => handleDelete(doc.id, doc.displayName)}
-                                            disabled={deletingId === doc.id}
+                                            disabled={deletingId === doc.id || !!replacingId}
                                             className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                         >
                                             {deletingId === doc.id
                                                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                : <Trash2 className="h-3.5 w-3.5" />
-                                            }
+                                                : <Trash2 className="h-3.5 w-3.5" />}
                                         </Button>
                                     </div>
                                 </div>

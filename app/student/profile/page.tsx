@@ -59,6 +59,7 @@ export default async function StudentProfilePage() {
             />
             <CvUpload
                 studentId={student.id}
+                initialCvUrl={student.cvUrl}
                 initialFileName={student.cvFileName}
                 initialUploadedAt={student.cvUploadedAt}
                 initialSizeBytes={student.cvSizeBytes}
@@ -86,6 +87,7 @@ export default async function StudentProfilePage() {
                     />
                     <CvUpload
                         studentId={student.id}
+                        initialCvUrl={student.cvUrl}
                         initialFileName={student.cvFileName}
                         initialUploadedAt={student.cvUploadedAt}
                         initialSizeBytes={student.cvSizeBytes}

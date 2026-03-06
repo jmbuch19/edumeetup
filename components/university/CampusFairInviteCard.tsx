@@ -1,187 +1,240 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState } from 'react'
 import { format } from 'date-fns'
-import { Calendar, MapPin, Users, CheckCircle2, Clock, Loader2 } from 'lucide-react'
+import { Calendar, MapPin, Users, CheckCircle2, XCircle, Clock, Loader2, ExternalLink } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { declineFairInvitation } from '@/app/actions/university/fair-invitation-actions'
+import { declineFairInvitation } from '@/app/university/fairs/actions'
 import { FairResponsePanel } from './FairResponsePanel'
 
-interface FairInvitationData {
-    id: string
-    status: 'PENDING' | 'CONFIRMED' | 'DECLINED'
-    respondedAt: string | null
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-interface FairEventData {
+type FairInvitationStatus = 'PENDING' | 'CONFIRMED' | 'DECLINED'
+
+interface FairEventShape {
     id: string
     name: string
     city: string | null
     venue: string | null
-    startDate: string
-    rsvpDeadline: string | null
+    startDate: string | Date
+    rsvpDeadline: string | Date | null
     totalRegistered?: number
 }
 
-interface UniversityProgram {
+interface InvitationShape {
     id: string
-    name: string
+    status: FairInvitationStatus
+    respondedAt?: string | Date | null
+    repsAttending?: number | null
+    programsShowcasing?: string[]
+}
+
+interface ProgramShape {
+    id: string
+    name?: string         // legacy
+    programName?: string  // spec
     degreeLevel?: string | null
 }
 
 interface CampusFairInviteCardProps {
     notification: {
         id: string
-        createdAt: string
+        createdAt: string | Date
         metadata?: Record<string, string> | null
     }
-    invitation: FairInvitationData | null
-    fair: FairEventData
-    programs: UniversityProgram[]
+    // Accept both prop names — new spec uses fairEvent, notifications-center uses fair
+    fairEvent?: FairEventShape | null
+    fair?: FairEventShape | null
+    invitation?: InvitationShape | null
+    programs?: ProgramShape[]
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function fmt(date: string | Date, style: 'date' | 'datetime' = 'date') {
+    const d = typeof date === 'string' ? new Date(date) : date
+    return style === 'date'
+        ? format(d, 'd MMM yyyy')
+        : format(d, 'd MMM yyyy · h:mm a')
+}
+
+function progName(p: ProgramShape): string {
+    return p.programName ?? p.name ?? ''
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function CampusFairInviteCard({
     notification,
+    fairEvent,
+    fair: fairLegacy,
     invitation,
-    fair,
-    programs,
+    programs = [],
 }: CampusFairInviteCardProps) {
-    const [status, setStatus] = useState<'PENDING' | 'CONFIRMED' | 'DECLINED'>(
-        invitation?.status ?? 'PENDING'
-    )
-    const [panelOpen, setPanelOpen] = useState(false)
-    const [declining, startDecline] = useTransition()
+    // Normalise — accept both prop names
+    const event = fairEvent ?? fairLegacy ?? null
 
-    const isDeadlinePassed = fair.rsvpDeadline
-        ? new Date() > new Date(fair.rsvpDeadline)
+    const [panelOpen, setPanelOpen] = useState(false)
+    const [optimisticStatus, setOptimisticStatus] = useState<FairInvitationStatus | null>(
+        invitation?.status ?? null
+    )
+    const [declining, setDeclining] = useState(false)
+
+    if (!event) return null
+
+    const status = optimisticStatus ?? invitation?.status ?? 'PENDING'
+    const isDeadlinePassed = event.rsvpDeadline
+        ? new Date() > new Date(event.rsvpDeadline)
         : false
 
-    const handleDecline = () => {
-        startDecline(async () => {
-            const res = await declineFairInvitation(fair.id)
-            if (res.ok) {
-                setStatus('DECLINED')
-                toast.success('Response recorded.')
-            } else {
-                toast.error(res.error)
-            }
-        })
+    // ── CONFIRMED state ───────────────────────────────────────────────────────
+    if (status === 'CONFIRMED') {
+        return (
+            <Card className="border-teal-200 bg-teal-50/40">
+                <CardHeader className="pb-2 flex flex-row items-start gap-3">
+                    <div className="p-2 rounded-full bg-teal-100 text-teal-600 shrink-0 mt-0.5">
+                        <CheckCircle2 className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                        <p className="font-semibold text-sm text-teal-800 leading-tight">
+                            You're attending {event.name}
+                        </p>
+                        <p className="text-xs text-teal-600 mt-0.5">
+                            {[event.city, fmt(event.startDate)].filter(Boolean).join(' · ')}
+                        </p>
+                    </div>
+                </CardHeader>
+                <CardFooter className="pt-0">
+                    <a href={`/university/fairs/${event.id}/students`}>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-teal-700 border-teal-300 hover:bg-teal-50 flex items-center gap-1.5"
+                        >
+                            <Users className="h-3.5 w-3.5" />
+                            View Registered Students
+                            <ExternalLink className="h-3 w-3 opacity-60" />
+                        </Button>
+                    </a>
+                </CardFooter>
+            </Card>
+        )
     }
 
-    const handleConfirmed = () => {
-        setStatus('CONFIRMED')
-        setPanelOpen(false)
+    // ── DECLINED state ────────────────────────────────────────────────────────
+    if (status === 'DECLINED') {
+        return (
+            <Card className="border-gray-200 bg-gray-50/60 opacity-70">
+                <CardContent className="flex items-center gap-2.5 py-4">
+                    <XCircle className="h-4 w-4 text-gray-400 shrink-0" />
+                    <div className="min-w-0">
+                        <p className="text-sm text-gray-500">
+                            You declined this fair invitation
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5 truncate">{event.name}</p>
+                    </div>
+                </CardContent>
+            </Card>
+        )
     }
 
-    const dateStr = format(new Date(fair.startDate), 'MMMM d, yyyy')
-    const deadlineStr = fair.rsvpDeadline
-        ? format(new Date(fair.rsvpDeadline), 'MMMM d, yyyy')
-        : null
+    // ── PENDING state (default) ───────────────────────────────────────────────
+    async function handleDecline() {
+        setDeclining(true)
+        // Optimistic: immediately show DECLINED
+        setOptimisticStatus('DECLINED')
+        const result = await declineFairInvitation(event!.id)
+        if (!result.ok) {
+            // Rollback
+            setOptimisticStatus(invitation?.status ?? 'PENDING')
+            toast.error(result.error)
+        }
+        setDeclining(false)
+    }
 
     return (
         <>
-            <Card
-                className={`border-l-4 transition-all ${status === 'CONFIRMED'
-                    ? 'border-l-teal-500 bg-teal-50/30'
-                    : status === 'DECLINED'
-                        ? 'border-l-slate-200 opacity-60'
-                        : 'border-l-blue-500'
-                    }`}
-            >
+            <Card className="border-blue-200 bg-white">
                 <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                            <span className="text-lg">🏛️</span>
-                            <div>
-                                <p className="font-semibold text-navy-900 text-sm leading-tight">
-                                    Campus Fair Invitation
-                                </p>
-                                <p className="text-xs text-gray-400">
-                                    {format(new Date(notification.createdAt), 'MMM d')}
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0">
+                            <div className="p-2 rounded-full bg-blue-100 text-blue-600 shrink-0 mt-0.5">
+                                <span className="text-base leading-none">🏛️</span>
+                            </div>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="text-sm font-semibold text-gray-900">
+                                        Campus Fair Invitation
+                                    </p>
+                                    <Badge variant="secondary" className="text-[10px]">
+                                        RSVP needed
+                                    </Badge>
+                                </div>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    {fmt(notification.createdAt, 'datetime')}
                                 </p>
                             </div>
                         </div>
-                        <StatusBadge status={status} />
                     </div>
                 </CardHeader>
 
-                <CardContent className="pb-3 space-y-2">
-                    <p className="font-semibold text-gray-900">{fair.name}</p>
-                    <div className="flex flex-col gap-1 text-sm text-gray-600">
-                        {(fair.city || fair.venue) && (
-                            <span className="flex items-center gap-1.5">
-                                <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                                {[fair.venue, fair.city].filter(Boolean).join(' · ')}
-                            </span>
-                        )}
-                        <span className="flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                            {dateStr}
-                        </span>
-                        {fair.totalRegistered !== undefined && (
-                            <span className="flex items-center gap-1.5">
-                                <Users className="w-3.5 h-3.5 text-gray-400" />
-                                {fair.totalRegistered}+ students registered
-                            </span>
-                        )}
-                        {deadlineStr && status === 'PENDING' && (
-                            <span className="flex items-center gap-1.5 text-amber-600 text-xs">
-                                <Clock className="w-3.5 h-3.5" />
-                                RSVP by {deadlineStr}
-                            </span>
-                        )}
+                <CardContent className="pt-0 pb-3 space-y-1.5">
+                    <p className="text-sm font-semibold text-gray-900 leading-tight">
+                        {event.name}
+                    </p>
+                    {(event.venue || event.city) && (
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                            <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                            {[event.venue, event.city].filter(Boolean).join(', ')}
+                        </div>
+                    )}
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+                        {fmt(event.startDate)}
                     </div>
+                    {event.rsvpDeadline && (
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                            <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                            <span>
+                                RSVP by:{' '}
+                                <span className={isDeadlinePassed ? 'text-red-500 font-medium' : 'font-medium'}>
+                                    {fmt(event.rsvpDeadline)}
+                                </span>
+                            </span>
+                        </div>
+                    )}
+                    {typeof event.totalRegistered === 'number' && (
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                            <Users className="h-3.5 w-3.5 flex-shrink-0" />
+                            {event.totalRegistered} students registered
+                        </div>
+                    )}
                 </CardContent>
 
                 <CardFooter className="pt-0">
-                    {/* Deadline passed */}
-                    {isDeadlinePassed && status === 'PENDING' && (
-                        <p className="text-xs text-gray-400 italic">
-                            RSVP closed · {deadlineStr}
+                    {isDeadlinePassed ? (
+                        <p className="text-xs text-gray-400">
+                            RSVP closed · {fmt(event.rsvpDeadline!)}
                         </p>
-                    )}
-
-                    {/* Already confirmed */}
-                    {status === 'CONFIRMED' && (
-                        <div className="flex items-center gap-3">
-                            <span className="flex items-center gap-1.5 text-sm text-teal-700 font-medium">
-                                <CheckCircle2 className="w-4 h-4" />
-                                You&apos;re confirmed!
-                            </span>
-                            <a
-                                href={`/university/fairs/${fair.id}/students`}
-                                className="text-xs text-teal-600 underline underline-offset-2 hover:text-teal-800"
-                            >
-                                View Registered Students →
-                            </a>
-                        </div>
-                    )}
-
-                    {/* Already declined */}
-                    {status === 'DECLINED' && (
-                        <p className="text-xs text-gray-400 italic">You declined this fair.</p>
-                    )}
-
-                    {/* RSVP open & pending */}
-                    {status === 'PENDING' && !isDeadlinePassed && (
-                        <div className="flex items-center gap-3">
+                    ) : (
+                        <div className="flex items-center gap-3 w-full">
                             <Button
                                 size="sm"
-                                className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl gap-1.5 text-sm"
                                 onClick={() => setPanelOpen(true)}
+                                className="bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-1.5"
                             >
-                                <CheckCircle2 className="w-4 h-4" />
-                                Yes, We&apos;re Attending
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                Yes, We're Attending
                             </Button>
                             <button
                                 onClick={handleDecline}
                                 disabled={declining}
                                 className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2 disabled:opacity-50 flex items-center gap-1"
                             >
-                                {declining && <Loader2 className="w-3 h-3 animate-spin" />}
+                                {declining && <Loader2 className="h-3 w-3 animate-spin" />}
                                 decline quietly
                             </button>
                         </div>
@@ -193,18 +246,25 @@ export function CampusFairInviteCard({
             <FairResponsePanel
                 open={panelOpen}
                 onClose={() => setPanelOpen(false)}
-                onConfirmed={handleConfirmed}
-                fair={fair}
-                programs={programs}
+                onConfirmed={() => {
+                    setOptimisticStatus('CONFIRMED')
+                    setPanelOpen(false)
+                }}
+                onSuccess={() => {
+                    setOptimisticStatus('CONFIRMED')
+                    setPanelOpen(false)
+                }}
+                fair={{
+                    id: event.id,
+                    name: event.name,
+                    city: event.city ?? null,
+                    startDate: fmt(event.startDate),
+                }}
+                fairEventId={event.id}
+                fairName={event.name}
+                fairDate={fmt(event.startDate)}
+                programs={programs.map(p => ({ id: p.id, name: progName(p), programName: progName(p), degreeLevel: p.degreeLevel }))}
             />
         </>
     )
-}
-
-function StatusBadge({ status }: { status: string }) {
-    if (status === 'CONFIRMED')
-        return <Badge className="bg-teal-100 text-teal-700 border-teal-200 hover:bg-teal-100 text-xs">Confirmed ✅</Badge>
-    if (status === 'DECLINED')
-        return <Badge variant="secondary" className="text-xs">Declined</Badge>
-    return <Badge className="bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100 text-xs">Invited</Badge>
 }

@@ -128,6 +128,13 @@ export async function triggerFairGoLiveNotifications(fairEventId: string): Promi
     const event = await prisma.fairEvent.findUnique({ where: { id: fairEventId } })
     if (!event) return { universitiesNotified: 0, studentsNotified: 0 }
 
+    // Idempotency guard — prevents duplicate student notifications if
+    // the trigger is accidentally called twice (e.g. double-click on admin button)
+    if (event.studentsNotifiedAt) {
+        console.warn(`[Fair] Students already notified for ${fairEventId} at ${event.studentsNotifiedAt}`)
+        return { universitiesNotified: 0, studentsNotified: 0 }
+    }
+
     // ── Which universities participated? (at least 1 attendance OR invite was sent) ──
     // Strategy: try attendance first, fall back to all VERIFIED
     const attendingUniIds = await prisma.fairAttendance.findMany({
@@ -163,6 +170,17 @@ export async function triggerFairGoLiveNotifications(fairEventId: string): Promi
         )
     )
 
+    // ── Which universities confirmed — build names list for student message ────
+    const confirmedInvitations = await prisma.fairInvitation.findMany({
+        where: { fairEventId, status: 'CONFIRMED' },
+        include: { university: { select: { institutionName: true } } },
+    })
+    const confirmedNames = confirmedInvitations.map(inv => inv.university.institutionName)
+    const uniListMessage = confirmedNames.length > 0
+        ? `${confirmedNames.slice(0, 3).join(', ')}${confirmedNames.length > 3
+            ? ` +${confirmedNames.length - 3} more universities` : ''} will be present. `
+        : ''
+
     // ── Students in the same city ─────────────────────────────────────────────
     const cityStudents = event.city
         ? await prisma.student.findMany({
@@ -177,7 +195,7 @@ export async function triggerFairGoLiveNotifications(fairEventId: string): Promi
                 data: {
                     studentId: student.id,
                     title: `${event.name} is open now`,
-                    message: 'Show your QR pass at the door. Free entry.',
+                    message: `${uniListMessage}Show your QR pass at the door. Free entry.`,
                     type: 'FAIR_LIVE',
                     isRead: false,
                     actionUrl: `/fair?eventId=${event.id}`,
@@ -185,6 +203,12 @@ export async function triggerFairGoLiveNotifications(fairEventId: string): Promi
             })
         )
     )
+
+    // Stamp studentsNotifiedAt so this trigger is idempotent
+    await prisma.fairEvent.update({
+        where: { id: fairEventId },
+        data: { studentsNotifiedAt: new Date() },
+    })
 
     return {
         universitiesNotified: uniResults.filter(r => r.status === 'fulfilled').length,

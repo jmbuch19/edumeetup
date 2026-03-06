@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Users, GraduationCap, MapPin, Star } from 'lucide-react'
+import { ArrowLeft, Users, GraduationCap, MapPin, Star, BookOpen, ExternalLink } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
@@ -38,15 +38,23 @@ export default async function FairRegisteredStudentsPage({
     })
     if (!invitation || invitation.status !== 'CONFIRMED') redirect('/university/dashboard')
 
-    // Fetch registered students — match on fieldOfInterest if programs confirmed
-    const programNames = invitation.programsShowcasing ?? []
+    // Fetch registered students — match on fieldOfInterest if programs confirmed.
+    // OR filter: catch students who filled the pass form with a matching field,
+    // AND students whose linked Student profile has a matching fieldOfInterest.
+    const programNames = (invitation.programsShowcasing ?? []) as string[]
     const registeredStudents = await prisma.fairStudentPass.findMany({
         where: {
             fairEventId: params.fairEventId,
             ...(programNames.length > 0
-                ? { fieldOfInterest: { in: programNames } }
+                ? {
+                    OR: [
+                        { fieldOfInterest: { in: programNames } },
+                        { student: { fieldOfInterest: { in: programNames } } },
+                    ],
+                }
                 : {}),
         },
+        include: { student: true },
         orderBy: { createdAt: 'desc' },
     })
 
@@ -108,45 +116,73 @@ export default async function FairRegisteredStudentsPage({
                     </CardContent>
                 </Card>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {registeredStudents.map(student => (
-                        <Card key={student.id} className="hover:shadow-sm transition-shadow">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {registeredStudents.map(pass => (
+                        <Card key={pass.id} className="hover:shadow-sm transition-shadow flex flex-col">
                             <CardHeader className="pb-2">
                                 <div className="flex items-start justify-between gap-2">
-                                    <div>
-                                        <CardTitle className="text-base leading-tight">
-                                            {student.fullName}
+                                    <div className="min-w-0">
+                                        <CardTitle className="text-base leading-tight truncate">
+                                            {pass.fullName}
                                         </CardTitle>
-                                        <p className="text-xs text-gray-400 mt-0.5">{student.email}</p>
+                                        {pass.fieldOfInterest && (
+                                            <Badge className="mt-1 text-xs bg-teal-100 text-teal-700 border-teal-200 hover:bg-teal-100">
+                                                {pass.fieldOfInterest}
+                                            </Badge>
+                                        )}
                                     </div>
-                                    {student.fieldOfInterest && (
-                                        <Badge className="shrink-0 text-xs bg-teal-100 text-teal-700 border-teal-200 hover:bg-teal-100">
-                                            {student.fieldOfInterest}
-                                        </Badge>
-                                    )}
                                 </div>
                             </CardHeader>
-                            <CardContent className="space-y-1.5 text-sm text-gray-500">
-                                {student.currentInstitution && (
+
+                            <CardContent className="flex-1 space-y-1.5 text-sm text-gray-500 pb-3">
+                                {/* City */}
+                                {(pass.student?.city) && (
                                     <div className="flex items-center gap-1.5">
-                                        <GraduationCap className="w-3.5 h-3.5 shrink-0" />
-                                        {student.currentInstitution}
-                                        {student.currentCourse ? ` · ${student.currentCourse}` : ''}
+                                        <MapPin className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                                        <span>{pass.student.city}</span>
                                     </div>
                                 )}
-                                {student.currentSemester && (
+
+                                {/* Current institution + course */}
+                                {pass.currentInstitution && (
                                     <div className="flex items-center gap-1.5">
-                                        <Star className="w-3.5 h-3.5 shrink-0" />
-                                        {student.currentSemester}
+                                        <GraduationCap className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                                        <span className="truncate">
+                                            {pass.currentInstitution}
+                                            {pass.currentCourse ? ` · ${pass.currentCourse}` : ''}
+                                        </span>
                                     </div>
                                 )}
-                                {student.preferredCountries && (
+
+                                {/* Semester */}
+                                {pass.currentSemester && (
                                     <div className="flex items-center gap-1.5">
-                                        <MapPin className="w-3.5 h-3.5 shrink-0" />
-                                        Prefers: {student.preferredCountries}
+                                        <Star className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                                        <span>{pass.currentSemester}</span>
+                                    </div>
+                                )}
+
+                                {/* English exam */}
+                                {pass.englishExam && pass.englishExam !== 'Not attempted' && (
+                                    <div className="flex items-center gap-1.5">
+                                        <BookOpen className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                                        <span>{pass.englishExam}</span>
                                     </div>
                                 )}
                             </CardContent>
+
+                            {/* View Full Profile — only for linked app students */}
+                            {pass.studentId && (
+                                <div className="px-6 pb-4">
+                                    <Link
+                                        href={`/university/students/${pass.studentId}`}
+                                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 hover:text-teal-900 hover:underline underline-offset-2"
+                                    >
+                                        View Full Profile
+                                        <ExternalLink className="w-3 h-3" />
+                                    </Link>
+                                </div>
+                            )}
                         </Card>
                     ))}
                 </div>

@@ -13,7 +13,14 @@ import {
 import { Bell, Megaphone, ExternalLink, X } from "lucide-react"
 import { CampusFairInviteCard } from "@/components/university/CampusFairInviteCard"
 
-export function NotificationsCenter({ userRole }: { userRole: string }) {
+
+interface NotificationsCenterProps {
+    userRole: string
+    invitationByFairId?: Record<string, any>
+    programs?: { id: string; programName: string }[]
+}
+
+export function NotificationsCenter({ userRole, invitationByFairId, programs }: NotificationsCenterProps) {
     const [data, setData] = useState<{
         notifications: any[]
         announcements: any[]
@@ -122,19 +129,34 @@ export function NotificationsCenter({ userRole }: { userRole: string }) {
                                     style={{ maxHeight: '400px' }}
                                 >
                                     {visible.map(n => {
-                                        // FAIR_INVITE notifications get a special action card
                                         if (n.type === 'FAIR_INVITE') {
                                             const meta = n.metadata as Record<string, string> | null
                                             const fairEventId = meta?.fairEventId
-                                            const fair = fairEventId ? data.fairEventsMap[fairEventId] : null
+
+                                            // Prop-based path: use SSR data passed from dashboard page
+                                            if (invitationByFairId && fairEventId) {
+                                                const invitation = invitationByFairId[fairEventId] ?? null
+                                                return (
+                                                    <CampusFairInviteCard
+                                                        key={n.id}
+                                                        notification={n}
+                                                        invitation={invitation}
+                                                        fairEvent={invitation?.fairEvent ?? null}
+                                                        programs={programs ?? []}
+                                                    />
+                                                )
+                                            }
+
+                                            // Fallback: use internally fetched maps (when props not provided)
                                             const invitation = fairEventId ? data.fairInvitationMap[fairEventId] ?? null : null
-                                            if (!fair) return null // fair deleted or not found
+                                            const fairEvent = fairEventId ? data.fairEventsMap[fairEventId] ?? null : null
+                                            if (!fairEvent) return null
                                             return (
                                                 <div key={n.id}>
                                                     <CampusFairInviteCard
                                                         notification={{ id: n.id, createdAt: n.createdAt, metadata: meta }}
                                                         invitation={invitation}
-                                                        fair={fair}
+                                                        fairEvent={fairEvent}
                                                         programs={data.universityPrograms}
                                                     />
                                                 </div>

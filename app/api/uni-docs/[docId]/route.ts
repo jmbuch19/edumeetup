@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { deleteR2File } from '@/lib/r2-delete'
 
 export async function GET(
     req: NextRequest,
@@ -13,9 +14,9 @@ export async function GET(
 
     const { docId } = params
 
-    // All authenticated roles can download university documents
-    const doc = await prisma.universityDocument.findUnique({
-        where: { id: docId },
+    // All authenticated roles can download university documents (soft-deleted excluded)
+    const doc = await prisma.universityDocument.findFirst({
+        where: { id: docId, deletedAt: null },
         select: { fileUrl: true, fileName: true, displayName: true, mimeType: true },
     })
 
@@ -50,16 +51,19 @@ export async function DELETE(
     })
     if (!university) return NextResponse.json({ error: 'University not found' }, { status: 404 })
 
-    const doc = await prisma.universityDocument.findUnique({
-        where: { id: docId },
-        select: { universityId: true },
+    const doc = await prisma.universityDocument.findFirst({
+        where: { id: docId, deletedAt: null },
+        select: { universityId: true, fileUrl: true },
     })
 
     if (!doc || doc.universityId !== university.id) {
         return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // TODO: also delete the object from R2 using the fileUrl key
+    // Delete from R2 first (failure is non-fatal — DB record still removed)
+    if (doc.fileUrl) {
+        await deleteR2File(doc.fileUrl)
+    }
     await prisma.universityDocument.delete({ where: { id: docId } })
     return NextResponse.json({ success: true })
 }

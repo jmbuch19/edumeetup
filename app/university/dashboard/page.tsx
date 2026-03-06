@@ -23,6 +23,7 @@ import { getNudgeableStudents } from '@/app/university/actions/outreach'
 import { maskName } from '@/lib/outreach-utils'
 import { ActionCentre } from '@/components/university/action-centre'
 import { FairReportCard } from '@/components/university/fair-report-card'
+import { CampusFairInviteCard } from '@/components/university/CampusFairInviteCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -325,6 +326,18 @@ export default async function UniversityDashboard() {
     const upcomingWithin7 = upcomingFair &&
         (new Date(upcomingFair.startDate).getTime() - Date.now()) < 7 * 24 * 60 * 60 * 1000
 
+    // Fair RSVP — fetch all invitations + programs for notification cards
+    const fairInvitations = await prisma.fairInvitation.findMany({
+        where: { universityId: uni.id },
+        include: { fairEvent: true },
+    })
+    const invitationByFairId = Object.fromEntries(
+        fairInvitations.map(inv => [inv.fairEventId, inv])
+    )
+    const activePrograms = uni.programs
+        .filter(p => p.status === 'ACTIVE')
+        .map(p => ({ id: p.id, programName: p.programName }))
+
     // Stats
     const stats = {
         totalPrograms: uni.programs.length,
@@ -440,7 +453,11 @@ export default async function UniversityDashboard() {
             )}
 
             <div className="mb-8">
-                <NotificationsCenter userRole="UNIVERSITY" />
+                <NotificationsCenter
+                    userRole="UNIVERSITY"
+                    invitationByFairId={invitationByFairId}
+                    programs={activePrograms}
+                />
             </div>
 
             <Tabs defaultValue="overview" className="space-y-6">
@@ -452,9 +469,10 @@ export default async function UniversityDashboard() {
                         <TabsTrigger value="programs">Programs</TabsTrigger>
                         <TabsTrigger value="fairs" className="relative">
                             Campus Fairs
-                            {fairOutreach.filter(o => o.status === 'SENT').length > 0 && (
-                                <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
-                            )}
+                            {(fairInvitations.some(i => i.status === 'PENDING') ||
+                                fairOutreach.filter(o => o.status === 'SENT').length > 0) && (
+                                    <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                                )}
                         </TabsTrigger>
                         <TabsTrigger value="documents">Documents</TabsTrigger>
                         <TabsTrigger value="proctor" className="relative">
@@ -666,14 +684,65 @@ export default async function UniversityDashboard() {
                 </TabsContent>
 
                 <TabsContent value="fairs">
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <h2 className="text-2xl font-bold tracking-tight">Campus Fair Opportunities</h2>
-                                <p className="text-slate-500">Invitations from Indian institutions to host fairs on their campus.</p>
-                            </div>
+                    <div className="space-y-6">
+                        <div>
+                            <h2 className="text-2xl font-bold tracking-tight">Campus Fair Opportunities</h2>
+                            <p className="text-slate-500">Invitations to participate in upcoming campus fairs.</p>
                         </div>
-                        <FairOutreachList requests={JSON.parse(JSON.stringify(fairOutreach))} />
+
+                        {/* ── FairInvitation cards (RSVP flow) ── */}
+                        {fairInvitations.length > 0 && (
+                            <div className="space-y-3">
+                                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Fair Invitations</h3>
+                                {fairInvitations.map((inv) => (
+                                    <CampusFairInviteCard
+                                        key={inv.id}
+                                        notification={{
+                                            id: inv.id,
+                                            createdAt: inv.createdAt.toISOString(),
+                                        }}
+                                        fairEvent={{
+                                            id: inv.fairEvent.id,
+                                            name: inv.fairEvent.name,
+                                            city: inv.fairEvent.city,
+                                            venue: inv.fairEvent.venue,
+                                            startDate: inv.fairEvent.startDate.toISOString(),
+                                            rsvpDeadline: inv.fairEvent.rsvpDeadline?.toISOString() ?? null,
+                                        }}
+                                        invitation={{
+                                            id: inv.id,
+                                            status: inv.status as 'PENDING' | 'CONFIRMED' | 'DECLINED',
+                                            respondedAt: inv.respondedAt?.toISOString() ?? null,
+                                            repsAttending: inv.repsAttending,
+                                            programsShowcasing: inv.programsShowcasing,
+                                        }}
+                                        programs={uni.programs.map(p => ({
+                                            id: p.id,
+                                            programName: p.programName,
+                                            degreeLevel: p.degreeLevel,
+                                        }))}
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* ── Legacy host-request outreach ── */}
+                        {fairOutreach.length > 0 && (
+                            <div className="space-y-3">
+                                {fairInvitations.length > 0 && (
+                                    <div className="border-t border-slate-100 pt-4">
+                                        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Host Request Outreach</h3>
+                                    </div>
+                                )}
+                                <FairOutreachList requests={JSON.parse(JSON.stringify(fairOutreach))} />
+                            </div>
+                        )}
+
+                        {fairInvitations.length === 0 && fairOutreach.length === 0 && (
+                            <div className="text-center py-12 text-slate-400">
+                                <p className="text-sm">No campus fair invitations yet.</p>
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
 

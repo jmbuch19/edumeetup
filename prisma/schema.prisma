@@ -260,11 +260,13 @@ model UniversityDocument {
   programId    String?
   isFairReady  Boolean    @default(false)
   uploadedAt   DateTime   @default(now())
+  deletedAt    DateTime?  // soft delete — null = active, timestamp = deleted
   university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
   program      Program?   @relation(fields: [programId], references: [id], onDelete: SetNull)
 
   @@index([universityId])
   @@index([programId])
+  @@index([deletedAt])
 }
 
 model Program {
@@ -941,7 +943,8 @@ model FairEvent {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  rsvpDeadline  DateTime?
+  rsvpDeadline        DateTime?
+  studentsNotifiedAt  DateTime?  // set when admin triggers LIVE + student notifications
 
   studentPasses FairStudentPass[]
   attendances   FairAttendance[]

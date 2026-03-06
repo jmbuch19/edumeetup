@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { deleteR2File } from '@/lib/r2-delete'
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB hard limit
 
@@ -93,6 +94,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'File upload failed. Please try again.' }, { status: 500 })
     }
 
+    // Replace flow: delete old R2 object if one existed (non-fatal)
+    if (student.cvUrl) {
+        await deleteR2File(student.cvUrl)
+    }
+
     await prisma.student.update({
         where: { id: student.id },
         data: {
@@ -117,7 +123,11 @@ export async function DELETE(req: NextRequest) {
         return NextResponse.json({ error: 'Student not found' }, { status: 404 })
     }
 
-    // TODO: also delete the object from R2 using the key derived from cvUrl
+    // Delete old R2 object if present, then clear DB fields
+    if (student.cvUrl) {
+        await deleteR2File(student.cvUrl)
+    }
+
     await prisma.student.update({
         where: { id: student.id },
         data: { cvUrl: null, cvFileName: null, cvUploadedAt: null, cvSizeBytes: null },
