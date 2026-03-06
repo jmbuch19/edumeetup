@@ -1,5 +1,5 @@
 [build]
-  command = "rm -rf .next && npx prisma migrate deploy --schema=./prisma/schema.prisma && npm run build"
+  command = "rm -rf .next && npx prisma db push --schema=./prisma/schema.prisma --accept-data-loss && npm run build"
 
 [build.environment]
   NETLIFY_USE_YARN = "false"
