@@ -59,9 +59,16 @@ export async function triggerFairCreatedNotifications(fairEventId: string): Prom
                         type: 'FAIR_INVITE',
                         isRead: false,
                         actionUrl: `/event/${event.slug}`,
+                        metadata: { fairEventId: event.id },
                     },
                 }),
-                // b. Email (only if an address exists)
+                // b. FairInvitation RSVP record
+                prisma.fairInvitation.upsert({
+                    where: { fairEventId_universityId: { fairEventId: event.id, universityId: uni.id } },
+                    create: { fairEventId: event.id, universityId: uni.id, status: 'PENDING' },
+                    update: {},   // do not overwrite if rep already responded
+                }),
+                // c. Email (only if an address exists)
                 (uni.repEmail ?? uni.contactEmail)
                     ? sendFairInviteToUniversity(uni, event)
                     : Promise.resolve({ skipped: true }),

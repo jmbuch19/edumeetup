@@ -2,7 +2,9 @@ import { auth } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getFairDetail, getRegistrations } from '../actions'
+import { getFairInvitations } from '@/app/actions/university/fair-invitation-actions'
 import { FairDetailClient } from './fair-detail-client'
+import { UniversityResponseTracker } from '@/components/admin/UniversityResponseTracker'
 import type { FairQuestionRow, RegistrationRow } from '../actions'
 
 export const dynamic = 'force-dynamic'
@@ -13,9 +15,10 @@ export default async function AdminFairDetailPage({ params }: Props) {
     const session = await auth()
     if (!session || session.user?.role !== 'ADMIN') redirect('/login')
 
-    const [fair, registrations] = await Promise.all([
+    const [fair, registrations, invitations] = await Promise.all([
         getFairDetail(params.id),
         getRegistrations(params.id),
+        getFairInvitations(params.id),
     ])
     if (!fair) notFound()
 
@@ -35,8 +38,9 @@ export default async function AdminFairDetailPage({ params }: Props) {
     }))
 
     return (
-        <div className="max-w-4xl mx-auto py-4 md:py-8 px-4">
+        <div className="max-w-4xl mx-auto py-4 md:py-8 px-4 space-y-6">
             <FairDetailClient fair={fair} questions={questions} registrations={registrations} />
+            <UniversityResponseTracker fairId={params.id} invitations={invitations} />
         </div>
     )
 }

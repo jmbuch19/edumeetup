@@ -11,10 +11,19 @@ import {
     dismissAllNotifications,
 } from "@/app/notifications/actions"
 import { Bell, Megaphone, ExternalLink, X } from "lucide-react"
+import { CampusFairInviteCard } from "@/components/university/CampusFairInviteCard"
 
 export function NotificationsCenter({ userRole }: { userRole: string }) {
-    const [data, setData] = useState<{ notifications: any[], announcements: any[], sponsored: any[] }>({
-        notifications: [], announcements: [], sponsored: []
+    const [data, setData] = useState<{
+        notifications: any[]
+        announcements: any[]
+        sponsored: any[]
+        fairInvitationMap: Record<string, { id: string; status: 'PENDING' | 'CONFIRMED' | 'DECLINED'; respondedAt: string | null }>
+        fairEventsMap: Record<string, any>
+        universityPrograms: { id: string; name: string; degreeLevel: string | null }[]
+    }>({
+        notifications: [], announcements: [], sponsored: [],
+        fairInvitationMap: {}, fairEventsMap: {}, universityPrograms: [],
     })
     const [loading, setLoading] = useState(true)
 
@@ -112,35 +121,57 @@ export function NotificationsCenter({ userRole }: { userRole: string }) {
                                     className="space-y-3 overflow-y-auto pr-1"
                                     style={{ maxHeight: '400px' }}
                                 >
-                                    {visible.map(n => (
-                                        <div
-                                            key={n.id}
-                                            className="p-4 rounded-lg border bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                                        >
-                                            <div className="flex justify-between items-start gap-3">
-                                                <div className="flex gap-3 min-w-0">
-                                                    <div className="mt-1 p-2 rounded-full bg-blue-100 text-blue-600 shrink-0">
-                                                        <Bell className="h-4 w-4" />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <h4 className="font-semibold text-sm">{n.title}</h4>
-                                                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{n.message}</p>
-                                                        <div className="text-xs text-muted-foreground mt-2">
-                                                            {new Date(n.createdAt).toLocaleDateString()}
+                                    {visible.map(n => {
+                                        // FAIR_INVITE notifications get a special action card
+                                        if (n.type === 'FAIR_INVITE') {
+                                            const meta = n.metadata as Record<string, string> | null
+                                            const fairEventId = meta?.fairEventId
+                                            const fair = fairEventId ? data.fairEventsMap[fairEventId] : null
+                                            const invitation = fairEventId ? data.fairInvitationMap[fairEventId] ?? null : null
+                                            if (!fair) return null // fair deleted or not found
+                                            return (
+                                                <div key={n.id}>
+                                                    <CampusFairInviteCard
+                                                        notification={{ id: n.id, createdAt: n.createdAt, metadata: meta }}
+                                                        invitation={invitation}
+                                                        fair={fair}
+                                                        programs={data.universityPrograms}
+                                                    />
+                                                </div>
+                                            )
+                                        }
+
+                                        // Generic notification card
+                                        return (
+                                            <div
+                                                key={n.id}
+                                                className="p-4 rounded-lg border bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                                            >
+                                                <div className="flex justify-between items-start gap-3">
+                                                    <div className="flex gap-3 min-w-0">
+                                                        <div className="mt-1 p-2 rounded-full bg-blue-100 text-blue-600 shrink-0">
+                                                            <Bell className="h-4 w-4" />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <h4 className="font-semibold text-sm">{n.title}</h4>
+                                                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{n.message}</p>
+                                                            <div className="text-xs text-muted-foreground mt-2">
+                                                                {new Date(n.createdAt).toLocaleDateString()}
+                                                            </div>
                                                         </div>
                                                     </div>
+                                                    {/* Dismiss ✕ */}
+                                                    <button
+                                                        onClick={() => handleDismiss(n.id)}
+                                                        title="Dismiss"
+                                                        className="shrink-0 h-6 w-6 flex items-center justify-center rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 text-muted-foreground hover:text-foreground transition-colors"
+                                                    >
+                                                        <X className="h-3.5 w-3.5" />
+                                                    </button>
                                                 </div>
-                                                {/* Dismiss ✕ */}
-                                                <button
-                                                    onClick={() => handleDismiss(n.id)}
-                                                    title="Dismiss"
-                                                    className="shrink-0 h-6 w-6 flex items-center justify-center rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 text-muted-foreground hover:text-foreground transition-colors"
-                                                >
-                                                    <X className="h-3.5 w-3.5" />
-                                                </button>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ) // close generic card return
+                                    })}
                                     {hasMore && (
                                         <p className="text-xs text-center text-muted-foreground pt-1">
                                             + {data.notifications.length - 5} more — scroll to see all

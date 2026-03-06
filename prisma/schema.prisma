@@ -241,6 +241,7 @@ model University {
   proactiveMessages       ProactiveMessage[]
   dismissals              StudentDiscoveryDismissal[]
   fairAttendances         FairAttendance[]
+  fairInvitations         FairInvitation[]
   reps                    User[]                   @relation("UniversityReps")
 
   @@index([verificationStatus])
@@ -646,6 +647,7 @@ model UniversityNotification {
   dismissed    Boolean    @default(false)
   dismissedAt  DateTime?
   actionUrl    String?
+  metadata     Json?
   createdAt    DateTime   @default(now())
   university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
 
@@ -939,9 +941,12 @@ model FairEvent {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
+  rsvpDeadline  DateTime?
+
   studentPasses FairStudentPass[]
   attendances   FairAttendance[]
   questions     FairQuestion[]
+  invitations   FairInvitation[]
 
   @@index([status])
   @@index([startDate])
@@ -1053,4 +1058,29 @@ model FairQuestion {
 
   @@index([fairEventId])
   @@index([askerId])
+}
+
+enum FairInvitationStatus {
+  PENDING
+  CONFIRMED
+  DECLINED
+}
+
+model FairInvitation {
+  id                  String               @id @default(cuid())
+  fairEventId         String
+  universityId        String
+  status              FairInvitationStatus @default(PENDING)
+  repsAttending       Int?
+  programsShowcasing  String[]
+  specialRequirements String?
+  respondedAt         DateTime?
+  createdAt           DateTime             @default(now())
+
+  fairEvent  FairEvent  @relation(fields: [fairEventId], references: [id], onDelete: Cascade)
+  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@unique([fairEventId, universityId])
+  @@index([fairEventId])
+  @@index([universityId])
 }
