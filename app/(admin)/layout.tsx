@@ -1,22 +1,9 @@
-import Link from "next/link"
-import { auth, signOut } from "@/lib/auth"
+import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import {
-    LayoutDashboard, Users, School, LogOut, Ticket,
-    Globe, Megaphone, CalendarDays, FileBarChart2,
-    Sparkles, QrCode
-} from "lucide-react"
-import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
-import { AdminMobileNav } from "@/components/admin/admin-mobile-nav"
-import { ActiveNavItem } from "@/components/admin/active-nav-item"
-import { NotificationBell } from "@/components/admin/notification-bell"
-import { getAdminNotifications } from "@/app/(admin)/admin/actions/notifications"
-
-async function logout() {
-    'use server'
-    await signOut({ redirectTo: '/' })
-}
+import { prisma } from "@/lib/prisma"
+import { AdminNav } from "@/components/admin/admin-nav"
+import { AdminRightSidebar } from "@/components/admin/admin-right-sidebar"
+import { NotificationsCenter } from "@/components/notifications-center"
 
 export const dynamic = 'force-dynamic'
 
@@ -41,82 +28,65 @@ export default async function AdminLayout({
     }
 
     const adminName = session.user.name || session.user.email?.split('@')[0] || 'Admin'
-    const adminInitial = adminName.charAt(0).toUpperCase()
 
-    // Fetch notifications — safe fallback so layout never crashes
-    let notifData = { notifications: [], milestones: [], unreadCount: 0 } as Awaited<ReturnType<typeof getAdminNotifications>>
+    // ── Platform stats for right sidebar ─────────────────────────────────────
+    let totalUniversities = 0
+    let totalStudents = 0
+    let meetingsThisWeek = 0
+    let pendingVerifications = 0
+
     try {
-        notifData = await getAdminNotifications()
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+            ;[totalUniversities, totalStudents, meetingsThisWeek, pendingVerifications] = await Promise.all([
+                prisma.university.count(),
+                prisma.student.count(),
+                prisma.meeting.count({ where: { createdAt: { gte: weekAgo } } }),
+                prisma.university.count({ where: { verificationStatus: 'PENDING' } }),
+            ])
     } catch (e) {
-        console.error('[AdminLayout] notifications failed:', e)
+        console.error('[AdminLayout] stats fetch failed:', e)
     }
 
     return (
-        <div className="flex min-h-screen bg-gray-50">
-            {/* Sidebar */}
-            <aside className="hidden md:flex flex-col w-64 fixed inset-y-0 bg-white border-r border-gray-200 z-20">
-                {/* Logo */}
-                <div className="flex items-center gap-2 px-4 py-5 border-b border-gray-200">
-                    <Link href="/admin/dashboard" className="flex items-center gap-2">
-                        <span className="font-bold text-lg text-primary">edU<span className="text-gray-800">meetup</span></span>
-                        <span className="text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded">ADMIN</span>
-                    </Link>
-                </div>
+        <div className="flex h-screen overflow-hidden" style={{ background: 'var(--surface)', fontFamily: 'var(--font-body)' }}>
 
-                {/* Nav */}
-                <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-3 pt-2 pb-1">Main</p>
-                    <ActiveNavItem href="/admin/dashboard" iconNode={<LayoutDashboard className="h-5 w-5 shrink-0" />} label="Dashboard" />
-                    <ActiveNavItem href="/admin/users" iconNode={<Users className="h-5 w-5 shrink-0" />} label="Users" />
-                    <ActiveNavItem href="/admin/universities" iconNode={<School className="h-5 w-5 shrink-0" />} label="Universities" />
+            {/* ── Left Nav ─────────────────────────────────────────────────── */}
+            <AdminNav adminName={adminName} adminEmail={session.user.email} />
 
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-3 pt-4 pb-1">Operations</p>
-                    <ActiveNavItem href="/admin/advisory" iconNode={<Users className="h-5 w-5 shrink-0" />} label="Advisory Requests" />
-                    <ActiveNavItem href="/admin/host-requests" iconNode={<Globe className="h-5 w-5 shrink-0" />} label="Host Requests" />
-                    <ActiveNavItem href="/admin/fairs" iconNode={<QrCode className="h-5 w-5 shrink-0" />} label="Fair Events" />
-                    <ActiveNavItem href="/admin/engagement" iconNode={<Megaphone className="h-5 w-5 shrink-0" />} label="Engagement" />
+            {/* ── Centre column ────────────────────────────────────────────── */}
+            <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-3 pt-4 pb-1">Insights</p>
-                    <ActiveNavItem href="/admin/overview" iconNode={<CalendarDays className="h-5 w-5 shrink-0" />} label="Overview" />
-                    <ActiveNavItem href="/admin/reports" iconNode={<FileBarChart2 className="h-5 w-5 shrink-0" />} label="Reports" />
-                    <ActiveNavItem href="/admin/engagement" iconNode={<Sparkles className="h-5 w-5 shrink-0" />} label="Sponsored Content" />
-                </nav>
-
-                {/* Footer */}
-                <div className="p-4 border-t border-gray-200">
-                    <div className="flex items-center gap-3 mb-4 px-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                            {adminInitial}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate capitalize">{adminName}</p>
-                            <p className="text-xs text-gray-500 truncate">{session.user?.email}</p>
-                        </div>
-                        <NotificationBell
-                            notifications={notifData.notifications}
-                            milestones={notifData.milestones}
-                            unreadCount={notifData.unreadCount}
-                        />
+                {/* Sticky header */}
+                <header className="sticky top-0 z-10 flex items-center justify-between gap-3 px-5 py-3.5 border-b md:hidden"
+                    style={{
+                        background: 'rgba(240,249,248,0.92)',
+                        backdropFilter: 'blur(12px)',
+                        borderColor: 'var(--border-dash)',
+                    }}>
+                    <div className="flex items-center gap-3">
+                        <AdminNav hamburgerOnly adminName={adminName} adminEmail={session.user.email} />
+                        <p className="text-base font-semibold" style={{ fontFamily: 'var(--font-display)', color: 'var(--navy)' }}>
+                            Admin
+                        </p>
                     </div>
-                    <form action={logout}>
-                        <Button variant="outline" className="w-full justify-start gap-2" type="submit">
-                            <LogOut className="h-4 w-4" />
-                            Sign Out
-                        </Button>
-                    </form>
-                </div>
-            </aside>
+                    <NotificationsCenter />
+                </header>
 
-            {/* Mobile nav */}
-            <AdminMobileNav adminEmail={session.user?.email} />
+                {/* Page content */}
+                <main className="flex-1 flex overflow-hidden">
+                    <div className="flex-1 w-full max-w-[860px] mx-auto overflow-y-auto px-3">
+                        {children}
+                    </div>
+                </main>
+            </div>
 
-            {/* Main content */}
-            <main className="flex-1 md:ml-64 min-w-0 p-4 md:p-8 pt-[3.75rem] md:pt-8 flex overflow-hidden">
-                <div className="flex-1 w-full max-w-[640px] mx-auto overflow-y-auto">
-                    <AdminBreadcrumbs />
-                    {children}
-                </div>
-            </main>
+            {/* ── Right Sidebar ─────────────────────────────────────────────── */}
+            <AdminRightSidebar
+                totalUniversities={totalUniversities}
+                totalStudents={totalStudents}
+                meetingsThisWeek={meetingsThisWeek}
+                pendingVerifications={pendingVerifications}
+            />
         </div>
     )
 }
