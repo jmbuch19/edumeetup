@@ -100,7 +100,7 @@ export async function isUniversityEmail(email: string): Promise<boolean> {
         })
         if (match) return true
     } catch {
-        // DB unavailable — fail open to avoid blocking legit users
+        // DB lookup failed — fail closed (safer than allowing unknown domains)
         console.warn(`[isUniversityEmail] DB lookup failed for domain: ${domain}`)
     }
 
@@ -343,10 +343,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return session
         },
 
-        async redirect({ url, baseUrl }) {
+        async redirect(params) {
+            const { url, baseUrl } = params
             console.log(`[AUTH redirect] url=${url} baseUrl=${baseUrl}`)
             if (url.startsWith(baseUrl)) return url
             if (url.startsWith('/')) return `${baseUrl}${url}`
+            // Role-aware fallback — avoids UX flash when middleware hasn't corrected yet
+            const role = (params as any)?.token?.role
+            if (role === 'ADMIN') return `${baseUrl}/admin/dashboard`
+            if (role === 'UNIVERSITY' || role === 'UNIVERSITY_REP') return `${baseUrl}/university/dashboard`
             return `${baseUrl}/student/dashboard`
         },
     },
@@ -392,9 +397,10 @@ export async function requireUser() {
 
 export async function requireRole(role: "ADMIN" | "UNIVERSITY" | "STUDENT") {
     const user = await requireUser()
-    if (user.role !== role && user.role !== 'ADMIN') {
+    if (user.role !== role) {
+        if (user.role === 'ADMIN') redirect('/admin/dashboard')
         if (user.role === 'STUDENT') redirect('/student/dashboard')
-        if (user.role === 'UNIVERSITY') redirect('/university/dashboard')
+        if (user.role === 'UNIVERSITY' || user.role === 'UNIVERSITY_REP') redirect('/university/dashboard')
         redirect('/login')
     }
     return user

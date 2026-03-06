@@ -17,19 +17,28 @@ export default async function UniversityLayout({ children }: { children: React.R
 
     // Fetch university basics for the nav + header
     const uni = await prisma.university.findFirst({
-        where: { userId: session.user.id },
+        where: {
+            OR: [
+                { userId: session.user.id },
+                { reps: { some: { id: session.user.id } } },
+            ]
+        },
         select: {
             id: true,
             institutionName: true,
             logo: true,
-            interests: { select: { id: true }, where: { status: 'INTERESTED' }, take: 20 }
+            _count: {
+                select: {
+                    interests: { where: { status: 'INTERESTED' } }
+                }
+            }
         },
     })
 
     // Check for live fair — live scanner link in sidebar
     const liveFair = await prisma.fairEvent.findFirst({ where: { status: 'LIVE' } }).catch(() => null)
 
-    const pendingCount = uni?.interests.length ?? 0
+    const pendingCount = uni?._count.interests ?? 0
     const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
     return (

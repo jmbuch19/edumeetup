@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { Suspense } from 'react'
 import { StudentNav } from '@/components/student/student-nav'
 import { StudentRightSidebar } from '@/components/student/student-right-sidebar'
 import '@/app/dashboard-tokens.css'
@@ -20,7 +21,8 @@ export default async function StudentLayout({ children }: { children: React.Reac
     const hours = today.getHours()
     const greeting = hours < 12 ? 'Good morning' : hours < 17 ? 'Good afternoon' : 'Good evening'
     const dateStr = today.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
-    const firstName = (student?.fullName ?? session.user.name ?? 'there').split(' ')[0]
+    const rawName = student?.fullName?.trim() || session.user.name?.trim() || 'there'
+    const firstName = rawName.split(' ')[0]
 
     return (
         <div className="flex h-screen overflow-hidden" style={{ background: 'var(--surface)', fontFamily: 'var(--font-body)' }}>
@@ -84,7 +86,9 @@ export default async function StudentLayout({ children }: { children: React.Reac
             </div>
 
             {/* ── Right Sidebar ────────────────────────────────────────────────── */}
-            <StudentRightSidebar />
+            <Suspense fallback={<aside className="hidden lg:flex w-[300px] min-w-[300px] border-l" />}>
+                <StudentRightSidebar />
+            </Suspense>
         </div>
     )
 }

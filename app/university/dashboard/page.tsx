@@ -101,9 +101,11 @@ export default async function UniversityDashboard() {
                     student: { include: { user: true } },
                     program: true
                 },
-                orderBy: { createdAt: 'desc' }
+                orderBy: { createdAt: 'desc' },
+                take: 200,   // cap: avoids unbounded join as interest list grows
             },
             documents: {
+                where: { deletedAt: null },  // soft-delete filter
                 orderBy: { uploadedAt: 'desc' },
                 select: { id: true, displayName: true, category: true, fileName: true, mimeType: true, sizeBytes: true, uploadedAt: true }
             }
@@ -153,7 +155,8 @@ export default async function UniversityDashboard() {
                 }
             }
         },
-        include: { user: true }
+        include: { user: true },
+        take: 20,   // cap: only first 20 shown in UI anyway
     }) : []
 
     // 2. Availability Slots (Meeting System)
@@ -166,14 +169,19 @@ export default async function UniversityDashboard() {
         orderBy: { startTime: 'asc' }
     })
 
-    // 3. Meetings
-    const allMeetings = await prisma.meeting.findMany({
-        where: { universityId: uni.id },
-        include: { student: { include: { user: true } } },
-        orderBy: { startTime: 'asc' }
-    })
-
-    const upcomingMeetings = allMeetings.filter(m => new Date(m.startTime) > new Date())
+    // 3. Meetings — two queries: all (for meetings tab) + upcoming (for overview widget)
+    const [allMeetings, upcomingMeetings] = await Promise.all([
+        prisma.meeting.findMany({
+            where: { universityId: uni.id },
+            include: { student: { include: { user: true } } },
+            orderBy: { startTime: 'asc' },
+        }),
+        prisma.meeting.findMany({
+            where: { universityId: uni.id, startTime: { gte: new Date() } },
+            include: { student: { include: { user: true } } },
+            orderBy: { startTime: 'asc' },
+        }),
+    ])
 
     // 4. Campus Fair Outreach
     const fairOutreach = await prisma.hostRequestOutreach.findMany({
@@ -317,12 +325,16 @@ export default async function UniversityDashboard() {
         _count: { id: true },
         orderBy: { _count: { id: 'desc' } },
     })
-    const fairHistoryWithDetails = await Promise.all(
-        fairHistoryGroups.map(async (record) => {
-            const fair = await prisma.fairEvent.findUnique({ where: { id: record.fairEventId } })
-            return { fair, leadCount: record._count.id }
-        })
-    )
+    // Single findMany replaces N+1 loop of individual findUnique calls
+    const fairEventIds = fairHistoryGroups.map(g => g.fairEventId)
+    const fairEventsForHistory = await prisma.fairEvent.findMany({
+        where: { id: { in: fairEventIds } },
+    })
+    const fairEventMap = Object.fromEntries(fairEventsForHistory.map(e => [e.id, e]))
+    const fairHistoryWithDetails = fairHistoryGroups.map(record => ({
+        fair: fairEventMap[record.fairEventId] ?? null,
+        leadCount: record._count.id,
+    }))
     const upcomingWithin7 = upcomingFair &&
         (new Date(upcomingFair.startDate).getTime() - Date.now()) < 7 * 24 * 60 * 60 * 1000
 
@@ -369,6 +381,7 @@ export default async function UniversityDashboard() {
                         size="lg"
                         isVerified={uni.verificationStatus === 'VERIFIED'}
                         className="shadow-sm border border-gray-100"
+                        websiteUrl={uni.website}
                     />
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-slate-900">University Dashboard</h1>

@@ -755,8 +755,15 @@ export async function deleteProgram(programId: string) {
 
         if (!program) return { error: "Program not found" }
 
-        if (program.university.userId !== user.id) {
-            return { error: "Unauthorized" }
+        // Allow university owner OR a rep linked to this university
+        const isOwner = program.university.userId === user.id
+        if (!isOwner) {
+            const dbUser = await prisma.user.findUnique({
+                where: { id: user.id },
+                select: { universityId: true }
+            })
+            const isRep = dbUser?.universityId === program.universityId
+            if (!isRep) return { error: "Unauthorized" }
         }
 
         await prisma.program.delete({
@@ -784,8 +791,18 @@ export async function updateUniversityProfile(formData: FormData) {
     try {
         const user = await requireUser()
 
-        const uniProfile = await prisma.university.findUnique({
-            where: { userId: user.id }
+        // Resolve university for both owner (university.userId) and rep (User.universityId)
+        const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { universityId: true }
+        })
+        const uniProfile = await prisma.university.findFirst({
+            where: {
+                OR: [
+                    { userId: user.id },
+                    { id: dbUser?.universityId ?? '' },
+                ]
+            }
         })
 
         if (!uniProfile) {
