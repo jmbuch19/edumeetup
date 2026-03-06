@@ -167,32 +167,34 @@ export async function registerStudent(prevState: any, formData: FormData) {
                 .catch(() => null) // best-effort — never block registration
         }
 
-        await logAudit({
+        // Audit log — actorId is null for SYSTEM actions (no User FK violation)
+        void logAudit({
             action: 'REGISTER_STUDENT',
             entityType: 'USER',
-            entityId: email, // Use email as ID initially
-            actorId: 'SYSTEM',
+            entityId: email,
+            actorId: null as any,
             metadata: { ip, email, role: 'STUDENT' }
-        })
+        }).catch(() => null)
 
-        // Send magic link directly (bypasses Auth.js signIn which silently fails in Netlify serverless)
+        // 1. Magic link — MUST succeed, always awaited first
         await sendMagicLink(email, '/student/dashboard')
 
-        // Welcome email to new student
-        await sendEmail({
+        // 2. Welcome + admin emails — fire-and-forget so they never block or
+        //    trigger Resend's 2 req/sec limit against the magic link.
+        //    If these fail (rate limit, transient error) the user is already logged in.
+        void sendEmail({
             to: email,
             subject: 'Welcome to EdUmeetup! 🎓',
             html: generateEmailHtml('Welcome to EdUmeetup!', EmailTemplates.welcomeStudent(fullName))
-        })
+        }).catch((e) => console.warn('[registerStudent] Welcome email failed (non-fatal):', e?.message))
 
-        // Alert admin about new student
         const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL
         if (adminEmail) {
-            await sendEmail({
+            void sendEmail({
                 to: adminEmail,
                 subject: `New Student Registration: ${fullName}`,
                 html: generateEmailHtml('New Student Registration', EmailTemplates.adminNewStudent(fullName, email))
-            })
+            }).catch((e) => console.warn('[registerStudent] Admin email failed (non-fatal):', e?.message))
         }
 
         return { success: true, email, message: "Account created! Check your email to login." }
