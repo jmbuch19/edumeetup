@@ -47,7 +47,7 @@ interface Ticket {
 }
 
 export function MessageClient({ tickets }: { tickets: Ticket[] }) {
-    const [state, formAction] = useFormState(sendSupportMessage as any, null)
+    const [state, formAction] = useFormState(sendSupportMessage as any, {} as { success?: boolean; message?: string; error?: string })
     const [charCount, setCharCount] = useState(0)
     const [showForm, setShowForm] = useState(tickets.length === 0)
 
@@ -108,7 +108,7 @@ export function MessageClient({ tickets }: { tickets: Ticket[] }) {
                             <div className="relative">
                                 <select name="category" required
                                     className="w-full h-10 rounded-lg border px-3 text-sm appearance-none pr-8 focus:outline-none focus:ring-2"
-                                    style={{ borderColor: 'var(--border-dash)', color: 'var(--navy)', focusRingColor: 'var(--teal)' }}>
+                                    style={{ borderColor: 'var(--border-dash)', color: 'var(--navy)' }}>
                                     <option value="">Select a topic…</option>
                                     {CATEGORIES.map(c => (
                                         <option key={c} value={c}>{c}</option>
