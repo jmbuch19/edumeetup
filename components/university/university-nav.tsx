@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, LayoutDashboard, Users, Zap, CalendarDays, MessageSquare, BookOpen, BarChart2, Settings, Shield, MapPin, HelpCircle, User, LogOut } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Users, Zap, CalendarDays, MessageSquare, Mail, BookOpen, BarChart2, Settings, Shield, MapPin, HelpCircle, User, LogOut } from 'lucide-react'
 import { UniversityAvatar } from './university-avatar'
 import { ContactAdminPanel } from '@/components/layout/contact-admin-panel'
 import { signOut } from 'next-auth/react'
@@ -22,6 +22,7 @@ const NAV_ITEMS: NavItem[] = [
     { href: '/university/dashboard?tab=overview', label: 'Action Centre', icon: <Zap className="h-4.5 w-4.5" /> },
     { href: '/university/meetings', label: 'Meetings', icon: <CalendarDays className="h-4.5 w-4.5" /> },
     { href: '/university/engagement', label: 'Engagement', icon: <MessageSquare className="h-4.5 w-4.5" /> },
+    { href: '/university/messages', label: 'Messages', icon: <Mail className="h-4.5 w-4.5" /> },
     { href: '/university/dashboard?tab=programs', label: 'Programs', icon: <BookOpen className="h-4.5 w-4.5" /> },
     { href: '/university/analytics', label: 'Analytics', icon: <BarChart2 className="h-4.5 w-4.5" /> },
     { href: '/university/settings', label: 'Settings', icon: <Settings className="h-4.5 w-4.5" /> },

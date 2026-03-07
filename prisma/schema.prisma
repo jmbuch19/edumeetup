@@ -45,6 +45,7 @@ model User {
   proactiveMessagesSent ProactiveMessage[]    @relation("RepMessages")
   repPerformance        RepPerformance?
   repBadges             RepBadge[]
+  directMessagesSent    DirectMessage[]
 
   @@index([role])
   @@index([isActive])
@@ -137,6 +138,7 @@ model Student {
   proactiveMessages  ProactiveMessage[]
   dismissals         StudentDiscoveryDismissal[]
   fairPasses         FairStudentPass[]
+  conversations      Conversation[]
 }
 
 model ProfileChangeLog {
@@ -243,6 +245,7 @@ model University {
   fairAttendances         FairAttendance[]
   fairInvitations         FairInvitation[]
   reps                    User[]                   @relation("UniversityReps")
+  conversations           Conversation[]
 
   @@index([verificationStatus])
   @@index([country])
@@ -1086,4 +1089,36 @@ model FairInvitation {
   @@unique([fairEventId, universityId])
   @@index([fairEventId])
   @@index([universityId])
+}
+
+// ── 1:1 Direct Messaging ─────────────────────────────────────────────
+
+model Conversation {
+  id           String          @id @default(cuid())
+  studentId    String
+  universityId String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  student      Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  university   University      @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  messages     DirectMessage[]
+
+  @@unique([studentId, universityId])
+  @@index([studentId])
+  @@index([universityId])
+}
+
+model DirectMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String       // User.id
+  senderRole     String       // "STUDENT" | "UNIVERSITY"
+  content        String
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
 }
