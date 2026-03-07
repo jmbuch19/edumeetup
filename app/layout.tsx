@@ -5,19 +5,9 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { PublicShell } from "@/components/layout/public-shell";
 import { Toaster } from "sonner";
-import dynamic from "next/dynamic";
 import { BugReporter } from "@/components/bug-reporter";
 import { ThemeProvider } from "@/components/theme-provider";
-
-const ChatWidget = dynamic(
-  () => import("@/components/ai/chat-widget").then(m => m.ChatWidget),
-  { ssr: false }
-)
-
-const SessionGuard = dynamic(
-  () => import("@/components/session-guard").then(m => m.SessionGuard),
-  { ssr: false }
-)
+import { ClientOnlyWidgets } from "@/components/layout/client-only-widgets";
 
 const inter = Inter({ subsets: ["latin"] }); // id: 7
 
@@ -67,8 +57,7 @@ export default async function RootLayout({
           >
             {children}
           </PublicShell>
-          <ChatWidget />
-          <SessionGuard />
+          <ClientOnlyWidgets />
           <BugReporter />
           <Toaster richColors position="top-center" />
         </ThemeProvider>
