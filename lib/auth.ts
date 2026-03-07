@@ -185,7 +185,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     adapter: PrismaAdapter(prisma) as any,
     session: {
         strategy: "jwt",
-        maxAge: 30 * 24 * 60 * 60, // 30 days
+        maxAge: 7 * 24 * 60 * 60, // 7 days for students & universities
     },
     providers: [
         Email({
@@ -326,6 +326,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     token.lastRefreshed = Date.now()
                     console.log(`[AUTH jwt] Stamped role=${token.role} for sub=${token.sub}`)
                     if (!dbUser.isActive) return null
+
+                    // Admin gets a short 24h hard cap — tighter security for privileged account
+                    if (dbUser.role === 'ADMIN') {
+                        const oneDayFromNow = Math.floor(Date.now() / 1000) + 24 * 60 * 60
+                        // Only shorten — never extend beyond what's already set
+                        if (!token.exp || (token.exp as number) > oneDayFromNow) {
+                            token.exp = oneDayFromNow
+                        }
+                    }
                 } else {
                     console.warn(`[AUTH jwt] No DB user found for sub=${token.sub}`)
                 }
