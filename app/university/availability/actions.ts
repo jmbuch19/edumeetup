@@ -1,66 +1,113 @@
 'use server'
 
-import { auth } from "@/lib/auth"
+import { requireUniversityUser } from "@/lib/auth/requireAuth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { DayOfWeek, VideoProvider } from "@prisma/client"
+import { z } from "zod"
 
-export type AvailabilityProfileData = {
-    dayOfWeek: DayOfWeek
-    startTime: string
-    endTime: string
-    isActive: boolean
-    meetingDurationOptions: number[]
-    bufferMinutes: number
-    minLeadTimeHours: number
-    dailyCap: number
-    videoProvider: VideoProvider
-    externalLink?: string
-    eligibleDegreeLevels: string[]
-    eligibleCountries: string[]
+// ─── HH:MM Normalizer ─────────────────────────────────────────────────────────
+// Guarantees stored startTime/endTime are always zero-padded "HH:MM" in 24h format.
+// This is the format discipline that makes lexicographic comparison safe in the
+// booking action. It must be applied on EVERY write path, never trusted from input.
+//
+// Accepts: "9:00", "09:00", "9:5", "9:05"
+// Rejects: anything that isn't parseable as HH:MM 24h
+
+function normalizeHHMM(raw: string): string {
+    const match = raw.trim().match(/^(\d{1,2}):(\d{2})$/)
+    if (!match) throw new Error(`Invalid time format: "${raw}" — expected HH:MM`)
+    const h = parseInt(match[1], 10)
+    const m = parseInt(match[2], 10)
+    if (h < 0 || h > 23) throw new Error(`Hour out of range in "${raw}"`)
+    if (m < 0 || m > 59) throw new Error(`Minute out of range in "${raw}"`)
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
-export async function saveAvailabilityProfile(data: AvailabilityProfileData) {
-    const session = await auth()
+// ─── Input Validation ─────────────────────────────────────────────────────────
 
-    if (!session || !session.user || (session.user.role !== 'UNIVERSITY' && session.user.role !== 'UNIVERSITY_REP')) {
-        return { error: "Unauthorized" }
+const HHMM_REGEX = /^\d{1,2}:\d{2}$/
+
+const profileSchema = z.object({
+    dayOfWeek: z.nativeEnum(DayOfWeek),
+    startTime: z.string().regex(HHMM_REGEX, 'Expected HH:MM format'),
+    endTime: z.string().regex(HHMM_REGEX, 'Expected HH:MM format'),
+    isActive: z.boolean(),
+    meetingDurationOptions: z.array(z.number().int().positive()).min(1),
+    bufferMinutes: z.number().int().min(0).max(120),
+    minLeadTimeHours: z.number().int().min(0).max(168),
+    dailyCap: z.number().int().min(1).max(20),
+    videoProvider: z.nativeEnum(VideoProvider),
+    externalLink: z.string().url().optional().or(z.literal('')),
+    eligibleDegreeLevels: z.array(z.string()),
+    eligibleCountries: z.array(z.string()),
+    // Canonical scheduling timezone for this profile (IANA format)
+    timezone: z.string().min(1).max(100).refine(
+        tz => { try { Intl.DateTimeFormat(undefined, { timeZone: tz }); return true } catch { return false } },
+        { message: 'Invalid IANA timezone' }
+    ).default('UTC'),
+})
+
+export type AvailabilityProfileData = z.infer<typeof profileSchema>
+
+// ─── Shared: normalize and validate times ────────────────────────────────────
+
+function normalizeTimes(data: AvailabilityProfileData) {
+    const startTime = normalizeHHMM(data.startTime)
+    const endTime = normalizeHHMM(data.endTime)
+    if (startTime >= endTime) throw new Error(`startTime (${startTime}) must be before endTime (${endTime})`)
+    return { ...data, startTime, endTime }
+}
+
+// ─── Shared: look up university for current user ──────────────────────────────
+
+async function getUniversityForSession(userId: string, role: string) {
+    if (role === 'UNIVERSITY') {
+        return prisma.university.findUnique({ where: { userId } })
+    }
+    if (role === 'UNIVERSITY_REP') {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { representedUniversity: { select: { id: true } } },
+        })
+        if (!user?.representedUniversity) return null
+        return prisma.university.findUnique({ where: { id: user.representedUniversity.id } })
+    }
+    return null
+}
+
+// ─── Save single profile ─────────────────────────────────────────────────────
+
+export async function saveAvailabilityProfile(rawData: AvailabilityProfileData) {
+    const session = await requireUniversityUser().catch(() => null)
+    if (!session) return { error: "Unauthorized" }
+
+    const parsed = profileSchema.safeParse(rawData)
+    if (!parsed.success) return { error: "Invalid data", details: parsed.error.flatten() }
+
+    let data: AvailabilityProfileData
+    try {
+        data = normalizeTimes(parsed.data)
+    } catch (e: any) {
+        return { error: e.message }
     }
 
-    const userId = session.user.id
-
-    // Get university ID
-    const university = await prisma.university.findUnique({
-        where: { userId: userId }
-    })
-
-    if (!university) {
-        return { error: "University profile not found" }
-    }
+    const university = await getUniversityForSession(session.user.id, session.user.role)
+    if (!university) return { error: "University profile not found" }
 
     try {
-        // Upsert logic: Check if a profile exists for this user + day 
-        // (Assuming 1 profile per day per rep for MVP clarity, though schema allows multiple)
-        // If we want to allow multiple slots per day (e.g. 9-12 AND 2-5), we'd need a different UI/logic.
-        // For now, let's assume the UI sends a single block per day, or we treat this as a "Daily Template".
-
-        // Actually, the spec implies "Weekly Schedule Builder".
-        // Let's look for an existing profile for this Rep + Day.
-
-        const existingProfile = await prisma.availabilityProfile.findFirst({
-            where: {
-                repId: userId,
-                dayOfWeek: data.dayOfWeek
-            }
+        const existing = await prisma.availabilityProfile.findFirst({
+            where: { repId: session.user.id, dayOfWeek: data.dayOfWeek },
         })
 
-        if (existingProfile) {
+        if (existing) {
             await prisma.availabilityProfile.update({
-                where: { id: existingProfile.id },
+                where: { id: existing.id },
                 data: {
-                    startTime: data.startTime,
-                    endTime: data.endTime,
+                    startTime: data.startTime,   // ← normalized
+                    endTime: data.endTime,     // ← normalized
                     isActive: data.isActive,
+                    timezone: data.timezone,
                     meetingDurationOptions: data.meetingDurationOptions,
                     bufferMinutes: data.bufferMinutes,
                     minLeadTimeHours: data.minLeadTimeHours,
@@ -68,18 +115,19 @@ export async function saveAvailabilityProfile(data: AvailabilityProfileData) {
                     videoProvider: data.videoProvider,
                     externalLink: data.externalLink,
                     eligibleDegreeLevels: data.eligibleDegreeLevels,
-                    eligibleCountries: data.eligibleCountries
-                }
+                    eligibleCountries: data.eligibleCountries,
+                },
             })
         } else {
             await prisma.availabilityProfile.create({
                 data: {
                     universityId: university.id,
-                    repId: userId,
+                    repId: session.user.id,
                     dayOfWeek: data.dayOfWeek,
-                    startTime: data.startTime,
-                    endTime: data.endTime,
+                    startTime: data.startTime,   // ← normalized
+                    endTime: data.endTime,     // ← normalized
                     isActive: data.isActive,
+                    timezone: data.timezone,
                     meetingDurationOptions: data.meetingDurationOptions,
                     bufferMinutes: data.bufferMinutes,
                     minLeadTimeHours: data.minLeadTimeHours,
@@ -87,8 +135,8 @@ export async function saveAvailabilityProfile(data: AvailabilityProfileData) {
                     videoProvider: data.videoProvider,
                     externalLink: data.externalLink,
                     eligibleDegreeLevels: data.eligibleDegreeLevels,
-                    eligibleCountries: data.eligibleCountries
-                }
+                    eligibleCountries: data.eligibleCountries,
+                },
             })
         }
 
@@ -100,88 +148,45 @@ export async function saveAvailabilityProfile(data: AvailabilityProfileData) {
     }
 }
 
+// ─── Save all profiles (bulk replace) ────────────────────────────────────────
 
-export async function saveAllAvailabilityProfiles(profiles: AvailabilityProfileData[]) {
-    const session = await auth()
+export async function saveAllAvailabilityProfiles(rawProfiles: AvailabilityProfileData[]) {
+    const session = await requireUniversityUser().catch(() => null)
+    if (!session) return { error: "Unauthorized" }
 
-    if (!session || !session.user || (session.user.role !== 'UNIVERSITY' && session.user.role !== 'UNIVERSITY_REP')) {
-        return { error: "Unauthorized" }
+    // Validate and normalize every profile before touching the DB
+    const normalized: AvailabilityProfileData[] = []
+    for (const raw of rawProfiles) {
+        const parsed = profileSchema.safeParse(raw)
+        if (!parsed.success) {
+            return { error: `Invalid profile for ${raw.dayOfWeek}`, details: parsed.error.flatten() }
+        }
+        try {
+            normalized.push(normalizeTimes(parsed.data))
+        } catch (e: any) {
+            return { error: `${raw.dayOfWeek}: ${e.message}` }
+        }
     }
 
-    const userId = session.user.id
-
-    // Get university ID
-    const university = await prisma.university.findUnique({
-        where: { userId: userId }
-    })
-
-    if (!university) {
-        return { error: "University profile not found" }
-    }
+    const university = await getUniversityForSession(session.user.id, session.user.role)
+    if (!university) return { error: "University profile not found" }
 
     try {
-        // Use a transaction to update all profiles
-        await prisma.$transaction(
-            profiles.map(data => {
-                return prisma.availabilityProfile.upsert({
-                    where: {
-                        // We need a unique constraint on [repId, dayOfWeek] for upsert to work effectively with just those fields
-                        // But our schema doesn't have that unique constraint explicitly defined in the @unique attribute yet.
-                        // We can use findFirst logic inside the transaction or just delete and recreate?
-                        // Delete and recreate is safer for "bulk save" if we want to ensure clean state, 
-                        // but might lose ID stability if that matters (it strictly shouldn't).
-                        // BETTER: Since we don't have a unique composite key on [repId, dayOfWeek] in the schema (we should have added it),
-                        // we can't easily use upsert with non-unique fields.
-
-                        // Let's rely on the ID if provided, or search by repId + dayOfWeek.
-                        // Since we can't easily do "upsert where dayOfWeek=X" without a unique index,
-                        // we will do: delete all for this rep -> create all.
-                        // This is drastic but ensures no stale data. 
-                        // However, let's try to be smarter. 
-
-                        // Actually, let's just use the ID if we passed it from the frontend, or create new.
-                        // But simpler: Delete all for this Rep and Create new is a robust strategy for a "Save All" form.
-                        // It avoids "zombie" records.
-
-                        // WAIT: Deleting all destroys the 'id', which might be referenced by 'AvailabilitySlot' if we had them linked, 
-                        // but we don't anymore. We link Meetings to Reps directly.
-                        // So Delete-All-And-Recreate is acceptable and clean for this MVP phase.
-                        id: "dummy-never-matches" // forcing create if we used upsert
-                    },
-                    update: {},
-                    create: {
-                        universityId: university.id,
-                        repId: userId,
-                        dayOfWeek: data.dayOfWeek,
-                        startTime: data.startTime,
-                        endTime: data.endTime,
-                        isActive: data.isActive,
-                        meetingDurationOptions: data.meetingDurationOptions,
-                        bufferMinutes: data.bufferMinutes,
-                        minLeadTimeHours: data.minLeadTimeHours,
-                        dailyCap: data.dailyCap,
-                        videoProvider: data.videoProvider,
-                        externalLink: data.externalLink,
-                        eligibleDegreeLevels: data.eligibleDegreeLevels,
-                        eligibleCountries: data.eligibleCountries
-                    }
-                })
-            })
-        )
-        // Correct approach: Delete existing profiles for this rep, then create new ones.
-        // Prisma transaction:
+        // Delete-then-recreate is the correct bulk-replace pattern.
+        // Avoids zombie records and the non-unique upsert complexity.
         await prisma.$transaction([
             prisma.availabilityProfile.deleteMany({
-                where: { repId: userId }
+                where: { repId: session.user.id },
             }),
             prisma.availabilityProfile.createMany({
-                data: profiles.map(p => ({
+                data: normalized.map(p => ({
                     universityId: university.id,
-                    repId: userId,
+                    repId: session.user.id,
                     dayOfWeek: p.dayOfWeek,
-                    startTime: p.startTime,
-                    endTime: p.endTime,
+                    startTime: p.startTime,   // ← normalized
+                    endTime: p.endTime,     // ← normalized
                     isActive: p.isActive,
+                    timezone: p.timezone,
                     meetingDurationOptions: p.meetingDurationOptions,
                     bufferMinutes: p.bufferMinutes,
                     minLeadTimeHours: p.minLeadTimeHours,
@@ -189,24 +194,26 @@ export async function saveAllAvailabilityProfiles(profiles: AvailabilityProfileD
                     videoProvider: p.videoProvider,
                     externalLink: p.externalLink,
                     eligibleDegreeLevels: p.eligibleDegreeLevels,
-                    eligibleCountries: p.eligibleCountries
-                }))
-            })
+                    eligibleCountries: p.eligibleCountries,
+                })),
+            }),
         ])
 
         revalidatePath('/university/availability')
         return { success: true }
     } catch (error) {
-        console.error("Failed to save availability:", error)
+        console.error("Failed to save availability profiles:", error)
         return { error: "Failed to save availability" }
     }
 }
 
-export async function getAvailabilityProfiles() {
-    const session = await auth()
-    if (!session || !session.user) return []
+// ─── Read ─────────────────────────────────────────────────────────────────────
 
-    return await prisma.availabilityProfile.findMany({
-        where: { repId: session.user.id }
+export async function getAvailabilityProfiles() {
+    const session = await requireUniversityUser().catch(() => null)
+    if (!session) return []
+
+    return prisma.availabilityProfile.findMany({
+        where: { repId: session.user.id },
     })
 }

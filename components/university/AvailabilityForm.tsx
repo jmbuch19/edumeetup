@@ -17,14 +17,15 @@ const createDefaultProfile = (day: DayOfWeek): AvailabilityProfileData => ({
     dayOfWeek: day,
     startTime: '09:00',
     endTime: '17:00',
-    isActive: false, // Default to inactive
+    isActive: false,
     meetingDurationOptions: [15],
     bufferMinutes: 10,
     minLeadTimeHours: 12,
     dailyCap: 8,
     videoProvider: 'GOOGLE_MEET',
     eligibleDegreeLevels: ['Grad'],
-    eligibleCountries: []
+    eligibleCountries: [],
+    timezone: 'UTC',  // rep's scheduling timezone — can be updated via profile settings
 })
 
 interface AvailabilityFormProps {
@@ -52,7 +53,8 @@ export default function AvailabilityForm({ initialProfiles }: AvailabilityFormPr
                     videoProvider: existing.videoProvider,
                     externalLink: existing.externalLink || undefined,
                     eligibleDegreeLevels: existing.eligibleDegreeLevels,
-                    eligibleCountries: existing.eligibleCountries
+                    eligibleCountries: existing.eligibleCountries,
+                    timezone: existing.timezone ?? 'UTC',
                 }
             }
             return createDefaultProfile(dayObj.value as DayOfWeek)
