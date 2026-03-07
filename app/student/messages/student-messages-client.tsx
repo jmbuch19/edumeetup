@@ -18,6 +18,13 @@ interface Ticket {
     createdAt: Date
 }
 
+interface Quota {
+    daily: number
+    annual: number
+    dailyLimit: number
+    annualLimit: number
+}
+
 interface ConversationSummary {
     id: string
     universityId: string
@@ -58,10 +65,11 @@ function SubmitButton() {
     )
 }
 
-function SupportTab({ tickets }: { tickets: Ticket[] }) {
+function SupportTab({ tickets, quota }: { tickets: Ticket[]; quota: Quota }) {
     const [state, formAction] = useFormState(sendSupportMessage as any, {} as { success?: boolean; message?: string; error?: string })
     const [charCount, setCharCount] = useState(0)
-    const [showForm, setShowForm] = useState(tickets.length === 0)
+    const canSend = quota.daily < quota.dailyLimit && quota.annual < quota.annualLimit
+    const [showForm, setShowForm] = useState(tickets.length === 0 && canSend)
 
     useEffect(() => {
         if (state?.success) {
@@ -77,18 +85,33 @@ function SupportTab({ tickets }: { tickets: Ticket[] }) {
 
     return (
         <div className="flex flex-col gap-5">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Reach out to the EdUmeetup support team anytime. Typically replies within 24 hours.</p>
-                {!showForm && (
-                    <Button size="sm" onClick={() => setShowForm(true)} className="gap-2 text-white text-xs flex-shrink-0 ml-3"
-                        style={{ background: 'var(--teal)' }}>
-                        <MessageSquare className="h-3.5 w-3.5" />
-                        New Message
-                    </Button>
-                )}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-[11px] px-2.5 py-1 rounded-full font-medium whitespace-nowrap"
+                        style={{ background: 'var(--surface)', color: quota.annual >= quota.annualLimit ? '#dc2626' : quota.daily >= quota.dailyLimit ? '#d97706' : 'var(--text-muted)' }}>
+                        📩 {quota.annual}/{quota.annualLimit} yr · {quota.daily}/{quota.dailyLimit} today
+                    </span>
+                    {!showForm && canSend && (
+                        <Button size="sm" onClick={() => setShowForm(true)} className="gap-2 text-white text-xs"
+                            style={{ background: 'var(--teal)' }}>
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            New Message
+                        </Button>
+                    )}
+                </div>
             </div>
 
-            {showForm && (
+            {!canSend && (
+                <div className="rounded-xl border px-4 py-3 text-sm"
+                    style={{ background: '#FEF3C7', borderColor: '#FDE68A', color: '#92400E' }}>
+                    {quota.annual >= quota.annualLimit
+                        ? `Annual limit of ${quota.annualLimit} support messages reached.`
+                        : `Daily limit of ${quota.dailyLimit} support messages reached. Try again tomorrow.`}
+                </div>
+            )}
+
+            {showForm && canSend && (
                 <div className="rounded-2xl border bg-white shadow-sm p-5" style={{ borderColor: 'var(--border-dash)' }}>
                     <div className="flex items-center gap-2 mb-4">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
@@ -250,9 +273,10 @@ interface Props {
     tickets: Ticket[]
     conversations: ConversationSummary[]
     defaultTab: string
+    supportQuota: Quota
 }
 
-export function StudentMessagesClient({ tickets, conversations, defaultTab }: Props) {
+export function StudentMessagesClient({ tickets, conversations, defaultTab, supportQuota }: Props) {
     const router = useRouter()
     const [tab, setTab] = useState(defaultTab === 'support' ? 'support' : 'universities')
 
@@ -302,7 +326,7 @@ export function StudentMessagesClient({ tickets, conversations, defaultTab }: Pr
             {/* Tab body */}
             {tab === 'universities'
                 ? <UniversitiesTab conversations={conversations} />
-                : <SupportTab tickets={tickets} />
+                : <SupportTab tickets={tickets} quota={supportQuota} />
             }
         </div>
     )
