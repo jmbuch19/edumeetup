@@ -6,21 +6,20 @@ import { AnnouncementsManager } from "./announcements-manager"
 import { SponsoredContentManager } from "./sponsored-content-manager"
 import { NotificationsSender } from "./notifications-sender"
 
-const VALID_TABS = ["announcements", "sponsored", "notifications"] as const
-type TabValue = typeof VALID_TABS[number]
+const VALID_TABS = ["announcements", "sponsored", "notifications"]
 
-export default async function AdminEngagementPage({
-    searchParams,
-}: {
-    searchParams?: Promise<{ tab?: string }>
+export default async function AdminEngagementPage(props: {
+    searchParams: Promise<{ tab?: string }>
 }) {
     const session = await auth()
     if (session?.user?.role !== "ADMIN") {
         redirect("/")
     }
 
-    const params = await (searchParams ?? Promise.resolve({}))
-    const tab = (VALID_TABS.includes(params.tab as TabValue) ? params.tab : "announcements") as TabValue
+    const searchParams = await props.searchParams
+    const tab = searchParams?.tab && VALID_TABS.includes(searchParams.tab)
+        ? searchParams.tab
+        : "announcements"
 
     return (
         <div className="container mx-auto py-10 space-y-8">
