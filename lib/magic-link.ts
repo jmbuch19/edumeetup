@@ -1,6 +1,7 @@
 import { randomBytes, createHash } from 'crypto'
 import { prisma } from './prisma'
 import { Resend } from 'resend'
+import { safeRedirect } from './safe-redirect'
 
 // Lazily initialised — avoids crash on import when RESEND_API_KEY is absent (local dev)
 let _resend: Resend | null = null
@@ -55,6 +56,9 @@ function buildEmailHtml(url: string, isUniversity = false): string {
  * The URL contains the plain token; Auth.js hashes it on callback to verify.
  */
 export async function sendMagicLink(email: string, redirectTo: string): Promise<void> {
+  // Sanitise the redirect destination — defence in depth against open-redirect
+  // if a future caller ever passes a user-supplied URL here.
+  const safeRedirectTo = safeRedirect(redirectTo, '/student/dashboard')
   const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? ''
   const baseUrl = (process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? 'https://edumeetup.com').replace(/\/$/, '')
 
@@ -80,7 +84,7 @@ export async function sendMagicLink(email: string, redirectTo: string): Promise<
 
   // 4. Build the magic link URL (same format Auth.js expects)
   const params = new URLSearchParams({
-    callbackUrl: redirectTo,
+    callbackUrl: safeRedirectTo,
     token: plainToken,
     email,
   })
@@ -89,7 +93,7 @@ export async function sendMagicLink(email: string, redirectTo: string): Promise<
   console.log(`[MAGIC LINK] Generated for ${email} → ${baseUrl}/api/auth/callback/email?...`)
 
   // 5. Send via Resend
-  const isUniversity = redirectTo.includes('university')
+  const isUniversity = safeRedirectTo.includes('university')
   const subject = isUniversity
     ? 'Your EdUmeetup university portal sign-in link'
     : 'Your EdUmeetup sign-in link'

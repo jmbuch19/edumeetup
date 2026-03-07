@@ -355,8 +355,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         async redirect(params) {
             const { url, baseUrl } = params
             console.log(`[AUTH redirect] url=${url} baseUrl=${baseUrl}`)
-            if (url.startsWith(baseUrl)) return url
-            if (url.startsWith('/')) return `${baseUrl}${url}`
+
+            // Use safeAuthRedirect which does exact hostname comparison via new URL()
+            // rather than startsWith(baseUrl) — prevents subdomain-bypass attacks
+            // e.g. https://edumeetup.com.evil.com would pass startsWith but not this check
+            const { safeAuthRedirect } = await import('./safe-redirect')
+            const safe = safeAuthRedirect(url, baseUrl)
+            if (safe) return safe.startsWith('/') ? `${baseUrl}${safe}` : safe
+
             // Role-aware fallback — avoids UX flash when middleware hasn't corrected yet
             const role = (params as any)?.token?.role
             if (role === 'ADMIN') return `${baseUrl}/admin/dashboard`
