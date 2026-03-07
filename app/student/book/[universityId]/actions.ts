@@ -302,23 +302,21 @@ export async function createMeetingRequest(data: BookingData) {
             include: { user: true }, // user = university owner (User.university relation)
         })
 
-        if (rep.isActive) {
-            const repUser = await prisma.user.findUnique({
-                where: { id: repId },
-                select: { email: true },
-            })
-            if (repUser?.email) {
-                await sendMeetingRequestEmail(
-                    repUser.email,
-                    student.fullName || 'Student',
-                    student.country || 'N/A',
-                    purpose,
-                    start,
-                    durationMinutes,
-                    meeting.id,
-                    studentQuestions
-                )
-            }
+        const repUser = await prisma.user.findUnique({
+            where: { id: repId },
+            select: { email: true },
+        })
+        if (repUser?.email) {
+            await sendMeetingRequestEmail(
+                repUser.email,
+                student.fullName || 'Student',
+                student.country || 'N/A',
+                purpose,
+                start,
+                durationMinutes,
+                meeting.id,
+                studentQuestions
+            )
         }
 
         // In-app notification to university owner
