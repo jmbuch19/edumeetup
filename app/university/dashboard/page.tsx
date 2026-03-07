@@ -524,7 +524,8 @@ export default async function UniversityDashboard() {
                         repId={user.id}
                         completeness={{ score: completenessScore, tasks: completenessTasks }}
                         discoverableStudents={discoverableForUI}
-                        programNames={uni.programs.map(p => p.programName)}
+                        programNames={uni.programs.map((p: any) => p.programName)}
+
                     />
 
                     <DashboardStats
@@ -736,11 +737,12 @@ export default async function UniversityDashboard() {
                                             repsAttending: inv.repsAttending,
                                             programsShowcasing: inv.programsShowcasing,
                                         }}
-                                        programs={uni.programs.map(p => ({
+                                        programs={uni.programs.map((p: any) => ({
                                             id: p.id,
                                             programName: p.programName,
                                             degreeLevel: p.degreeLevel,
                                         }))}
+
                                     />
                                 ))}
                             </div>
