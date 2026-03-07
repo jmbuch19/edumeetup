@@ -437,6 +437,11 @@ model AvailabilityProfile {
   startTime              String
   endTime                String
   isActive               Boolean       @default(true)
+  // Canonical scheduling timezone for this profile.
+  // dayOfWeek and startTime/endTime are defined in this timezone.
+  // When validating a booking, convert the client startTime (UTC) into this
+  // timezone BEFORE deriving day-of-week and HH:MM — not studentTimezone, not UTC.
+  timezone               String        @default("UTC")
   meetingDurationOptions Int[]
   bufferMinutes          Int           @default(10)
   minLeadTimeHours       Int           @default(12)

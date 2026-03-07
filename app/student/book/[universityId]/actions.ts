@@ -152,60 +152,78 @@ export async function createMeetingRequest(data: BookingData) {
         }
     }
 
-    // Fix 3: Validate against rep's AvailabilityProfile rules
-    // Find the active profile that covers the requested day + time window
-    const dayOfWeek = start.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' }).toUpperCase() as
-        'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
+    // [3] Availability policy enforcement
+    //
+    // TIMEZONE RULE:
+    //   AvailabilityProfile.timezone is the canonical scheduling timezone.
+    //   dayOfWeek and startTime/endTime strings are defined in that timezone.
+    //   We convert the client's UTC startTime into profile.timezone BEFORE:
+    //     - deriving dayOfWeek (which day the slot falls on for the rep)
+    //     - deriving HH:MM (where it falls within the rep's day)
+    //
+    //   Using studentTimezone here would be wrong — availability belongs to the rep.
+    //   Using UTC would be wrong if the rep's schedule is in a non-UTC zone.
 
-    const requestedHHMM = start.toISOString().substring(11, 16) // "HH:MM" in UTC
-
-    const profile = await prisma.availabilityProfile.findFirst({
-        where: {
-            universityId,
-            repId,
-            isActive: true,
-            dayOfWeek: dayOfWeek,
-        },
+    // First pass: find any active profile for this rep/university to get the timezone.
+    // Then re-derive day/time in that timezone and validate the full window.
+    const profileRaw = await prisma.availabilityProfile.findFirst({
+        where: { universityId, repId, isActive: true },
+        select: { timezone: true, dayOfWeek: true },
     })
+    if (!profileRaw) return { error: 'No active availability profile found for this rep' }
 
-    if (!profile) {
-        return { error: `No availability configured for ${dayOfWeek}` }
-    }
+    const schedTZ = profileRaw.timezone  // e.g. "Asia/Kolkata", "America/New_York", "UTC"
 
-    // Fix 3a: Duration must be in the allowed options
+    // Convert UTC instant → rep's scheduling timezone
+    const repLocalFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: schedTZ,
+        weekday: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    })
+    const parts = repLocalFormatter.formatToParts(start)
+    const repWeekday = (parts.find(p => p.type === 'weekday')?.value ?? '').toUpperCase() as
+        'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
+    const repHour = parts.find(p => p.type === 'hour')?.value ?? '00'
+    const repMinute = parts.find(p => p.type === 'minute')?.value ?? '00'
+    const requestedHHMM = `${repHour}:${repMinute}`  // zero-padded "HH:MM" in rep's timezone
+
+    // Now fetch the full profile that also matches the derived day-of-week
+    const profile = await prisma.availabilityProfile.findFirst({
+        where: { universityId, repId, isActive: true, dayOfWeek: repWeekday },
+    })
+    if (!profile) return { error: `No availability configured for ${repWeekday} in ${schedTZ}` }
+
+    // [3a] Duration in allowed options
     if (!profile.meetingDurationOptions.includes(durationMinutes)) {
-        return {
-            error: `Duration ${durationMinutes} min is not offered — allowed: ${profile.meetingDurationOptions.join(', ')} min`,
-        }
+        return { error: `${durationMinutes} min not offered — allowed: ${profile.meetingDurationOptions.join(', ')} min` }
     }
 
-    // Fix 3b: Requested time must fall within the configured window
+    // [3b] HH:MM falls within rep's configured window (both in schedTZ)
     if (requestedHHMM < profile.startTime || requestedHHMM >= profile.endTime) {
-        return {
-            error: `Requested time is outside availability window (${profile.startTime}–${profile.endTime} UTC)`,
-        }
+        return { error: `Requested time (${requestedHHMM} ${schedTZ}) is outside availability (${profile.startTime}–${profile.endTime} ${schedTZ})` }
     }
 
-    // Fix 3c: Minimum lead-time check
-    const leadTimeMs = profile.minLeadTimeHours * 60 * 60 * 1_000
-    if (start.getTime() - now.getTime() < leadTimeMs) {
-        return {
-            error: `Booking requires at least ${profile.minLeadTimeHours}h lead time`,
-        }
+    // [3c] Lead time
+    if (start.getTime() - now.getTime() < profile.minLeadTimeHours * 3_600_000) {
+        return { error: `Must book at least ${profile.minLeadTimeHours}h in advance` }
     }
 
-    // Fix 3d: Daily cap — count existing non-cancelled meetings for this rep today
-    const dayStart = new Date(start); dayStart.setUTCHours(0, 0, 0, 0)
-    const dayEnd = new Date(start); dayEnd.setUTCHours(23, 59, 59, 999)
+    // [3d] Daily cap — count on the rep's local date (not UTC date)
+    // e.g. 23:30 UTC = next day in IST: use rep TZ to get the correct local date boundaries
+    const repDateStr = start.toLocaleDateString('en-CA', { timeZone: schedTZ }) // "YYYY-MM-DD"
+    const [y, mo, d] = repDateStr.split('-').map(Number)
+    const dayStart = new Date(Date.UTC(y, mo - 1, d, 0, 0, 0, 0))
+    const dayEnd = new Date(Date.UTC(y, mo - 1, d, 23, 59, 59, 999))
+    // Note: dayStart/dayEnd are still UTC Dates — Postgres stores in UTC.
+    // We derive them from the rep local date so 23:30 UTC/08:30 IST correctly
+    // counts against the rep's IST calendar day, not the UTC calendar day.
     const todayCount = await prisma.meeting.count({
-        where: {
-            repId,
-            status: { not: 'CANCELLED' },
-            startTime: { gte: dayStart, lte: dayEnd },
-        },
+        where: { repId, status: { not: 'CANCELLED' }, startTime: { gte: dayStart, lte: dayEnd } },
     })
     if (todayCount >= profile.dailyCap) {
-        return { error: `Daily booking cap of ${profile.dailyCap} meetings reached for this rep` }
+        return { error: `Daily cap of ${profile.dailyCap} meetings reached for this rep` }
     }
 
     // Fetch student profile
@@ -255,19 +273,13 @@ export async function createMeetingRequest(data: BookingData) {
             const newMeeting = await tx.meeting.create({
                 data: {
                     studentId: student.id,
-                    universityId,
-                    repId,
-                    programId,
-                    purpose,
-                    studentQuestions,
-                    durationMinutes,
-                    startTime: start,
-                    endTime: end,
-                    studentTimezone,          // client-supplied, IANA-validated
-                    repTimezone: 'UTC',  // TODO: store rep's preferred timezone on profile
+                    universityId, repId, programId, purpose, studentQuestions,
+                    durationMinutes, startTime: start, endTime: end,
+                    studentTimezone,                // client-supplied, IANA-validated
+                    repTimezone: profile.timezone,  // canonical schedule timezone from AvailabilityProfile
                     status: 'PENDING',
                     videoProvider,
-                    meetingCode: generateMeetingCode(), // Fix 5: collision-resistant
+                    meetingCode: generateMeetingCode(),
                 },
             })
 
