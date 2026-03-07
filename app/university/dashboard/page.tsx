@@ -85,32 +85,43 @@ export default async function UniversityDashboard() {
     const user = await requireUser()
     const email = user.email
 
-    const uni = await prisma.university.findFirst({
-        where: { user: { email: email! } },
-        include: {
-            programs: {
-                orderBy: { createdAt: 'desc' },
-                include: {
-                    _count: {
-                        select: { interests: true }
-                    }
+    // ── Wave 1: Load the uni record (everything else depends on uni.id) ─────
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let uni: any = null
+
+
+    try {
+        uni = await prisma.university.findFirst({
+            where: { user: { email: email! } },
+            include: {
+                programs: {
+                    orderBy: { createdAt: 'desc' },
+                    include: { _count: { select: { interests: true } } }
+                },
+                interests: {
+                    include: { student: { include: { user: true } }, program: true },
+                    orderBy: { createdAt: 'desc' },
+                    take: 200,
+                },
+                documents: {
+                    where: { deletedAt: null },
+                    orderBy: { uploadedAt: 'desc' },
+                    select: { id: true, displayName: true, category: true, fileName: true, mimeType: true, sizeBytes: true, uploadedAt: true }
                 }
             },
-            interests: {
-                include: {
-                    student: { include: { user: true } },
-                    program: true
-                },
-                orderBy: { createdAt: 'desc' },
-                take: 200,   // cap: avoids unbounded join as interest list grows
-            },
-            documents: {
-                where: { deletedAt: null },  // soft-delete filter
-                orderBy: { uploadedAt: 'desc' },
-                select: { id: true, displayName: true, category: true, fileName: true, mimeType: true, sizeBytes: true, uploadedAt: true }
-            }
-        },
-    })
+        }) as typeof uni
+    } catch {
+        // DB unreachable — show friendly error
+        return (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
+                <div className="max-w-md bg-white p-8 rounded-2xl border border-slate-100 shadow-xl">
+                    <span className="text-4xl block mb-4">⏳</span>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">Just a moment…</h2>
+                    <p className="text-slate-500 text-sm">We&apos;re having trouble loading your dashboard. Please refresh in a few seconds.</p>
+                </div>
+            </div>
+        )
+    }
 
     if (!uni) return (
         <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
@@ -141,76 +152,135 @@ export default async function UniversityDashboard() {
         )
     }
 
-    // 1. Matched Students
-    const programFields = uni.programs.map(p => p.fieldCategory).filter(Boolean)
-    const uniqueFields = Array.from(new Set(programFields))
+    // ── Wave 2: All independent queries fire simultaneously ──────────────────
+    const programFields = uni.programs.map((p: any) => p.fieldCategory).filter(Boolean)
+    const uniqueFields = Array.from(new Set(programFields)) as string[]
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
-    // Safety check for empty fields to avoid fetching everything
-    const matchedStudents = uniqueFields.length > 0 ? await prisma.student.findMany({
-        where: {
-            fieldOfInterest: { in: uniqueFields },
-            interests: {
-                none: {
-                    universityId: uni.id
-                }
-            }
-        },
-        include: { user: true },
-        take: 20,   // cap: only first 20 shown in UI anyway
-    }) : []
+    const [
+        matchedStudentsResult,
+        availabilitySlotsResult,
+        meetingsResult,
+        fairOutreachResult,
+        proctorRequestsResult,
+        nudgeableResult,
+        outreachHistoryResult,
+        weekStatsResult,
+        actionCentreResult,
+        fairModeResult,
+        fairInvitationsResult,
+    ] = await Promise.allSettled([
+        // 1. Matched students
+        uniqueFields.length > 0
+            ? prisma.student.findMany({
+                where: {
+                    fieldOfInterest: { in: uniqueFields },
+                    interests: { none: { universityId: uni.id } }
+                },
+                include: { user: true },
+                take: 20,
+            })
+            : Promise.resolve([]),
 
-    // 2. Availability Slots (Meeting System)
-    const availabilitySlots = await prisma.availabilitySlot.findMany({
-        where: {
-            universityId: uni.id,
-            isBooked: false,
-            startTime: { gte: new Date() }
-        },
-        orderBy: { startTime: 'asc' }
-    })
-
-    // 3. Meetings — two queries: all (for meetings tab) + upcoming (for overview widget)
-    const [allMeetings, upcomingMeetings] = await Promise.all([
-        prisma.meeting.findMany({
-            where: { universityId: uni.id },
-            include: { student: { include: { user: true } } },
-            orderBy: { startTime: 'asc' },
+        // 2. Availability slots
+        prisma.availabilitySlot.findMany({
+            where: { universityId: uni.id, isBooked: false, startTime: { gte: new Date() } },
+            orderBy: { startTime: 'asc' }
         }),
-        prisma.meeting.findMany({
-            where: { universityId: uni.id, startTime: { gte: new Date() } },
-            include: { student: { include: { user: true } } },
-            orderBy: { startTime: 'asc' },
+
+        // 3. All meetings + upcoming meetings
+        Promise.all([
+            prisma.meeting.findMany({
+                where: { universityId: uni.id },
+                include: { student: { include: { user: true } } },
+                orderBy: { startTime: 'asc' },
+            }),
+            prisma.meeting.findMany({
+                where: { universityId: uni.id, startTime: { gte: new Date() } },
+                include: { student: { include: { user: true } } },
+                orderBy: { startTime: 'asc' },
+            }),
+        ]),
+
+        // 4. Fair outreach
+        prisma.hostRequestOutreach.findMany({
+            where: { universityId: uni.id },
+            include: { hostRequest: true },
+            orderBy: { sentAt: 'desc' }
+        }),
+
+        // 5. Proctor requests
+        prisma.proctorRequest.findMany({
+            where: { universityId: uni.id },
+            orderBy: { createdAt: 'desc' },
+        }),
+
+        // 6. Nudgeable students
+        getNudgeableStudents(uni.id),
+
+        // 7. Outreach history
+        prisma.proactiveMessage.findMany({
+            where: { universityId: uni.id },
+            orderBy: { sentAt: 'desc' },
+            take: 50,
+            include: { student: { include: { user: { select: { name: true } } } } }
+        }),
+
+        // 8. Weekly stats
+        Promise.all([
+            prisma.proactiveMessage.count({ where: { universityId: uni.id, sentAt: { gte: oneWeekAgo } } }),
+            prisma.proactiveMessage.count({ where: { universityId: uni.id, repliedAt: { gte: oneWeekAgo } } }),
+        ]),
+
+        // 9. Action centre (dismissed + recent messages + discoverable students)
+        Promise.all([
+            prisma.studentDiscoveryDismissal.findMany({ where: { universityId: uni.id }, select: { studentId: true } }),
+            prisma.proactiveMessage.findMany({
+                where: {
+                    universityId: uni.id,
+                    sentAt: { gte: new Date(Date.now() - (uni.proactiveCooldownDays ?? 21) * 24 * 60 * 60 * 1000) },
+                },
+                select: { studentId: true },
+            }),
+        ]),
+
+        // 10. Fair mode (live/upcoming/ended + scan counts + history)
+        Promise.all([
+            prisma.fairEvent.findFirst({ where: { status: 'LIVE' }, orderBy: { startDate: 'desc' } }),
+            prisma.fairEvent.findFirst({ where: { status: 'UPCOMING', startDate: { gte: new Date() } }, orderBy: { startDate: 'asc' } }),
+            prisma.fairEvent.findFirst({ where: { status: 'COMPLETED', endedAt: { gte: sevenDaysAgo } }, orderBy: { endedAt: 'desc' } }),
+            prisma.fairAttendance.groupBy({
+                by: ['fairEventId'],
+                where: { universityId: uni.id },
+                _count: { id: true },
+                orderBy: { _count: { id: 'desc' } },
+            }),
+        ]),
+
+        // 11. Fair invitations
+        prisma.fairInvitation.findMany({
+            where: { universityId: uni.id },
+            include: { fairEvent: true },
         }),
     ])
 
-    // 4. Campus Fair Outreach
-    const fairOutreach = await prisma.hostRequestOutreach.findMany({
-        where: { universityId: uni.id },
-        include: {
-            hostRequest: true
-        },
-        orderBy: { sentAt: 'desc' }
-    })
+    // ── Extract results with safe defaults ───────────────────────────────────
+    const matchedStudents = matchedStudentsResult.status === 'fulfilled' ? matchedStudentsResult.value : []
+    const availabilitySlots = availabilitySlotsResult.status === 'fulfilled' ? availabilitySlotsResult.value : []
+    const [allMeetings, upcomingMeetings] = meetingsResult.status === 'fulfilled' ? meetingsResult.value : [[], []]
+    const fairOutreach = fairOutreachResult.status === 'fulfilled' ? fairOutreachResult.value : []
+    const proctorRequests = proctorRequestsResult.status === 'fulfilled' ? proctorRequestsResult.value : []
+    const nudgeableStudents = nudgeableResult.status === 'fulfilled' ? nudgeableResult.value : []
+    const outreachHistory = outreachHistoryResult.status === 'fulfilled' ? outreachHistoryResult.value : []
+    const [weekNudges, weekReplies] = weekStatsResult.status === 'fulfilled' ? weekStatsResult.value : [0, 0]
+    const [dismissedRows, recentMessages] = actionCentreResult.status === 'fulfilled' ? actionCentreResult.value : [[], []]
+    const [liveFair, upcomingFair, recentlyEndedFair, fairHistoryGroups] =
+        fairModeResult.status === 'fulfilled' ? fairModeResult.value : [null, null, null, []]
+    const fairInvitations = fairInvitationsResult.status === 'fulfilled' ? fairInvitationsResult.value : []
 
-    // 5. Proctor Requests
-    const proctorRequests = await prisma.proctorRequest.findMany({
-        where: { universityId: uni.id },
-        orderBy: { createdAt: 'desc' },
-    })
-
-    // 6. Proactive Outreach
-    const nudgeableStudents = await getNudgeableStudents(uni.id)
-    const outreachHistory = await prisma.proactiveMessage.findMany({
-        where: { universityId: uni.id },
-        orderBy: { sentAt: 'desc' },
-        take: 50,
-        include: {
-            student: {
-                include: { user: { select: { name: true } } }
-            }
-        }
-    })
-    const serialisedHistory = outreachHistory.filter(r => r.student !== null).map(r => ({
+    // ── Post-processing (unchanged) ──────────────────────────────────────────
+    const serialisedHistory = outreachHistory.filter((r: any) => r.student !== null).map((r: any) => ({
         id: r.id,
         subject: r.subject,
         content: r.content,
@@ -222,42 +292,17 @@ export default async function UniversityDashboard() {
             country: r.student.country,
         }
     }))
-    const serialisedNudgeable = nudgeableStudents.map(s => ({
+    const serialisedNudgeable = nudgeableStudents.map((s: any) => ({
         ...s,
         lastNudgedAt: s.lastNudgedAt ? s.lastNudgedAt.toISOString() : null,
     }))
 
-    // 7. Weekly outreach stats (two simple counts — no groupBy needed)
-    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-    const [weekNudges, weekReplies] = await Promise.all([
-        prisma.proactiveMessage.count({
-            where: { universityId: uni.id, sentAt: { gte: oneWeekAgo } }
-        }),
-        prisma.proactiveMessage.count({
-            where: { universityId: uni.id, repliedAt: { gte: oneWeekAgo } }
-        }),
-    ])
-
-    // 8. Action Centre data — explicit notIn sets (more reliable than Prisma `none` filters)
-    const [dismissedRows, recentMessages] = await Promise.all([
-        prisma.studentDiscoveryDismissal.findMany({
-            where: { universityId: uni.id },
-            select: { studentId: true },
-        }),
-        prisma.proactiveMessage.findMany({
-            where: {
-                universityId: uni.id,
-                sentAt: { gte: new Date(Date.now() - (uni.proactiveCooldownDays ?? 21) * 24 * 60 * 60 * 1000) },
-            },
-            select: { studentId: true },
-        }),
-    ])
     const excludedStudentIds = [
-        ...dismissedRows.map(d => d.studentId),
-        ...recentMessages.map(m => m.studentId),
-        ...uni.interests.map(i => i.studentId),
+        ...dismissedRows.map((d: any) => d.studentId),
+        ...recentMessages.map((m: any) => m.studentId),
+        ...uni.interests.map((i: any) => i.studentId),
     ]
-    const actionCentreFields = [...new Set(uni.programs.map(p => p.fieldCategory).filter(Boolean))] as string[]
+    const actionCentreFields = [...new Set(uni.programs.map((p: any) => p.fieldCategory).filter(Boolean))] as string[]
     const discoverableStudents = actionCentreFields.length > 0
         ? await prisma.student.findMany({
             where: {
@@ -266,19 +311,12 @@ export default async function UniversityDashboard() {
                 id: { notIn: excludedStudentIds },
                 user: { consentMarketing: true, consentWithdrawnAt: null, isActive: true },
             },
-            select: {
-                id: true,
-                city: true,
-                fieldOfInterest: true,
-                preferredDegree: true,
-                currentStatus: true,
-                user: { select: { name: true } },
-            },
+            select: { id: true, city: true, fieldOfInterest: true, preferredDegree: true, currentStatus: true, user: { select: { name: true } } },
             take: 10,
             orderBy: { updatedAt: 'desc' },
-        })
+        }).catch(() => [])
         : []
-    const discoverableForUI = discoverableStudents.map(s => ({
+    const discoverableForUI = discoverableStudents.map((s: any) => ({
         id: s.id,
         fullName: s.user.name ?? null,
         city: s.city,
@@ -287,68 +325,32 @@ export default async function UniversityDashboard() {
         currentStatus: s.currentStatus,
     }))
 
-    // 9. Profile completeness (0 extra DB queries — uses uni already loaded)
-    const completeness = calculateCompleteness(uni)
-    const { score: completenessScore, tasks: completenessTasks } = completeness
-
-    // 10. Fair Mode — live banner, report card, and history tab
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-    const [liveFair, upcomingFair, recentlyEndedFair] = await Promise.all([
-        prisma.fairEvent.findFirst({ where: { status: 'LIVE' }, orderBy: { startDate: 'desc' } }),
-        prisma.fairEvent.findFirst({
-            where: { status: 'UPCOMING', startDate: { gte: new Date() } },
-            orderBy: { startDate: 'asc' },
-        }),
-        prisma.fairEvent.findFirst({
-            where: { status: 'COMPLETED', endedAt: { gte: sevenDaysAgo } },
-            orderBy: { endedAt: 'desc' },
-        }),
-    ])
-    const [todayScans, recentLeadCount] = await Promise.all([
-        liveFair
-            ? prisma.fairAttendance.count({
-                where: {
-                    universityId: uni.id, fairEventId: liveFair.id,
-                    scannedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) }
-                },
-            })
-            : Promise.resolve(0),
-        recentlyEndedFair
-            ? prisma.fairAttendance.count({
-                where: { universityId: uni.id, fairEventId: recentlyEndedFair.id },
-            })
-            : Promise.resolve(0),
-    ])
-    const fairHistoryGroups = await prisma.fairAttendance.groupBy({
-        by: ['fairEventId'],
-        where: { universityId: uni.id },
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-    })
-    // Single findMany replaces N+1 loop of individual findUnique calls
-    const fairEventIds = fairHistoryGroups.map(g => g.fairEventId)
-    const fairEventsForHistory = await prisma.fairEvent.findMany({
-        where: { id: { in: fairEventIds } },
-    })
-    const fairEventMap = Object.fromEntries(fairEventsForHistory.map(e => [e.id, e]))
-    const fairHistoryWithDetails = fairHistoryGroups.map(record => ({
+    // Fair mode post-processing
+    const fairEventIds = fairHistoryGroups.map((g: any) => g.fairEventId)
+    const fairEventsForHistory = fairEventIds.length > 0
+        ? await prisma.fairEvent.findMany({ where: { id: { in: fairEventIds } } }).catch(() => [])
+        : []
+    const fairEventMap = Object.fromEntries(fairEventsForHistory.map((e: any) => [e.id, e]))
+    const fairHistoryWithDetails = fairHistoryGroups.map((record: any) => ({
         fair: fairEventMap[record.fairEventId] ?? null,
         leadCount: record._count.id,
     }))
     const upcomingWithin7 = upcomingFair &&
-        (new Date(upcomingFair.startDate).getTime() - Date.now()) < 7 * 24 * 60 * 60 * 1000
+        (new Date((upcomingFair as any).startDate).getTime() - Date.now()) < 7 * 24 * 60 * 60 * 1000
 
-    // Fair RSVP — fetch all invitations + programs for notification cards
-    const fairInvitations = await prisma.fairInvitation.findMany({
-        where: { universityId: uni.id },
-        include: { fairEvent: true },
-    })
-    const invitationByFairId = Object.fromEntries(
-        fairInvitations.map(inv => [inv.fairEventId, inv])
-    )
-    const activePrograms = uni.programs
-        .filter(p => p.status === 'ACTIVE')
-        .map(p => ({ id: p.id, programName: p.programName }))
+    const [todayScans, recentLeadCount] = await Promise.all([
+        liveFair
+            ? prisma.fairAttendance.count({
+                where: { universityId: uni.id, fairEventId: (liveFair as any).id, scannedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
+            }).catch(() => 0)
+            : Promise.resolve(0),
+        recentlyEndedFair
+            ? prisma.fairAttendance.count({ where: { universityId: uni.id, fairEventId: (recentlyEndedFair as any).id } }).catch(() => 0)
+            : Promise.resolve(0),
+    ])
+
+    const invitationByFairId = Object.fromEntries(fairInvitations.map((inv: any) => [inv.fairEventId, inv]))
+    const activePrograms = uni.programs.filter((p: any) => p.status === 'ACTIVE').map((p: any) => ({ id: p.id, programName: p.programName }))
 
     // Stats
     const stats = {
@@ -357,17 +359,22 @@ export default async function UniversityDashboard() {
         totalMeetings: allMeetings.length,
         totalStudentsMatched: matchedStudents.length,
         acceptanceRate: uni.interests.length > 0
-            ? Math.round((uni.interests.filter(i => i.status === 'ACCEPTED').length / uni.interests.length) * 100)
+            ? Math.round((uni.interests.filter((i: any) => i.status === 'ACCEPTED').length / uni.interests.length) * 100)
             : 0
     }
 
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000)
     const awaitingResponse = uni.interests.filter(
-        i => i.status === 'INTERESTED' && !i.universityNote && new Date(i.createdAt) < fortyEightHoursAgo
+        (i: any) => i.status === 'INTERESTED' && !i.universityNote && new Date(i.createdAt) < fortyEightHoursAgo
     ).length
 
-    const pendingInterestsCount = uni.interests.filter(i => i.status === 'PENDING').length
+    const pendingInterestsCount = uni.interests.filter((i: any) => i.status === 'PENDING').length
     const recentInterests = uni.interests.slice(0, 5)
+
+    const completeness = calculateCompleteness(uni)
+    const { score: completenessScore, tasks: completenessTasks } = completeness
+
+
 
 
 
