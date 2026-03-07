@@ -311,6 +311,10 @@ export default function StudentRegisterPage() {
                                         <Input name="greScore" type="number" min="260" max="340" placeholder="e.g. 320" />
                                     </div>
                                 )}
+                                <p className="mt-1.5 text-xs text-gray-500">
+                                    GRE = Graduate Record Examination — a standardized test for graduate school admissions worldwide.{' '}
+                                    <a href="https://www.ets.org/gre.html" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Learn more →</a>
+                                </p>
                             </div>
 
                             <div>
@@ -333,6 +337,10 @@ export default function StudentRegisterPage() {
                                         <Input name="gmatScore" type="number" min="200" max="800" placeholder="e.g. 680" />
                                     </div>
                                 )}
+                                <p className="mt-1.5 text-xs text-gray-500">
+                                    GMAT = Graduate Management Admission Test — a standardized exam for business and MBA program admissions.{' '}
+                                    <a href="https://www.mba.com/exams/gmat-exam" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Learn more →</a>
+                                </p>
                             </div>
 
                             <div>
@@ -355,6 +363,10 @@ export default function StudentRegisterPage() {
                                         <Input name="satScore" type="number" min="400" max="1600" placeholder="e.g. 1350" />
                                     </div>
                                 )}
+                                <p className="mt-1.5 text-xs text-gray-500">
+                                    SAT = Scholastic Assessment Test — a standardized test used for undergraduate admissions in the USA and globally.{' '}
+                                    <a href="https://satsuite.collegeboard.org/sat" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Learn more →</a>
+                                </p>
                             </div>
 
                             <div>
@@ -377,6 +389,10 @@ export default function StudentRegisterPage() {
                                         <Input name="actScore" type="number" min="1" max="36" placeholder="e.g. 28" />
                                     </div>
                                 )}
+                                <p className="mt-1.5 text-xs text-gray-500">
+                                    ACT = American College Testing — a standardized test accepted for UG admissions by most US universities.{' '}
+                                    <a href="https://www.act.org/content/act/en/products-and-services/the-act.html" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Learn more →</a>
+                                </p>
                             </div>
 
                             <div className="col-span-1 md:col-span-2">
