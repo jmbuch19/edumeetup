@@ -215,12 +215,12 @@ export async function loginUniversity(formData: FormData) {
     }
 
     // 2. University Domain Check
-    if (!await isUniversityEmail(email)) {
+    if (!(await isUniversityEmail(email))) {
         return { error: "Please use your official university email (e.g. name@university.edu). Personal emails are not accepted." }
     }
 
     // 3. Rate Limit
-    const ip = headers().get('x-forwarded-for') || 'unknown'
+    const ip = (await headers()).get('x-forwarded-for') || 'unknown'
     // Note: We use a separate limiter for login if needed, or reuse generic. 
     // For now, let's rely on Auth.js built-in rate limit or adding a check here.
     // Let's use the register limiter for now or skip if Auth.js handles it.
@@ -258,7 +258,7 @@ export async function registerUniversity(formData: FormData) {
 
     if (validation.data.website_url) return { error: 'Spam detected' }
 
-    const ip = headers().get('x-forwarded-for') || 'unknown'
+    const ip = (await headers()).get('x-forwarded-for') || 'unknown'
     if (!registerRateLimiter.check(ip)) {
         return { error: 'Too many attempts. Please wait.' }
     }
@@ -573,7 +573,7 @@ export async function login(formData: FormData) {
     // Schema already lowercases. Belt+suspenders: normalize again.
     const email = validation.data.email.trim().toLowerCase()
 
-    const ip = headers().get('x-forwarded-for') || 'unknown'
+    const ip = (await headers()).get('x-forwarded-for') || 'unknown'
     const limitKey = `${ip}:${email}`
     if (!loginRateLimiter.check(limitKey)) {
         return { error: 'Too many login attempts. Please try again in a minute.' }
@@ -636,7 +636,7 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
     if (data.website_url) return { error: 'Spam detected' }
 
     // RATE LIMIT
-    const ip = headers().get('x-forwarded-for') || 'unknown'
+    const ip = (await headers()).get('x-forwarded-for') || 'unknown'
     if (!registerRateLimiter.check(ip)) {
         return { error: 'Too many attempts. Please verify you are human.' }
     }
@@ -831,7 +831,7 @@ export async function submitPublicInquiry(prevState: any, formData: FormData) {
     const rawData = Object.fromEntries(formData.entries())
 
     // RATE LIMIT (IP Based)
-    const ip = headers().get('x-forwarded-for') || 'unknown'
+    const ip = (await headers()).get('x-forwarded-for') || 'unknown'
     if (!contactRateLimiter.check(ip)) {
         return { error: "Too many inquiries. Please try again later." }
     }
@@ -883,7 +883,7 @@ export async function submitPdoRegistration(prevState: any, formData: FormData) 
     const rawData = Object.fromEntries(formData.entries())
 
     // RATE LIMIT (IP Based)
-    const ip = headers().get('x-forwarded-for') || 'unknown'
+    const ip = (await headers()).get('x-forwarded-for') || 'unknown'
     if (!contactRateLimiter.check(ip)) {
         return { error: "Too many submissions. Please try again later." }
     }

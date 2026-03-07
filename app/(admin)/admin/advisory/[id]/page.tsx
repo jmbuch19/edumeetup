@@ -14,7 +14,8 @@ import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdvisoryDetailPage({ params }: { params: { id: string } }) {
+export default async function AdvisoryDetailPage(props: { params: Promise<{ id: string }> }) {
+    const params = await props.params;
     await requireRole('ADMIN')
 
     const [request, admins] = await Promise.all([

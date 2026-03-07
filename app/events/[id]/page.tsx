@@ -10,7 +10,7 @@ import EventRegistrationButton from '../EventRegistrationButton'
 import { notFound } from 'next/navigation'
 
 export default async function EventDetailsPage(props: any) {
-    const params = props.params
+    const params = (await props.params)
     const event = await getEventDetails(params.id)
     if (!event) notFound()
 

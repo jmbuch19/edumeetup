@@ -15,11 +15,12 @@ import { NudgePanel } from "./nudge-panel"
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdminUsersPage({
-    searchParams
-}: {
-    searchParams: Record<string, string>
-}) {
+export default async function AdminUsersPage(
+    props: {
+        searchParams: Promise<Record<string, string>>
+    }
+) {
+    const searchParams = await props.searchParams;
     const filter = (searchParams?.filter as StudentFilter) || 'ALL'
     const where = buildFilterWhere(filter)
 

@@ -9,11 +9,12 @@ export const metadata = {
     description: 'Your messages – universities and support',
 }
 
-export default async function StudentMessagesPage({
-    searchParams,
-}: {
-    searchParams: { tab?: string }
-}) {
+export default async function StudentMessagesPage(
+    props: {
+        searchParams: Promise<{ tab?: string }>
+    }
+) {
+    const searchParams = await props.searchParams;
     const session = await auth()
     if (!session?.user) redirect('/login')
 

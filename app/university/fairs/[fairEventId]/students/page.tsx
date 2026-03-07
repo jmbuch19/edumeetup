@@ -8,11 +8,12 @@ import { Badge } from '@/components/ui/badge'
 
 export const dynamic = 'force-dynamic'
 
-export default async function FairRegisteredStudentsPage({
-    params,
-}: {
-    params: { fairEventId: string }
-}) {
+export default async function FairRegisteredStudentsPage(
+    props: {
+        params: Promise<{ fairEventId: string }>
+    }
+) {
+    const params = await props.params;
     const user = await requireUser()
     if (user.role !== 'UNIVERSITY' && user.role !== 'UNIVERSITY_REP') redirect('/')
 

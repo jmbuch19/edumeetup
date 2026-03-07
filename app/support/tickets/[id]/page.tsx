@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import { prisma } from '@/lib/prisma'
 
-export default async function TicketDetailPage({ params }: { params: { id: string } }) {
+export default async function TicketDetailPage(props: { params: Promise<{ id: string }> }) {
+    const params = await props.params;
     const session = await auth()
     const user = session?.user
     if (!user) redirect('/login?next=/support/tickets')

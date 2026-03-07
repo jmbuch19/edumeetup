@@ -6,10 +6,11 @@ import { FairReportDashboard } from './fair-report-dashboard'
 export const dynamic = 'force-dynamic'
 
 interface PageProps {
-    params: { fairEventId: string }
+    params: Promise<{ fairEventId: string }>
 }
 
-export default async function FairReportPage({ params }: PageProps) {
+export default async function FairReportPage(props: PageProps) {
+    const params = await props.params;
     const { fairEventId } = params
 
     // ── Auth guard ────────────────────────────────────────────────────────────

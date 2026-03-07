@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { AlertCircle } from 'lucide-react'
 import { prisma } from "@/lib/prisma"
 
-export default async function SupportPage({ searchParams }: { searchParams: { error?: string } }) {
+export default async function SupportPage(props: { searchParams: Promise<{ error?: string }> }) {
+    const searchParams = await props.searchParams;
     const errorMessage = searchParams?.error ? decodeURIComponent(searchParams.error) : null
 
     // 1. Check Session

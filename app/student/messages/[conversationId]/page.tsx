@@ -4,10 +4,11 @@ import { getConversationThread, getStudentQuota, markConversationRead } from '..
 import { StudentThreadClient } from './student-thread-client'
 
 interface Props {
-    params: { conversationId: string }
+    params: Promise<{ conversationId: string }>
 }
 
-export default async function StudentConversationPage({ params }: Props) {
+export default async function StudentConversationPage(props: Props) {
+    const params = await props.params;
     const session = await auth()
     if (!session?.user) redirect('/login')
 

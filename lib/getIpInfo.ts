@@ -1,5 +1,5 @@
 
-import { headers } from "next/headers";
+import { headers, type UnsafeUnwrappedHeaders } from "next/headers";
 
 export interface IpInfo {
     ip: string;
@@ -14,7 +14,7 @@ export interface IpInfo {
 
 // Step 1: Extract IP from request headers
 export function getIpFromHeaders(): string {
-    const headersList = headers();
+    const headersList = (headers() as unknown as UnsafeUnwrappedHeaders);
     const forwarded = headersList.get("x-forwarded-for");
     const realIp = headersList.get("x-real-ip");
     const cfIp = headersList.get("cf-connecting-ip"); // Cloudflare

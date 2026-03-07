@@ -2,12 +2,13 @@ import { getParentViewData } from './actions'
 import { ParentViewClient } from './parent-view-client'
 
 interface PageProps {
-    params: { token: string }
+    params: Promise<{ token: string }>
 }
 
 export const dynamic = 'force-dynamic'
 
-export default async function ParentViewPage({ params }: PageProps) {
+export default async function ParentViewPage(props: PageProps) {
+    const params = await props.params;
     const data = await getParentViewData(params.token)
 
     if (!data) {

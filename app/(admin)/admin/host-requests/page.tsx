@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/table"
 import { format } from "date-fns"
 
-export default async function HostRequestsPage({ searchParams }: { searchParams: { status?: string, type?: string } }) {
+export default async function HostRequestsPage(props: { searchParams: Promise<{ status?: string, type?: string }> }) {
+    const searchParams = await props.searchParams;
     const where: any = {}
 
     if (searchParams.status && searchParams.status !== 'ALL') {

@@ -11,7 +11,8 @@ import { HostRequestActions } from "@/components/admin/host-request-actions"
 import { OutreachManager } from "@/components/admin/outreach-manager"
 import { getVerifiedUniversities } from "@/app/actions/admin/outreach"
 
-export default async function HostRequestDetailPage({ params }: { params: { id: string } }) {
+export default async function HostRequestDetailPage(props: { params: Promise<{ id: string }> }) {
+    const params = await props.params;
     const request = await prisma.hostRequest.findUnique({
         where: { id: params.id },
         include: {

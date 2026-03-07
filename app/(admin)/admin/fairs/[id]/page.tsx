@@ -9,9 +9,10 @@ import type { FairQuestionRow, RegistrationRow } from '../actions'
 
 export const dynamic = 'force-dynamic'
 
-interface Props { params: { id: string } }
+interface Props { params: Promise<{ id: string }> }
 
-export default async function AdminFairDetailPage({ params }: Props) {
+export default async function AdminFairDetailPage(props: Props) {
+    const params = await props.params;
     const session = await auth()
     if (!session || session.user?.role !== 'ADMIN') redirect('/login')
 

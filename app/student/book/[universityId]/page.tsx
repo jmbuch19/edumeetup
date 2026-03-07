@@ -3,7 +3,8 @@ import { redirect } from "next/navigation"
 import BookingWizard from "@/components/booking/BookingWizard"
 import { getBookingData } from "./actions"
 
-export default async function StudentBookingPage({ params }: { params: { universityId: string } }) {
+export default async function StudentBookingPage(props: { params: Promise<{ universityId: string }> }) {
+    const params = await props.params;
     const session = await auth()
     if (!session || !session.user) {
         redirect(`/login?callbackUrl=/student/book/${params.universityId}`)

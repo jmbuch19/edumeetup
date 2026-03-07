@@ -4,12 +4,13 @@ import { FairRegistrationForm } from './fair-form'
 import { FairQAPanel, type QAItem } from '@/components/fair/fair-qa-panel'
 
 interface PageProps {
-    searchParams: { eventId?: string }
+    searchParams: Promise<{ eventId?: string }>
 }
 
 export const dynamic = 'force-dynamic'
 
-export default async function FairPage({ searchParams }: PageProps) {
+export default async function FairPage(props: PageProps) {
+    const searchParams = await props.searchParams;
     const eventId = searchParams.eventId
 
     // ── Missing eventId ───────────────────────────────────────────────────────

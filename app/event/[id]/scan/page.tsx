@@ -7,10 +7,11 @@ import { getTodayScanCount } from './actions'
 export const dynamic = 'force-dynamic'
 
 interface PageProps {
-    params: { id: string }
+    params: Promise<{ id: string }>
 }
 
-export default async function ScanPage({ params }: PageProps) {
+export default async function ScanPage(props: PageProps) {
+    const params = await props.params;
     const fairEventId = params.id
 
     // ── Auth guard ────────────────────────────────────────────────────────────

@@ -3,10 +3,8 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { deleteR2File } from '@/lib/r2-delete'
 
-export async function GET(
-    req: NextRequest,
-    { params }: { params: { docId: string } }
-) {
+export async function GET(req: NextRequest, props: { params: Promise<{ docId: string }> }) {
+    const params = await props.params;
     const session = await auth()
     if (!session?.user?.id) {
         return new NextResponse('Unauthorized', { status: 401 })
@@ -28,10 +26,8 @@ export async function GET(
     return NextResponse.redirect(doc.fileUrl)
 }
 
-export async function DELETE(
-    req: NextRequest,
-    { params }: { params: { docId: string } }
-) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ docId: string }> }) {
+    const params = await props.params;
     const session = await auth()
     if (!session?.user?.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

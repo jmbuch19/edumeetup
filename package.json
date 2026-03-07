@@ -70,10 +70,10 @@
     "@types/node": "^20",
     "@types/nodemailer": "^7.0.10",
     "@types/papaparse": "^5.5.2",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "eslint": "^8",
-    "eslint-config-next": "14.2.16",
+    "eslint-config-next": "^15.5.12",
     "typescript": "^5"
   },
   "prisma": {

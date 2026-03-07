@@ -10,11 +10,12 @@ import { Search } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-export default async function UniversitiesPage({
-    searchParams
-}: {
-    searchParams: { [key: string]: string | string[] | undefined }
-}) {
+export default async function UniversitiesPage(
+    props: {
+        searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+    }
+) {
+    const searchParams = await props.searchParams;
     // searchParams is synchronous in Next.js 14
     const query = (searchParams.q as string) || ''
     const country = (searchParams.country as string) || ''
