@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { sendMarketingEmail, generateEmailHtml, EmailTemplates } from "@/lib/email"
+import { normalizeUrl } from "@/lib/url-utils"
 
 const ALLOWED_ANNOUNCEMENT_TYPES = ['GENERAL', 'NEW_UNIVERSITY', 'CHECK_IN', 'PHYSICAL_FAIR', 'SPONSOR_ONBOARD'] as const
 
@@ -160,7 +161,7 @@ export async function createSponsoredContent(formData: FormData) {
     const partnerName = formData.get("partnerName") as string
     const imageUrl = formData.get("imageUrl") as string
     const mobileImageUrl = (formData.get("mobileImageUrl") as string) || null
-    const targetUrl = formData.get("targetUrl") as string
+    const targetUrl = normalizeUrl((formData.get("targetUrl") as string) || "")
     const placement = (formData.get("placement") as string) || "SIDEBAR"
     const sponsorType = (formData.get("sponsorType") as string) || "UNIVERSITY"
     const priority = parseInt(formData.get("priority") as string) || 5
