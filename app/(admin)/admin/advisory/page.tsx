@@ -10,10 +10,9 @@ export const dynamic = 'force-dynamic'
 export default async function AdminAdvisoryPage() {
     const requests = await prisma.advisoryRequest.findMany({
         orderBy: { createdAt: 'desc' },
-        include: {
-            student: true
-        }
-    })
+        include: { student: true }
+    }).catch(() => [])
+
 
     return (
         <div className="space-y-6">

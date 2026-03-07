@@ -28,7 +28,8 @@ export default async function HostRequestsPage(props: { searchParams: Promise<{ 
     const requests = await prisma.hostRequest.findMany({
         where,
         orderBy: { createdAt: 'desc' }
-    })
+    }).catch(() => [])
+
 
     return (
         <div className="space-y-6">
