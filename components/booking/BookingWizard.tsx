@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import { ChevronLeft, Check, Loader2 } from 'lucide-react'
 import { BookingData, createMeetingRequest } from '@/app/student/book/[universityId]/actions'
+import { AvailableSlot } from './Step3TimeSlot'
 
 // Steps
 import Step1Purpose from './Step1Purpose'
@@ -16,13 +17,14 @@ import Step3TimeSlot from './Step3TimeSlot'
 import Step4Confirm from './Step4Confirm'
 
 interface BookingWizardProps {
-    university: any // Typed from Prisma include
-    existingBookings: any[] // Typed from Prisma include
+    university: any
+    existingBookings: any[]
+    availableSlots: AvailableSlot[]
 }
 
 export type BookingState = Partial<BookingData>
 
-export default function BookingWizard({ university, existingBookings }: BookingWizardProps) {
+export default function BookingWizard({ university, existingBookings, availableSlots }: BookingWizardProps) {
     const router = useRouter()
     const [step, setStep] = useState(1)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -50,7 +52,7 @@ export default function BookingWizard({ university, existingBookings }: BookingW
     }
 
     const handleConfirm = async () => {
-        if (!data.universityId || !data.repId || !data.startTime || !data.purpose) {
+        if (!data.universityId || !data.repId || !data.slotId || !data.startTime || !data.purpose) {
             toast.error("Missing required information")
             return
         }
@@ -112,10 +114,10 @@ export default function BookingWizard({ university, existingBookings }: BookingW
                         data={data}
                         updateData={updateData}
                         availabilityProfiles={university.availabilityProfiles}
+                        availableSlots={availableSlots}
                         existingBookings={existingBookings}
                         onNext={nextStep}
                         onBack={prevStep}
-                        universityTimezone={university.timezone || 'UTC'}
                     />
                 )}
                 {step === 4 && (

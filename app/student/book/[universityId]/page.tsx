@@ -4,9 +4,9 @@ import BookingWizard from "@/components/booking/BookingWizard"
 import { getBookingData } from "./actions"
 
 export default async function StudentBookingPage(props: { params: Promise<{ universityId: string }> }) {
-    const params = await props.params;
+    const params = await props.params
     const session = await auth()
-    if (!session || !session.user) {
+    if (!session?.user) {
         redirect(`/login?callbackUrl=/student/book/${params.universityId}`)
     }
 
@@ -26,6 +26,7 @@ export default async function StudentBookingPage(props: { params: Promise<{ univ
             <BookingWizard
                 university={bookingData.university}
                 existingBookings={bookingData.existingBookings}
+                availableSlots={bookingData.availableSlots ?? []}
             />
         </div>
     )

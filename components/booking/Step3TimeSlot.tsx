@@ -3,135 +3,118 @@
 import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { BookingState } from './BookingWizard'
-import { format, addDays, startOfDay, parse, addMinutes, isBefore, isAfter, isSameDay } from 'date-fns'
-import { ChevronRight, ChevronLeft, Clock } from 'lucide-react'
+import { format, isSameDay, addDays, startOfDay } from 'date-fns'
+import { Clock } from 'lucide-react'
 
-// We need types for the availability profiles passed from parent
+// Real AvailabilitySlot row from the DB (returned by getBookingData)
+export interface AvailableSlot {
+    id: string
+    repId: string
+    startTime: Date | string  // serialized as string across RSC boundary
+    endTime: Date | string
+}
+
+// AvailabilityProfile still used for the availability calendar key (not slot generation)
 interface AvailabilityProfile {
     repId: string
-    dayOfWeek: string // MONDAY, TUESDAY etc
-    startTime: string // "09:00"
-    endTime: string // "17:00"
-    meetingDurationOptions: number[]
-    videoProvider: string
+    dayOfWeek: string
     isActive: boolean
-    repUser?: {
-        name: string | null
-    }
+    repUser?: { id: string; name: string | null; image?: string | null }
 }
 
 interface StepProps {
     data: BookingState
     updateData: (fields: Partial<BookingState>) => void
     availabilityProfiles: AvailabilityProfile[]
-    existingBookings: { startTime: Date, endTime: Date, repId: string }[]
+    availableSlots: AvailableSlot[]        // real DB rows — replaces computed slots
+    existingBookings: { startTime: Date | string; endTime: Date | string; repId: string }[]
     onNext: () => void
     onBack: () => void
-    universityTimezone: string // Not fully using timezone conversion in MVP for simplicity, assuming UTC/Server matching
 }
 
-export default function Step3TimeSlot({ data, updateData, availabilityProfiles, existingBookings, onNext, onBack }: StepProps) {
+export default function Step3TimeSlot({
+    data, updateData, availabilityProfiles, availableSlots, existingBookings, onNext, onBack,
+}: StepProps) {
     const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()))
 
-    // Generate next 7 days
-    const dates = useMemo(() => {
-        return Array.from({ length: 7 }).map((_, i) => addDays(new Date(), i))
-    }, [])
+    // Generate next 14 days for the date picker
+    const dates = useMemo(
+        () => Array.from({ length: 14 }).map((_, i) => addDays(new Date(), i)),
+        []
+    )
 
     const handleDateSelect = (date: Date) => {
         setSelectedDate(date)
-        // Reset selected slot when changing date if it doesn't match?
-        // Actually, let's keep it simple.
-        updateData({ startTime: undefined })
+        // Reset slot selection when changing date
+        updateData({ slotId: undefined, startTime: undefined })
     }
 
-    // Generate Slots for Selected Date
-    const slots = useMemo(() => {
-        const dayName = format(selectedDate, 'EEEE').toUpperCase() // 'MONDAY'
-        const relevantProfiles = availabilityProfiles.filter(p => p.dayOfWeek === dayName && p.isActive)
+    // Filter DB slots to the selected date (comparing UTC dates)
+    const slotsForDay = useMemo(() => {
+        return availableSlots
+            .map(s => ({
+                ...s,
+                startTime: new Date(s.startTime),
+                endTime: new Date(s.endTime),
+            }))
+            .filter(s => isSameDay(s.startTime, selectedDate))
+            .sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+    }, [availableSlots, selectedDate])
 
-        const generatedSlots: { time: Date, repId: string, videoProvider: string }[] = []
+    // Days that have at least one available slot (for calendar hint)
+    const daysWithSlots = useMemo(() => {
+        return new Set(
+            availableSlots.map(s => format(new Date(s.startTime), 'yyyy-MM-dd'))
+        )
+    }, [availableSlots])
 
-        relevantProfiles.forEach(profile => {
-            // Check if profile supports selected duration
-            if (!profile.meetingDurationOptions.includes(data.durationMinutes || 15)) return
-
-            // Parse start/end times (local time relative to date)
-            // Note: This simple parsing assumes the browser timezone matches the rep's intended timezone
-            // In a real global app, we'd need heavy timezone math (date-fns-tz).
-            // For MVP, we'll process simply.
-            const start = parse(profile.startTime, 'HH:mm', selectedDate)
-            const end = parse(profile.endTime, 'HH:mm', selectedDate)
-            const duration = data.durationMinutes || 15
-
-            let current = start
-            while (isBefore(addMinutes(current, duration), end) || current.getTime() === end.getTime()) {
-                const slotEnd = addMinutes(current, duration)
-
-                // Check collision with existing bookings
-                const isTaken = existingBookings.some(booking => {
-                    // Check if same rep (since a slot belongs to a specific rep)
-                    if (booking.repId !== profile.repId) return false
-
-                    // Overlap check
-                    const bStart = new Date(booking.startTime)
-                    const bEnd = new Date(booking.endTime)
-
-                    // (StartA < EndB) and (EndA > StartB)
-                    return isBefore(current, bEnd) && isAfter(slotEnd, bStart)
-                })
-
-                if (!isTaken) {
-                    generatedSlots.push({
-                        time: current,
-                        repId: profile.repId,
-                        videoProvider: profile.videoProvider
-                    })
-                }
-
-                current = addMinutes(current, duration) // Step by duration? Or buffer?
-                // Spec says "buffer_minutes". Let's assume standard grid for now.
-                // Ideally: current = addMinutes(current, duration + (profile.bufferMinutes || 0))
-            }
-        })
-
-        return generatedSlots.sort((a, b) => a.time.getTime() - b.time.getTime())
-    }, [selectedDate, availabilityProfiles, data.durationMinutes, existingBookings])
+    // Rep name lookup from profiles
+    const repName = (repId: string) =>
+        availabilityProfiles.find(p => p.repId === repId)?.repUser?.name ?? 'Rep'
 
     return (
         <div className="space-y-6">
             <div className="text-center">
-                <h2 className="text-xl font-semibold mb-2">Select a Time</h2>
-                <p className="text-slate-500">Times are shown in your local timezone.</p>
+                <h2 className="text-xl font-semibold mb-1">Select a Time</h2>
+                <p className="text-sm text-slate-500">
+                    Available slots are shown in your local browser timezone.
+                </p>
             </div>
 
-            {/* Date Picker (Tabs) */}
-            <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
-                {dates.map((date) => {
+            {/* Date picker */}
+            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                {dates.map(date => {
                     const isSelected = isSameDay(date, selectedDate)
+                    const hasSlots = daysWithSlots.has(format(date, 'yyyy-MM-dd'))
                     return (
                         <button
-                            key={date.toString()}
+                            key={date.toISOString()}
                             onClick={() => handleDateSelect(date)}
                             className={`
-                                flex-shrink-0 flex flex-col items-center justify-center w-16 h-20 rounded-xl border transition-all
+                                flex-shrink-0 flex flex-col items-center justify-center w-16 h-20
+                                rounded-xl border transition-all relative
                                 ${isSelected
                                     ? 'bg-primary text-white border-primary shadow-md'
-                                    : 'bg-white border-slate-200 text-slate-600 hover:border-primary/50'}
+                                    : 'bg-white border-slate-200 text-slate-600 hover:border-primary/50'
+                                }
+                                ${!hasSlots && !isSelected ? 'opacity-50' : ''}
                             `}
                         >
                             <span className="text-xs font-medium uppercase">{format(date, 'EEE')}</span>
                             <span className="text-xl font-bold">{format(date, 'd')}</span>
+                            {hasSlots && !isSelected && (
+                                <span className="absolute bottom-1.5 w-1.5 h-1.5 rounded-full bg-green-400" />
+                            )}
                         </button>
                     )
                 })}
             </div>
 
-            {/* Slots Grid */}
+            {/* Slot grid */}
             <div className="min-h-[200px]">
-                {slots.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-slate-500 py-12">
-                        <Clock className="h-10 w-10 mb-3 opacity-20" />
+                {slotsForDay.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-slate-500 py-12 gap-3">
+                        <Clock className="h-10 w-10 opacity-20" />
                         <p>No available slots on this day.</p>
                         <Button variant="link" onClick={() => handleDateSelect(addDays(selectedDate, 1))}>
                             Check next day
@@ -139,24 +122,28 @@ export default function Step3TimeSlot({ data, updateData, availabilityProfiles, 
                     </div>
                 ) : (
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                        {slots.map((slot, idx) => {
-                            const isSelected = data.startTime === slot.time.toISOString()
+                        {slotsForDay.map(slot => {
+                            const isSelected = data.slotId === slot.id
                             return (
                                 <button
-                                    key={idx}
+                                    key={slot.id}
                                     onClick={() => updateData({
-                                        startTime: slot.time.toISOString(),
+                                        slotId: slot.id,           // DB primary key
+                                        startTime: slot.startTime.toISOString(),
                                         repId: slot.repId,
-                                        videoProvider: slot.videoProvider as any // Cast enum
                                     })}
                                     className={`
                                         py-2 px-1 rounded-lg text-sm font-medium border transition-all
                                         ${isSelected
                                             ? 'bg-primary text-white border-primary ring-2 ring-primary/20'
-                                            : 'bg-white border-slate-200 hover:border-primary text-slate-700'}
+                                            : 'bg-white border-slate-200 hover:border-primary text-slate-700'
+                                        }
                                     `}
                                 >
-                                    {format(slot.time, 'HH:mm')}
+                                    <span className="block">{format(slot.startTime, 'HH:mm')}</span>
+                                    <span className="block text-xs opacity-70 truncate">
+                                        {repName(slot.repId)}
+                                    </span>
                                 </button>
                             )
                         })}
@@ -164,9 +151,9 @@ export default function Step3TimeSlot({ data, updateData, availabilityProfiles, 
                 )}
             </div>
 
-            <div className="flex justify-between pt-8 border-t border-slate-100">
+            <div className="flex justify-between pt-6 border-t border-slate-100">
                 <Button variant="outline" onClick={onBack}>Back</Button>
-                <Button onClick={onNext} disabled={!data.startTime} size="lg">Review</Button>
+                <Button onClick={onNext} disabled={!data.slotId} size="lg">Review</Button>
             </div>
         </div>
     )
