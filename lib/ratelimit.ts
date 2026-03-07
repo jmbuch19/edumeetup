@@ -16,6 +16,7 @@ export class RateLimiter {
         const validTimestamps = timestamps.filter(t => now - t < this.windowMs)
 
         if (validTimestamps.length >= this.maxRequests) {
+            this.requests.set(key, validTimestamps) // Still cleanup old ones
             return false
         }
 

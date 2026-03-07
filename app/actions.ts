@@ -241,7 +241,6 @@ export async function expressInterest(universityId: string, studentEmail?: strin
         })
 
         // Notification for University
-        // Notification for University
         await createNotification({
             userId: university.user.id,
             type: 'INTEREST_RECEIVED',
@@ -752,8 +751,6 @@ export async function createMeeting(formData: FormData) {
 
         // Send Notifications (Email + DB)
         for (const p of meeting.participants) {
-            // DB Notification
-            // DB & Email Notification
             await createNotification({
                 userId: p.participantUserId,
                 type: 'MEETING_INVITE',
@@ -944,22 +941,15 @@ export async function cancelMeeting(meetingId: string) {
         for (const p of meeting.participants) {
             if (p.participantUserId === user.id) continue
 
-            // DB Notification
-            await prisma.notification.create({
-                data: {
-                    userId: p.participantUserId,
-                    type: 'MEETING_CANCELED',
-                    title: 'Meeting Canceled',
-                    message: `The meeting "${meeting.title}" has been canceled by the university.`,
-                    payload: { meetingId: meeting.id }
-                }
-            })
-
-            // Email
-            await sendEmail({
-                to: p.user.email,
-                subject: `Canceled: ${meeting.title}`,
-                html: `<p>The meeting <strong>${meeting.title}</strong> scheduled for ${new Date(meeting.startTime).toLocaleString()} has been canceled.</p>`
+            await createNotification({
+                userId: p.participantUserId,
+                type: 'MEETING_CANCELED',
+                title: 'Meeting Canceled',
+                message: `The meeting "${meeting.title}" has been canceled by the university.`,
+                payload: { meetingId: meeting.id },
+                emailTo: p.user.email,
+                emailSubject: `Canceled: ${meeting.title}`,
+                emailHtml: `<p>The meeting <strong>${meeting.title}</strong> scheduled for ${new Date(meeting.startTime).toLocaleString()} has been canceled.</p>`
             })
         }
 
@@ -1004,14 +994,12 @@ export async function updateMeeting(meetingId: string, formData: FormData) {
         for (const p of updatedMeeting.participants) {
             if (p.participantUserId === user.id) continue
 
-            await prisma.notification.create({
-                data: {
-                    userId: p.participantUserId,
-                    type: 'MEETING_UPDATED',
-                    title: 'Meeting Updated',
-                    message: `Details for "${title}" have been updated.`,
-                    payload: { meetingId: meeting.id }
-                }
+            await createNotification({
+                userId: p.participantUserId,
+                type: 'MEETING_UPDATED',
+                title: 'Meeting Updated',
+                message: `Details for "${title}" have been updated.`,
+                payload: { meetingId: meeting.id }
             })
         }
 
