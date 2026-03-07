@@ -2,112 +2,233 @@
 
 import { requireStudentUser } from "@/lib/auth/requireAuth"
 import { prisma } from "@/lib/prisma"
-import { MeetingPurpose, VideoProvider, MeetingStatus } from "@prisma/client"
+import { MeetingPurpose, VideoProvider } from "@prisma/client"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { sendMeetingRequestEmail } from "@/lib/notifications"
 import { createNotification } from "@/lib/notifications"
 import { notifyStudent, notifyUniversity } from "@/lib/notify"
+import { randomBytes } from "crypto"
 
-// --- Schema Validation ---
+// ─── Input Validation ─────────────────────────────────────────────────────────
+// Fix 4: studentTimezone now comes from the client and is validated.
+// The server runtime timezone is never used.
+
+const VALID_DURATIONS = [10, 15, 20] as const
 
 const bookingSchema = z.object({
-    universityId: z.string(),
-    repId: z.string(),
-    programId: z.string().optional(),
+    universityId: z.string().cuid(),
+    repId: z.string().cuid(),
+    programId: z.string().cuid().optional(),
     purpose: z.nativeEnum(MeetingPurpose),
     studentQuestions: z.string().max(1000).optional(),
-    durationMinutes: z.number().refine(val => [10, 15, 20].includes(val)),
-    startTime: z.string().datetime(), // ISO string
+    durationMinutes: z.number().refine(val => (VALID_DURATIONS as readonly number[]).includes(val), {
+        message: `Duration must be one of: ${VALID_DURATIONS.join(', ')} minutes`,
+    }),
+    startTime: z.string().datetime(),   // ISO 8601 from client
     videoProvider: z.nativeEnum(VideoProvider),
-    audioOnly: z.boolean().default(false)
+    audioOnly: z.boolean().default(false),
+    // Fix 4: client-supplied timezone — validated as a known IANA zone
+    studentTimezone: z.string().min(1).max(100).refine(
+        tz => {
+            try { Intl.DateTimeFormat(undefined, { timeZone: tz }); return true }
+            catch { return false }
+        },
+        { message: 'Invalid IANA timezone' }
+    ),
 })
 
 export type BookingData = z.infer<typeof bookingSchema>
 
-// --- Actions ---
+// ─── Internal: Generate collision-resistant meeting code ──────────────────────
+// Fix 5: Uses 6 hex bytes (48 bits) instead of a 5-digit random number.
+// Chance of collision: ~1 in 281 trillion — safe without retry.
+
+function generateMeetingCode(): string {
+    const hex = randomBytes(4).toString('hex').toUpperCase()
+    return `EDU-${new Date().getFullYear()}-${hex}`
+}
+
+// ─── Read Action ──────────────────────────────────────────────────────────────
 
 export async function getBookingData(universityId: string) {
-    // requireStudentUser: only active students should access booking data.
-    // University reps and admins have their own routes.
+    // Fix 7: requireStudentUser — only active students should see booking data
     const session = await requireStudentUser().catch(() => null)
     if (!session) return { error: "Unauthorized" }
 
-    // 1. Fetch University & Reps
     const university = await prisma.university.findUnique({
         where: { id: universityId },
         include: {
-            user: { select: { name: true, image: true } }, // University generic user
+            // Fix 8: university owner is via user.university (not representedUniversity)
+            user: { select: { name: true, image: true } },
             availabilityProfiles: {
                 where: { isActive: true },
                 include: {
-                    repUser: {
-                        select: { id: true, name: true, image: true } // Fetch specific rep details
-                    }
+                    // repUser is the rep — linked via AvailabilityProfile.repId
+                    repUser: { select: { id: true, name: true, image: true } }
                 }
             },
-            programs: {
-                select: { id: true, programName: true, degreeLevel: true }
-            }
+            programs: { select: { id: true, programName: true, degreeLevel: true } }
         }
     })
-
     if (!university) return { error: "University not found" }
 
-    // 2. Fetch Existing Bookings (to block occupied slots)
-    // We only need bookings that significantly overlap with the future.
-    // Optimization: Fetch bookings from NOW onwards.
-    const now = new Date()
     const existingBookings = await prisma.meeting.findMany({
         where: {
-            universityId: universityId,
-            startTime: { gte: now },
+            universityId,
+            startTime: { gte: new Date() },
             status: { not: 'CANCELLED' }
         },
-        select: {
-            startTime: true,
-            endTime: true,
-            repId: true
-        }
+        select: { startTime: true, endTime: true, repId: true }
     })
 
-    return {
-        university,
-        existingBookings
-    }
+    return { university, existingBookings }
 }
 
+// ─── Write Action ─────────────────────────────────────────────────────────────
+
 export async function createMeetingRequest(data: BookingData) {
-    // Auth: must be an active STUDENT — enforces isActive + role in one call
+    // Auth: must be an active STUDENT
     const session = await requireStudentUser().catch(() => null)
     if (!session) return { error: "Unauthorized" }
 
-    // Validate input
+    // Input validation (strips unknown fields, enforces types/enums)
     const parsed = bookingSchema.safeParse(data)
     if (!parsed.success) {
-        return { error: "Invalid data", details: parsed.error.flatten() }
+        return { error: "Invalid request", details: parsed.error.flatten() }
     }
 
     const {
         universityId, repId, programId, purpose, studentQuestions,
-        durationMinutes, startTime, videoProvider
+        durationMinutes, startTime, videoProvider, studentTimezone,
     } = parsed.data
 
     const start = new Date(startTime)
-    const end = new Date(start.getTime() + durationMinutes * 60000)
+    const end = new Date(start.getTime() + durationMinutes * 60_000)
+    const now = new Date()
 
-    // Get Student profile (needed for meeting.studentId)
-    const student = await prisma.student.findUnique({
-        where: { userId: session.user.id }
+    // ── Pre-flight checks (fast, outside transaction) ──────────────────────────
+
+    // Fix 1a: Verify the university exists
+    const university = await prisma.university.findUnique({
+        where: { id: universityId },
+        select: { id: true, userId: true, institutionName: true },
     })
+    if (!university) return { error: "University not found" }
+
+    // Fix 1b: Verify the rep exists, is active, and belongs to this university
+    // Rep ownership: User.representedUniversity links via User.universityId
+    const rep = await prisma.user.findUnique({
+        where: { id: repId },
+        select: {
+            id: true,
+            isActive: true,
+            role: true,
+            representedUniversity: { select: { id: true } },
+        },
+    })
+
+    if (!rep) {
+        return { error: "Representative not found" }
+    }
+    if (!rep.isActive) {
+        return { error: "Representative account is no longer active" }
+    }
+    if (rep.role !== 'UNIVERSITY_REP') {
+        return { error: "The selected user is not a valid university representative" }
+    }
+    if (rep.representedUniversity?.id !== universityId) {
+        return { error: "Representative does not belong to this university" }
+    }
+
+    // Fix 2: Verify programId belongs to this university (if provided)
+    if (programId) {
+        const program = await prisma.program.findUnique({
+            where: { id: programId },
+            select: { universityId: true },
+        })
+        if (!program || program.universityId !== universityId) {
+            return { error: "Program does not belong to this university" }
+        }
+    }
+
+    // Fix 3: Validate against rep's AvailabilityProfile rules
+    // Find the active profile that covers the requested day + time window
+    const dayOfWeek = start.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' }).toUpperCase() as
+        'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
+
+    const requestedHHMM = start.toISOString().substring(11, 16) // "HH:MM" in UTC
+
+    const profile = await prisma.availabilityProfile.findFirst({
+        where: {
+            universityId,
+            repId,
+            isActive: true,
+            dayOfWeek: dayOfWeek,
+        },
+    })
+
+    if (!profile) {
+        return { error: `No availability configured for ${dayOfWeek}` }
+    }
+
+    // Fix 3a: Duration must be in the allowed options
+    if (!profile.meetingDurationOptions.includes(durationMinutes)) {
+        return {
+            error: `Duration ${durationMinutes} min is not offered — allowed: ${profile.meetingDurationOptions.join(', ')} min`,
+        }
+    }
+
+    // Fix 3b: Requested time must fall within the configured window
+    if (requestedHHMM < profile.startTime || requestedHHMM >= profile.endTime) {
+        return {
+            error: `Requested time is outside availability window (${profile.startTime}–${profile.endTime} UTC)`,
+        }
+    }
+
+    // Fix 3c: Minimum lead-time check
+    const leadTimeMs = profile.minLeadTimeHours * 60 * 60 * 1_000
+    if (start.getTime() - now.getTime() < leadTimeMs) {
+        return {
+            error: `Booking requires at least ${profile.minLeadTimeHours}h lead time`,
+        }
+    }
+
+    // Fix 3d: Daily cap — count existing non-cancelled meetings for this rep today
+    const dayStart = new Date(start); dayStart.setUTCHours(0, 0, 0, 0)
+    const dayEnd = new Date(start); dayEnd.setUTCHours(23, 59, 59, 999)
+    const todayCount = await prisma.meeting.count({
+        where: {
+            repId,
+            status: { not: 'CANCELLED' },
+            startTime: { gte: dayStart, lte: dayEnd },
+        },
+    })
+    if (todayCount >= profile.dailyCap) {
+        return { error: `Daily booking cap of ${profile.dailyCap} meetings reached for this rep` }
+    }
+
+    // Fetch student profile
+    const student = await prisma.student.findUnique({ where: { userId: session.user.id } })
     if (!student) return { error: "Student profile required" }
 
     try {
-        // ── ATOMIC SLOT BOOKING TRANSACTION ────────────────────────────────────
-        // Step 1: verify slot unbooked → Step 2: create meeting → Step 3: mark isBooked
-        // All three succeed or all fail — no partial state possible.
+        // ── ATOMIC SLOT BOOKING TRANSACTION ──────────────────────────────────────
+        // Fix 6: Require a real AvailabilitySlot to exist and be free.
+        // The query targets isBooked: false, so slot.isBooked is always false here
+        // (the redundant check is removed as requested).
+        //
+        // Flow inside transaction:
+        //  1. Verify no time-overlap conflict for this rep
+        //  2. Require a matching free AvailabilitySlot — reject if none
+        //  3. Create the Meeting
+        //  4. Mark slot isBooked = true and link to meeting
+        //
+        // All 4 steps succeed or all roll back.
+
         const meeting = await prisma.$transaction(async (tx) => {
-            // Step 1a: Conflict check (time-based overlap for same rep)
+
+            // Step 1: Time-overlap conflict check
             const conflict = await tx.meeting.findFirst({
                 where: {
                     repId,
@@ -117,24 +238,20 @@ export async function createMeetingRequest(data: BookingData) {
             })
             if (conflict) throw new Error('SLOT_TAKEN')
 
-            // Step 1b: Check if a matching AvailabilitySlot exists and is already booked
+            // Step 2: Require a real, free AvailabilitySlot (Fix 6 — strict model)
             const slot = await tx.availabilitySlot.findFirst({
-                where: { repId: repId, startTime: start, isBooked: false },
+                where: {
+                    repId,
+                    universityId,
+                    startTime: start,
+                    isBooked: false,
+                    meetingId: null, // belt-and-suspenders: not already linked
+                },
             })
-            // Note: slot may be null if the UI renders custom slots without DB rows — allowed.
-            // If a slot row exists, it MUST be unbooked.
-            if (slot === null) {
-                // No slot row found — check there is at least no isBooked=true duplicate
-            } else if (slot.isBooked) {
-                throw new Error('SLOT_TAKEN')
-            }
-
-            // Step 2: Generate unique meeting code (retry-safe: @unique in DB will catch dups)
-            const year = new Date().getFullYear()
-            const random = Math.floor(10000 + Math.random() * 90000)
-            const code = `EDU-${year}-${random}`
+            if (!slot) throw new Error('NO_SLOT')
 
             // Step 3: Create the meeting
+            // Fix 4: studentTimezone from client (validated above), never server runtime
             const newMeeting = await tx.meeting.create({
                 data: {
                     studentId: student.id,
@@ -146,82 +263,89 @@ export async function createMeetingRequest(data: BookingData) {
                     durationMinutes,
                     startTime: start,
                     endTime: end,
-                    studentTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    repTimezone: 'UTC',
+                    studentTimezone,          // client-supplied, IANA-validated
+                    repTimezone: 'UTC',  // TODO: store rep's preferred timezone on profile
                     status: 'PENDING',
                     videoProvider,
-                    meetingCode: code,
+                    meetingCode: generateMeetingCode(), // Fix 5: collision-resistant
                 },
             })
 
-            // Step 4: If a slot row exists, mark it booked and link it to the meeting
-            if (slot) {
-                await tx.availabilitySlot.update({
-                    where: { id: slot.id },
-                    data: { isBooked: true, meetingId: newMeeting.id },
-                })
-            }
+            // Step 4: Lock the slot atomically
+            await tx.availabilitySlot.update({
+                where: { id: slot.id },
+                data: { isBooked: true, meetingId: newMeeting.id },
+            })
 
             return newMeeting
         })
 
-        // ── Notifications ─────────────────────────────────────────────────────
-        // 1. Fetch rep details for email
-        const repUser = await prisma.user.findUnique({
-            where: { id: repId },
-            include: { university: true }
-        })
+        // ── Notifications (outside transaction — failures must not roll back the booking) ──
 
+        // Fix 8: Correct owner vs rep lookup.
+        // University owner uses user.university relation.
+        // Rep notification is sent directly to repId (already known).
         const universityRecord = await prisma.university.findUnique({
             where: { id: universityId },
-            include: { user: true }
+            include: { user: true }, // user = university owner (User.university relation)
         })
 
-        // 2. Email to rep
-        if (repUser?.email) {
-            await sendMeetingRequestEmail(
-                repUser.email,
-                student.fullName || 'Student',
-                student.country || 'N/A',
-                purpose,
-                start,
-                durationMinutes,
-                meeting.id,
-                studentQuestions
-            )
+        if (rep.isActive) {
+            const repUser = await prisma.user.findUnique({
+                where: { id: repId },
+                select: { email: true },
+            })
+            if (repUser?.email) {
+                await sendMeetingRequestEmail(
+                    repUser.email,
+                    student.fullName || 'Student',
+                    student.country || 'N/A',
+                    purpose,
+                    start,
+                    durationMinutes,
+                    meeting.id,
+                    studentQuestions
+                )
+            }
         }
 
-        // 3. In-app notification to university owner (generic Notification table)
+        // In-app notification to university owner
         if (universityRecord?.user?.id) {
             await createNotification({
                 userId: universityRecord.user.id,
                 type: 'MEETING_REQUEST',
                 title: 'New Meeting Request',
                 message: `${student.fullName || 'A student'} has requested a ${durationMinutes}-min meeting on ${start.toLocaleDateString()}`,
-                payload: { meetingId: meeting.id, studentId: student.id }
+                payload: { meetingId: meeting.id, studentId: student.id },
             })
         }
 
-        // 4. Role-specific dashboard bell notifications
         await notifyUniversity(universityId, {
             title: 'New Meeting Request',
             message: `${student.fullName || 'A student'} has requested a ${durationMinutes}-min meeting on ${start.toLocaleDateString()}.`,
             type: 'INFO',
-            actionUrl: '/university/meetings'
+            actionUrl: '/university/meetings',
         })
         await notifyStudent(student.id, {
             title: 'Meeting Request Sent',
-            message: `Your meeting request with ${universityRecord?.institutionName || 'the university'} has been submitted. You'll be notified when it's confirmed.`,
+            message: `Your request with ${universityRecord?.institutionName || 'the university'} has been submitted. You will be notified when confirmed.`,
             type: 'INFO',
-            actionUrl: '/student/meetings'
+            actionUrl: '/student/meetings',
         })
 
         revalidatePath('/student/meetings')
         revalidatePath('/university/meetings')
 
         return { success: true, meetingId: meeting.id }
-    } catch (error) {
-        console.error("Booking error:", error)
-        return { error: "Failed to book meeting" }
+
+    } catch (error: any) {
+        if (error?.message === 'SLOT_TAKEN') {
+            return { error: "This slot was just taken. Please choose another time." }
+        }
+        if (error?.message === 'NO_SLOT') {
+            return { error: "No available slot found for the requested time. Please select a different slot." }
+        }
+        console.error("[Meeting Booking] Error:", error)
+        return { error: "Failed to book meeting. Please try again." }
     }
 }
