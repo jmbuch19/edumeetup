@@ -93,7 +93,13 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
                             </h1>
                             <p className="text-xl text-slate-600 max-w-lg leading-relaxed">
                                 EdUmeetup brings students, mentors, and top-tier institutions together.
-                                Guidance, exposure, and direction—all in one place.
+                                Guidance, exposure, and direction — all in one place.
+                            </p>
+                            <p className="text-base text-slate-500 max-w-lg leading-relaxed">
+                                Meet verified international universities, attend official campus fairs, and get trusted guidance for studying abroad — with support at every step of the journey.
+                            </p>
+                            <p className="text-sm text-slate-400 max-w-lg leading-relaxed">
+                                Built with real experience in international education and campus recruitment.
                             </p>
                         </div>
 
