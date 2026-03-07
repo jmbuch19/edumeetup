@@ -69,9 +69,10 @@ export default async function StudentSettingsPage() {
                         <form action={updateDisplayName} className="space-y-2">
                             <Label htmlFor="name" className="text-xs text-muted-foreground uppercase tracking-wide">Display Name</Label>
                             <div className="flex gap-2">
-                                <Input id="name" name="name" defaultValue={userData.name || ''} placeholder="Your full name" className="flex-1" maxLength={80} />
+                                <Input id="name" name="name" defaultValue={userData.name || ''} placeholder="As per your official ID / passport" className="flex-1" maxLength={80} />
                                 <Button type="submit" variant="outline" size="sm">Save</Button>
                             </div>
+                            <p className="text-xs text-amber-600">⚠️ Use your official name as it appears on your government-issued ID or passport.</p>
                         </form>
                         <div className="pt-1 border-t border-gray-100 grid grid-cols-2 gap-4 text-xs text-muted-foreground">
                             <div>

@@ -81,8 +81,11 @@ export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: Prof
                     </CardHeader>
                     <CardContent className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                            <Label htmlFor="id_full_name">Full Name</Label>
-                            <Input id="id_full_name" name="fullName" defaultValue={initialData.fullName || ''} required />
+                            <Label htmlFor="id_full_name">Full Name <span className="text-red-500">*</span></Label>
+                            <Input id="id_full_name" name="fullName" defaultValue={initialData.fullName || ''} required placeholder="As it appears on your passport / government ID" />
+                            <p className="text-xs text-amber-600 flex items-center gap-1">
+                                ⚠️ Please enter your name exactly as it appears on your official government-issued ID or passport. This name will be shared with universities.
+                            </p>
                         </div>
 
                         {/* Country — read-only */}
