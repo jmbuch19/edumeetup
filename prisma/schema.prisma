@@ -353,6 +353,7 @@ model AdvisoryRequest {
   adviserId       String?
   internalNotes   String?
   sessionLink     String?
+  scheduledAt     DateTime?
   createdAt       DateTime       @default(now())
   completedAt     DateTime?
   adviser         User?          @relation("AdviserRequests", fields: [adviserId], references: [id])

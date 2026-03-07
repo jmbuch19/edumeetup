@@ -196,6 +196,7 @@ export default async function AdvisoryDetailPage(props: { params: Promise<{ id: 
                         advisers={admins}
                         currentAdviserId={request.adviserId}
                         currentSessionLink={request.sessionLink}
+                        currentScheduledAt={request.scheduledAt}
                     />
                 </div>
             </div>

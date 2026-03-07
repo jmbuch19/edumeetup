@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, LayoutDashboard, Search, Heart, FileText, CalendarDays, MessageSquare, UserCircle, Settings, HelpCircle, User, LogOut } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Search, Heart, FileText, CalendarDays, MessageSquare, UserCircle, Settings, HelpCircle, User, LogOut, GraduationCap } from 'lucide-react'
 import { ContactAdminPanel } from '@/components/layout/contact-admin-panel'
 import { signOut } from 'next-auth/react'
 
@@ -45,15 +45,15 @@ function NavContent({ userName, senderEmail, city, onClose }: StudentNavProps & 
         <div className="flex flex-col h-full" style={{ background: 'var(--navy)' }}>
             {/* Logo */}
             <div className="flex items-center gap-3 px-6 py-5 border-b" style={{ borderColor: 'var(--navy-mid)' }}>
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xl flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg, var(--teal), var(--teal-light))', boxShadow: '0 0 0 3px rgba(13,148,136,0.3)' }}>
-                    🌐
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: '#3B3FCC' }}>
+                    <GraduationCap className="h-5 w-5 text-white" />
                 </div>
                 <div>
                     <p style={{ fontFamily: 'var(--font-display)', color: 'white', fontSize: 17, lineHeight: 1.1 }}>
-                        edu<span style={{ color: 'var(--gold)' }}>meetup</span>
+                        Ed<span style={{ color: 'var(--gold)' }}>U</span>meetup
                     </p>
-                    <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+                    <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
                         Where Dreams Meet Destinations
                     </p>
                 </div>

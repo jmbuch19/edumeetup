@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { GraduationCap, MapPin, Search, Calendar, CheckCircle, LogOut } from 'lucide-react'
+import { GraduationCap, MapPin, Search, Calendar, CheckCircle, LogOut, Clock, ExternalLink } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -260,7 +260,77 @@ export function DashboardUI({
                 </TabsContent>
 
                 <TabsContent value="advisory">
-                    {advisoryStatus ? (
+                    {advisoryStatus?.status === 'SCHEDULED' ? (
+                        /* ── SESSION CONFIRMED VIEW ── */
+                        <div className="max-w-2xl mx-auto py-12">
+                            <div className="bg-white rounded-2xl shadow-sm border-2 border-green-200 overflow-hidden">
+                                <div className="bg-green-50 px-8 py-5 border-b border-green-200 flex items-center gap-3">
+                                    <CheckCircle className="h-6 w-6 text-green-600 shrink-0" />
+                                    <div>
+                                        <p className="font-bold text-green-800">Session Confirmed!</p>
+                                        <p className="text-sm text-green-600">Your advisory session has been scheduled.</p>
+                                    </div>
+                                </div>
+
+                                <div className="p-8 space-y-6">
+                                    {/* Confirmed Date/Time */}
+                                    {advisoryStatus.scheduledAt && (
+                                        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5 flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center shrink-0">
+                                                <Clock className="h-6 w-6 text-indigo-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-indigo-500 font-semibold uppercase tracking-wide">Confirmed Date &amp; Time</p>
+                                                <p className="text-lg font-bold text-indigo-900">
+                                                    {new Date(advisoryStatus.scheduledAt).toLocaleString('en-IN', {
+                                                        weekday: 'long',
+                                                        year: 'numeric',
+                                                        month: 'long',
+                                                        day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                        hour12: true,
+                                                        timeZone: 'Asia/Kolkata'
+                                                    })} IST
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Join Button */}
+                                    {advisoryStatus.sessionLink && (
+                                        <a
+                                            href={advisoryStatus.sessionLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center justify-center gap-2 w-full py-3.5 px-6 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity text-base"
+                                        >
+                                            <ExternalLink className="h-5 w-5" />
+                                            Join Session
+                                        </a>
+                                    )}
+
+                                    {/* Request summary */}
+                                    <div className="bg-gray-50 p-5 rounded-xl text-sm space-y-2">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-500">Target</span>
+                                            <span className="font-medium">{advisoryStatus.targetDegree} in {advisoryStatus.fieldOfInterest} · {advisoryStatus.targetCountry}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-500">Requested on</span>
+                                            <span className="font-medium">{new Date(advisoryStatus.createdAt).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+
+                                    <p className="text-xs text-gray-400 text-center">
+                                        Need to reschedule? Email&nbsp;
+                                        <a href="mailto:support@iaesgujarat.org" className="text-primary hover:underline">support@iaesgujarat.org</a>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : advisoryStatus ? (
+                        /* ── PENDING / ASSIGNED / COMPLETED VIEW ── */
                         <div className="max-w-3xl mx-auto py-12">
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
                                 <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -300,6 +370,7 @@ export function DashboardUI({
                             </div>
                         </div>
                     ) : (
+                        /* ── NO REQUEST YET ── */
                         <div className="max-w-4xl mx-auto py-8">
                             <AdvisoryForm onClose={() => setActiveTab('overview')} />
                         </div>
