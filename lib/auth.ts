@@ -145,7 +145,7 @@ async function sendMagicLinkEmail(to: string, url: string) {
     </head>
     <body>
         <div class="container">
-            <div class="logo"><span>edU</span>meetup</div>
+            <div class="logo">Ed<span>U</span>meetup</div>
             <h1>Sign in to ${isUniLogin ? "University Portal" : "EdUmeetup"}</h1>
             <p>Click the button below to sign in. This link is valid for <strong>15 minutes</strong> and can only be used once.</p>
             <a href="${confirmUrl}" class="button" target="_blank">Sign in to EdUmeetup</a>
