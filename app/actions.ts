@@ -65,7 +65,7 @@ export async function registerStudent(prevState: any, formData: FormData) {
         email, fullName, gender, ageGroup,
         city, pincode, currentStatus, fieldOfInterest, preferredDegree,
         budgetRange, englishTestType, englishScore, preferredIntake,
-        preferredCountries, greScore, gmatScore
+        preferredCountries, greScore, gmatScore, satScore, actScore
     } = validation.data
 
     // HONEYPOT & SPAM CHECK (from schema)
@@ -134,9 +134,11 @@ export async function registerStudent(prevState: any, formData: FormData) {
                         country: 'India',
                         city: city || '',
                         pincode: pincode || '',
-                        // GRE / GMAT
+                        // GRE / GMAT / SAT / ACT
                         greScore: greScore || null,
                         gmatScore: gmatScore || null,
+                        satScore: satScore || null,
+                        actScore: actScore || null,
                         // IP Tracking
                         ipAddress: ipInfo.ip,
                         ipCity: ipInfo.city,

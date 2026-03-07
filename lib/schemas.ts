@@ -84,6 +84,11 @@ export const registerStudentSchema = z.object({
     greScore: z.string().optional(),
     gmatTaken: z.string().optional(),
     gmatScore: z.string().optional(),
+    // SAT / ACT (conditional, for UG applicants)
+    satTaken: z.string().optional(),
+    satScore: z.string().optional(),
+    actTaken: z.string().optional(),
+    actScore: z.string().optional(),
     // Honeypot
     website_url: z.string().max(0, 'Spam detected').optional().or(z.literal(''))
 })
@@ -176,4 +181,6 @@ export const studentProfileSchema = z.object({
     // Test scores
     greScore: z.string().optional(),
     gmatScore: z.string().optional(),
+    satScore: z.string().optional(),
+    actScore: z.string().optional(),
 })

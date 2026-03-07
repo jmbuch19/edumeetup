@@ -43,6 +43,8 @@ export default function StudentRegisterPage() {
     const [phone, setPhone] = useState({ code: '+91', number: '' })
     const [greTaken, setGreTaken] = useState(false)
     const [gmatTaken, setGmatTaken] = useState(false)
+    const [satTaken, setSatTaken] = useState(false)
+    const [actTaken, setActTaken] = useState(false)
     const [emailError, setEmailError] = useState<string | null>(null)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [state, formAction] = useFormState(registerStudent as any, initialState)
@@ -329,6 +331,50 @@ export default function StudentRegisterPage() {
                                     <div className="mt-3">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">GMAT Score (out of 800)</label>
                                         <Input name="gmatScore" type="number" min="200" max="800" placeholder="e.g. 680" />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">SAT Taken? <span className="text-gray-400 font-normal">(optional — for UG applicants)</span></label>
+                                <div className="flex gap-4 flex-wrap">
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input type="radio" name="satTaken" value="yes" className="accent-primary h-4 w-4"
+                                            onChange={() => setSatTaken(true)} />
+                                        <span className="text-sm text-gray-700">Yes</span>
+                                    </label>
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input type="radio" name="satTaken" value="no" defaultChecked className="accent-primary h-4 w-4"
+                                            onChange={() => setSatTaken(false)} />
+                                        <span className="text-sm text-gray-700">No</span>
+                                    </label>
+                                </div>
+                                {satTaken && (
+                                    <div className="mt-3">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">SAT Score (400–1600)</label>
+                                        <Input name="satScore" type="number" min="400" max="1600" placeholder="e.g. 1350" />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">ACT Taken? <span className="text-gray-400 font-normal">(optional — for UG applicants)</span></label>
+                                <div className="flex gap-4 flex-wrap">
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input type="radio" name="actTaken" value="yes" className="accent-primary h-4 w-4"
+                                            onChange={() => setActTaken(true)} />
+                                        <span className="text-sm text-gray-700">Yes</span>
+                                    </label>
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input type="radio" name="actTaken" value="no" defaultChecked className="accent-primary h-4 w-4"
+                                            onChange={() => setActTaken(false)} />
+                                        <span className="text-sm text-gray-700">No</span>
+                                    </label>
+                                </div>
+                                {actTaken && (
+                                    <div className="mt-3">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">ACT Score (1–36)</label>
+                                        <Input name="actScore" type="number" min="1" max="36" placeholder="e.g. 28" />
                                     </div>
                                 )}
                             </div>
