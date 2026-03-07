@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
     Menu, X, LayoutDashboard, Users, School, Globe,
     Megaphone, CalendarDays, FileBarChart2, Sparkles,
-    QrCode, LogOut, User, Settings, HelpCircle
+    QrCode, LogOut, User, Settings, HelpCircle, GraduationCap
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
@@ -65,9 +65,9 @@ function NavContent({ adminName, adminEmail, onClose }: AdminNavProps & { onClos
         <div className="flex flex-col h-full" style={{ background: 'var(--navy)' }}>
             {/* Logo */}
             <div className="flex items-center gap-3 px-6 py-5 border-b" style={{ borderColor: 'var(--navy-mid)' }}>
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xl flex-shrink-0 shadow-lg"
-                    style={{ background: 'linear-gradient(135deg, var(--teal), var(--teal-light))', boxShadow: '0 0 0 3px rgba(13,148,136,0.3)' }}>
-                    🌐
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: '#3B3FCC' }}>
+                    <GraduationCap className="h-5 w-5 text-white" />
                 </div>
                 <div className="min-w-0">
                     <div className="flex items-center gap-2">
