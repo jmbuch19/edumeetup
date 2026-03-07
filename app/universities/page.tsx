@@ -1,19 +1,21 @@
 import { searchUniversities } from '@/app/actions/university'
+import { auth } from '@/lib/auth'
 import { UniversityCard } from '@/components/university-card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { COUNTRIES } from '@/lib/utils'
-import { FieldCategory } from '@prisma/client'
+import { FIELD_CATEGORIES } from '@/lib/constants'
 import Link from 'next/link'
 import { Search } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-export default async function UniversitiesPage({
-    searchParams
-}: {
-    searchParams: { [key: string]: string | string[] | undefined }
-}) {
+export default async function UniversitiesPage(
+    props: {
+        searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+    }
+) {
+    const searchParams = await props.searchParams;
     // searchParams is synchronous in Next.js 14
     const query = (searchParams.q as string) || ''
     const country = (searchParams.country as string) || ''
@@ -27,10 +29,14 @@ export default async function UniversitiesPage({
         page
     })
 
+    const session = await auth()
+    const userRole = session?.user?.role
+
     return (
         <div className="container mx-auto px-4 py-8">
             {/* Header & Search Section */}
             <div className="mb-8 space-y-4">
+                {/* ... (Header content unchanged) ... */}
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Explore Universities</h1>
                     <p className="text-muted-foreground">Discover top institutions matching your ambitions.</p>
@@ -78,8 +84,8 @@ export default async function UniversitiesPage({
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <option value="">All Fields</option>
-                                {Object.values(FieldCategory).map(f => (
-                                    <option key={f} value={f}>{f.replace(/_/g, ' ')}</option>
+                                {FIELD_CATEGORIES.map(f => (
+                                    <option key={f} value={f}>{f}</option>
                                 ))}
                             </select>
                         </div>
@@ -101,7 +107,7 @@ export default async function UniversitiesPage({
                         <UniversityCard
                             key={uni.id}
                             university={uni}
-
+                            userRole={userRole}
                         />
                     ))}
                 </div>

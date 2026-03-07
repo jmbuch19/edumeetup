@@ -21,17 +21,17 @@ interface InterestWithStudent {
         programName: string
     } | null
     status: string
-    createdAt: Date
+    createdAt: string | Date // Allow string for serialized data
 }
 
 interface AvailabilitySlot {
     id: string
-    startTime: Date
-    endTime: Date
+    startTime: string | Date // Allow string
+    endTime: string | Date // Allow string
     isBooked: boolean
 }
 
-export function InterestedStudentsTable({ interests, availabilitySlots = [] }: { interests: InterestWithStudent[], availabilitySlots?: AvailabilitySlot[] }) {
+export function InterestedStudentsTable({ interests, availabilitySlots = [], programs = [], compact = false }: { interests: any[], availabilitySlots?: any[], programs?: any[], compact?: boolean }) {
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
@@ -94,16 +94,32 @@ export function InterestedStudentsTable({ interests, availabilitySlots = [] }: {
 
     return (
         <div>
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
-                <h2 className="text-xl font-bold">Interested Students ({interests.length})</h2>
-                <Button
-                    onClick={handleScheduleClick}
-                    disabled={selectedIds.length === 0}
-                    className="w-full sm:w-auto"
-                >
-                    Schedule Meeting ({selectedIds.length})
-                </Button>
-            </div>
+            {/* Header row — hidden in compact mode since the Card already provides a title + the button below */}
+            {!compact && (
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+                    <h2 className="text-xl font-bold">Interested Students ({interests.length})</h2>
+                    <Button
+                        onClick={handleScheduleClick}
+                        disabled={selectedIds.length === 0}
+                        className="w-full sm:w-auto"
+                    >
+                        Schedule Meeting ({selectedIds.length})
+                    </Button>
+                </div>
+            )}
+
+            {/* In compact mode, show the action button flush-right above the table */}
+            {compact && (
+                <div className="flex justify-end mb-3">
+                    <Button
+                        size="sm"
+                        onClick={handleScheduleClick}
+                        disabled={selectedIds.length === 0}
+                    >
+                        Schedule Meeting {selectedIds.length > 0 && `(${selectedIds.length})`}
+                    </Button>
+                </div>
+            )}
 
             <div className="rounded-md border overflow-x-auto">
                 <Table>
@@ -115,28 +131,42 @@ export function InterestedStudentsTable({ interests, availabilitySlots = [] }: {
                             <TableHead>Country</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Date</TableHead>
+                            <TableHead>Waiting</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {interests.map((interest) => (
-                            <TableRow key={interest.id}>
-                                <TableCell>
-                                    <input
-                                        type="checkbox"
-                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                        checked={selectedIds.includes(interest.student.user.id)}
-                                        onChange={() => toggleSelection(interest.student.user.id)}
-                                    />
-                                </TableCell>
-                                <TableCell className="font-medium">{interest.student.fullName}</TableCell>
-                                <TableCell>{interest.program?.programName || 'General Interest'}</TableCell>
-                                <TableCell>{interest.student.country || 'N/A'}</TableCell>
-                                <TableCell>
-                                    <Badge variant="outline">{interest.status}</Badge>
-                                </TableCell>
-                                <TableCell>{new Date(interest.createdAt).toLocaleDateString()}</TableCell>
-                            </TableRow>
-                        ))}
+                        {interests.map((interest) => {
+                            const hoursWaiting = Math.floor((Date.now() - new Date(interest.createdAt).getTime()) / (1000 * 60 * 60))
+                            const daysWaiting = Math.floor(hoursWaiting / 24)
+                            const urgency = hoursWaiting >= 72 ? 'text-red-600 font-semibold' : hoursWaiting >= 48 ? 'text-amber-600 font-medium' : 'text-gray-500'
+                            const waitLabel = daysWaiting > 0 ? `${daysWaiting}d` : `${hoursWaiting}h`
+                            return (
+                                <TableRow key={interest.id} className={hoursWaiting >= 72 ? 'bg-red-50/40' : hoursWaiting >= 48 ? 'bg-amber-50/40' : ''}>
+                                    <TableCell>
+                                        <input
+                                            type="checkbox"
+                                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            checked={selectedIds.includes(interest.student?.user?.id ?? '')}
+                                            onChange={() => toggleSelection(interest.student?.user?.id ?? '')}
+                                        />
+                                    </TableCell>
+                                    <TableCell className="font-medium">
+                                        {(() => {
+                                            const name = interest.student?.fullName
+                                                ?? [interest.student?.firstName, interest.student?.lastName].filter(Boolean).join(' ')
+                                            return name?.trim() || interest.student?.user?.email || 'Student'
+                                        })()}
+                                    </TableCell>
+                                    <TableCell>{interest.program?.programName || 'General Interest'}</TableCell>
+                                    <TableCell>{interest.student?.country ?? interest.student?.profile?.country ?? 'International'}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className={hoursWaiting >= 48 ? 'border-amber-300 text-amber-700' : ''}>{interest.status}</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">{new Date(interest.createdAt).toLocaleDateString()}</TableCell>
+                                    <TableCell className={`text-sm ${urgency}`}>{waitLabel}</TableCell>
+                                </TableRow>
+                            )
+                        })}
                         {interests.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={6} className="text-center h-24">

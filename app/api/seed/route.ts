@@ -1,8 +1,22 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { hashPassword } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+    // ⛔ Never available in production — this route creates demo admin accounts
+    if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json({ error: 'Not available' }, { status: 404 })
+    }
+
+    // In development, still require ADMIN_SECRET as a basic access control
+    const adminSecret = process.env.ADMIN_SECRET
+    if (adminSecret) {
+        const authHeader = request.headers.get('Authorization')
+        if (authHeader !== `Bearer ${adminSecret}`) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+    }
+
+
     try {
         // Create Admin
         const adminEmail = 'jaydeep@edumeetup.com'
@@ -11,9 +25,8 @@ export async function GET() {
             update: {},
             create: {
                 email: adminEmail,
-                password: await hashPassword('password123'),
                 role: 'ADMIN',
-                status: 'ACTIVE',
+                isActive: true,
             },
         })
 
@@ -21,12 +34,11 @@ export async function GET() {
         const adminEmail2 = 'admin@edumeetup.com'
         await prisma.user.upsert({
             where: { email: adminEmail2 },
-            update: { password: await hashPassword('admin123') },
+            update: {},
             create: {
                 email: adminEmail2,
-                password: await hashPassword('admin123'),
                 role: 'ADMIN',
-                status: 'ACTIVE'
+                isActive: true
             }
         })
 
@@ -37,10 +49,9 @@ export async function GET() {
             update: {},
             create: {
                 email: studentEmail,
-                password: await hashPassword('password123'),
                 role: 'STUDENT',
-                status: 'ACTIVE',
-                studentProfile: {
+                isActive: true,
+                student: {
                     create: {
                         fullName: 'John Doe',
                         country: 'India',
@@ -68,10 +79,9 @@ export async function GET() {
             update: {},
             create: {
                 email: uniEmail,
-                password: await hashPassword('password123'),
                 role: 'UNIVERSITY',
-                status: 'ACTIVE',
-                universityProfile: {
+                isActive: true,
+                university: {
                     create: {
                         institutionName: 'Harvard University',
                         country: 'USA',
@@ -79,15 +89,15 @@ export async function GET() {
                         website: 'https://harvard.edu',
                         contactEmail: 'admissions@harvard.edu',
                         verificationStatus: 'VERIFIED',
-                        verifiedDate: new Date(),
+                        verifiedAt: new Date(),
                         programs: {
                             create: [
                                 {
-                                    programName: 'Computer Science', // ...
+                                    programName: 'Computer Science',
                                     degreeLevel: "Master's",
                                     fieldCategory: 'Engineering',
                                     tuitionFee: 50000,
-                                    intakes: 'Fall 2025',
+                                    intakes: ['Fall 2025'],
                                 },
                             ],
                         },
@@ -103,10 +113,9 @@ export async function GET() {
             update: {},
             create: {
                 email: pendingUniEmail,
-                password: await hashPassword('password123'),
                 role: 'UNIVERSITY',
-                status: 'ACTIVE',
-                universityProfile: {
+                isActive: true,
+                university: {
                     create: {
                         institutionName: 'Stanford University',
                         country: 'USA',
@@ -121,9 +130,9 @@ export async function GET() {
                                 {
                                     programName: 'Data Science',
                                     degreeLevel: "Master's",
-                                    fieldCategory: 'Engineering', // Science is not in enum, using Engineering or similar
+                                    fieldCategory: 'Engineering',
                                     tuitionFee: 60000,
-                                    intakes: 'Fall 2026',
+                                    intakes: ['Fall 2026'],
                                 },
                             ],
                         },

@@ -37,7 +37,12 @@ export function NotificationBell({ notifications = [] }: { notifications: Notifi
     return (
         <DropdownMenu open={open} onOpenChange={setOpen}>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative"
+                    aria-label={unreadCount > 0 ? `Notifications — ${unreadCount} unread` : 'Notifications'}
+                >
                     <Bell className="h-5 w-5 text-gray-600" />
                     {unreadCount > 0 && (
                         <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">

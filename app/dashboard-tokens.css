@@ -1,0 +1,26 @@
+/* ── EdUmeetup Dashboard Design Tokens ──────────────────────────────────────
+   CSS custom properties ONLY — no utility classes.
+   All layout/utility is handled by Tailwind in component JSX.
+   ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Brand colours */
+  --navy:        #0F2044;
+  --navy-mid:    #1E3A6E;
+  --teal:        #0D9488;
+  --teal-light:  #14B8A6;
+  --teal-pale:   #CCFBF1;
+  --gold:        #F59E0B;
+  --gold-light:  #FDE68A;
+
+  /* Surface & borders */
+  --surface:     #F0F9F8;
+  --border-dash: #D1FAF5;
+
+  /* Text */
+  --text-muted:  #6B7E8F;
+
+  /* Fonts */
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-body:    'DM Sans', system-ui, sans-serif;
+}

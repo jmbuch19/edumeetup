@@ -1,0 +1,42 @@
+/**
+ * University Domain Cache Refresh Endpoint
+ *
+ * Refreshes both the Hipo university map and the disposable-email-domains blocklist.
+ *
+ * Netlify Scheduled Function — runs automatically every Sunday at midnight UTC.
+ * Can also be triggered manually:
+ *   GET /api/refresh-university-domains?secret=uni-refresh-secret-2025
+ */
+import { NextResponse } from 'next/server'
+import { refreshDomains } from '@/lib/university-domains'
+
+export const dynamic = 'force-dynamic'
+
+
+
+const REFRESH_SECRET = process.env.CRON_SECRET
+
+export async function GET(request: Request) {
+    if (!REFRESH_SECRET) {
+        return NextResponse.json({ error: 'Not configured' }, { status: 503 })
+    }
+
+    // Use Authorization header — safer than query params (avoids secret in URL logs)
+    const authHeader = request.headers.get('Authorization')
+    if (authHeader !== `Bearer ${REFRESH_SECRET}`) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    try {
+        const result = await refreshDomains()
+        return NextResponse.json({
+            success: true,
+            updatedAt: result.updatedAt,
+            universityDomainCount: result.universityCount,
+            disposableDomainCount: result.disposableCount,
+            message: `Cache refreshed — ${result.universityCount} university domains, ${result.disposableCount} disposable domains blocked.`,
+        })
+    } catch (err: any) {
+        return NextResponse.json({ success: false, error: err?.message }, { status: 500 })
+    }
+}

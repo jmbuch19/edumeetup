@@ -1,55 +1,107 @@
 import { withSentryConfig } from "@sentry/nextjs";
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const withPWA = require('next-pwa')({
+    dest: 'public',
+    disable: process.env.NODE_ENV === 'development',
+    register: true,
+    skipWaiting: true,
+})
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    eslint: {
-        // Warning: This allows production builds to successfully complete even if
-        // your project has ESLint errors.
-        ignoreDuringBuilds: true,
+    images: {
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: 'files.edumeetup.com',       // Cloudflare R2 — primary CDN domain
+                pathname: '/**',
+            },
+            {
+                protocol: 'https',
+                hostname: '*.r2.dev',                  // Cloudflare R2 — public dev / preview URLs
+                pathname: '/**',
+            },
+            {
+                protocol: 'https',
+                hostname: 'res.cloudinary.com',        // Legacy logos uploaded before R2 migration
+                pathname: '/**',
+            },
+            {
+                protocol: 'https',
+                hostname: 'lh3.googleusercontent.com', // Google profile pictures
+            },
+            {
+                protocol: 'https',
+                hostname: '*.googleusercontent.com',   // Google profile pictures (other subdomains)
+            },
+        ],
     },
-    typescript: {
-        // !! WARN !!
-        // Dangerously allow production builds to successfully complete even if
-        // your project has type errors.
-        ignoreBuildErrors: true,
-    },
-    reactStrictMode: true,
     async headers() {
         return [
             {
-                source: '/:path*',
+                source: '/(.*)',
                 headers: [
                     {
                         key: 'X-DNS-Prefetch-Control',
                         value: 'on'
                     },
                     {
-                        key: 'Strict-Transport-Security',
-                        value: 'max-age=63072000; includeSubDomains; preload'
-                    },
-                    {
-                        key: 'X-XSS-Protection',
-                        value: '1; mode=block'
-                    },
-                    {
-                        key: 'X-Frame-Options',
-                        value: 'SAMEORIGIN'
-                    },
-                    {
-                        key: 'X-Content-Type-Options',
-                        value: 'nosniff'
-                    },
-                    {
                         key: 'Referrer-Policy',
-                        value: 'origin-when-cross-origin'
-                    }
+                        value: 'strict-origin-when-cross-origin'
+                    },
+                    {
+                        key: 'Permissions-Policy',
+                        value: 'camera=(self), microphone=(), geolocation=(), browsing-topics=()'
+                    },
+                    {
+                        key: 'Content-Security-Policy',
+                        value: [
+                            "default-src 'self'",
+                            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+                            "style-src 'self' 'unsafe-inline'",
+                            "img-src 'self' data: blob: https://files.edumeetup.com https://lh3.googleusercontent.com https://*.googleusercontent.com",
+                            "font-src 'self' data:",
+                            "connect-src 'self' https://*.neon.tech https://api.resend.com https://o4508957447987200.ingest.sentry.io",
+                            "media-src 'self'",
+                            "object-src 'none'",
+                            "frame-src 'none'",
+                            "frame-ancestors 'none'",
+                            "base-uri 'self'",
+                            "form-action 'self'",
+                            "upgrade-insecure-requests",
+                        ].join('; ')
+                    },
+                    {
+                        key: 'Cross-Origin-Opener-Policy',
+                        value: 'same-origin'
+                    },
+                    {
+                        key: 'Cross-Origin-Resource-Policy',
+                        value: 'same-origin'
+                    },
                 ]
-            }
+            },
+            {
+                // API routes — no caching, no indexing
+                source: '/api/(.*)',
+                headers: [
+                    {
+                        key: 'Cache-Control',
+                        value: 'no-store, no-cache, must-revalidate'
+                    },
+                    {
+                        key: 'X-Robots-Tag',
+                        value: 'noindex'
+                    },
+                ]
+            },
         ]
     }
 };
 
-export default withSentryConfig(nextConfig, {
+export default withSentryConfig(withPWA(nextConfig), {
     // For all available options, see:
     // https://github.com/getsentry/sentry-webpack-plugin#options
 
@@ -76,7 +128,4 @@ export default withSentryConfig(nextConfig, {
 
     // Automatically tree-shake Sentry logger statements to reduce bundle size
     disableLogger: true,
-
-    // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers)
-    // automaticVercelMonitors: true,
 });

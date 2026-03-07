@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { FieldCategory, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 
 export type SearchParams = {
     query?: string
@@ -20,8 +20,9 @@ export async function searchUniversities({
     const skip = (page - 1) * pageSize
 
     try {
-        const where: Prisma.UniversityProfileWhereInput = {
-            verificationStatus: 'VERIFIED'
+        const where: Prisma.UniversityWhereInput = {
+            verificationStatus: 'VERIFIED',
+            isPublic: true,
         }
 
         // 1. Text Search (Name or Location)
@@ -42,20 +43,20 @@ export async function searchUniversities({
         if (field && field !== 'All') {
             where.programs = {
                 some: {
-                    fieldCategory: field as FieldCategory
+                    fieldCategory: field
                 }
             }
         }
 
         // Execute Query
         const [total, universities] = await Promise.all([
-            prisma.universityProfile.count({ where }),
-            prisma.universityProfile.findMany({
+            prisma.university.count({ where }),
+            prisma.university.findMany({
                 where,
                 include: {
                     user: { select: { email: true } }, // Minimal user info
                     programs: {
-                        select: { fieldCategory: true } // Fetch fields for display badges
+                        select: { fieldCategory: true, programName: true, degreeLevel: true } // Fetch fields for display badges
                     }
                 },
                 skip,

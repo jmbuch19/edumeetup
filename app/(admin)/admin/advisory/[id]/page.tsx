@@ -4,22 +4,31 @@ import { notFound } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea' // We created this
-import { Label } from '@/components/ui/label' // We created this
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import { updateAdvisoryNotes } from '@/app/actions/admin-advisory-actions'
-import { SelectStatus } from './select-status' // We'll create a client component for interactivity
-import { ArrowLeft, Mail, Calendar, MapPin, GraduationCap, DollarSign } from 'lucide-react'
+import { SelectStatus } from './select-status'
+import { ScheduleSession } from './schedule-session'
+import { ArrowLeft, Mail, Calendar, MapPin, GraduationCap, DollarSign, FileText } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdvisoryDetailPage({ params }: { params: { id: string } }) {
+export default async function AdvisoryDetailPage(props: { params: Promise<{ id: string }> }) {
+    const params = await props.params;
     await requireRole('ADMIN')
 
-    const request = await prisma.advisoryRequest.findUnique({
-        where: { id: params.id },
-        include: { student: { include: { user: true } } }
-    })
+    const [request, admins] = await Promise.all([
+        prisma.advisoryRequest.findUnique({
+            where: { id: params.id },
+            include: { student: { include: { user: true } } }
+        }),
+        prisma.user.findMany({
+            where: { role: 'ADMIN', isActive: true },
+            select: { id: true, name: true, email: true },
+            orderBy: { name: 'asc' }
+        })
+    ])
 
     if (!request) notFound()
 
@@ -46,6 +55,23 @@ export default async function AdvisoryDetailPage({ params }: { params: { id: str
                             <div>
                                 <Label className="text-muted-foreground">Name</Label>
                                 <p className="font-medium">{request.student.fullName}</p>
+                            </div>
+                            {/* CV / Resume */}
+                            <div>
+                                <Label className="text-muted-foreground">CV / Résumé</Label>
+                                {request.student.cvFileName ? (
+                                    <a
+                                        href={`/api/cv/${request.student.id}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline font-medium mt-0.5"
+                                    >
+                                        <FileText className="h-4 w-4" />
+                                        {request.student.cvFileName}
+                                    </a>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">Not uploaded</p>
+                                )}
                             </div>
                             <div>
                                 <Label className="text-muted-foreground">Email</Label>
@@ -90,8 +116,12 @@ export default async function AdvisoryDetailPage({ params }: { params: { id: str
                                 <p>{request.englishScore || 'Not provided'}</p>
                             </div>
                             <div>
-                                <Label className="text-muted-foreground">GRE/GMAT</Label>
-                                <p>{request.greGmatScore || 'Not provided'}</p>
+                                <Label className="text-muted-foreground">GRE Score</Label>
+                                <p>{request.student.greScore || 'Not taken / Not provided'}</p>
+                            </div>
+                            <div>
+                                <Label className="text-muted-foreground">GMAT Score</Label>
+                                <p>{request.student.gmatScore || 'Not taken / Not provided'}</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -160,6 +190,14 @@ export default async function AdvisoryDetailPage({ params }: { params: { id: str
                             </div>
                         </CardContent>
                     </Card>
+
+                    <ScheduleSession
+                        requestId={request.id}
+                        advisers={admins}
+                        currentAdviserId={request.adviserId}
+                        currentSessionLink={request.sessionLink}
+                        currentScheduledAt={request.scheduledAt}
+                    />
                 </div>
             </div>
         </div>

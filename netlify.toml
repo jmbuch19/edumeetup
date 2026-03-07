@@ -1,6 +1,75 @@
 [build]
-  command = "npm run build"
-  publish = ".next"
+  command = "rm -rf .next && npx prisma db push --schema=./prisma/schema.prisma --accept-data-loss && npm run build"
+
+[build.environment]
+  NETLIFY_USE_YARN = "false"
+  NODE_VERSION = "20"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[functions]
+  node_bundler = "esbuild"
+  # Increase timeout for data-heavy routes (delete route cancels meetings + sends emails)
+  included_files = ["prisma/**"]
+  # Prevent esbuild from bundling the Prisma query engine binary — must stay as a node_module
+  external_node_modules = ["@prisma/client", "prisma"]
+
+[functions."process-deletions"]
+  schedule = "0 2 * * *"
+
+# Hourly agent — student + university + 4 fair triggers
+[functions."agent"]
+  schedule = "0 * * * *"
+
+# Every 15 min — fair-auto-live + fair-auto-complete
+[functions."fair-fast-agent"]
+  schedule = "*/15 * * * *"
+
+# ─── Required Environment Variables ─────────────────────────────────────────
+# Set all of the following in the Netlify dashboard → Site Settings → Env vars:
+#
+# ⚠️  This app uses NextAuth v5. The env var names changed from v4:
+#       AUTH_SECRET  (was: NEXTAUTH_SECRET) ← CRITICAL — if missing, a random
+#                    secret is generated on every deploy, wiping all sessions!
+#       AUTH_URL     (was: NEXTAUTH_URL)    ← must be your full Netlify URL
+#
+#   DATABASE_URL          Neon PostgreSQL connection string
+#   AUTH_URL              https://www.edumeetup.com  (your production URL)
+#   AUTH_SECRET           Random 32-char secret — generate with: openssl rand -base64 32
+#   AUTH_GOOGLE_ID        Google OAuth client ID (env var name unchanged in v5)
+#   AUTH_GOOGLE_SECRET    Google OAuth client secret
+#   R2_ACCOUNT_ID         Cloudflare R2 account ID
+#   R2_ACCESS_KEY_ID      R2 access key
+#   R2_SECRET_ACCESS_KEY  R2 secret key
+#   R2_BUCKET             R2 bucket name
+#   R2_PUBLIC_URL         Public R2 domain (e.g. https://files.EdUmeetup.com)
+#   EMAIL_FROM            Sender address for transactional email
+#   RESEND_API_KEY        Resend API key (or SMTP vars if using nodemailer)
+#   CRON_SECRET           Random secret shared with the process-deletions function
+#   SUPPORT_EMAIL         support@edumeetup.com  ← used in deletion confirmation emails and server-side error messages
+#   NEXT_PUBLIC_SUPPORT_EMAIL support@edumeetup.com  ← same address, exposed to client error/auth pages
+#
+# ⚠️  REQUIRED: DIRECT_URL — Neon direct (non-pooled) connection string — required for Prisma migrate deploy (runs in build command)
+#
+# ⏳ ADD BEFORE FIRST FAIR:
+#   NEXT_PUBLIC_APP_URL   https://www.edumeetup.com  ← used in client-side fair pass / QR links
+#
+# ⏳ ADD WHEN WHATSAPP ACTIVATED:
+#   WHATSAPP_TOKEN        Meta Cloud API permanent token
+#   WHATSAPP_PHONE_ID     WhatsApp Business phone number ID
+
+
+# --- Security Headers -----------------------------------------------------------
+# CSP is set per-request in middleware.ts (nonce-based, strict-dynamic).
+# netlify.toml only sets the static headers that don't need a nonce.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(self), microphone=(), geolocation=(), browsing-topics=()"
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+    Cross-Origin-Resource-Policy = "same-origin"
+    Cross-Origin-Opener-Policy = "same-origin"

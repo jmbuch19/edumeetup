@@ -1,45 +1,82 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { getToken } from "next-auth/jwt"
+import { NextResponse, type NextRequest } from "next/server"
 
-export function middleware(request: NextRequest) {
-    const session = request.cookies.get('edumeetup_session')
+// ─── GOLDEN RULE ──────────────────────────────────────────────────────────────
+// This middleware handles NAVIGATION UX only — route gating and role-based redirects.
+// It is NOT the security model. Every API route and server action enforces its own
+// auth via lib/auth/requireAuth.ts (requireAuth, requireRole, requireAdmin, etc.)
+// CSP is set in next.config.mjs headers() — not here.
+// ──────────────────────────────────────────────────────────────────────────────
 
-    // Protect Admin Routes
-    if (request.nextUrl.pathname.startsWith('/admin')) {
-        if (!session) {
-            return NextResponse.redirect(new URL('/login', request.url))
-        }
-        try {
-            const { role } = JSON.parse(session.value)
-            if (role !== 'ADMIN') {
-                return NextResponse.redirect(new URL('/', request.url))
-            }
-        } catch (e) {
-            // Invalid cookie format
-            return NextResponse.redirect(new URL('/login', request.url))
-        }
+export default async function middleware(req: NextRequest) {
+    const { nextUrl } = req
+
+    // ── STEP 1: ALL /api/ routes bypass this middleware completely ──────────
+    // Auth callbacks MUST reach the full route handler with PrismaAdapter.
+    // API security is enforced server-side in each route handler.
+    if (nextUrl.pathname.startsWith('/api/')) {
+        return NextResponse.next()
     }
 
-    // Protect Student Dashboard
-    if (request.nextUrl.pathname.startsWith('/student/dashboard')) {
-        if (!session) {
-            return NextResponse.redirect(new URL('/login', request.url))
-        }
-        // Optional: Enforce role === 'STUDENT' if strictness required
+    // ── STEP 2: Read JWT — try Secure cookie first (HTTPS/prod), fall back to plain ──
+    // NextAuth v5 writes __Secure-authjs.session-token on HTTPS and authjs.session-token
+    // on HTTP. Both must be checked to avoid redirect loops after magic-link sign-in.
+    const secret = process.env.AUTH_SECRET
+    let token = await getToken({
+        req,
+        secret,
+        cookieName: '__Secure-authjs.session-token',
+    })
+    if (!token) {
+        token = await getToken({
+            req,
+            secret,
+            cookieName: 'authjs.session-token',
+        })
+    }
+    const isLoggedIn = !!token
+    const role = token?.role as "ADMIN" | "UNIVERSITY" | "UNIVERSITY_REP" | "STUDENT" | undefined
+
+    const isAuthRoute = nextUrl.pathname.startsWith('/login') || nextUrl.pathname.startsWith('/register')
+    const isStudentRoute = nextUrl.pathname.startsWith('/student')
+    const isUniversityRoute = nextUrl.pathname.startsWith('/university')
+    const isAdminRoute = nextUrl.pathname.startsWith('/admin')
+    const isRegistrationPage = nextUrl.pathname === '/student/register' || nextUrl.pathname === '/university/register'
+    const isUniversityLogin = nextUrl.pathname === '/university-login'
+
+    // ── STEP 3: PAGE ROUTE PROTECTION ───────────────────────────────────────
+
+    // Explicit /admin → /admin/dashboard redirect
+    if (nextUrl.pathname === '/admin') {
+        return NextResponse.redirect(new URL('/admin/dashboard', nextUrl))
     }
 
-    // Protect University Dashboard
-    if (request.nextUrl.pathname.startsWith('/university/dashboard')) {
-        if (!session) {
-            return NextResponse.redirect(new URL('/login', request.url))
+    // Redirect logged-in users away from auth/landing pages
+    if ((isAuthRoute || nextUrl.pathname === '/') && isLoggedIn) {
+        if (role === 'ADMIN') return NextResponse.redirect(new URL('/admin/dashboard', nextUrl))
+        if (role === 'UNIVERSITY') return NextResponse.redirect(new URL('/university/dashboard', nextUrl))
+        if (role === 'UNIVERSITY_REP') return NextResponse.redirect(new URL('/university/dashboard', nextUrl))
+        return NextResponse.redirect(new URL('/student/dashboard', nextUrl))
+    }
+
+    // Redirect unauthenticated users away from protected routes
+    if (!isLoggedIn && !isRegistrationPage && !isUniversityLogin && (isStudentRoute || isUniversityRoute || isAdminRoute)) {
+        const callbackUrl = nextUrl.pathname + (nextUrl.search || '')
+        return NextResponse.redirect(new URL(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`, nextUrl))
+    }
+
+    // Cross-role enforcement — prevent users accessing wrong dashboards
+    if (isLoggedIn) {
+        if (isAdminRoute && role !== 'ADMIN') {
+            const dest = (role === 'UNIVERSITY' || role === 'UNIVERSITY_REP') ? '/university/dashboard' : '/student/dashboard'
+            return NextResponse.redirect(new URL(dest, nextUrl))
         }
-        try {
-            const { role } = JSON.parse(session.value)
-            if (role !== 'UNIVERSITY') {
-                return NextResponse.redirect(new URL('/', request.url)) // or unauthorized page
-            }
-        } catch (e) {
-            return NextResponse.redirect(new URL('/login', request.url))
+        if (isUniversityRoute && role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP' && !isRegistrationPage) {
+            return NextResponse.redirect(new URL('/student/dashboard', nextUrl))
+        }
+        if (isStudentRoute && (role === 'ADMIN' || role === 'UNIVERSITY' || role === 'UNIVERSITY_REP')) {
+            const dest = role === 'ADMIN' ? '/admin/dashboard' : '/university/dashboard'
+            return NextResponse.redirect(new URL(dest, nextUrl))
         }
     }
 
@@ -47,9 +84,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: [
-        '/admin/:path*',
-        '/student/dashboard/:path*',
-        '/university/dashboard/:path*',
-    ],
+    matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
 }

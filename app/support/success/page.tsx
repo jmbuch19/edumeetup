@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, ArrowLeft } from 'lucide-react'
 
-export default function SupportSuccessPage({ searchParams }: { searchParams: { ticketId: string } }) {
+export default async function SupportSuccessPage(props: { searchParams: Promise<{ ticketId: string }> }) {
+    const searchParams = await props.searchParams;
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">

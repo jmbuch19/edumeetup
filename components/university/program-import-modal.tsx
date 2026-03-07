@@ -140,7 +140,7 @@ export function ProgramImportModal({ universityId, open, onOpenChange }: Program
                                 <span className="font-medium">Found {parsedData.length} programs! Please review the auto-mapping.</span>
                             </div>
 
-                            <div className="border rounded-lg overflow-hidden">
+                            <div className="border rounded-lg overflow-hidden overflow-x-auto">
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-gray-50 text-gray-600 font-medium border-b">
                                         <tr>

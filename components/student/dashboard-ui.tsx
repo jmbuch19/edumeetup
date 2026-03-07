@@ -2,30 +2,39 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { GraduationCap, MapPin, Search, Calendar, CheckCircle } from 'lucide-react'
+import { GraduationCap, MapPin, Search, Calendar, CheckCircle, LogOut, Clock, ExternalLink } from 'lucide-react'
+import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StudentMeetingsTable } from '@/components/student/student-meetings-table'
 import { AdvisoryBanner } from '@/components/student/advisory-banner'
 import { AdvisoryForm } from '@/components/student/advisory-form'
 import { expressInterest } from '@/app/actions'
+import { NotificationsCenter } from '@/components/notifications-center'
+import { UniversityLogo } from '@/components/university/university-logo'
 
 // Types
 // Types
-import { Program, UniversityProfile, MeetingParticipant, Meeting, AdvisoryRequest } from '@prisma/client'
+// Types
+type Program = any
+type University = any
+type MeetingParticipant = any
+type Meeting = any
+type AdvisoryRequest = any
 
 // Extended types for relations
-type ExtendedProgram = Program & { university: UniversityProfile }
-type ExtendedUniversity = UniversityProfile & { programs: Program[] }
-type ExtendedMeeting = MeetingParticipant & { meeting: Meeting & { university: UniversityProfile } }
+type ExtendedProgram = Program & { university: University }
+type ExtendedUniversity = University & { programs: Program[] }
+type ExtendedMeeting = MeetingParticipant & { meeting: Meeting & { university: University } }
 
 interface DashboardUIProps {
     student: { fullName: string; fieldOfInterest: string | null; preferredDegree: string | null; user: { email: string } }
-    matchedPrograms: ExtendedProgram[]
-    recommendedUniversities: ExtendedUniversity[]
-    myMeetings: ExtendedMeeting[]
-    interestedUniIds: Set<string>
-    advisoryStatus: AdvisoryRequest | null
+    matchedPrograms: any[] // Serialized ExtendedProgram
+    recommendedUniversities: any[] // Serialized ExtendedUniversity
+    myMeetings: any[] // Serialized ExtendedMeeting
+    interestedUniIds: string[] // Changed from Set to Array for serialization
+    advisoryStatus: any // Serialized AdvisoryRequest
+    hasCv: boolean
 }
 
 export function DashboardUI({
@@ -33,9 +42,12 @@ export function DashboardUI({
     matchedPrograms,
     recommendedUniversities,
     myMeetings,
-    interestedUniIds,
-    advisoryStatus
+    interestedUniIds, // Now an Array
+    advisoryStatus,
+    hasCv
 }: DashboardUIProps) {
+    // Re-create Set for internal use if needed, or just use includes
+    const interestedSet = new Set(interestedUniIds)
     const [activeTab, setActiveTab] = useState('overview')
 
     return (
@@ -45,7 +57,7 @@ export function DashboardUI({
                     <h1 className="text-3xl font-bold text-gray-900">Student Dashboard</h1>
                     <p className="text-gray-600">Welcome, {student.fullName}!</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                     <Link href="/student/profile">
                         <Button variant="outline">Edit Profile</Button>
                     </Link>
@@ -55,7 +67,19 @@ export function DashboardUI({
                             Browse All
                         </Button>
                     </Link>
+                    <Button
+                        variant="outline"
+                        className="gap-2 text-red-600 border-red-200 hover:bg-red-50"
+                        onClick={() => signOut({ callbackUrl: '/' })}
+                    >
+                        <LogOut className="h-4 w-4" />
+                        Sign Out
+                    </Button>
                 </div>
+            </div>
+
+            <div className="mb-8">
+                <NotificationsCenter userRole="STUDENT" />
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
@@ -77,6 +101,22 @@ export function DashboardUI({
                     {/* User requested non-intrusive banner */}
                     {!advisoryStatus && (
                         <AdvisoryBanner onOpen={() => setActiveTab('advisory')} />
+                    )}
+
+                    {/* CV Upload Nudge — shown only when no CV uploaded yet */}
+                    {!hasCv && (
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <span className="text-2xl shrink-0">📄</span>
+                                <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-amber-900">Upload your CV to stand out</p>
+                                    <p className="text-xs text-amber-700 mt-0.5">Universities and advisors can review your profile faster with a CV attached.</p>
+                                </div>
+                            </div>
+                            <Link href="/student/profile" className="sm:shrink-0">
+                                <Button size="sm" variant="outline" className="w-full sm:w-auto border-amber-300 text-amber-800 hover:bg-amber-100 whitespace-nowrap">Upload CV →</Button>
+                            </Link>
+                        </div>
                     )}
 
                     {/* My Meetings Section */}
@@ -120,8 +160,8 @@ export function DashboardUI({
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {matchedPrograms.map((program) => {
-                                    const isInterested = interestedUniIds.has(program.universityId)
+                                {matchedPrograms.map((program: any) => {
+                                    const isInterested = interestedSet.has(program.universityId)
                                     return (
                                         <div key={program.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:border-primary/50 transition-colors">
                                             <div className="p-6">
@@ -190,14 +230,12 @@ export function DashboardUI({
                                 {recommendedUniversities.map((uni) => (
                                     <div key={uni.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                                         <div className="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-100">
-                                            {uni.logo ? (
-                                                <>
-                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img src={uni.logo} alt={uni.institutionName} className="max-h-20 max-w-[80%]" />
-                                                </>
-                                            ) : (
-                                                <GraduationCap className="h-12 w-12 text-gray-400" />
-                                            )}
+                                            <UniversityLogo
+                                                src={uni.logo}
+                                                alt={uni.institutionName}
+                                                size="xl"
+                                                websiteUrl={uni.website}
+                                            />
                                         </div>
                                         <div className="p-6">
                                             <h3 className="text-xl font-bold text-gray-900 mb-2">{uni.institutionName}</h3>
@@ -222,7 +260,77 @@ export function DashboardUI({
                 </TabsContent>
 
                 <TabsContent value="advisory">
-                    {advisoryStatus ? (
+                    {advisoryStatus?.status === 'SCHEDULED' ? (
+                        /* ── SESSION CONFIRMED VIEW ── */
+                        <div className="max-w-2xl mx-auto py-12">
+                            <div className="bg-white rounded-2xl shadow-sm border-2 border-green-200 overflow-hidden">
+                                <div className="bg-green-50 px-8 py-5 border-b border-green-200 flex items-center gap-3">
+                                    <CheckCircle className="h-6 w-6 text-green-600 shrink-0" />
+                                    <div>
+                                        <p className="font-bold text-green-800">Session Confirmed!</p>
+                                        <p className="text-sm text-green-600">Your advisory session has been scheduled.</p>
+                                    </div>
+                                </div>
+
+                                <div className="p-8 space-y-6">
+                                    {/* Confirmed Date/Time */}
+                                    {advisoryStatus.scheduledAt && (
+                                        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5 flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center shrink-0">
+                                                <Clock className="h-6 w-6 text-indigo-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-indigo-500 font-semibold uppercase tracking-wide">Confirmed Date &amp; Time</p>
+                                                <p className="text-lg font-bold text-indigo-900">
+                                                    {new Date(advisoryStatus.scheduledAt).toLocaleString('en-IN', {
+                                                        weekday: 'long',
+                                                        year: 'numeric',
+                                                        month: 'long',
+                                                        day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                        hour12: true,
+                                                        timeZone: 'Asia/Kolkata'
+                                                    })} IST
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Join Button */}
+                                    {advisoryStatus.sessionLink && (
+                                        <a
+                                            href={advisoryStatus.sessionLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center justify-center gap-2 w-full py-3.5 px-6 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity text-base"
+                                        >
+                                            <ExternalLink className="h-5 w-5" />
+                                            Join Session
+                                        </a>
+                                    )}
+
+                                    {/* Request summary */}
+                                    <div className="bg-gray-50 p-5 rounded-xl text-sm space-y-2">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-500">Target</span>
+                                            <span className="font-medium">{advisoryStatus.targetDegree} in {advisoryStatus.fieldOfInterest} · {advisoryStatus.targetCountry}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-500">Requested on</span>
+                                            <span className="font-medium">{new Date(advisoryStatus.createdAt).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+
+                                    <p className="text-xs text-gray-400 text-center">
+                                        Need to reschedule? Email&nbsp;
+                                        <a href="mailto:support@iaesgujarat.org" className="text-primary hover:underline">support@iaesgujarat.org</a>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : advisoryStatus ? (
+                        /* ── PENDING / ASSIGNED / COMPLETED VIEW ── */
                         <div className="max-w-3xl mx-auto py-12">
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
                                 <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -262,6 +370,7 @@ export function DashboardUI({
                             </div>
                         </div>
                     ) : (
+                        /* ── NO REQUEST YET ── */
                         <div className="max-w-4xl mx-auto py-8">
                             <AdvisoryForm onClose={() => setActiveTab('overview')} />
                         </div>

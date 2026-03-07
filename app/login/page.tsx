@@ -1,104 +1,140 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { login } from "@/app/actions"
-import { GraduationCap } from "lucide-react"
+'use client'
+
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Loader2, Mail, AlertCircle, ShieldCheck, Info } from 'lucide-react'
+import { toast } from 'sonner'
+import { login } from '@/app/actions'
+import { COMMON_TYPO_DOMAINS } from '@/lib/schemas'
 
 export default function LoginPage() {
+    const [isLoading, setIsLoading] = useState(false)
+    const [emailError, setEmailError] = useState<string | null>(null)
+    const [trustDevice, setTrustDevice] = useState(true)
+    const [showTip, setShowTip] = useState(false)
+
+    function checkEmailTypo(email: string): string | null {
+        const domain = email.trim().toLowerCase().split('@')[1] ?? ''
+        const suggestion = COMMON_TYPO_DOMAINS[domain]
+        return suggestion ? `Did you mean @${suggestion}?` : null
+    }
+
+    async function handleLogin(formData: FormData) {
+        const emailVal = (formData.get('email') as string ?? '').trim().toLowerCase()
+        formData.set('email', emailVal)
+
+        // Store device trust preference so SessionGuard can act on it after magic link redirect
+        if (typeof window !== 'undefined') {
+            if (trustDevice) {
+                localStorage.removeItem('em_shared_device')
+            } else {
+                localStorage.setItem('em_shared_device', '1')
+            }
+        }
+
+        setIsLoading(true)
+        try {
+            const result = await login(formData)
+            if (result?.error) {
+                const errorMessage = typeof result.error === 'string'
+                    ? result.error
+                    : Object.values(result.error).flat().join(', ')
+                toast.error(errorMessage)
+            } else if (result?.success) {
+                toast.success(result.message)
+            }
+        } catch {
+            toast.error('An unexpected error occurred.')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     return (
-        <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
-            <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex flex-col items-center text-center">
-                    <div className="bg-primary p-2 rounded-lg mb-4">
-                        <GraduationCap className="h-8 w-8 text-white" />
-                    </div>
-                    <h2 className="text-3xl font-bold tracking-tight text-gray-900">
-                        Welcome back
-                    </h2>
-                    <p className="mt-2 text-sm text-gray-600">
-                        Sign in to your account to continue
-                    </p>
-                </div>
-
-                <form className="mt-8 space-y-6" action={async (formData) => {
-                    'use server'
-                    await login(formData)
-                }}>
-                    <div className="space-y-4">
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                                Email address
-                            </label>
-                            <div className="mt-1">
-                                <Input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    autoComplete="email"
-                                    required
-                                    placeholder="you@example.com"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                                Password
-                            </label>
-                            <div className="mt-1">
-                                <Input
-                                    id="password"
-                                    name="password"
-                                    type="password"
-                                    autoComplete="current-password"
-                                    required
-                                    placeholder="••••••••"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                            <input
-                                id="remember-me"
-                                name="remember-me"
-                                type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+        <div className="container flex min-h-screen w-screen flex-col items-center justify-center px-4">
+            <Card className="w-full max-w-sm">
+                <CardHeader className="text-center">
+                    <CardTitle>Welcome Back</CardTitle>
+                    <CardDescription>
+                        Enter your email to sign in via Magic Link
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form action={handleLogin} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                                id="email"
+                                name="email"
+                                type="email"
+                                placeholder="name@example.com"
+                                required
+                                disabled={isLoading}
+                                className={emailError ? 'border-amber-400 focus-visible:ring-amber-400' : ''}
+                                onBlur={(e) => {
+                                    e.target.value = e.target.value.trim().toLowerCase()
+                                    setEmailError(checkEmailTypo(e.target.value))
+                                }}
                             />
-                            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                                Remember me
+                            {emailError && (
+                                <p className="flex items-center gap-1 text-xs text-amber-600">
+                                    <AlertCircle className="h-3 w-3 shrink-0" />
+                                    {emailError} Please fix before signing in.
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Trust This Device */}
+                        <div className={`rounded-lg border px-3 py-2.5 transition-colors ${trustDevice ? 'border-indigo-200 bg-indigo-50 dark:bg-indigo-950/20 dark:border-indigo-800' : 'border-border bg-muted/40'}`}>
+                            <label className="flex items-center gap-3 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={trustDevice}
+                                    onChange={(e) => setTrustDevice(e.target.checked)}
+                                    className="h-4 w-4 rounded accent-indigo-600 cursor-pointer"
+                                />
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                        <ShieldCheck className={`h-3.5 w-3.5 shrink-0 ${trustDevice ? 'text-indigo-600' : 'text-muted-foreground'}`} />
+                                        <span className={`text-sm font-medium ${trustDevice ? 'text-indigo-700 dark:text-indigo-300' : 'text-muted-foreground'}`}>
+                                            Trust this device
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowTip(!showTip)}
+                                            className="text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                            <Info className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                        {trustDevice
+                                            ? 'Stay signed in for 30 days on this device.'
+                                            : 'You will be signed out when the browser closes.'}
+                                    </p>
+                                </div>
                             </label>
+                            {showTip && (
+                                <p className="mt-2 text-xs text-muted-foreground border-t border-border pt-2">
+                                    ⚠️ Uncheck this on a shared or public computer so others cannot access your account.
+                                </p>
+                            )}
                         </div>
 
-                        <div className="text-sm">
-                            <Link
-                                href="/forgot-password"
-                                className="font-medium text-primary hover:text-primary/80"
-                            >
-                                Forgot password?
-                            </Link>
-                        </div>
-                    </div>
-
-                    <div>
-                        <Button type="submit" className="w-full">
-                            Sign in
+                        <Button className="w-full" type="submit" disabled={isLoading}>
+                            {isLoading ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Mail className="mr-2 h-4 w-4" />
+                            )}
+                            Sign In with Email
                         </Button>
-                    </div>
-                </form>
-
-                <div className="text-center text-sm">
-                    <span className="text-gray-500">Don&apos;t have an account? </span>
-                    <Link href="/student/register" className="font-medium text-primary hover:text-primary/80">
-                        Sign up as Student
-                    </Link>
-                    <span className="text-gray-500"> or </span>
-                    <Link href="/university/register" className="font-medium text-primary hover:text-primary/80">
-                        University
-                    </Link>
-                </div>
-            </div>
+                    </form>
+                </CardContent>
+            </Card>
         </div>
     )
 }

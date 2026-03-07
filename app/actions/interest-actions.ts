@@ -2,7 +2,8 @@
 
 import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/auth'
-import { sendEmail } from '@/lib/email' // Assuming this exists
+import { sendEmail } from '@/lib/email'
+import { notifyStudent } from '@/lib/notify'
 
 // Types for the UI
 export type InterestStats = {
@@ -24,7 +25,7 @@ export type InterestedStudent = {
 
 export async function getProgramInterestStats(programId: string): Promise<InterestStats> {
     const user = await requireUser()
-    const uni = await prisma.universityProfile.findUnique({ where: { userId: user.id } })
+    const uni = await prisma.university.findUnique({ where: { userId: user.id } })
     if (!uni) throw new Error("Unauthorized")
 
     // Verify program belongs to uni
@@ -42,8 +43,8 @@ export async function getProgramInterestStats(programId: string): Promise<Intere
 
     // Aggregate by Country
     const countryMap = new Map<string, number>()
-    interests.forEach(i => {
-        const country = i.student.country || 'Unknown'
+    interests.filter(i => i.student !== null).forEach(i => {
+        const country = i.student?.country || 'Unknown'
         countryMap.set(country, (countryMap.get(country) || 0) + 1)
     })
     const byCountry = Array.from(countryMap.entries())
@@ -53,8 +54,8 @@ export async function getProgramInterestStats(programId: string): Promise<Intere
 
     // Aggregate by Status
     const statusMap = new Map<string, number>()
-    interests.forEach(i => {
-        const status = i.student.currentStatus || 'Unknown'
+    interests.filter(i => i.student !== null).forEach(i => {
+        const status = i.student?.currentStatus || 'Unknown'
         statusMap.set(status, (statusMap.get(status) || 0) + 1)
     })
     const byStatus = Array.from(statusMap.entries())
@@ -65,7 +66,7 @@ export async function getProgramInterestStats(programId: string): Promise<Intere
 
 export async function getInterestedStudents(programId: string): Promise<InterestedStudent[]> {
     const user = await requireUser()
-    const uni = await prisma.universityProfile.findUnique({ where: { userId: user.id } })
+    const uni = await prisma.university.findUnique({ where: { userId: user.id } })
     if (!uni) throw new Error("Unauthorized")
 
     // Verify program belongs to uni
@@ -84,23 +85,23 @@ export async function getInterestedStudents(programId: string): Promise<Interest
 
     // Check for existing meetings to flag "hasMeeting"
     // This is a bit expensive in loop, maybe optimize later
-    const students = await Promise.all(interests.map(async (i) => {
+    const students = await Promise.all(interests.filter(i => i.student !== null).map(async (i) => {
         const meeting = await prisma.meetingParticipant.findFirst({
             where: {
-                participantUserId: i.student.userId,
+                participantUserId: i.student!.userId,
                 meeting: {
-                    createdByUniversityId: uni.id
+                    universityId: uni.id
                 }
             }
         })
 
         return {
             id: i.studentId,
-            fullName: i.student.fullName,
-            country: i.student.country,
-            currentStatus: i.student.currentStatus,
-            fieldOfInterest: i.student.fieldOfInterest,
-            preferredDegree: i.student.preferredDegree,
+            fullName: i.student?.fullName || 'Unknown Student',
+            country: i.student?.country ?? null,
+            currentStatus: i.student?.currentStatus ?? null,
+            fieldOfInterest: i.student?.fieldOfInterest ?? null,
+            preferredDegree: i.student?.preferredDegree ?? null,
             interestDate: i.createdAt,
             hasMeeting: !!meeting
         }
@@ -111,7 +112,7 @@ export async function getInterestedStudents(programId: string): Promise<Interest
 
 export async function sendBulkNotification(programId: string, subject: string, message: string) {
     const user = await requireUser()
-    const uni = await prisma.universityProfile.findUnique({ where: { userId: user.id } })
+    const uni = await prisma.university.findUnique({ where: { userId: user.id } })
     if (!uni) throw new Error("Unauthorized")
 
     // Verify program belongs to uni
@@ -131,9 +132,9 @@ export async function sendBulkNotification(programId: string, subject: string, m
 
     if (interests.length === 0) return { success: true, count: 0 }
 
-    // Create Notifications
+    // Create Notifications (generic table + role-specific bell)
     await prisma.notification.createMany({
-        data: interests.map(i => ({
+        data: interests.filter(i => i.student !== null).map(i => ({
             userId: i.student.userId,
             type: 'UNIVERSITY_MESSAGE',
             title: subject,
@@ -142,13 +143,23 @@ export async function sendBulkNotification(programId: string, subject: string, m
         }))
     })
 
-    // Send Emails (Background or Batch)
-    // For MVP, simplistic loop (careful with rate limits if real)
+    // Role-specific StudentNotification (dashboard bell)
     for (const interest of interests) {
+        await notifyStudent(interest.studentId, {
+            title: subject,
+            message: message,
+            type: 'INFO',
+            actionUrl: `/universities/${uni.id}`
+        })
+    }
+
+    // Send Emails
+    for (const interest of interests) {
+        if (!interest.student?.user?.email) continue
         await sendEmail({
             to: interest.student.user.email,
             subject: `Message from ${uni.institutionName}: ${subject}`,
-            html: `<p>${message}</p><br/><p>Sent via EduMeetup regarding ${program.programName}</p>`
+            html: `<p>${message}</p><br/><p>Sent via EdUmeetup regarding ${program.programName}</p>`
         })
     }
 
