@@ -72,7 +72,7 @@ function NavContent({ adminName, adminEmail, onClose }: AdminNavProps & { onClos
                 <div className="min-w-0">
                     <div className="flex items-center gap-2">
                         <p style={{ fontFamily: 'var(--font-display)', color: 'white', fontSize: 17, lineHeight: 1.1 }}>
-                            edu<span style={{ color: 'var(--gold)' }}>meetup</span>
+                            Ed<span style={{ color: 'var(--gold)' }}>U</span>meetup
                         </p>
                         {/* Gold ADMIN badge */}
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
@@ -80,7 +80,7 @@ function NavContent({ adminName, adminEmail, onClose }: AdminNavProps & { onClos
                             ADMIN
                         </span>
                     </div>
-                    <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+                    <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
                         Where Dreams Meet Destinations
                     </p>
                 </div>
