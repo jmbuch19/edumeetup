@@ -1,6 +1,6 @@
 'use server'
 
-import { requireAuth, requireStudentUser } from "@/lib/auth/requireAuth"
+import { requireStudentUser } from "@/lib/auth/requireAuth"
 import { prisma } from "@/lib/prisma"
 import { MeetingPurpose, VideoProvider, MeetingStatus } from "@prisma/client"
 import { revalidatePath } from "next/cache"
@@ -28,7 +28,9 @@ export type BookingData = z.infer<typeof bookingSchema>
 // --- Actions ---
 
 export async function getBookingData(universityId: string) {
-    const session = await requireAuth().catch(() => null)
+    // requireStudentUser: only active students should access booking data.
+    // University reps and admins have their own routes.
+    const session = await requireStudentUser().catch(() => null)
     if (!session) return { error: "Unauthorized" }
 
     // 1. Fetch University & Reps
