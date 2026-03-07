@@ -1,15 +1,15 @@
 import { google } from '@/lib/ai';
 import { streamText } from 'ai';
-import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { auth } from '@/lib/auth';
+import { requireAuth, toErrorResponse } from '@/lib/auth/requireAuth';
 
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const session = await auth()
-  if (!session?.user?.id) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+  try {
+    await requireAuth()
+  } catch (err) {
+    return toErrorResponse(err)
   }
 
   const { messages } = await req.json();

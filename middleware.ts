@@ -2,11 +2,10 @@ import { getToken } from "next-auth/jwt"
 import { NextResponse, type NextRequest } from "next/server"
 
 // ─── GOLDEN RULE ──────────────────────────────────────────────────────────────
-// Use getToken() — NOT auth(req) — to read the session in middleware.
+// This middleware handles NAVIGATION UX only — route gating and role-based redirects.
+// It is NOT the security model. Every API route and server action enforces its own
+// auth via lib/auth/requireAuth.ts (requireAuth, requireRole, requireAdmin, etc.)
 // CSP is set in next.config.mjs headers() — not here.
-// Nonce-based CSP requires the root layout to stamp nonces on every script tag,
-// which is a large infrastructure change. next.config.mjs unsafe-inline CSP
-// achieves Observatory B+ (80/100) and keeps the app working correctly.
 // ──────────────────────────────────────────────────────────────────────────────
 
 export default async function middleware(req: NextRequest) {
@@ -14,15 +13,15 @@ export default async function middleware(req: NextRequest) {
 
     // ── STEP 1: ALL /api/ routes bypass this middleware completely ──────────
     // Auth callbacks MUST reach the full route handler with PrismaAdapter.
+    // API security is enforced server-side in each route handler.
     if (nextUrl.pathname.startsWith('/api/')) {
         return NextResponse.next()
     }
 
     // ── STEP 2: Read JWT — try Secure cookie first (HTTPS/prod), fall back to plain ──
     // NextAuth v5 writes __Secure-authjs.session-token on HTTPS and authjs.session-token
-    // on HTTP. If the middleware only reads one name it returns null for the other,
-    // causing a redirect loop immediately after magic-link sign-in.
-    const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET
+    // on HTTP. Both must be checked to avoid redirect loops after magic-link sign-in.
+    const secret = process.env.AUTH_SECRET
     let token = await getToken({
         req,
         secret,

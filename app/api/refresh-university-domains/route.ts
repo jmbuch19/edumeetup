@@ -17,13 +17,13 @@ export const dynamic = 'force-dynamic'
 const REFRESH_SECRET = process.env.CRON_SECRET
 
 export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url)
-    const secret = searchParams.get('secret')
-
     if (!REFRESH_SECRET) {
         return NextResponse.json({ error: 'Not configured' }, { status: 503 })
     }
-    if (secret !== REFRESH_SECRET) {
+
+    // Use Authorization header — safer than query params (avoids secret in URL logs)
+    const authHeader = request.headers.get('Authorization')
+    if (authHeader !== `Bearer ${REFRESH_SECRET}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
