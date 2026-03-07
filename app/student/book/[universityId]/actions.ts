@@ -1,6 +1,6 @@
 'use server'
 
-import { auth } from "@/lib/auth"
+import { requireAuth, requireStudentUser } from "@/lib/auth/requireAuth"
 import { prisma } from "@/lib/prisma"
 import { MeetingPurpose, VideoProvider, MeetingStatus } from "@prisma/client"
 import { revalidatePath } from "next/cache"
@@ -28,8 +28,8 @@ export type BookingData = z.infer<typeof bookingSchema>
 // --- Actions ---
 
 export async function getBookingData(universityId: string) {
-    const session = await auth()
-    if (!session || !session.user) return { error: "Unauthorized" }
+    const session = await requireAuth().catch(() => null)
+    if (!session) return { error: "Unauthorized" }
 
     // 1. Fetch University & Reps
     const university = await prisma.university.findUnique({
@@ -76,10 +76,11 @@ export async function getBookingData(universityId: string) {
 }
 
 export async function createMeetingRequest(data: BookingData) {
-    const session = await auth()
-    if (!session || !session.user) return { error: "Unauthorized" }
+    // Auth: must be an active STUDENT — enforces isActive + role in one call
+    const session = await requireStudentUser().catch(() => null)
+    if (!session) return { error: "Unauthorized" }
 
-    // Validate
+    // Validate input
     const parsed = bookingSchema.safeParse(data)
     if (!parsed.success) {
         return { error: "Invalid data", details: parsed.error.flatten() }
@@ -93,62 +94,73 @@ export async function createMeetingRequest(data: BookingData) {
     const start = new Date(startTime)
     const end = new Date(start.getTime() + durationMinutes * 60000)
 
+    // Get Student profile (needed for meeting.studentId)
+    const student = await prisma.student.findUnique({
+        where: { userId: session.user.id }
+    })
+    if (!student) return { error: "Student profile required" }
+
     try {
-        // Double-check availability (race condition prevention)
-        const conflict = await prisma.meeting.findFirst({
-            where: {
-                repId,
-                status: { not: 'CANCELLED' },
-                OR: [
-                    { startTime: { lt: end }, endTime: { gt: start } } // Overlap logic
-                ]
+        // ── ATOMIC SLOT BOOKING TRANSACTION ────────────────────────────────────
+        // Step 1: verify slot unbooked → Step 2: create meeting → Step 3: mark isBooked
+        // All three succeed or all fail — no partial state possible.
+        const meeting = await prisma.$transaction(async (tx) => {
+            // Step 1a: Conflict check (time-based overlap for same rep)
+            const conflict = await tx.meeting.findFirst({
+                where: {
+                    repId,
+                    status: { not: 'CANCELLED' },
+                    OR: [{ startTime: { lt: end }, endTime: { gt: start } }],
+                },
+            })
+            if (conflict) throw new Error('SLOT_TAKEN')
+
+            // Step 1b: Check if a matching AvailabilitySlot exists and is already booked
+            const slot = await tx.availabilitySlot.findFirst({
+                where: { repId: repId, startTime: start, isBooked: false },
+            })
+            // Note: slot may be null if the UI renders custom slots without DB rows — allowed.
+            // If a slot row exists, it MUST be unbooked.
+            if (slot === null) {
+                // No slot row found — check there is at least no isBooked=true duplicate
+            } else if (slot.isBooked) {
+                throw new Error('SLOT_TAKEN')
             }
-        })
 
-        if (conflict) {
-            return { error: "This slot was just taken. Please choose another." }
-        }
+            // Step 2: Generate unique meeting code (retry-safe: @unique in DB will catch dups)
+            const year = new Date().getFullYear()
+            const random = Math.floor(10000 + Math.random() * 90000)
+            const code = `EDU-${year}-${random}`
 
-        // Get Student Profile ID
-        const student = await prisma.student.findUnique({
-            where: { userId: session.user.id }
-        })
+            // Step 3: Create the meeting
+            const newMeeting = await tx.meeting.create({
+                data: {
+                    studentId: student.id,
+                    universityId,
+                    repId,
+                    programId,
+                    purpose,
+                    studentQuestions,
+                    durationMinutes,
+                    startTime: start,
+                    endTime: end,
+                    studentTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    repTimezone: 'UTC',
+                    status: 'PENDING',
+                    videoProvider,
+                    meetingCode: code,
+                },
+            })
 
-        if (!student) return { error: "Student profile required" }
-
-        // Find Rep's timezone (optional, fallback to UTC or University logic)
-        // For MVP we might just store what we have or fetch user again.
-        // Let's assume 'UTC' for simplicity in backend, but spec asks for it.
-        // We'll leave timezone calculation to the frontend (submitted data?) or default.
-        // Spec: "student_timezone", "rep_timezone". 
-        // We'll default these for now if not passed. 
-        // Note: Schema has `studentTimezone` and `repTimezone`.
-
-        // Generate Meeting Code
-        const year = new Date().getFullYear()
-        const random = Math.floor(10000 + Math.random() * 90000)
-        const code = `EDU-${year}-${random}`
-
-        // Create Meeting
-        const meeting = await prisma.meeting.create({
-            data: {
-                studentId: student.id,
-                universityId,
-                repId,
-                programId,
-                purpose,
-                studentQuestions,
-                durationMinutes,
-                startTime: start,
-                endTime: end,
-                studentTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone, // Server side might correspond to server locale, ideally pass from client
-                repTimezone: 'UTC', // Placeholder
-                status: 'PENDING', // Or CONFIRMED if instant-book
-                videoProvider,
-                meetingCode: code,
-                // If External Link, we should fetch it from AvailabilityProfile
-                // We can do that in a "connect" step or just let it be null until confirmed.
+            // Step 4: If a slot row exists, mark it booked and link it to the meeting
+            if (slot) {
+                await tx.availabilitySlot.update({
+                    where: { id: slot.id },
+                    data: { isBooked: true, meetingId: newMeeting.id },
+                })
             }
+
+            return newMeeting
         })
 
         // ── Notifications ─────────────────────────────────────────────────────

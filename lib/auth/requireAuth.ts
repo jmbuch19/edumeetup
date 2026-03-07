@@ -4,16 +4,29 @@
  * Central server-side authorization helpers.
  * Every API route and server action that touches protected data MUST use these.
  *
- * Rules:
- *  - Always reads session from auth() — never trusts client-supplied IDs
- *  - Always checks isActive before returning
- *  - Throws AuthorizationError (extends Error) — catch at route level and return 401/403
+ * Design rules:
+ *  - Always reads session via auth() — never trusts client-supplied IDs or role strings
+ *  - Always re-checks isActive from DB on every call (JWT caches stale state)
+ *  - Throws AuthorizationError — catch at route boundary with toErrorResponse()
+ *
+ * Owner vs Rep semantics (enforced throughout):
+ *  - UNIVERSITY user  → owns a university via University.userId === session.user.id
+ *  - UNIVERSITY_REP   → belongs to a university via User.universityId === university.id
+ *  - These are intentionally distinct and must NOT be treated interchangeably
+ *    unless the helper explicitly accepts both (e.g. requireUniversityUser).
+ *  - ADMIN bypasses all ownership checks.
  */
 
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-// ── Error Class ─────────────────────────────────────────────────────────────
+// ── Role Type ─────────────────────────────────────────────────────────────────
+// Strict union — must stay in sync with Prisma enum UserRole in schema.prisma.
+// Do NOT use plain `string` for role comparisons anywhere in authorization code.
+
+export type UserRole = 'STUDENT' | 'UNIVERSITY' | 'UNIVERSITY_REP' | 'ADMIN'
+
+// ── Error Class ───────────────────────────────────────────────────────────────
 
 export class AuthorizationError extends Error {
     statusCode: 401 | 403
@@ -25,7 +38,7 @@ export class AuthorizationError extends Error {
     }
 }
 
-/** Convert AuthorizationError into the correct Response for API routes. */
+/** Converts AuthorizationError → correct HTTP Response for API route handlers. */
 export function toErrorResponse(error: unknown): Response {
     if (error instanceof AuthorizationError) {
         return new Response(JSON.stringify({ error: error.message }), {
@@ -33,29 +46,32 @@ export function toErrorResponse(error: unknown): Response {
             headers: { 'Content-Type': 'application/json' },
         })
     }
-    // Unexpected error — return 500
-    console.error('[AuthorizationError] Unexpected:', error)
+    console.error('[Auth] Unexpected authorization error:', error)
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
     })
 }
 
-// ── Session Shape ────────────────────────────────────────────────────────────
+// ── Session Shape ─────────────────────────────────────────────────────────────
 
 export type AuthSession = {
     user: {
         id: string
         email: string
-        role: string
+        role: UserRole  // ← strict union, not string
     }
 }
 
-// ── Core Helpers ─────────────────────────────────────────────────────────────
+// ── Core Helpers ──────────────────────────────────────────────────────────────
 
 /**
- * Verifies a valid session exists and the user is active.
- * Throws 401 if unauthenticated, 403 if the account is inactive.
+ * Verifies a valid session exists and the account is active.
+ * Throws AuthorizationError(401) if unauthenticated.
+ * Throws AuthorizationError(403) if the account is inactive.
+ *
+ * isActive is re-checked from DB on every call because JWT tokens cache
+ * the state at login time and cannot reflect mid-session deactivations.
  */
 export async function requireAuth(): Promise<AuthSession> {
     const session = await auth()
@@ -64,28 +80,35 @@ export async function requireAuth(): Promise<AuthSession> {
         throw new AuthorizationError('Unauthenticated', 401)
     }
 
-    // Re-check isActive from DB — cannot rely on JWT alone since it caches state
     const dbUser = await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { isActive: true },
+        select: { isActive: true, role: true },
     })
 
-    if (!dbUser || !dbUser.isActive) {
-        throw new AuthorizationError('Account is inactive or does not exist', 403)
+    if (!dbUser) {
+        throw new AuthorizationError('User account not found', 401)
     }
 
-    return session as AuthSession
+    if (!dbUser.isActive) {
+        throw new AuthorizationError('Account is deactivated', 403)
+    }
+
+    // Return session with role enforced from DB (not JWT cache)
+    return {
+        user: {
+            id: session.user.id,
+            email: session.user.email!,
+            role: dbUser.role as UserRole,
+        },
+    }
 }
 
 /**
- * Verifies session + isActive, then checks role.
- * Accepts a single role or an array (any match is sufficient).
+ * Requires a specific role. Accepts a single role or an array (OR logic).
  */
-export async function requireRole(
-    role: string | string[]
-): Promise<AuthSession> {
+export async function requireRole(role: UserRole | UserRole[]): Promise<AuthSession> {
     const session = await requireAuth()
-    const allowed = Array.isArray(role) ? role : [role]
+    const allowed: UserRole[] = Array.isArray(role) ? role : [role]
 
     if (!allowed.includes(session.user.role)) {
         throw new AuthorizationError(
@@ -102,7 +125,10 @@ export async function requireAdmin(): Promise<AuthSession> {
     return requireRole('ADMIN')
 }
 
-/** UNIVERSITY or UNIVERSITY_REP. */
+/**
+ * UNIVERSITY or UNIVERSITY_REP.
+ * Note: these have different ownership semantics — see helpers below.
+ */
 export async function requireUniversityUser(): Promise<AuthSession> {
     return requireRole(['UNIVERSITY', 'UNIVERSITY_REP'])
 }
@@ -112,16 +138,17 @@ export async function requireStudentUser(): Promise<AuthSession> {
     return requireRole('STUDENT')
 }
 
-// ── Ownership Helpers ────────────────────────────────────────────────────────
+// ── Ownership Helpers ─────────────────────────────────────────────────────────
 
 /**
  * Verifies the authenticated user owns the given studentId.
- * Admins bypass this check (they can access all).
+ *
+ * Ownership rule: Student.userId === session.user.id
+ * ADMIN bypasses.
  */
 export async function requireStudentOwnership(studentId: string): Promise<AuthSession> {
     const session = await requireAuth()
 
-    // Admins can access any student record
     if (session.user.role === 'ADMIN') return session
 
     const student = await prisma.student.findUnique({
@@ -130,7 +157,7 @@ export async function requireStudentOwnership(studentId: string): Promise<AuthSe
     })
 
     if (!student) {
-        throw new AuthorizationError('Student not found', 403)
+        throw new AuthorizationError('Student record not found', 403)
     }
 
     if (student.userId !== session.user.id) {
@@ -142,9 +169,15 @@ export async function requireStudentOwnership(studentId: string): Promise<AuthSe
 
 /**
  * Verifies the authenticated user belongs to the given universityId.
- * UNIVERSITY: must be the direct owner (university.userId === session.user.id)
- * UNIVERSITY_REP: must have universityId === this university
- * ADMIN: bypassed
+ *
+ * UNIVERSITY owner:    University.userId === session.user.id
+ * UNIVERSITY_REP:      User.universityId === universityId
+ *
+ * These are distinct relations. A UNIVERSITY owner does NOT automatically
+ * satisfy the REP check, and vice versa. The helper handles each path
+ * explicitly and intentionally.
+ *
+ * ADMIN bypasses.
  */
 export async function requireUniversityOwnership(universityId: string): Promise<AuthSession> {
     const session = await requireAuth()
@@ -156,13 +189,17 @@ export async function requireUniversityOwnership(universityId: string): Promise<
             where: { id: universityId },
             select: { userId: true },
         })
-        if (!uni || uni.userId !== session.user.id) {
-            throw new AuthorizationError('Forbidden — you do not own this university record', 403)
+        if (!uni) {
+            throw new AuthorizationError('University not found', 403)
+        }
+        if (uni.userId !== session.user.id) {
+            throw new AuthorizationError('Forbidden — you do not own this university', 403)
         }
         return session
     }
 
     if (session.user.role === 'UNIVERSITY_REP') {
+        // Rep is linked via User.universityId (the parent university they belong to)
         const user = await prisma.user.findUnique({
             where: { id: session.user.id },
             select: { universityId: true },
@@ -178,10 +215,15 @@ export async function requireUniversityOwnership(universityId: string): Promise<
 
 /**
  * Verifies the authenticated user can access a specific meeting.
- * Access is granted if the user is:
- *   - A participant in the meeting, OR
- *   - The university rep who owns the meeting, OR
- *   - An admin
+ *
+ * Access is granted if the user is ANY of:
+ *   1. A participant (MeetingParticipant.userId === session.user.id)
+ *   2. The assigned rep (Meeting.repId === session.user.id)
+ *   3. The university owner (University.userId === session.user.id)
+ *   4. The student who booked (Meeting.student.userId === session.user.id)
+ *      — defensive fallback in case participant rows are missing/incomplete
+ *
+ * ADMIN bypasses.
  */
 export async function requireMeetingAccess(meetingId: string): Promise<AuthSession> {
     const session = await requireAuth()
@@ -191,13 +233,18 @@ export async function requireMeetingAccess(meetingId: string): Promise<AuthSessi
     const meeting = await prisma.meeting.findUnique({
         where: { id: meetingId },
         select: {
-            universityId: true,
             repId: true,
+            // Path 1: explicit participant rows
             participants: {
                 select: { user: { select: { id: true } } },
             },
+            // Path 2: university owner
             university: {
                 select: { userId: true },
+            },
+            // Path 3: student direct ownership (defensive, covers missing participant rows)
+            student: {
+                select: { user: { select: { id: true } } },
             },
         },
     })
@@ -209,9 +256,10 @@ export async function requireMeetingAccess(meetingId: string): Promise<AuthSessi
     const isParticipant = meeting.participants.some(p => p.user?.id === session.user.id)
     const isRep = meeting.repId === session.user.id
     const isUniOwner = meeting.university?.userId === session.user.id
+    const isBookingStudent = meeting.student?.user?.id === session.user.id
 
-    if (!isParticipant && !isRep && !isUniOwner) {
-        throw new AuthorizationError('Forbidden — you are not a participant in this meeting', 403)
+    if (!isParticipant && !isRep && !isUniOwner && !isBookingStudent) {
+        throw new AuthorizationError('Forbidden — you do not have access to this meeting', 403)
     }
 
     return session
@@ -219,8 +267,13 @@ export async function requireMeetingAccess(meetingId: string): Promise<AuthSessi
 
 /**
  * Verifies the authenticated user can access a direct message conversation.
- * Access: the student side OR the university side of the conversation.
- * Admins bypass.
+ *
+ * Access rules:
+ *   - Student side:    Conversation.student.userId === session.user.id
+ *   - University side: University.userId === session.user.id  (owner)
+ *                   OR University.reps contains session.user.id  (rep)
+ *
+ * ADMIN bypasses.
  */
 export async function requireConversationAccess(conversationId: string): Promise<AuthSession> {
     const session = await requireAuth()
@@ -231,7 +284,12 @@ export async function requireConversationAccess(conversationId: string): Promise
         where: { id: conversationId },
         select: {
             student: { select: { userId: true } },
-            university: { select: { userId: true, reps: { select: { id: true } } } },
+            university: {
+                select: {
+                    userId: true,
+                    reps: { select: { id: true } },
+                },
+            },
         },
     })
 

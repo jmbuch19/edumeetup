@@ -475,7 +475,7 @@ model Meeting {
   status                 MeetingStatus         @default(PENDING)
   videoProvider          VideoProvider
   videoLink              String?
-  meetingCode            String
+  meetingCode            String                @unique
   cancellationReason     String?
   cancelledBy            String?
   cancelledAt            DateTime?
