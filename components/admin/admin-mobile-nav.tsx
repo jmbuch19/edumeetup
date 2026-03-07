@@ -18,7 +18,7 @@ const navItems = [
     { href: '/admin/tickets', label: 'Support Tickets', Icon: Ticket },
     { href: '/admin/advisory', label: 'Advisory Requests', Icon: Users },
     { href: '/admin/host-requests', label: 'Host Requests', Icon: Globe },
-    { href: '/admin/sponsored', label: 'Sponsored Content', Icon: Sparkles },
+    { href: '/admin/engagement?tab=sponsored', label: 'Sponsored Content', Icon: Sparkles },
     { href: '/admin/reports', label: 'Reports', Icon: FileBarChart2 },
 ]
 

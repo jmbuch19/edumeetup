@@ -33,7 +33,7 @@ const NAV_SECTIONS = [
         items: [
             { href: '/admin/overview', label: 'Overview', icon: <CalendarDays className="h-4 w-4" /> },
             { href: '/admin/reports', label: 'Reports', icon: <FileBarChart2 className="h-4 w-4" /> },
-            { href: '/admin/sponsored', label: 'Sponsored Content', icon: <Sparkles className="h-4 w-4" /> },
+            { href: '/admin/engagement?tab=sponsored', label: 'Sponsored Content', icon: <Sparkles className="h-4 w-4" /> },
         ]
     },
 ]
