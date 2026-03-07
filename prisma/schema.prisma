@@ -2,263 +2,750 @@ generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
 
-// ... existing generator and datasource ...
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      String   // "STUDENT", "UNIVERSITY", "ADMIN"
-  status    String   @default("ACTIVE") // "ACTIVE", "PENDING", "SUSPENDED"
-  createdAt DateTime @default(now())
+  id                    String                @id @default(cuid())
+  name                  String?
+  email                 String                @unique
+  emailVerified         DateTime?
+  password              String?
+  image                 String?
+  role                  UserRole              @default(STUDENT)
+  isActive              Boolean               @default(true)
+  consentMarketing      Boolean               @default(true)
+  consentAnalytics      Boolean               @default(true)
+  consentWithdrawnAt    DateTime?
+  deletionRequestedAt   DateTime?
+  deletionScheduledFor  DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  universityId          String?
+  accounts              Account[]
+  announcements         AdminAnnouncement[]   @relation("AnnouncementAuthor")
+  advisedRequests       AdvisoryRequest[]     @relation("AdviserRequests")
+  auditLogs             AuditLog[]
+  availabilityProfiles  AvailabilityProfile[] @relation("RepAvailability")
+  availabilitySlots     AvailabilitySlot[]
+  consentHistory        ConsentHistory[]
+  meetings              Meeting[]             @relation("RepMeetings")
+  meetingNotifications  MeetingNotification[]
+  meetingParticipations MeetingParticipant[]
+  notifications         Notification[]
+  sessions              Session[]
+  student               Student?
+  supportTickets        SupportTicket[]
+  systemReports         SystemReport[]
+  university            University?
+  representedUniversity University?           @relation("UniversityReps", fields: [universityId], references: [id])
+  proactiveMessagesSent ProactiveMessage[]    @relation("RepMessages")
+  repPerformance        RepPerformance?
+  repBadges             RepBadge[]
+  directMessagesSent    DirectMessage[]
 
-  studentProfile    StudentProfile?
-  universityProfile UniversityProfile?
-  supportTickets    SupportTicket[]
-  notifications     Notification[]
-  meetingParticipants MeetingParticipant[]
-
-  sessionToken      String?  @unique // For Single Session enforcement
-  auditLogs         AuditLog[]
-  advisedRequests   AdvisoryRequest[] @relation("AdviserRequests")
-
-
-  // Security & Verification
-  emailVerified     DateTime?
-  otpCode           String?
-  otpExpiresAt      DateTime?
-
-  // Contact
-  phoneNumber       String?
+  @@index([role])
+  @@index([isActive])
 }
 
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-model StudentProfile {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Section A: Basic Profile
-  fullName          String
-  gender            String?  // "Male", "Female", "Prefer not to say"
-  ageGroup          String?  // "Under 20", "21-25", "26-30", "31+"
-  country           String?
-  phoneNumber       String? // Optional override or detailed storage
-  currentStatus     String? // "Grade12", "BachelorFinalYear", "BachelorCompleted", "MasterCompleted", "WorkingProfessional"
-  
-  // Section B: Study Preference
-  fieldOfInterest   String? // Enum: Computer Science, Engineering, etc.
-  preferredCountries String? // Comma separated
-  preferredDegree   String? // "Bachelor's", "Master's", "MBA", "PhD", "Certificate"
-  budgetRange       String? // "< 15,000", "15,000–25,000", etc.
-  englishTestType   String? // "IELTS", "TOEFL", "Duolingo", "PTE", "Not Taken Yet"
-  englishScore      String? // Score as string to handle "Not Taken Yet" or ranges, or just use score
-  preferredIntake   String? // "Fall", "Spring", "Summer"
-  
-  profileComplete   Boolean  @default(false)
-  updatedAt         DateTime @updatedAt
-
-  interests Interest[]
-  advisoryRequests AdvisoryRequest[]
+  @@unique([provider, providerAccountId])
 }
 
-model UniversityProfile {
-  id                String    @id @default(cuid())
-  userId            String    @unique
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  institutionName   String
-  country           String
-  city              String?
-  website           String?
-  
-  // New Fields
-  repName           String?
-  repDesignation    String?
-  repEmail          String?
-  contactPhone      String?
-  phoneNumber       String? // Head office contact
-  accreditation     String?
-  scholarshipsAvailable Boolean @default(false)
-
-  contactEmail      String?   // Existing field, maybe redundant with repEmail but keeping for now
-  verificationStatus String   @default("PENDING") // "PENDING", "VERIFIED", "REJECTED"
-  verifiedDate      DateTime?
-  logo              String?   // URL to image
-  meetingLink       String?   // URL to Calendly, Google Meet, etc.
-
-  programs  Program[]
-  interests Interest[]
-  meetingsCreated Meeting[]
-  availabilitySlots AvailabilitySlot[]
-
-  // Certification & Audit
-  certAuthority     Boolean   @default(false)
-  certLegitimacy    Boolean   @default(false)
-  certPurpose       Boolean   @default(false)
-  certAccountability Boolean  @default(false)
-  certTimestamp     DateTime?
-  certIp            String?
-
-
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model AuditLog {
-  id        String   @id @default(cuid())
-  action    String   // e.g., "VERIFY_UNIVERSITY", "DELETE_PROGRAM"
-  entityType String  // e.g., "UNIVERSITY", "PROGRAM"
-  entityId  String
-  actorId   String   // User ID of who performed the action
-  actor     User     @relation(fields: [actorId], references: [id])
-  metadata  Json?    // Extra details
-  createdAt DateTime @default(now())
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
+model Student {
+  id                 String                @id @default(cuid())
+  userId             String                @unique
+  phone              String?
+  whatsappNumber     String?
+  city               String?
+  pincode            String?
+  country            String?               @default("India")
+  ipAddress          String?
+  ipCity             String?
+  ipRegion           String?
+  ipCountry          String?
+  ipPincode          String?
+  ipLatitude         String?
+  ipLongitude        String?
+  ipIsp              String?
+  cityMismatch       Boolean               @default(false)
+  pincodeMismatch    Boolean               @default(false)
+  fullName           String?
+  gender             String?
+  ageGroup           String?
+  currentStatus      String?
+  fieldOfInterest    String?
+  preferredCountries String?
+  preferredDegree    String?
+  budgetRange        String?
+  englishTestType    String?
+  englishScore       String?
+  greScore           String?
+  gmatScore          String?
+  satScore           String?
+  actScore           String?
+  preferredIntake    String?
+  profileComplete    Boolean               @default(false)
+  profileVersion     Int                   @default(1)
+  cvUrl              String?
+  cvFileName         String?
+  cvUploadedAt       DateTime?
+  cvSizeBytes        Int?
+  notificationPrefs  Json?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  advisoryRequests   AdvisoryRequest[]
+  bookmarks          Bookmark[]
+  eventRegistrations EventRegistration[]
+  interests          Interest[]
+  meetings           Meeting[]
+  changeLogs         ProfileChangeLog[]
+  user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notifications      StudentNotification[]
+  proactiveMessages  ProactiveMessage[]
+  dismissals         StudentDiscoveryDismissal[]
+  fairPasses         FairStudentPass[]
+  conversations      Conversation[]
+}
+
+model ProfileChangeLog {
+  id            String   @id @default(cuid())
+  studentId     String
+  version       Int
+  changedFields Json
+  snapshot      Json
+  changedAt     DateTime @default(now())
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+}
+
+model University {
+  id                      String                   @id @default(cuid())
+  userId                  String                   @unique
+  institutionName         String
+  country                 String
+  city                    String?
+  website                 String?
+  accreditationNo         String?
+  verificationStatus      String                   @default("PENDING")
+  verifiedAt              DateTime?
+  verifiedByAdmin         String?
+  verificationDocUrl      String?
+  docUploadDate           DateTime?                @default(now())
+  contactEmail            String?
+  logo                    String?
+  brandColor              String?                  @default("#2563eb")
+  about                   String?
+  foundedYear             Int?
+  campusSize              String?
+  totalStudents           Int?
+  internationalStudents   Int?
+  repName                 String?
+  repDesignation          String?
+  repEmail                String?
+  contactPhone            String?
+  scholarshipsAvailable   Boolean                  @default(false)
+  meetingLink             String?
+  certAuthority           Boolean                  @default(false)
+  certLegitimacy          Boolean                  @default(false)
+  certPurpose             Boolean                  @default(false)
+  certAccountability      Boolean                  @default(false)
+  certTimestamp           DateTime?
+  certIp                  String?
+  approvalMode            String                   @default("MANUAL")
+  defaultDuration         Int                      @default(15)
+  dailyCapPerRep          Int                      @default(10)
+  minLeadTimeHours        Int                      @default(24)
+  bufferMinutes           Int                      @default(10)
+  cancellationWindowHours Int                      @default(24)
+  isPublic                Boolean                  @default(true)
+  notifQuota              Int                      @default(3)    // weekly campaigns admin can set
+  notifPaused             Boolean                  @default(false) // admin kill switch
+  proactiveCooldownDays   Int                      @default(21)   // nudge cooldown per student
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  universityNameFromEmail String?
+  countryFromEmail        String?
+
+  // ── Pipeline Notifications ────────────────────────────────────────
+  notifyNewInterest       Boolean  @default(true)
+  notifyMeetingBooked     Boolean  @default(true)
+  notifyMeetingCancelled  Boolean  @default(true)
+  followUpThresholdHours  Int?     // null=off | 24 | 48 | 72
+
+  // ── Digest & Reporting ────────────────────────────────────────────
+  digestDaily             Boolean  @default(true)   // 9am IST daily
+  digestWeekly            Boolean  @default(true)   // Monday 9am IST
+  digestMonthly           Boolean  @default(true)   // 1st of month
+
+  // ── Events & Fairs ────────────────────────────────────────────────
+  notifyFairOpportunities Boolean  @default(true)
+  notifyInterestSpikes    Boolean  @default(true)
+
+  // ── Escalation Controls ───────────────────────────────────────────
+  notifyTarget            String   @default("PRIMARY") // PRIMARY | ALL | CUSTOM
+  customNotifyEmails      String[] @default([])         // used when notifyTarget=CUSTOM
+  quietHoursEnabled       Boolean  @default(true)
+  quietHoursStart         Int      @default(22)         // 10pm IST (24h)
+  quietHoursEnd           Int      @default(7)          // 7am IST (24h)
+
+  // ── Agent Metadata ────────────────────────────────────────────────
+  notificationPrefs       Json?    // UniversityNotificationPrefs (typed overlay)
+  responseRate            Float?   // cached 0-100, updated by agent hourly
+
+  availabilityProfiles    AvailabilityProfile[]
+  availabilitySlots       AvailabilitySlot[]
+  bookmarkedBy            Bookmark[]
+  events                  Event[]
+  hostOutreach            HostRequestOutreach[]
+  interests               Interest[]
+  meetings                Meeting[]
+  programs                Program[]
+  sponsoredContent        SponsoredContent[]
+  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents               UniversityDocument[]
+  notifications           UniversityNotification[]
+  proctorRequests         ProctorRequest[]
+  proactiveMessages       ProactiveMessage[]
+  dismissals              StudentDiscoveryDismissal[]
+  fairAttendances         FairAttendance[]
+  fairInvitations         FairInvitation[]
+  reps                    User[]                   @relation("UniversityReps")
+  conversations           Conversation[]
+
+  @@index([verificationStatus])
+  @@index([country])
+}
+
+model UniversityDocument {
+  id           String     @id @default(cuid())
+  universityId String
+  displayName  String
+  category     String
+  fileName     String
+  fileUrl      String
+  mimeType     String     @default("application/pdf")
+  sizeBytes    Int
+  programId    String?
+  isFairReady  Boolean    @default(false)
+  uploadedAt   DateTime   @default(now())
+  deletedAt    DateTime?  // soft delete — null = active, timestamp = deleted
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  program      Program?   @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  @@index([universityId])
+  @@index([programId])
+  @@index([deletedAt])
+}
 
 model Program {
-  id             String            @id @default(cuid())
-  universityId   String
-  university     UniversityProfile @relation(fields: [universityId], references: [id], onDelete: Cascade)
-  
-  programName    String
-  degreeLevel    String            // Storing Enum as String for SQLite/Simple compatibility, or use Enum if DB supports
-  fieldCategory  FieldCategory     @default(Others)
-  stemDesignated Boolean           @default(false)
-  durationMonths Int               @default(12)
-  tuitionFee     Float             @default(0)
-  currency       String            @default("USD")
-  englishTests   String?           // Comma separated list of accepted tests
+  id              String     @id @default(cuid())
+  universityId    String
+  programName     String
+  degreeLevel     String
+  fieldCategory   String
+  durationMonths  Int?
+  tuitionFee      Float?
+  currency        String?    @default("USD")
+  status          String     @default("ACTIVE")
+  stemDesignated  Boolean    @default(false)
+  englishTests    String[]
   minEnglishScore Float?
-  intakes        String?           // Comma separated list of intakes (Spring, Fall, etc.)
-
-  // degreeLevel    DegreeLevel     // If using proper Enums
-  // fieldCategory  FieldCategory
-  
-  status         String            @default("ACTIVE") // "ACTIVE", "PAUSED"
-
-  interests Interest[]
-
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  intakes         String[]
+  description     String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  interests       Interest[]
+  meetings        Meeting[]
+  documents       UniversityDocument[]
+  university      University @relation(fields: [universityId], references: [id], onDelete: Cascade)
 }
 
 model Interest {
-  id             String            @id @default(cuid())
+  id             String     @id @default(cuid())
   studentId      String
-  student        StudentProfile    @relation(fields: [studentId], references: [id], onDelete: Cascade)
   universityId   String
-  university     UniversityProfile @relation(fields: [universityId], references: [id], onDelete: Cascade)
   programId      String?
-  program        Program?          @relation(fields: [programId], references: [id], onDelete: Cascade)
-  status         String            @default("INTERESTED") // "INTERESTED", "WITHDRAWN", "ARCHIVED", "SHORTLISTED"
+  status         String     @default("INTERESTED")
   studentMessage String?
   universityNote String?
-  
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  program        Program?   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  student        Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  university     University @relation(fields: [universityId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, universityId, programId])
-}
-
-model Meeting {
-  id                    String            @id @default(cuid())
-  createdByUniversityId String
-  university            UniversityProfile @relation(fields: [createdByUniversityId], references: [id], onDelete: Cascade)
-
-  meetingType    String // "ONE_TO_ONE", "GROUP"
-  title          String
-  agenda         String?
-  startTime      DateTime
-  endTime        DateTime
-  timezone       String            @default("UTC")
-  locationType   String            @default("VIDEO") // "VIDEO", "IN_PERSON"
-  joinUrl        String?
-
-  status         String            @default("SCHEDULED") // "DRAFT", "SCHEDULED", "COMPLETED", "CANCELED"
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-
-  participants   MeetingParticipant[]
-  availabilitySlot AvailabilitySlot?
-}
-
-model MeetingParticipant {
-  id             String            @id @default(cuid())
-  meetingId      String
-  meeting        Meeting           @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-
-  // Linking to User allows both Student and UniversityRep (if needed as participant)
-  // But typically UniversityRep is the host (via createdByUniversityId)
-  // We'll stick to a generic participantUserId for flexibility
-  participantUserId String
-  user           User              @relation(fields: [participantUserId], references: [id], onDelete: Cascade)
-
-  participantType String           @default("STUDENT") // "STUDENT", "UNIVERSITY_REP"
-  rsvpStatus     String            @default("INVITED") // "INVITED", "ACCEPTED", "DECLINED", "NO_RESPONSE"
-  role           String            @default("ATTENDEE") // "HOST", "ATTENDEE"
-
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-
-  @@unique([meetingId, participantUserId])
+  @@index([status])
 }
 
 model Notification {
-  id             String            @id @default(cuid())
-  userId         String
-  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  type           String            // "MEETING_INVITE", "MEETING_UPDATE", "MEETING_CANCELED"
-  title          String
-  message        String
-  payload        Json?             // Flexible data (e.g. meetingId)
-  isRead         Boolean           @default(false)
-  
-  createdAt      DateTime          @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  payload   Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String
+  actorId    String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+}
+
+model AdvisoryRequest {
+  id              String         @id @default(cuid())
+  studentId       String
+  targetDegree    String?
+  fieldOfInterest String?
+  targetCountry   String?
+  budgetRange     String?
+  englishScore    String?
+  greGmatScore    String?
+  preferredTime   String?
+  targetIntake    String?
+  openQuestion    String?
+  status          AdvisoryStatus @default(NEW)
+  adviserId       String?
+  internalNotes   String?
+  sessionLink     String?
+  scheduledAt     DateTime?
+  createdAt       DateTime       @default(now())
+  completedAt     DateTime?
+  adviser         User?          @relation("AdviserRequests", fields: [adviserId], references: [id])
+  student         Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([studentId])
+}
+
+model PublicInquiry {
+  id        String        @id @default(cuid())
+  fullName  String
+  email     String
+  role      String
+  country   String
+  subject   String
+  message   String
+  phone     String?
+  orgName   String?
+  status    InquiryStatus @default(NEW)
+  createdAt DateTime      @default(now())
+}
+
+model SupportTicket {
+  id        String         @id @default(cuid())
+  userId    String
+  type      TicketType
+  category  String
+  priority  TicketPriority
+  message   String
+  status    InquiryStatus  @default(NEW)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model HostRequest {
+  id                     String                @id @default(cuid())
+  referenceNumber        String                @unique
+  institutionName        String
+  institutionType        String
+  city                   String
+  state                  String
+  websiteUrl             String
+  contactName            String
+  contactDesignation     String
+  contactEmail           String
+  contactPhone           String
+  preferredDateStart     DateTime
+  preferredDateEnd       DateTime
+  expectedStudentCount   String
+  preferredCountries     Json
+  fieldsOfStudy          Json
+  additionalRequirements String?
+  status                 String                @default("SUBMITTED")
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  outreach               HostRequestOutreach[]
+}
+
+model HostRequestOutreach {
+  id            String      @id @default(cuid())
+  hostRequestId String
+  universityId  String
+  status        String      @default("SENT")
+  sentAt        DateTime    @default(now())
+  respondedAt   DateTime?
+  responseNote  String?
+  hostRequest   HostRequest @relation(fields: [hostRequestId], references: [id], onDelete: Cascade)
+  university    University  @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@unique([hostRequestId, universityId])
+  @@index([hostRequestId])
+  @@index([universityId])
+}
+
+model AvailabilityProfile {
+  id                     String        @id @default(cuid())
+  universityId           String
+  repId                  String
+  dayOfWeek              DayOfWeek
+  startTime              String
+  endTime                String
+  isActive               Boolean       @default(true)
+  // Canonical scheduling timezone for this profile.
+  // dayOfWeek and startTime/endTime are defined in this timezone.
+  // When validating a booking, convert the client startTime (UTC) into this
+  // timezone BEFORE deriving day-of-week and HH:MM — not studentTimezone, not UTC.
+  timezone               String        @default("UTC")
+  meetingDurationOptions Int[]
+  bufferMinutes          Int           @default(10)
+  minLeadTimeHours       Int           @default(12)
+  dailyCap               Int           @default(8)
+  videoProvider          VideoProvider @default(GOOGLE_MEET)
+  externalLink           String?
+  eligibleDegreeLevels   String[]
+  eligibleCountries      String[]
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  repUser                User          @relation("RepAvailability", fields: [repId], references: [id], onDelete: Cascade)
+  university             University    @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@index([universityId])
+  @@index([repId])
+}
+
+model Meeting {
+  id                     String                @id @default(cuid())
+  studentId              String?
+  universityId           String
+  repId                  String?
+  programId              String?
+  title                  String?
+  agenda                 String?
+  meetingType            String?
+  joinUrl                String?
+  purpose                MeetingPurpose
+  studentQuestions       String?
+  uploadedDocUrl         String?
+  durationMinutes        Int
+  startTime              DateTime
+  endTime                DateTime
+  studentTimezone        String
+  repTimezone            String
+  status                 MeetingStatus         @default(PENDING)
+  videoProvider          VideoProvider
+  videoLink              String?
+  meetingCode            String                @unique
+  cancellationReason     String?
+  cancelledBy            String?
+  cancelledAt            DateTime?
+  isLateCancel           Boolean               @default(false)
+  rescheduleProposedBy   String?
+  rescheduleProposedTime DateTime?
+  universityNotes        String?
+  studentNotes           String?
+  studentRating          Int?
+  universityRating       Int?
+  reminder24hSent        Boolean               @default(false)
+  reminder1hSent         Boolean               @default(false)
+  reminder10minSent      Boolean               @default(false)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  availabilitySlot       AvailabilitySlot?
+  program                Program?              @relation(fields: [programId], references: [id])
+  rep                    User?                 @relation("RepMeetings", fields: [repId], references: [id], onDelete: Cascade)
+  student                Student?              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  university             University            @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  notifications          MeetingNotification[]
+  participants           MeetingParticipant[]
+
+  @@index([studentId])
+  @@index([universityId])
+  @@index([repId])
+  @@index([status])
+}
+
+model MeetingParticipant {
+  id                String    @id @default(cuid())
+  meetingId         String
+  participantUserId String
+  participantType   String    @default("STUDENT")
+  rsvpStatus        String    @default("INVITED")
+  joinedAt          DateTime?
+  meeting           Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user              User      @relation(fields: [participantUserId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, participantUserId])
+  @@index([participantUserId])
+  @@index([meetingId])
+}
+
+model MeetingNotification {
+  id             String   @id @default(cuid())
+  meetingId      String
+  recipientId    String
+  type           String
+  channel        String
+  sentAt         DateTime @default(now())
+  delivered      Boolean  @default(false)
+  contentPreview String?
+  meeting        Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  recipient      User     @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@index([recipientId])
 }
 
 model AvailabilitySlot {
-  id             String            @id @default(cuid())
-  universityId   String
-  university     UniversityProfile @relation(fields: [universityId], references: [id], onDelete: Cascade)
-  
-  startTime      DateTime
-  endTime        DateTime
-  isBooked       Boolean           @default(false)
-  
-  meetingId      String?           @unique
-  meeting        Meeting?          @relation(fields: [meetingId], references: [id])
-
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  id           String     @id @default(cuid())
+  universityId String
+  repId        String
+  startTime    DateTime
+  endTime      DateTime
+  isBooked     Boolean    @default(false)
+  meetingId    String?    @unique
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  meeting      Meeting?   @relation(fields: [meetingId], references: [id])
+  repUser      User       @relation(fields: [repId], references: [id], onDelete: Cascade)
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
 
   @@index([universityId])
-  @@index([startTime])
+  @@index([repId])
 }
 
+model Bookmark {
+  id           String     @id @default(cuid())
+  studentId    String
+  universityId String
+  note         String?
+  createdAt    DateTime   @default(now())
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, universityId])
+}
+
+model Event {
+  id            String              @id @default(cuid())
+  universityId  String
+  title         String
+  description   String
+  dateTime      DateTime
+  location      String
+  type          String
+  capacity      Int?
+  isPublished   Boolean             @default(false)
+  status        String              @default("UPCOMING")
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  university    University          @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  registrations EventRegistration[]
+}
+
+model EventRegistration {
+  id        String   @id @default(cuid())
+  eventId   String
+  studentId String
+  status    String   @default("REGISTERED")
+  createdAt DateTime @default(now())
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, studentId])
+}
+
+model SystemLog {
+  id        String   @id @default(cuid())
+  level     String
+  type      String
+  message   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([level])
+}
+
+model SystemReport {
+  id            String   @id @default(cuid())
+  type          String
+  message       String
+  userId        String?
+  path          String?
+  screenshotUrl String?
+  createdAt     DateTime @default(now())
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model BotMisses {
+  id        String   @id @default(cuid())
+  question  String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model StudentNotification {
+  id          String    @id @default(cuid())
+  studentId   String
+  title       String
+  message     String
+  type        String    @default("INFO")
+  isRead      Boolean   @default(false)
+  dismissed   Boolean   @default(false)
+  dismissedAt DateTime?
+  actionUrl   String?
+  createdAt   DateTime  @default(now())
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([dismissed])
+}
+
+model UniversityNotification {
+  id           String     @id @default(cuid())
+  universityId String
+  title        String
+  message      String
+  type         String     @default("INFO")
+  isRead       Boolean    @default(false)
+  dismissed    Boolean    @default(false)
+  dismissedAt  DateTime?
+  actionUrl    String?
+  metadata     Json?
+  createdAt    DateTime   @default(now())
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@index([universityId])
+  @@index([dismissed])
+}
+
+model AdminAnnouncement {
+  id               String    @id @default(cuid())
+  title            String
+  content          String
+  targetAudience   String    @default("ALL")
+  isActive         Boolean   @default(true)
+  priority         String    @default("NORMAL")
+  announcementType String    @default("GENERAL")
+  filters          Json?
+  emailSent        Boolean   @default(false)
+  sentById         String?
+  startsAt         DateTime  @default(now())
+  expiresAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  sentBy           User?     @relation("AnnouncementAuthor", fields: [sentById], references: [id])
+
+  @@index([sentById])
+}
+
+model SponsoredContent {
+  id             String      @id @default(cuid())
+  title          String
+  partnerName    String
+  universityId   String?
+  imageUrl       String
+  targetUrl      String
+  sponsorType    String      @default("UNIVERSITY")
+  mobileImageUrl String?
+  priority       Int         @default(5)
+  startDate      DateTime    @default(now())
+  endDate        DateTime?
+  status         String      @default("DRAFT")
+  placement      String
+  isActive       Boolean     @default(true)
+  impressions    Int         @default(0)
+  clicks         Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  university     University? @relation(fields: [universityId], references: [id])
+
+  @@index([universityId])
+  @@index([isActive])
+  @@index([status])
+  @@index([startDate])
+}
+
+model ConsentHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  field     String
+  oldValue  Boolean
+  newValue  Boolean
+  changedAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([changedAt])
+}
+
+enum UserRole {
+  STUDENT
+  UNIVERSITY
+  UNIVERSITY_REP
+  ADMIN
+}
 
 enum FieldCategory {
-  Computer_Science  @map("Computer Science")
+  Computer_Science @map("Computer Science")
   Engineering
   Business
-  Data_Science      @map("Data Science")
-  Health_Sciences   @map("Health Sciences")
-  Social_Sciences   @map("Social Sciences")
-  Arts_Humanities   @map("Arts & Humanities")
+  Data_Science     @map("Data Science")
+  Health_Sciences  @map("Health Sciences")
+  Social_Sciences  @map("Social Sciences")
+  Arts_Humanities  @map("Arts & Humanities")
   Law
   Architecture
   Others
 }
-
-// Enums (handled as strings in SQLite usually, but good for validation)
-// DegreeLevel: Associate, Bachelor's, Master's, MBA, PhD, Certificate
-// FieldCategory: Computer Science, Engineering, Business, Data Science, Health Sciences, Social Sciences, Arts & Humanities, Law, Architecture, Others
-// Intake: Fall, Spring, Summer
-// EnglishTest: IELTS, TOEFL, Duolingo, PTE, Not Required
 
 enum InquiryStatus {
   NEW
@@ -278,33 +765,6 @@ enum TicketType {
   UNIVERSITY
 }
 
-model PublicInquiry {
-  id        String   @id @default(cuid())
-  fullName  String
-  email     String
-  role      String   // Student, University, etc.
-  country   String
-  subject   String
-  message   String
-  phone     String?
-  orgName   String?
-  status    InquiryStatus @default(NEW)
-  createdAt DateTime @default(now())
-}
-
-model SupportTicket {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  type      TicketType
-  category  String
-  priority  TicketPriority
-  message   String
-  status    InquiryStatus @default(NEW)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 enum AdvisoryStatus {
   NEW
   ASSIGNED
@@ -313,35 +773,359 @@ enum AdvisoryStatus {
   FOLLOW_UP
 }
 
-model AdvisoryRequest {
-  id            String   @id @default(cuid())
-  studentId     String
-  student       StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
 
-  // Step 2: Goals (Captured in form, potentially redundant with profile but good for snapshot)
-  targetDegree  String?
-  fieldOfInterest String?
-  targetCountry String?
-  
-  // Readiness
-  budgetRange   String?
-  englishScore  String?
-  greGmatScore  String?
+enum VideoProvider {
+  GOOGLE_MEET
+  ZOOM
+  EXTERNAL_LINK
+}
 
-  // Step 3: Logistics
-  preferredTime String? // e.g., "Weekday Mornings"
-  targetIntake  String? // e.g., "Fall 2026"
-  
-  openQuestion  String? @db.Text
+enum MeetingStatus {
+  DRAFT
+  PENDING
+  CONFIRMED
+  RESCHEDULE_PROPOSED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
 
-  // Status & Admin
-  status        AdvisoryStatus @default(NEW)
-  adviserId     String? // User ID of the admin/adviser
-  adviser       User?    @relation("AdviserRequests", fields: [adviserId], references: [id], onDelete: SetNull)
-  
-  internalNotes String? @db.Text
-  sessionLink   String? // Zoom/Meet link
+enum MeetingPurpose {
+  ADMISSION_QUERY
+  PROGRAM_FIT
+  SCHOLARSHIP_INFO
+  DOCUMENT_HELP
+  APPLICATION_STATUS
+  OTHER
+}
 
-  createdAt     DateTime @default(now())
-  completedAt   DateTime?
+enum ProctorRequestStatus {
+  PENDING
+  UNDER_REVIEW
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model ProctorRequest {
+  id             String               @id @default(cuid())
+  universityId   String
+  university     University           @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  // Exam details
+  examType        String               // "midterm" | "final" | "multiple" | "other"
+  subjects        String
+  examStartDate   DateTime
+  examEndDate     DateTime
+  studentCount    Int
+  durationMinutes Int                  // e.g. 120 or 180
+  requirements    String?
+  policyUrl       String?
+
+  // Status machine
+  status         ProctorRequestStatus @default(PENDING)
+  adminNotes     String?              // internal notes by Jaydeep
+  fees           Float?               // decided later
+  confirmedAt    DateTime?
+  completedAt    DateTime?
+
+  // Agent reminder tracking
+  reminderSentAt DateTime?
+
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([universityId])
+  @@index([status])
+  @@index([examStartDate])
+}
+
+// ── Proactive Outreach ────────────────────────────────────────────────
+model ProactiveMessage {
+  id           String                 @id @default(cuid())
+  repId        String?
+  studentId    String
+  universityId String
+  programId    String?
+  subject      String?
+  content      String
+  sentAt       DateTime               @default(now())
+  openedAt     DateTime?
+  repliedAt    DateTime?
+  status       ProactiveMessageStatus @default(SENT)
+
+  rep          User?      @relation("RepMessages", fields: [repId], references: [id], onDelete: SetNull)
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@index([repId])
+  @@index([studentId])
+  @@index([universityId])
+  @@index([sentAt])
+  @@index([status])
+}
+
+enum ProactiveMessageStatus {
+  SENT
+  OPENED
+  REPLIED
+  CONVERTED
+  NO_RESPONSE
+}
+
+// ── Rep Performance Tracking ──────────────────────────────────────────
+model RepPerformance {
+  id                     String   @id @default(cuid())
+  repId                  String   @unique
+  totalProactiveSent     Int      @default(0)
+  totalReplies           Int      @default(0)
+  replyRate              Float?   @default(0)
+  totalMeetingsFromNudge Int      @default(0)
+  points                 Int      @default(0)
+  lastCalculatedAt       DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  rep                    User     @relation(fields: [repId], references: [id], onDelete: Cascade)
+}
+
+// ── Rep Badges ────────────────────────────────────────────────────────
+model RepBadge {
+  id        String       @id @default(cuid())
+  repId     String
+  badgeType RepBadgeType
+  name      String
+  earnedAt  DateTime     @default(now())
+
+  rep       User         @relation(fields: [repId], references: [id], onDelete: Cascade)
+
+  @@index([repId])
+  @@index([badgeType])
+}
+
+enum RepBadgeType {
+  FIRST_NUDGE
+  RESPONSE_STAR
+  MEETING_MAKER
+  CONSISTENT_NUDGER
+}
+
+// ── Student Discovery Dismissals ──────────────────────────────────────
+model StudentDiscoveryDismissal {
+  id           String     @id @default(cuid())
+  universityId String
+  studentId    String
+  dismissedAt  DateTime   @default(now())
+
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([universityId, studentId])
+  @@index([universityId])
+  @@index([studentId])
+}
+
+// ── Fair Mode ─────────────────────────────────────────────────────────
+
+model FairEvent {
+  id          String          @id @default(cuid())
+  name        String
+  slug        String          @unique
+  description String?
+  city        String?
+  venue       String?
+  country     String?
+  startDate   DateTime
+  endDate     DateTime
+  endedAt     DateTime?
+  isHybrid    Boolean         @default(false)
+  onlineUrl   String?
+  status      FairEventStatus @default(UPCOMING)
+  capacity    Int?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  rsvpDeadline        DateTime?
+  studentsNotifiedAt  DateTime?  // set when admin triggers LIVE + student notifications
+
+  studentPasses FairStudentPass[]
+  attendances   FairAttendance[]
+  questions     FairQuestion[]
+  invitations   FairInvitation[]
+
+  @@index([status])
+  @@index([startDate])
+  @@index([city])
+  @@index([slug])
+}
+
+model FairStudentPass {
+  id                 String    @id @default(cuid())
+  uuid               String    @unique @default(uuid())
+  fairEventId        String
+  fairEvent          FairEvent @relation(fields: [fairEventId], references: [id], onDelete: Cascade)
+  studentId          String?
+  student            Student?  @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  email              String
+  fullName           String
+  phone              String
+
+  currentInstitution String
+  currentCourse      String
+  yearOfPassing      Int?      @default(0)  // kept for legacy data
+  currentSemester    String?               // e.g. "6th Semester / 3rd Year"
+  englishExam        String?               // e.g. "IELTS 6.5", "Not attempted"
+
+  fieldOfInterest    String?
+  budgetRange        String?
+  preferredCountries String?
+
+  whatsappConsent    Boolean   @default(false)
+  emailConsent       Boolean   @default(true)
+  marketingConsent   Boolean   @default(false)
+  consentTimestamp   DateTime  @default(now())
+
+  checkedIn          Boolean   @default(false)
+  checkedInAt        DateTime?
+  isPartialProfile   Boolean   @default(true)
+  parentToken        String?   @unique
+
+  attendances        FairAttendance[]
+  createdAt          DateTime  @default(now())
+
+  @@unique([email, fairEventId])
+  @@index([fairEventId])
+  @@index([studentId])
+}
+
+model FairAttendance {
+  id           String          @id @default(cuid())
+  passId       String
+  pass         FairStudentPass @relation(fields: [passId], references: [id], onDelete: Cascade)
+  universityId String
+  university   University      @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  fairEventId  String
+  fairEvent    FairEvent       @relation(fields: [fairEventId], references: [id], onDelete: Cascade)
+
+  scannedAt       DateTime  @default(now())
+  boothNumber     String?
+  status          String    @default("SCANNED")
+  repNotes        String?
+  matchedPrograms String[]  @default([])
+  emailSent       Boolean   @default(false)
+  whatsappSent    Boolean   @default(false)
+  followUpStatus  String    @default("PENDING")
+  followUpNote    String?
+  followUpAt      DateTime?
+
+  messages        FairMessage[]
+
+  @@unique([passId, universityId, fairEventId])
+  @@index([universityId, fairEventId])
+  @@index([fairEventId])
+  @@index([passId])
+}
+
+model FairMessage {
+  id               String         @id @default(cuid())
+  fairAttendanceId String
+  fairAttendance   FairAttendance @relation(fields: [fairAttendanceId], references: [id], onDelete: Cascade)
+  senderRole       String
+  senderId         String
+  content          String
+  readAt           DateTime?
+  createdAt        DateTime       @default(now())
+
+  @@index([fairAttendanceId])
+  @@index([senderId])
+}
+
+enum FairEventStatus {
+  UPCOMING
+  LIVE
+  COMPLETED
+  CANCELLED
+}
+
+// ── Fair Event Q&A ─────────────────────────────────────────────────
+model FairQuestion {
+  id          String    @id @default(cuid())
+  fairEventId String
+  fairEvent   FairEvent @relation(fields: [fairEventId], references: [id], onDelete: Cascade)
+  askerRole   String    // "STUDENT" | "UNIVERSITY"
+  askerId     String    // userId of asker
+  question    String
+  answer      String?
+  answeredAt  DateTime?
+  isPublic    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@index([fairEventId])
+  @@index([askerId])
+}
+
+enum FairInvitationStatus {
+  PENDING
+  CONFIRMED
+  DECLINED
+}
+
+model FairInvitation {
+  id                  String               @id @default(cuid())
+  fairEventId         String
+  universityId        String
+  status              FairInvitationStatus @default(PENDING)
+  repsAttending       Int?
+  programsShowcasing  String[]
+  specialRequirements String?
+  respondedAt         DateTime?
+  createdAt           DateTime             @default(now())
+
+  fairEvent  FairEvent  @relation(fields: [fairEventId], references: [id], onDelete: Cascade)
+  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@unique([fairEventId, universityId])
+  @@index([fairEventId])
+  @@index([universityId])
+}
+
+// ── 1:1 Direct Messaging ─────────────────────────────────────────────
+
+model Conversation {
+  id           String          @id @default(cuid())
+  studentId    String
+  universityId String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  student      Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  university   University      @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  messages     DirectMessage[]
+
+  @@unique([studentId, universityId])
+  @@index([studentId])
+  @@index([universityId])
+}
+
+model DirectMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String       // User.id
+  senderRole     String       // "STUDENT" | "UNIVERSITY"
+  content        String
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
 }

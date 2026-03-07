@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { requireUser } from '@/lib/auth'
+import { notifyStudent } from '@/lib/notify'
 
 // Form Data Type
 export type AdvisoryRequestData = {
@@ -27,7 +28,7 @@ export async function createAdvisoryRequest(data: AdvisoryRequestData) {
     const user = await requireUser()
 
     // Ensure student profile exists
-    const student = await prisma.studentProfile.findUnique({
+    const student = await prisma.student.findUnique({
         where: { userId: user.id }
     })
 
@@ -47,6 +48,13 @@ export async function createAdvisoryRequest(data: AdvisoryRequestData) {
             }
         })
 
+        await notifyStudent(student.id, {
+            title: 'Advisory Request Received',
+            message: 'Your advisory request has been submitted. Our team will review it and assign an advisor shortly.',
+            type: 'INFO',
+            actionUrl: '/student/dashboard'
+        })
+
         revalidatePath('/student/dashboard')
         return { success: true }
     } catch (error) {
@@ -57,7 +65,7 @@ export async function createAdvisoryRequest(data: AdvisoryRequestData) {
 
 export async function getStudentAdvisoryStatus() {
     const user = await requireUser()
-    const student = await prisma.studentProfile.findUnique({
+    const student = await prisma.student.findUnique({
         where: { userId: user.id },
         select: { id: true }
     })

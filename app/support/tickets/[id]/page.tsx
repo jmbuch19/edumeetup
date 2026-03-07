@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth"
+import { auth } from "@/lib/auth"
 
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import { prisma } from '@/lib/prisma'
 
-export default async function TicketDetailPage({ params }: { params: { id: string } }) {
-    const user = await getSession()
+export default async function TicketDetailPage(props: { params: Promise<{ id: string }> }) {
+    const params = await props.params;
+    const session = await auth()
+    const user = session?.user
     if (!user) redirect('/login?next=/support/tickets')
 
     if (!user) redirect('/login')

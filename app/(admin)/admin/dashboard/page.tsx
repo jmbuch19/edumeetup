@@ -1,106 +1,98 @@
-import React from 'react'
-import { prisma } from '@/lib/prisma'
-import { VerificationButtons } from '@/components/admin/verification-buttons'
-import { Globe } from 'lucide-react'
+import { auth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import { getAdminOverviewMetrics } from '../overview/actions'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Users, Building2, Calendar, Clock, BookOpen, MapPin, ArrowRight, QrCode } from 'lucide-react'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdminDashboard() {
-    // Stats
-    const stats = {
-        totalStudents: await prisma.studentProfile.count(),
-        totalUniversities: await prisma.universityProfile.count(),
-        verifiedUniversities: await prisma.universityProfile.count({ where: { verificationStatus: 'VERIFIED' } }),
-        pendingUniversities: await prisma.universityProfile.count({ where: { verificationStatus: 'PENDING' } }),
-        totalInterests: await prisma.interest.count(),
-    }
+const QUICK_LINKS = [
+    { href: '/admin/universities', label: 'Universities', icon: Building2, desc: 'Verify & manage institutions' },
+    { href: '/admin/users', label: 'Users', icon: Users, desc: 'Manage all platform users' },
+    { href: '/admin/fairs', label: 'Fair Events', icon: QrCode, desc: 'Create fairs & generate entrance QR' },
+    { href: '/admin/engagement', label: 'Engagement', icon: BookOpen, desc: 'Announcements & notifications' },
+    { href: '/admin/host-requests', label: 'Host Requests', icon: MapPin, desc: 'Campus fair requests' },
+    { href: '/admin/advisory', label: 'Advisory', icon: Clock, desc: 'Student advisory requests' },
+    { href: '/admin/overview', label: 'Full Overview', icon: Calendar, desc: 'Detailed platform stats' },
+]
 
-    const pendingUniversities = await prisma.universityProfile.findMany({
-        where: { verificationStatus: 'PENDING' },
-        include: {
-            user: true,
-            programs: true
-        }
-    })
+export default async function AdminDashboard() {
+    const session = await auth()
+    if (!session || session.user?.role !== 'ADMIN') redirect('/login')
+
+    const metrics = await getAdminOverviewMetrics()
+    if (!metrics) return <div className="p-8 text-red-500">Failed to load metrics.</div>
+
+    const STAT_CARDS = [
+        { label: 'Total Universities', value: metrics.totalUniversities, icon: Building2, color: 'text-blue-600', urgent: false },
+        { label: 'Total Students', value: metrics.totalStudents, icon: Users, color: 'text-green-600', urgent: false },
+        { label: 'Total Meetings', value: metrics.totalMeetings, icon: Calendar, color: 'text-purple-600', urgent: false },
+        { label: 'Pending Verifications', value: metrics.pendingVerifications, icon: Clock, color: 'text-amber-600', urgent: metrics.pendingVerifications > 0 },
+        { label: 'Pending Advisory', value: metrics.pendingAdvisory, icon: BookOpen, color: 'text-indigo-600', urgent: metrics.pendingAdvisory > 0 },
+        { label: 'Pending Host Requests', value: metrics.hostRequestsPending, icon: MapPin, color: 'text-rose-600', urgent: metrics.hostRequestsPending > 0 },
+    ]
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Dashboard</h1>
+        <div className="max-w-6xl mx-auto py-4 md:py-8 px-4 space-y-6">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+                <p className="text-muted-foreground mt-1">Platform overview and quick access to all admin tools.</p>
+            </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-12">
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="text-xs font-medium text-gray-500 uppercase">Total Students</h3>
-                    <p className="text-2xl font-bold text-gray-900">{stats.totalStudents}</p>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="text-xs font-medium text-gray-500 uppercase">Total Unis</h3>
-                    <p className="text-2xl font-bold text-gray-900">{stats.totalUniversities}</p>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="text-xs font-medium text-gray-500 uppercase">Verified</h3>
-                    <p className="text-2xl font-bold text-green-600">{stats.verifiedUniversities}</p>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="text-xs font-medium text-gray-500 uppercase">Pending</h3>
-                    <p className="text-2xl font-bold text-yellow-600">{stats.pendingUniversities}</p>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="text-xs font-medium text-gray-500 uppercase">Interests</h3>
-                    <p className="text-2xl font-bold text-primary">{stats.totalInterests}</p>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {STAT_CARDS.map(({ label, value, icon: Icon, color, urgent }) => (
+                    <Card key={label} className={urgent ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/20' : ''}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">{label}</CardTitle>
+                            <Icon className={`h-4 w-4 ${color}`} />
+                        </CardHeader>
+                        <CardContent>
+                            <div className={`text-2xl font-bold ${urgent ? 'text-amber-600' : ''}`}>{value}</div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+
+            {/* Quick Access */}
+            <div>
+                <h2 className="text-lg font-semibold mb-3">Quick Access</h2>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                    {QUICK_LINKS.map(({ href, label, icon: Icon, desc }) => (
+                        <Link key={href} href={href}>
+                            <Card className="hover:shadow-md hover:border-primary/40 transition-all cursor-pointer h-full">
+                                <CardContent className="pt-5 flex items-start gap-3">
+                                    <Icon className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                                    <div className="flex-1">
+                                        <div className="font-semibold">{label}</div>
+                                        <div className="text-xs text-muted-foreground">{desc}</div>
+                                    </div>
+                                    <ArrowRight className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                                </CardContent>
+                            </Card>
+                        </Link>
+                    ))}
                 </div>
             </div>
 
-            {/* Verification Queue */}
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Pending Verifications</h2>
-
-            {pendingUniversities.length === 0 ? (
-                <div className="bg-gray-50 p-12 rounded-xl border border-gray-200 text-center text-gray-500">
-                    No pending verifications. Good job!
-                </div>
-            ) : (
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Institution</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Website</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {pendingUniversities.map((uni) => (
-                                <tr key={uni.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            <div>
-                                                <div className="text-sm font-medium text-gray-900">{uni.institutionName}</div>
-                                                <div className="text-sm text-gray-500">{uni.city}, {uni.country}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">{uni.repName || 'N/A'}</div>
-                                        <div className="text-sm text-gray-500">{uni.repDesignation}</div>
-                                        <div className="text-xs text-gray-400">{uni.user.email}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">{uni.programs.length} Programs</div>
-                                        {uni.website && (
-                                            <a href={uni.website} target="_blank" rel="noreferrer" className="text-primary hover:underline flex items-center gap-1 text-xs">
-                                                <Globe className="h-3 w-3" /> Visit Website
-                                            </a>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <VerificationButtons id={uni.id} />
-                                    </td>
-                                </tr>
+            {/* Top Universities by Meeting Volume */}
+            {metrics.topUnis.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Top Universities by Meeting Volume</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-3">
+                            {metrics.topUnis.map((uni, idx) => (
+                                <div key={idx} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
+                                    <div className="font-medium truncate">{uni.name}</div>
+                                    <div className="font-bold text-primary">{uni.count}</div>
+                                </div>
                             ))}
-                        </tbody>
-                    </table>
-                </div>
+                        </div>
+                    </CardContent>
+                </Card>
             )}
         </div>
     )

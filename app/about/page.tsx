@@ -1,11 +1,11 @@
 export default function AboutPage() {
     return (
         <div className="container mx-auto px-4 py-12 md:py-20 max-w-3xl">
-            <h1 className="text-4xl font-bold text-gray-900 mb-8 text-center">About edUmeetup</h1>
+            <h1 className="text-4xl font-bold text-gray-900 mb-8 text-center">About EdUmeetup</h1>
 
             <div className="prose prose-lg mx-auto text-gray-600 space-y-6">
                 <p>
-                    edUmeetup is a platform dedicated to bridging the gap between ambitious students and world-class universities.
+                    EdUmeetup is a platform dedicated to bridging the gap between ambitious students and world-class universities.
                 </p>
 
                 <h2 className="text-2xl font-semibold text-gray-900 mt-8">Our Mission</h2>

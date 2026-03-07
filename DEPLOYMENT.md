@@ -1,11 +1,11 @@
-# EduMeetup MVP - Deployment Guide
+# EdUmeetup MVP - Deployment Guide
 
 ## 1. Prepare for Deployment
 
 ### A. Environment Variables
 Ensure you have the following environment variables ready for production (Vercel):
 - `DATABASE_URL`: Your production database URL (e.g., from Neon, Supabase, or Railway). **SQLite will NOT work on Vercel** as it is ephemeral. You must provision a PostgreSQL or MySQL database.
-- `NEXT_PUBLIC_APP_URL`: Your Vercel deployment URL (e.g., `https://edumeetup-mvp.vercel.app`).
+- `NEXT_PUBLIC_APP_URL`: Your Vercel deployment URL (e.g., `https://EdUmeetup-mvp.vercel.app`).
 
 ### B. Database Migration (Neon.tech)
 We are switching to PostgreSQL for production (Neon).
@@ -38,12 +38,12 @@ We are switching to PostgreSQL for production (Neon).
 
 2. **Create a Repository on GitHub:**
    - Go to GitHub -> New Repository
-   - Name it `edumeetup-mvp`
+   - Name it `EdUmeetup-mvp`
 
 3. **Link and Push:**
    ```bash
    git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/edumeetup-mvp.git
+   git remote add origin https://github.com/YOUR_USERNAME/EdUmeetup-mvp.git
    git push -u origin main
    ```
 
@@ -52,7 +52,7 @@ We are switching to PostgreSQL for production (Neon).
 1. **Import Project:**
    - Go to [Vercel Dashboard](https://vercel.com/dashboard)
    - Click **"Add New..."** -> **"Project"**
-   - Import `edumeetup-mvp` from the list.
+   - Import `EdUmeetup-mvp` from the list.
 
 2. **Configure Project:**
    - **Framework Preset:** Next.js (should be auto-detected)

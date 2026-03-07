@@ -1,0 +1,69 @@
+import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
+import { NextResponse } from 'next/server'
+
+export async function GET(request: Request) {
+    // --- Auth ---
+    const cronSecret = process.env.CRON_SECRET
+    if (!cronSecret) {
+        return NextResponse.json({ error: 'Not configured' }, { status: 503 })
+    }
+    const authHeader = request.headers.get('Authorization')
+    if (authHeader !== `Bearer ${cronSecret}`) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    try {
+        const now = new Date()
+
+        // 2. Find meetings that should be completed
+        // Status CONFIRMED and End Time < Now
+        // End Time = proposedDatetime + durationMinutes
+        // Prisma doesn't support computed columns in where easily purely in DB without raw query or iterating.
+        // For MVP/small scale: Fetch CONFIRMED meetings in the past, then filter by duration.
+        // Optimization: Fetch meetings where proposedDatetime < now - max_duration (e.g. 2 hours) to be safe.
+
+        const potentialMeetings = await prisma.meeting.findMany({
+            where: {
+                status: 'CONFIRMED',
+                startTime: {
+                    lt: now // Started in the past
+                }
+            }
+        })
+
+        let completedCount = 0
+
+        for (const mtg of potentialMeetings) {
+            const entTime = new Date(mtg.startTime.getTime() + mtg.durationMinutes * 60000)
+
+            if (entTime < now) {
+                // Determine who is the "system" user? Or just leave byUserId null?
+                // Schema allows byUserId in AuditLog? Let's check.
+
+                await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+                    await tx.meeting.update({
+                        where: { id: mtg.id },
+                        data: { status: 'COMPLETED' }
+                    })
+
+                    await tx.auditLog.create({
+                        data: {
+                            action: 'STATUS_CHANGE',
+                            entityType: 'MEETING',
+                            entityId: mtg.id,
+                            actorId: null, // System-initiated, no user actor
+                            metadata: { reason: 'Auto-completed by Cron', oldStatus: 'CONFIRMED', newStatus: 'COMPLETED' }
+                        }
+                    })
+                })
+                completedCount++
+            }
+        }
+
+        return NextResponse.json({ success: true, completed: completedCount })
+    } catch (error: any) {
+        console.error('Cron job failed:', error)
+        return NextResponse.json({ error: 'Internal server error — check Netlify function logs' }, { status: 500 })
+    }
+}

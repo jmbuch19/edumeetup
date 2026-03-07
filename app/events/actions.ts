@@ -1,0 +1,222 @@
+'use server'
+
+import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
+import { auth } from '@/lib/auth'
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+import { sendEmail, generateEmailHtml, EmailTemplates } from "@/lib/email"
+import { createNotification } from '@/lib/notifications'
+
+// --- Public Actions ---
+
+export async function getPublicEvents() {
+    // Casting removed as model exists
+    return await prisma.event.findMany({
+        where: {
+            isPublished: true,
+            status: 'UPCOMING',
+            dateTime: { gte: new Date() }
+        },
+        include: {
+            university: {
+                select: { institutionName: true, logo: true, country: true }
+            }
+        },
+        orderBy: { dateTime: 'asc' }
+    })
+}
+
+export async function getEventDetails(eventId: string) {
+    // Casting removed as model exists
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        include: {
+            university: true,
+            _count: {
+                select: { registrations: true }
+            }
+        }
+    })
+    return event
+}
+
+export async function registerForEvent(eventId: string) {
+    const session = await auth()
+    if (!session || !session.user || (session.user as any).role !== 'STUDENT') {
+        return { error: 'Unauthorized' }
+    }
+
+    // Check if student profile exists
+    const student = await prisma.student.findUnique({
+        where: { userId: session.user.id }
+    })
+
+    if (!student) return { error: 'Student profile not found.' }
+
+    try {
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            const event = await tx.event.findUnique({
+                where: { id: eventId },
+                include: { _count: { select: { registrations: true } } }
+            })
+
+            if (!event) throw new Error('Event not found.')
+
+            if (event.capacity && event._count.registrations >= event.capacity) {
+                throw new Error('Event is fully booked.')
+            }
+
+            // check if already registered
+            const existing = await tx.eventRegistration.findUnique({
+                where: {
+                    eventId_studentId: {
+                        eventId,
+                        studentId: student.id
+                    }
+                }
+            })
+            if (existing) throw new Error('You are already registered for this event.')
+
+            await tx.eventRegistration.create({
+                data: {
+                    eventId,
+                    studentId: student.id,
+                    status: 'REGISTERED'
+                }
+            })
+        })
+
+        // ── Notifications ───────────────────────────────────────────────
+        // Re-fetch event with university for email content
+        const eventDetails = await prisma.event.findUnique({
+            where: { id: eventId },
+            include: { university: { include: { user: true } } }
+        })
+
+        if (eventDetails && session.user?.email) {
+            // 1. Confirmation email to student
+            const eventDateStr = new Date(eventDetails.dateTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+            await sendEmail({
+                to: session.user.email,
+                subject: `Registration Confirmed: ${eventDetails.title}`,
+                html: generateEmailHtml(
+                    'Event Registration Confirmed ✔️',
+                    EmailTemplates.eventRegistration(
+                        eventDetails.title,
+                        eventDateStr + ' IST',
+                        eventDetails.location || 'Online',
+                        eventDetails.university.institutionName
+                    )
+                )
+            })
+
+            // 2. In-app notification to student
+            await createNotification({
+                userId: session.user.id!,
+                type: 'EVENT_REGISTERED',
+                title: 'Event Registration Confirmed',
+                message: `You are registered for "${eventDetails.title}" on ${new Date(eventDetails.dateTime).toLocaleDateString()}.`,
+                payload: { eventId }
+            })
+
+            // 3. In-app notification to university
+            if (eventDetails.university.user?.id) {
+                await createNotification({
+                    userId: eventDetails.university.user.id,
+                    type: 'EVENT_REGISTRATION',
+                    title: 'New Event Registration',
+                    message: `A student has registered for "${eventDetails.title}".`,
+                    payload: { eventId, studentId: student.id }
+                })
+            }
+        }
+
+        revalidatePath(`/events/${eventId}`)
+        return { success: true }
+    } catch (e: any) {
+        if (e.code === 'P2002') return { error: 'You are already registered for this event.' }
+        return { error: e.message || 'Registration failed.' }
+    }
+}
+
+// --- University Actions ---
+
+export async function getUniversityEvents() {
+    const session = await auth()
+    if (!session || !session.user || ((session.user as any).role !== 'UNIVERSITY' && (session.user as any).role !== 'UNIVERSITY_REP')) {
+        return []
+    }
+
+    const userId = session.user.id
+    // Find uni id
+    const profile = await prisma.university.findUnique({ where: { userId } })
+
+    let universityId = profile?.id
+
+    if (!universityId) {
+        // Check rep
+        // Fetch full user to avoid type inference issues with partial selects
+        const user = await prisma.user.findUnique({ where: { id: userId } }) as any
+        universityId = user?.universityId || undefined
+    }
+
+    if (!universityId) return []
+
+    // Ensure we are using valid fields from schema
+    // Casting removed as model exists
+    return await prisma.event.findMany({
+        where: { universityId },
+        orderBy: { dateTime: 'desc' },
+        include: {
+            _count: {
+                select: { registrations: true }
+            }
+        }
+    })
+}
+
+export async function createEvent(formData: FormData) {
+    const session = await auth()
+    if (!session || !session.user || ((session.user as any).role !== 'UNIVERSITY' && (session.user as any).role !== 'UNIVERSITY_REP')) {
+        return { error: 'Unauthorized' }
+    }
+
+    const userId = session.user.id
+    let universityId = null
+    const profile = await prisma.university.findUnique({ where: { userId } })
+    if (profile) universityId = profile.id
+    else {
+        const user = await prisma.user.findUnique({ where: { id: userId } }) as any
+        universityId = user?.universityId
+    }
+
+    if (!universityId) return { error: 'University not found' }
+
+    const title = formData.get('title') as string
+    const description = formData.get('description') as string
+    const type = formData.get('type') as string
+    const dateTime = new Date(formData.get('dateTime') as string)
+    const location = formData.get('location') as string
+    const capacity = formData.get('capacity') ? parseInt(formData.get('capacity') as string) : null
+    const isPublished = formData.get('isPublished') === 'on'
+
+    await prisma.event.create({
+        data: {
+            universityId,
+            title,
+            description,
+            type,
+            dateTime,
+            location,
+            capacity,
+            isPublished,
+            status: 'UPCOMING'
+        }
+    })
+
+    revalidatePath('/university/events')
+    // We might redirect here or let the client handle it.
+    // Returning success lets client redirect.
+    return { success: true }
+}

@@ -1,78 +1,93 @@
-
-import Link from "next/link"
-import { getSession } from "@/lib/auth"
+import '@/app/dashboard-tokens.css'
+import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Users, School, LogOut, Ticket, LucideIcon } from "lucide-react"
-import { logout } from "@/app/actions"
-import { AdminBreadcrumbs } from "@/components/admin/breadcrumbs"
+import { prisma } from "@/lib/prisma"
+import { AdminNav } from "@/components/admin/admin-nav"
+import { AdminRightSidebar } from "@/components/admin/admin-right-sidebar"
+import { NotificationsCenter } from "@/components/notifications-center"
+
+export const dynamic = 'force-dynamic'
 
 export default async function AdminLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
-    const session = await getSession()
+    let session = null
+    try {
+        session = await auth()
+    } catch (e) {
+        console.error('[AdminLayout] auth() failed:', e)
+    }
 
-    if (!session || session.role !== 'ADMIN') {
+    if (!session?.user) {
+        redirect('/login?callbackUrl=/admin/dashboard')
+    }
+
+    if (session.user.role !== 'ADMIN') {
         redirect('/login')
     }
 
+    const adminName = session.user.name || session.user.email?.split('@')[0] || 'Admin'
+
+    // ── Platform stats for right sidebar ─────────────────────────────────────
+    let totalUniversities = 0
+    let totalStudents = 0
+    let meetingsThisWeek = 0
+    let pendingVerifications = 0
+
+    try {
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+            ;[totalUniversities, totalStudents, meetingsThisWeek, pendingVerifications] = await Promise.all([
+                prisma.university.count(),
+                prisma.student.count(),
+                prisma.meeting.count({ where: { createdAt: { gte: weekAgo } } }),
+                prisma.university.count({ where: { verificationStatus: 'PENDING' } }),
+            ])
+    } catch (e) {
+        console.error('[AdminLayout] stats fetch failed:', e)
+    }
+
     return (
-        <div className="min-h-screen bg-gray-100 flex">
-            {/* Sidebar */}
-            <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col fixed inset-y-0">
-                <div className="p-6 border-b border-gray-200">
-                    <Link href="/" className="flex items-center gap-2">
-                        <span className="font-bold text-xl text-primary tracking-tight">edUmeetup</span>
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Admin</span>
-                    </Link>
-                </div>
+        <div className="flex h-screen overflow-hidden" style={{ background: 'var(--surface)', fontFamily: 'var(--font-body)' }}>
 
-                <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-                    <NavItem href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
-                    <NavItem href="/admin/universities" icon={School} label="Universities" />
-                    <NavItem href="/admin/users" icon={Users} label="Users" />
-                    <NavItem href="/admin/tickets" icon={Ticket} label="Support Tickets" />
-                    <NavItem href="/admin/advisory" icon={Users} label="Advisory Requests" />
-                    {/* <NavItem href="/admin/settings" icon={Settings} label="Settings" /> */}
-                </nav>
+            {/* ── Left Nav ─────────────────────────────────────────────────── */}
+            <AdminNav adminName={adminName} adminEmail={session.user.email} />
 
-                <div className="p-4 border-t border-gray-200">
-                    <div className="flex items-center gap-3 mb-4 px-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                            A
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">Admin</p>
-                            <p className="text-xs text-gray-500 truncate">{session.email}</p>
-                        </div>
+            {/* ── Centre column ────────────────────────────────────────────── */}
+            <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+
+                {/* Sticky header */}
+                <header className="sticky top-0 z-10 flex items-center justify-between gap-3 px-5 py-3.5 border-b md:hidden"
+                    style={{
+                        background: 'rgba(240,249,248,0.92)',
+                        backdropFilter: 'blur(12px)',
+                        borderColor: 'var(--border-dash)',
+                    }}>
+                    <div className="flex items-center gap-3">
+                        <AdminNav hamburgerOnly adminName={adminName} adminEmail={session.user.email} />
+                        <p className="text-base font-semibold" style={{ fontFamily: 'var(--font-display)', color: 'var(--navy)' }}>
+                            Admin
+                        </p>
                     </div>
-                    <form action={logout}>
-                        <Button variant="outline" className="w-full justify-start gap-2" type="submit">
-                            <LogOut className="h-4 w-4" />
-                            Sign Out
-                        </Button>
-                    </form>
-                </div>
-            </aside>
+                    <NotificationsCenter userRole="ADMIN" />
+                </header>
 
-            {/* Mobile Header (TODO) */}
+                {/* Page content */}
+                <main className="flex-1 flex overflow-hidden">
+                    <div className="flex-1 w-full max-w-[860px] mx-auto overflow-y-auto px-3">
+                        {children}
+                    </div>
+                </main>
+            </div>
 
-            {/* Main Content */}
-            <main className="flex-1 md:ml-64 p-8">
-                <AdminBreadcrumbs />
-                {children}
-            </main>
+            {/* ── Right Sidebar ─────────────────────────────────────────────── */}
+            <AdminRightSidebar
+                totalUniversities={totalUniversities}
+                totalStudents={totalStudents}
+                meetingsThisWeek={meetingsThisWeek}
+                pendingVerifications={pendingVerifications}
+            />
         </div>
-    )
-}
-
-function NavItem({ href, icon: Icon, label }: { href: string; icon: LucideIcon; label: string }) {
-    return (
-        <Link href={href} className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 hover:text-primary transition-colors">
-            <Icon className="h-5 w-5" />
-            {label}
-        </Link>
     )
 }

@@ -1,0 +1,22 @@
+﻿
+> edumeetup-mvp@0.1.0 build
+> prisma generate --schema=./prisma/schema.prisma && next build --no-lint
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+
+Γ£ö Generated Prisma Client (v5.22.0) to .\node_modules\@prisma\client in 254ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Want to react to database changes in your app as they happen? Discover how with Pulse: https://pris.ly/tip-1-pulse
+
+  Γû▓ Next.js 14.2.35
+  - Environments: .env.local, .env
+  - Experiments (use with caution):
+    ┬╖ instrumentationHook
+
+   Creating an optimized production build ...
+[@sentry/nextjs] It seems like you don't have a global error handler set up. It is recommended that you add a 'global-error.js' file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)
+ Γ£ô Compiled successfully
+   Checking validity of types ...

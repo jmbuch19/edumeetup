@@ -29,6 +29,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
 # env files (can opt-in for committing if needed)
 .env*
@@ -48,3 +49,14 @@ next-env.d.ts
 
 .vercel
 .env*.local
+
+# PWA
+public/sw.js
+public/workbox-*.js
+public/worker-*.js
+
+# Local Netlify folder
+.netlify
+
+# Non-npm lockfiles (this project uses npm only)
+deno.lock

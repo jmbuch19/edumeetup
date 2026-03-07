@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { requireUser } from '@/lib/auth'
-import { FieldCategory } from '@prisma/client'
+
 
 // ...
 
@@ -13,16 +13,16 @@ export type ProgramImportData = {
     fieldCategory: string
     tuitionFee: number
     durationMonths: number
-    intakes: string
+    intakes: string[]
 }
 
 export async function bulkCreatePrograms(universityId: string, data: ProgramImportData[]) {
     try {
         const user = await requireUser()
-        if (user.role !== 'UNIVERSITY') return { error: "Unauthorized" }
+        if ((user.role !== 'UNIVERSITY' && user.role !== 'UNIVERSITY_REP')) return { error: "Unauthorized" }
 
         // Verify ownership
-        const uniProfile = await prisma.universityProfile.findUnique({ where: { userId: user.id } })
+        const uniProfile = await prisma.university.findUnique({ where: { userId: user.id } })
         if (!uniProfile || uniProfile.id !== universityId) return { error: "Unauthorized" }
 
         let createdCount = 0
@@ -36,10 +36,10 @@ export async function bulkCreatePrograms(universityId: string, data: ProgramImpo
                     fieldCategory: mapFieldCategory(item.fieldCategory),
                     tuitionFee: item.tuitionFee,
                     durationMonths: item.durationMonths,
-                    intakes: item.intakes,
-                    stemDesignated: false, // Default
+                    intakes: Array.isArray(item.intakes) ? item.intakes : [],
+                    stemDesignated: false,
                     currency: 'USD',
-                    englishTests: null // Fixed: expect string or null, not array
+                    englishTests: []
                 }
             })
             createdCount++
@@ -54,17 +54,17 @@ export async function bulkCreatePrograms(universityId: string, data: ProgramImpo
 }
 
 
-function mapFieldCategory(input: string): FieldCategory {
-    if (!input) return FieldCategory.Others
+function mapFieldCategory(input: string): string {
+    if (!input) return "Others"
     const lower = input.toLowerCase()
-    if (lower.includes("comput") || lower.includes("soft") || lower.includes("it")) return FieldCategory.Computer_Science
-    if (lower.includes("engin")) return FieldCategory.Engineering
-    if (lower.includes("busin") || lower.includes("mba") || lower.includes("manag")) return FieldCategory.Business
-    if (lower.includes("data") || lower.includes("ai") || lower.includes("intell")) return FieldCategory.Data_Science
-    if (lower.includes("health") || lower.includes("med")) return FieldCategory.Health_Sciences
-    if (lower.includes("soci")) return FieldCategory.Social_Sciences
-    if (lower.includes("art") || lower.includes("hum")) return FieldCategory.Arts_Humanities
-    if (lower.includes("law")) return FieldCategory.Law
-    if (lower.includes("arch")) return FieldCategory.Architecture
-    return FieldCategory.Others
+    if (lower.includes("comput") || lower.includes("soft") || lower.includes("it")) return "Computer Science"
+    if (lower.includes("engin")) return "Engineering"
+    if (lower.includes("busin") || lower.includes("mba") || lower.includes("manag")) return "Business"
+    if (lower.includes("data") || lower.includes("ai") || lower.includes("intell")) return "Data Science"
+    if (lower.includes("health") || lower.includes("med")) return "Health Sciences"
+    if (lower.includes("soci")) return "Social Sciences"
+    if (lower.includes("art") || lower.includes("hum")) return "Arts & Humanities"
+    if (lower.includes("law")) return "Law"
+    if (lower.includes("arch")) return "Architecture"
+    return "Others"
 }
