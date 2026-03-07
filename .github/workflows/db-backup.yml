@@ -1,0 +1,242 @@
+name: Database Backup & Restore Test
+
+on:
+  schedule:
+    # Every Sunday at 02:00 UTC (07:30 IST)
+    - cron: '0 2 * * 0'
+  # Allow manual trigger from GitHub Actions UI at any time
+  workflow_dispatch:
+    inputs:
+      skip_restore_test:
+        description: 'Skip restoration test (backup only)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+env:
+  # Backup bucket — a dedicated R2 bucket separate from the app bucket
+  BACKUP_BUCKET: edumeetup-db-backups
+  # R2 endpoint (Cloudflare uses S3-compatible API)
+  AWS_ENDPOINT_URL: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+  AWS_DEFAULT_REGION: auto
+
+jobs:
+  # ─── JOB 1: pg_dump → gzip → upload to R2 ──────────────────────────────────
+  backup:
+    name: Backup — pg_dump → R2
+    runs-on: ubuntu-latest
+    outputs:
+      backup_key: ${{ steps.upload.outputs.backup_key }}
+
+    steps:
+      - name: Install PostgreSQL client tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+
+      - name: Set backup filename
+        id: filename
+        run: |
+          STAMP=$(date -u +"%Y-%m-%dT%H-%M-%SZ")
+          echo "key=weekly/${STAMP}.sql.gz" >> $GITHUB_OUTPUT
+          echo "stamp=${STAMP}" >> $GITHUB_OUTPUT
+
+      - name: Run pg_dump
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+        run: |
+          # Extract connection parts from DATABASE_URL for pg_dump
+          # Neon URL format: postgresql://user:pass@host/db?sslmode=require
+          pg_dump \
+            --no-password \
+            --format=plain \
+            --no-owner \
+            --no-acl \
+            "$DATABASE_URL" \
+          | gzip -9 > backup.sql.gz
+
+          # Verify the dump is non-empty (fail early if pg_dump silently failed)
+          SIZE=$(stat -c%s backup.sql.gz)
+          echo "Dump size: ${SIZE} bytes"
+          if [ "$SIZE" -lt 1024 ]; then
+            echo "ERROR: Backup file is suspiciously small (${SIZE} bytes). Aborting."
+            exit 1
+          fi
+
+      - name: Upload to Cloudflare R2
+        id: upload
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_BACKUP_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_BACKUP_SECRET_ACCESS_KEY }}
+        run: |
+          KEY="${{ steps.filename.outputs.key }}"
+          aws s3 cp backup.sql.gz "s3://${BACKUP_BUCKET}/${KEY}" \
+            --endpoint-url "${AWS_ENDPOINT_URL}"
+          echo "backup_key=${KEY}" >> $GITHUB_OUTPUT
+          echo "✅ Backup uploaded → ${BACKUP_BUCKET}/${KEY}"
+
+      - name: List recent backups (sanity check)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_BACKUP_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_BACKUP_SECRET_ACCESS_KEY }}
+        run: |
+          echo "Recent backups in R2:"
+          aws s3 ls "s3://${BACKUP_BUCKET}/weekly/" \
+            --endpoint-url "${AWS_ENDPOINT_URL}" \
+            | sort -r | head -10
+
+      - name: Clean up local dump
+        run: rm -f backup.sql.gz
+
+  # ─── JOB 2: Download latest backup → restore into Neon branch → verify ──────
+  restore-test:
+    name: Restore Test — Verify backup integrity
+    runs-on: ubuntu-latest
+    needs: backup
+    # Skip if manually opted out, but always run on scheduled triggers
+    if: |
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.skip_restore_test == 'false')
+
+    steps:
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client curl jq
+
+      - name: Download latest backup from R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_BACKUP_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_BACKUP_SECRET_ACCESS_KEY }}
+        run: |
+          KEY="${{ needs.backup.outputs.backup_key }}"
+          echo "Downloading: ${KEY}"
+          aws s3 cp "s3://${BACKUP_BUCKET}/${KEY}" backup.sql.gz \
+            --endpoint-url "${AWS_ENDPOINT_URL}"
+          gunzip -k backup.sql.gz
+          echo "Decompressed. Lines in dump: $(wc -l < backup.sql)"
+
+      - name: Create Neon test branch via API
+        id: neon_branch
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+        run: |
+          BRANCH_NAME="restore-test-$(date -u +%Y%m%d-%H%M%S)"
+          echo "Creating Neon branch: ${BRANCH_NAME}"
+
+          RESPONSE=$(curl -s -X POST \
+            "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/branches" \
+            -H "Authorization: Bearer ${NEON_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"branch\": {\"name\": \"${BRANCH_NAME}\"}}")
+
+          BRANCH_ID=$(echo "$RESPONSE" | jq -r '.branch.id')
+          echo "Branch created: ${BRANCH_ID}"
+          echo "branch_id=${BRANCH_ID}" >> $GITHUB_OUTPUT
+          echo "branch_name=${BRANCH_NAME}" >> $GITHUB_OUTPUT
+
+          # Wait for branch to be ready
+          sleep 10
+
+      - name: Get test branch connection string
+        id: neon_conn
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+        run: |
+          BRANCH_ID="${{ steps.neon_branch.outputs.branch_id }}"
+          RESPONSE=$(curl -s \
+            "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/connection_uri?branch_id=${BRANCH_ID}&role_name=neondb_owner&database_name=neondb" \
+            -H "Authorization: Bearer ${NEON_API_KEY}")
+          CONN_STRING=$(echo "$RESPONSE" | jq -r '.uri')
+          echo "::add-mask::${CONN_STRING}"
+          echo "conn=${CONN_STRING}" >> $GITHUB_OUTPUT
+
+      - name: Restore backup into test branch
+        env:
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+        run: |
+          echo "Restoring dump into Neon test branch…"
+          psql "${{ steps.neon_conn.outputs.conn }}" \
+            --quiet \
+            --no-password \
+            -f backup.sql
+          echo "Restore complete."
+
+      - name: Run sanity checks — row counts
+        id: sanity
+        env:
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+        run: |
+          CONN="${{ steps.neon_conn.outputs.conn }}"
+
+          check_table() {
+            local TABLE=$1
+            local MIN=$2
+            COUNT=$(psql "$CONN" -t -A -c "SELECT COUNT(*) FROM \"${TABLE}\"" 2>/dev/null || echo "0")
+            echo "  ${TABLE}: ${COUNT} rows"
+            if [ "$COUNT" -lt "$MIN" ]; then
+              echo "❌ FAIL — ${TABLE} has ${COUNT} rows, expected >= ${MIN}"
+              return 1
+            fi
+            return 0
+          }
+
+          echo "── Sanity checks ──────────────────────────────────"
+          FAILED=0
+
+          check_table "User"         1 || FAILED=1
+          check_table "Student"      0 || FAILED=1
+          check_table "University"   0 || FAILED=1
+
+          if [ "$FAILED" -eq 1 ]; then
+            echo "❌ Restore test FAILED — one or more table checks did not pass"
+            exit 1
+          fi
+
+          echo "✅ All checks passed — backup is restorable"
+
+      - name: Delete test branch (cleanup)
+        if: always()
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+        run: |
+          BRANCH_ID="${{ steps.neon_branch.outputs.branch_id }}"
+          if [ -n "$BRANCH_ID" ]; then
+            curl -s -X DELETE \
+              "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/branches/${BRANCH_ID}" \
+              -H "Authorization: Bearer ${NEON_API_KEY}"
+            echo "Test branch deleted: ${BRANCH_ID}"
+          fi
+
+      - name: Clean up local files
+        if: always()
+        run: rm -f backup.sql backup.sql.gz
+
+  # ─── JOB 3: Notify on failure ───────────────────────────────────────────────
+  notify-failure:
+    name: Alert on failure
+    runs-on: ubuntu-latest
+    needs: [backup, restore-test]
+    if: failure()
+
+    steps:
+      - name: Send failure email via Resend
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          curl -s -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer ${RESEND_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "from": "EdUmeetup Alerts <noreply@edumeetup.com>",
+              "to": ["${{ secrets.ADMIN_ALERT_EMAIL }}"],
+              "subject": "⚠️ EdUmeetup DB Backup/Restore FAILED — '"$(date -u +%Y-%m-%d)"'",
+              "html": "<p>The weekly database backup or restoration test failed.</p><p>Check GitHub Actions: <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View run</a></p>"
+            }'
