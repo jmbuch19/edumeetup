@@ -96,7 +96,7 @@ export default async function RootLayout({
                   "brandSetting": {
                     "brandName": "EdUmeetup",
                     "brandSubTitle": "Typically replies within minutes",
-                    "brandImg": "https://edumeetup.com/logo.png",
+                    "brandImg": "https://edumeetup.com/fulllogo.png",
                     "welcomeText": "Hi there!\nHow can I help you?",
                     "messageText": "Hello, %0A I have a question about https://edumeetup.com",
                     "backgroundColor": "#0026e6",
@@ -117,3 +117,4 @@ export default async function RootLayout({
     </html>
   );
 }
+
