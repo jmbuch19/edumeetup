@@ -100,7 +100,30 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
                             </p>
                             <p className="text-sm text-slate-400 max-w-lg leading-relaxed">
                                 Built with real experience in international education and campus recruitment.
+                                Designed to support universities in reaching students across India today, with planned expansion across South Asia through a trusted and structured platform — connecting institutions with pre-qualified, intent-driven students.
                             </p>
+
+                            {/* University value proposition */}
+                            <div className="mt-2 border-t border-slate-100 pt-5 space-y-2">
+                                <p className="text-xs font-semibold text-primary uppercase tracking-widest">For Universities &amp; Institutions</p>
+                                <p className="text-base text-slate-600 max-w-lg leading-relaxed">
+                                    Reach <span className="font-semibold text-slate-800">pre-qualified, intent-driven students</span> from India and beyond — without cold outreach or high agent commissions.
+                                </p>
+                                <ul className="space-y-1.5 text-sm text-slate-500 max-w-lg">
+                                    <li className="flex items-start gap-2">
+                                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                                        Host virtual or in-person campus fairs — we handle logistics
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                                        1-on-1 video meetings with shortlisted students — scheduled instantly
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                                        Verified institution profile — builds trust before the first conversation
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-lg">
