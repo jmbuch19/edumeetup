@@ -63,7 +63,7 @@ const nextConfig = {
                             "style-src 'self' 'unsafe-inline'",
                             "img-src 'self' data: blob: https://files.edumeetup.com https://lh3.googleusercontent.com https://*.googleusercontent.com",
                             "font-src 'self' data:",
-                            "connect-src 'self' https://*.neon.tech https://api.resend.com https://o4508957447987200.ingest.sentry.io",
+                            "connect-src 'self' https://*.neon.tech https://api.resend.com https://o4511006401691648.ingest.us.sentry.io",
                             "media-src 'self'",
                             "object-src 'none'",
                             "frame-src 'none'",
@@ -125,7 +125,4 @@ export default withSentryConfig(withPWA(nextConfig), {
 
     // Hides source maps from generated client bundles
     hideSourceMaps: true,
-
-    // Automatically tree-shake Sentry logger statements to reduce bundle size
-    disableLogger: true,
 });

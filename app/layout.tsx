@@ -8,6 +8,7 @@ import { Toaster } from "sonner";
 import { BugReporter } from "@/components/bug-reporter";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ClientOnlyWidgets } from "@/components/layout/client-only-widgets";
+import { SentryUserProvider } from "@/components/sentry-user-provider";
 
 const inter = Inter({ subsets: ["latin"] }); // id: 7
 
@@ -57,6 +58,11 @@ export default async function RootLayout({
           >
             {children}
           </PublicShell>
+          <SentryUserProvider
+            userId={session?.user?.id}
+            email={session?.user?.email}
+            role={(session?.user as any)?.role}
+          />
           <ClientOnlyWidgets />
           <BugReporter />
           <Toaster richColors position="top-center" />

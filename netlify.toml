@@ -52,6 +52,12 @@
 #
 # ⚠️  REQUIRED: DIRECT_URL — Neon direct (non-pooled) connection string — required for Prisma migrate deploy (runs in build command)
 #
+# ── Sentry (Error Monitoring) ──────────────────────────────────────────────────
+#   NEXT_PUBLIC_SENTRY_DSN  DSN from sentry.io → edumeetup → javascript-nextjs → Settings → Client Keys
+#   NEXT_PUBLIC_APP_ENV     production  (controls tracing sample rates and replay)
+#   SENTRY_AUTH_TOKEN       Auth token for source map uploads — generate at sentry.io → User Settings → Auth Tokens
+#                           Scope: project:releases + org:read  |  Keep server-only (not NEXT_PUBLIC_*)
+#
 # ⏳ ADD BEFORE FIRST FAIR:
 #   NEXT_PUBLIC_APP_URL   https://www.edumeetup.com  ← used in client-side fair pass / QR links
 #
