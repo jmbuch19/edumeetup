@@ -164,7 +164,7 @@ export const studentProfileSchema = z.object({
     country: z.string().optional().default('India'),
     gender: z.string().min(1, 'Please select a gender'),
     ageGroup: z.string().optional(),
-    phone: z.string().optional(),
+    phone: z.string().min(7, 'Please enter a valid phone number with country code').optional().or(z.literal('')),
     city: z.string().min(2, 'Please enter your city'),
     pincode: z.string().min(4, 'PIN Code must be at least 4 digits'),
     // Preferences
@@ -178,6 +178,8 @@ export const studentProfileSchema = z.object({
     preferredCountries: z.string().optional(),
     // Contact updates
     whatsappNumber: z.string().optional(),
+    // WhatsApp opt-in consent (checkbox sends "true" string when checked, omitted when unchecked)
+    whatsappConsent: z.string().optional().transform(val => val === 'true'),
     // Test scores
     greScore: z.string().optional(),
     gmatScore: z.string().optional(),

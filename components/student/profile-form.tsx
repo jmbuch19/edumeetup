@@ -107,8 +107,18 @@ export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: Prof
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="id_phone">Phone Number</Label>
-                            <Input id="id_phone" name="phone" defaultValue={initialData.phone || initialData.phoneNumber || ''} placeholder="+91 98765 43210" />
+                            <Label htmlFor="id_phone">
+                                Phone Number <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                                id="id_phone"
+                                name="phone"
+                                type="tel"
+                                required
+                                defaultValue={initialData.phone || initialData.phoneNumber || ''}
+                                placeholder="+91 98765 43210"
+                            />
+                            <p className="text-xs text-muted-foreground">Include country code — e.g. +91 for India, +1 for USA</p>
                         </div>
 
                         <div className="space-y-2">
@@ -119,6 +129,19 @@ export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: Prof
                                 <span className="flex h-10 items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm text-gray-600">+91</span>
                                 <Input id="id_whatsapp" name="whatsappNumber" type="tel" defaultValue={initialData.whatsappNumber || ''} placeholder="98765 43210" maxLength={15} />
                             </div>
+                            <label className="flex items-start gap-2 mt-2 cursor-pointer group">
+                                <input
+                                    type="checkbox"
+                                    name="whatsappConsent"
+                                    value="true"
+                                    defaultChecked={!!(initialData as ProfileData & { whatsappConsent?: boolean }).whatsappConsent}
+                                    className="mt-0.5 h-4 w-4 accent-primary shrink-0"
+                                />
+                                <span className="text-xs text-slate-600 group-hover:text-slate-800 leading-relaxed">
+                                    I agree to receive meeting reminders, fair updates, and university alerts via WhatsApp.
+                                    <span className="text-slate-400"> (You can opt out any time from Settings.)</span>
+                                </span>
+                            </label>
                         </div>
 
                         <div className="space-y-2">
