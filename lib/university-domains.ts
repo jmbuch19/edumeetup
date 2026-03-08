@@ -12,7 +12,7 @@ const HIPO_URL =
     'https://raw.githubusercontent.com/Hipo/university-domains-list/master/world_universities_and_domains.json'
 
 const DISPOSABLE_URL =
-    'https://raw.githubusercontent.com/disposable-email-domains/disposable-email-domains/master/domains.txt'
+    'https://raw.githubusercontent.com/disposable/disposable-email-domains/master/domains.txt'
 
 /** Hard-coded fallback blocklist in case the remote fetch fails */
 const HARDCODED_BLOCKED = new Set([
