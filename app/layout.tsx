@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
@@ -67,6 +68,51 @@ export default async function RootLayout({
           <BugReporter />
           <Toaster richColors position="top-center" />
         </ThemeProvider>
+
+        {/* WATI WhatsApp Chat Widget */}
+        <Script
+          id="wati-widget"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var url = 'https://wati-integration-prod-service.clare.ai/v2/watiWidget.js?24748';
+                var s = document.createElement('script');
+                s.type = 'text/javascript';
+                s.async = true;
+                s.src = url;
+                var options = {
+                  "enabled": true,
+                  "chatButtonSetting": {
+                    "backgroundColor": "#0026e6",
+                    "ctaText": "Chat with us",
+                    "borderRadius": "25",
+                    "marginLeft": "0",
+                    "marginRight": "20",
+                    "marginBottom": "20",
+                    "ctaIconWATI": false,
+                    "position": "right"
+                  },
+                  "brandSetting": {
+                    "brandName": "EdUmeetup",
+                    "brandSubTitle": "Typically replies within minutes",
+                    "brandImg": "https://edumeetup.com/logo.png",
+                    "welcomeText": "Hi there!\nHow can I help you?",
+                    "messageText": "Hello, %0A I have a question about https://edumeetup.com",
+                    "backgroundColor": "#0026e6",
+                    "ctaText": "Chat with us",
+                    "borderRadius": "25",
+                    "autoShow": false,
+                    "phoneNumber": "919825593262"
+                  }
+                };
+                s.onload = function() { CreateWhatsappChatWidget(options); };
+                var x = document.getElementsByTagName('script')[0];
+                x.parentNode.insertBefore(s, x);
+              })();
+            `,
+          }}
+        />
       </body>
     </html>
   );
