@@ -120,7 +120,7 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
                                     </li>
                                     <li className="flex items-start gap-2">
                                         <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                                        Verified institution profile — builds trust before the first conversation
+                                        Official institution profile — builds trust before the first conversation
                                     </li>
                                 </ul>
                             </div>
