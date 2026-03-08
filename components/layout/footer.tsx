@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { GraduationCap, Mail, Github } from "lucide-react"
+import { GraduationCap, Mail } from "lucide-react"
 
 export function Footer() {
     return (
@@ -46,14 +46,19 @@ export function Footer() {
                         <ul className="space-y-2 text-sm text-gray-600">
                             <li className="flex items-center gap-2">
                                 <Mail className="h-4 w-4" />
-                                <a href="mailto:jaydeep@edumeetup.com" className="hover:text-primary transition-colors">jaydeep@edumeetup.com</a>
+                                <a href="mailto:info@edumeetup.com" className="hover:text-primary transition-colors">info@edumeetup.com</a>
                             </li>
                             <li className="flex items-center gap-2">
-                                <Github className="h-4 w-4" />
-                                <span>@jaydeep</span>
+                                {/* Facebook */}
+                                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
+                                </svg>
+                                <Link href="https://www.facebook.com/profile.php?id=61588381671715" target="_blank" rel="noopener noreferrer" className="hover:text-primary">
+                                    EdUmeetup on Facebook
+                                </Link>
                             </li>
                             <li className="flex items-center gap-2">
-                                {/* Using a simple text X for now as lucide might not have the new logo yet, or use Twitter icon */}
+                                {/* X / Twitter */}
                                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                                 </svg>
