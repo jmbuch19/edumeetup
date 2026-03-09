@@ -4,7 +4,15 @@
 
 import { Redis } from '@upstash/redis'
 
-const redis = Redis.fromEnv()
+// Lazy singleton — Redis.fromEnv() is called on first use, never at module load.
+// This prevents the entire chat function from crashing if env vars are missing/misconfigured.
+let _redis: Redis | null = null
+function getRedis(): Redis {
+    if (!_redis) {
+        _redis = Redis.fromEnv()
+    }
+    return _redis
+}
 
 // ── Limits ───────────────────────────────────────────────────────────────────
 export const ANON_VISIT_LIMITS = [30, 15, 5, 0] // messages per visit (visit index 0,1,2,3+)
@@ -26,6 +34,8 @@ export type QuotaStatus =
 
 // ── Main quota check ──────────────────────────────────────────────────────────
 export async function getQuotaStatus(ip: string, userId?: string | null): Promise<QuotaStatus> {
+    const redis = getRedis()
+
     // ── Registered users ──────────────────────────────────────────────────────
     if (userId) {
         const date = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
@@ -82,6 +92,7 @@ export async function getQuotaStatus(ip: string, userId?: string | null): Promis
 
 // ── Consume one message ───────────────────────────────────────────────────────
 export async function consumeMessage(ip: string, userId?: string | null): Promise<void> {
+    const redis = getRedis()
     if (userId) {
         const date = new Date().toISOString().slice(0, 10)
         const key = regMsgKey(userId, date)
@@ -96,6 +107,7 @@ export async function consumeMessage(ip: string, userId?: string | null): Promis
 
 // ── Record that user hit the limit (start cooldown, increment visit counter) ──
 export async function recordLimitHit(ip: string, visitNumber: number): Promise<void> {
+    const redis = getRedis()
     // Escalating cooldown durations
     const cooldownHours = visitNumber === 0 ? 48 : visitNumber === 1 ? 168 : 720 // 48h, 7d, 30d
     const cooldownEndsAt = Date.now() + cooldownHours * 60 * 60 * 1000
