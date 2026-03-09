@@ -9,8 +9,10 @@ import Link from 'next/link'
 import {
     ArrowLeft, Building2, Globe, Mail, Phone,
     MapPin, GraduationCap, ShieldCheck, ShieldX,
-    CheckCircle2, Clock, ExternalLink,
+    CheckCircle2, Clock, ExternalLink, Network,
 } from 'lucide-react'
+import { UniversityGroupingPanel } from '@/components/admin/university-grouping-panel'
+
 
 export const dynamic = 'force-dynamic'
 
@@ -26,10 +28,20 @@ export default async function AdminUniversityDetailPage(props: Props) {
         include: {
             user: { select: { email: true, createdAt: true, isActive: true } },
             programs: { orderBy: { createdAt: 'desc' } },
+            schools: { select: { id: true, institutionName: true, verificationStatus: true } },
+            parent: { select: { id: true, institutionName: true, groupSlug: true } },
         },
     })
 
     if (!uni) notFound()
+
+    // Fetch all verified parent institutions for the parent selector dropdown
+    const allParents = await prisma.university.findMany({
+        where: { isParent: true, verificationStatus: 'VERIFIED' },
+        select: { id: true, institutionName: true, groupSlug: true },
+        orderBy: { institutionName: 'asc' },
+    })
+
 
     // Inline void wrappers required by form action type (verifyUniversity returns {error}|undefined)
     async function approveAction(fd: FormData) {
@@ -43,7 +55,7 @@ export default async function AdminUniversityDetailPage(props: Props) {
 
     const statusColor = {
         VERIFIED: 'bg-green-100 text-green-800 border-green-200',
-        PENDING:  'bg-amber-100 text-amber-800 border-amber-200',
+        PENDING: 'bg-amber-100 text-amber-800 border-amber-200',
         REJECTED: 'bg-red-100 text-red-800 border-red-200',
     }[uni.verificationStatus] ?? 'bg-gray-100 text-gray-700'
 
@@ -221,6 +233,26 @@ export default async function AdminUniversityDetailPage(props: Props) {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Institution Grouping */}
+            <Card>
+                <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                        <Network className="h-4 w-4" /> Institution Grouping
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <UniversityGroupingPanel
+                        universityId={uni.id}
+                        currentType={uni.isParent ? 'PARENT' : uni.parentId ? 'SCHOOL' : 'STANDALONE'}
+                        currentGroupSlug={uni.groupSlug}
+                        currentParentId={uni.parentId}
+                        currentParentName={uni.parent?.institutionName ?? null}
+                        schools={uni.schools}
+                        availableParents={allParents}
+                    />
+                </CardContent>
+            </Card>
         </div>
     )
 }
