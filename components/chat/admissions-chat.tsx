@@ -5,6 +5,7 @@ import { MessageCircle, X, Send, Loader2, ExternalLink, GraduationCap, Globe, Ey
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { RegistrationGate } from './RegistrationGate'
+import { CaptchaGate, isCaptchaVerified } from './CaptchaGate'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -58,14 +59,18 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
         visitNumber?: number
         cooldownEndsAt?: number
     } | null>(null)
+    // captchaOk: true if human verified this session, or user is registered
+    const [captchaOk, setCaptchaOk] = useState(false)
     const bottomRef = useRef<HTMLDivElement>(null)
 
-    // Restore hide state from sessionStorage on mount
+    // Restore hide + captcha state from sessionStorage on mount
     useEffect(() => {
         if (typeof window !== 'undefined') {
             setHidden(sessionStorage.getItem(HIDE_KEY) === '1')
+            // Registered users skip CAPTCHA; anonymous must solve once per session
+            setCaptchaOk(!!studentId || isCaptchaVerified())
         }
-    }, [])
+    }, [studentId])
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -164,8 +169,12 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
             {/* Chat Panel */}
             {open && (
                 <div className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-24px)] h-[560px] max-h-[calc(100vh-80px)] flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden relative">
+                    {/* CAPTCHA gate — shown once per session for anonymous users */}
+                    {!captchaOk && (
+                        <CaptchaGate onVerified={() => setCaptchaOk(true)} />
+                    )}
                     {/* Registration Gate overlay */}
-                    {gate && (
+                    {captchaOk && gate && (
                         <RegistrationGate
                             reason={gate.reason}
                             visitNumber={gate.visitNumber}
