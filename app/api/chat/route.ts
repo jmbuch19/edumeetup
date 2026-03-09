@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateText, tool, stepCountIs } from 'ai'
 import { z } from 'zod'
-import { google } from '@/lib/ai'
+import { groq } from '@/lib/ai'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { buildSystemPrompt } from '@/lib/bot/system-prompt'
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     //   Step 3: Gemini generates the final text reply
     // Returns the completed text once all steps are done — simple and reliable.
     const { text, steps } = await generateText({
-      model: google('gemini-2.0-flash'),
+      model: groq('llama-3.3-70b-versatile'),
       system: systemPrompt,
       messages,
       stopWhen: stepCountIs(5),
