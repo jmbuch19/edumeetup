@@ -10,6 +10,30 @@ interface Message {
     content: string
 }
 
+/**
+ * Extracts the last sentence of a bot reply that looks like a follow-up nudge
+ * (contains a question mark, or starts with Want/Shall/Would/Can I).
+ * Used to render a quick-reply chip below the message.
+ */
+function extractNudge(content: string): string | null {
+    const lines = content.split('\n').map(l => l.trim()).filter(Boolean)
+    for (let i = lines.length - 1; i >= Math.max(0, lines.length - 4); i--) {
+        const line = lines[i]
+        // Must be a question-like nudge, not a list item or heading
+        if (
+            line.endsWith('?') &&
+            !line.startsWith('-') &&
+            !line.startsWith('•') &&
+            !line.startsWith('#') &&
+            line.length > 20 &&
+            line.length < 120
+        ) {
+            return line
+        }
+    }
+    return null
+}
+
 interface AdmissionsChatProps {
     studentId?: string
 }
@@ -118,10 +142,10 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
     }
 
     const SUGGESTED = [
-        'Show CS programs in Canada',
+        'I want to study abroad — where do I start?',
+        'Show me universities in Canada',
         'Upcoming campus fairs?',
-        'Scholarships available?',
-        'Book a meeting with a university',
+        'Can I go with low percentage?',
     ]
 
     // Entire widget dismissed for this session
@@ -197,7 +221,7 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                             </div>
                         )}
 
-                        {/* Suggestions shown only after first welcome message */}
+                        {/* Suggestions shown on welcome message */}
                         {messages.length === 1 && (
                             <div className="flex flex-wrap gap-2 pt-1">
                                 {SUGGESTED.map(s => (
@@ -211,6 +235,24 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                                 ))}
                             </div>
                         )}
+
+                        {/* Dynamic follow-up nudge chip — shown after the latest bot reply */}
+                        {(() => {
+                            const lastMsg = messages[messages.length - 1]
+                            if (lastMsg?.role !== 'assistant' || loading || messages.length < 3) return null
+                            const nudge = extractNudge(lastMsg.content)
+                            if (!nudge) return null
+                            return (
+                                <div className="flex justify-start pt-1">
+                                    <button
+                                        onClick={() => setInput(nudge)}
+                                        className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-3 py-1.5 hover:bg-indigo-100 transition-colors text-left max-w-[85%]"
+                                    >
+                                        💬 {nudge}
+                                    </button>
+                                </div>
+                            )
+                        })()}
 
                         <div ref={bottomRef} />
                     </div>
