@@ -93,7 +93,6 @@ export async function POST(req: NextRequest) {
       model: groq('llama-3.1-8b-instant'),
       system: systemPrompt,
       messages,
-      maxTokens: 400,
       stopWhen: stepCountIs(2), // max 1 tool call → fits in 10s
       tools: {
 
