@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, X, Send, Loader2, ExternalLink, GraduationCap, Globe, EyeOff } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { MessageCircle, X, Send, Loader2, ExternalLink, GraduationCap, Globe, EyeOff, Maximize2, Minimize2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { RegistrationGate } from './RegistrationGate'
@@ -61,16 +61,44 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
     } | null>(null)
     // captchaOk: true if human verified this session, or user is registered
     const [captchaOk, setCaptchaOk] = useState(false)
+    const [expanded, setExpanded] = useState(false)
+    // Drag state — null = default bottom-right anchored position
+    const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
+    const dragging = useRef(false)
+    const dragOffset = useRef({ x: 0, y: 0 })
+    const panelRef = useRef<HTMLDivElement>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
 
     // Restore hide + captcha state from sessionStorage on mount
     useEffect(() => {
         if (typeof window !== 'undefined') {
             setHidden(sessionStorage.getItem(HIDE_KEY) === '1')
-            // Registered users skip CAPTCHA; anonymous must solve once per session
             setCaptchaOk(!!studentId || isCaptchaVerified())
         }
     }, [studentId])
+
+    // Drag handlers
+    const onPointerDown = useCallback((e: React.PointerEvent) => {
+        if ((e.target as HTMLElement).closest('button')) return // don't drag on buttons
+        const panel = panelRef.current
+        if (!panel) return
+        dragging.current = true
+        const rect = panel.getBoundingClientRect()
+        dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+        panel.setPointerCapture(e.pointerId)
+    }, [])
+
+    const onPointerMove = useCallback((e: React.PointerEvent) => {
+        if (!dragging.current || !panelRef.current) return
+        const panel = panelRef.current
+        const w = panel.offsetWidth
+        const h = panel.offsetHeight
+        const x = Math.min(Math.max(e.clientX - dragOffset.current.x, 0), window.innerWidth - w)
+        const y = Math.min(Math.max(e.clientY - dragOffset.current.y, 0), window.innerHeight - h)
+        setPos({ x, y })
+    }, [])
+
+    const onPointerUp = useCallback(() => { dragging.current = false }, [])
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -154,11 +182,11 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
 
     return (
         <>
-            {/* Floating Trigger Button */}
+            {/* Floating Trigger Button — raised above WhatsApp icon */}
             {!open && (
                 <button
                     onClick={() => setOpen(true)}
-                    className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-full shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95"
+                    className="fixed bottom-24 right-6 z-50 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-full shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95"
                     aria-label="Open Admissions Concierge"
                 >
                     <GraduationCap className="h-5 w-5" />
@@ -168,7 +196,20 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
 
             {/* Chat Panel */}
             {open && (
-                <div className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-24px)] h-[560px] max-h-[calc(100vh-80px)] flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden relative">
+                <div
+                    ref={panelRef}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    style={pos
+                        ? { position: 'fixed', left: pos.x, top: pos.y, right: 'auto', bottom: 'auto' }
+                        : { position: 'fixed', bottom: 24, right: 24 }
+                    }
+                    className={`z-50 flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden relative transition-[width,height] duration-200
+                        ${expanded
+                            ? 'w-[min(680px,calc(100vw-48px))] h-[min(75vh,720px)]'
+                            : 'w-[380px] max-w-[calc(100vw-24px)] h-[560px] max-h-[calc(100vh-80px)]'
+                        }`}
+                >
                     {/* CAPTCHA gate — shown once per session for anonymous users */}
                     {!captchaOk && (
                         <CaptchaGate onVerified={() => setCaptchaOk(true)} />
@@ -182,8 +223,11 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                             onDismiss={() => setGate(null)}
                         />
                     )}
-                    {/* Header */}
-                    <div className="bg-blue-600 px-4 py-3 flex items-center justify-between flex-shrink-0">
+                    {/* Header — drag handle */}
+                    <div
+                        className="bg-blue-600 px-4 py-3 flex items-center justify-between flex-shrink-0 cursor-grab active:cursor-grabbing select-none"
+                        onPointerDown={onPointerDown}
+                    >
                         <div className="flex items-center gap-2">
                             <GraduationCap className="h-5 w-5 text-white" />
                             <div>
@@ -192,6 +236,15 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                             </div>
                         </div>
                         <div className="flex items-center gap-1">
+                            {/* Expand / Collapse */}
+                            <button
+                                onClick={() => setExpanded(e => !e)}
+                                className="text-blue-200 hover:text-white transition-colors p-1 rounded"
+                                aria-label={expanded ? 'Collapse chat' : 'Expand chat'}
+                                title={expanded ? 'Collapse' : 'Expand'}
+                            >
+                                {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                            </button>
                             {/* Hide for session button */}
                             <button
                                 onClick={hideForSession}
