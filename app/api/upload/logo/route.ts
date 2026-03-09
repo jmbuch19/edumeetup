@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { validateFileSignature } from '@/lib/file-signature'
 
 const MAX_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp', 'image/gif']
@@ -66,6 +67,15 @@ export async function POST(req: NextRequest) {
 
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
+
+    // Magic byte validation — never trust file.type, it's client-controlled.
+    // For SVG, also checks for embedded <script> tags (XSS guard).
+    if (!validateFileSignature(buffer, file.type)) {
+        return NextResponse.json(
+            { error: 'File content does not match the declared type. Upload a genuine image file.' },
+            { status: 422 }
+        )
+    }
 
     const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
     const r2Key = `logos/${session.user.id}/${Date.now()}.${ext}`

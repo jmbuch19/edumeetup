@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { deleteR2File } from '@/lib/r2-delete'
+import { validateFileSignature } from '@/lib/file-signature'
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB hard limit
 
@@ -81,6 +82,15 @@ export async function POST(req: NextRequest) {
 
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
+
+    // Magic byte validation — file.type is client-declared and trivially spoofed.
+    // Check the actual bytes to confirm this is a real PDF.
+    if (!validateFileSignature(buffer, 'application/pdf')) {
+        return NextResponse.json(
+            { error: 'File content does not match a valid PDF. Upload a genuine PDF file.' },
+            { status: 422 }
+        )
+    }
 
     const originalName = file.name.replace(/[^a-zA-Z0-9._\-]/g, '_')
     const fileName = originalName.endsWith('.pdf') ? originalName : `${originalName}.pdf`
