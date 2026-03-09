@@ -81,9 +81,6 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
         setInput('')
         setLoading(true)
 
-        // Add an empty assistant message that we'll fill as the stream arrives
-        setMessages(prev => [...prev, { role: 'assistant', content: '' }])
-
         try {
             const res = await fetch('/api/chat', {
                 method: 'POST',
@@ -94,52 +91,21 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                 }),
             })
 
-            if (!res.ok || !res.body) {
-                setMessages(prev => {
-                    const copy = [...prev]
-                    copy[copy.length - 1] = { role: 'assistant', content: '⚠️ Server error. Please try again.' }
-                    return copy
-                })
-                return
-            }
-
-            // Read the AI SDK text stream — toTextStreamResponse() emits raw text chunks
-            const reader = res.body.getReader()
-            const decoder = new TextDecoder()
-            let accumulated = ''
-
-            while (true) {
-                const { done, value } = await reader.read()
-                if (done) break
-
-                // Plain text stream — just decode and accumulate directly
-                const chunk = decoder.decode(value, { stream: true })
-                accumulated += chunk
-                setMessages(prev => {
-                    const copy = [...prev]
-                    copy[copy.length - 1] = { role: 'assistant', content: accumulated }
-                    return copy
-                })
-            }
-
-            // Final safety: if nothing came through, show fallback
-            if (!accumulated.trim()) {
-                setMessages(prev => {
-                    const copy = [...prev]
-                    copy[copy.length - 1] = { role: 'assistant', content: "I'm sorry, I couldn't find an answer right now. Please try rephrasing your question." }
-                    return copy
-                })
-            }
+            const data = await res.json()
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: data.reply || "I'm having a bit of trouble right now. Please try again in a moment.",
+            }])
         } catch {
-            setMessages(prev => {
-                const copy = [...prev]
-                copy[copy.length - 1] = { role: 'assistant', content: '⚠️ Connection issue. Please try again in a moment.' }
-                return copy
-            })
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: '⚠️ Connection issue. Please check your internet and try again.',
+            }])
         } finally {
             setLoading(false)
         }
     }
+
 
     const SUGGESTED = [
         'I want to study abroad — where do I start?',
