@@ -3,10 +3,12 @@
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { sendEmail, generateEmailHtml, EmailTemplates } from '@/lib/email'
+import { validateFileSignature } from '@/lib/file-signature'
 
 // ── Segment windows ───────────────────────────────────────────────────────────
 const FRESH_DAYS = 30
 const DORMANT_DAYS = 60
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024 // 5 MB
 
 function daysAgo(n: number) {
     return new Date(Date.now() - n * 24 * 60 * 60 * 1000)
@@ -52,12 +54,12 @@ export async function getDormantStudents(): Promise<SegmentStudent[]> {
     const rows = await prisma.student.findMany({
         where: {
             user: {
-                createdAt: { lt: cutoff },  // joined before the window
+                createdAt: { lt: cutoff },
                 role: 'STUDENT'
             },
             OR: [
-                { lastSeenAt: null },           // never logged in after field was added
-                { lastSeenAt: { lt: cutoff } }, // last seen before cutoff
+                { lastSeenAt: null },
+                { lastSeenAt: { lt: cutoff } },
             ]
         },
         select: {
@@ -65,7 +67,7 @@ export async function getDormantStudents(): Promise<SegmentStudent[]> {
             lastSeenAt: true,
             user: { select: { name: true, email: true, createdAt: true } }
         },
-        orderBy: { lastSeenAt: 'asc' }, // oldest first
+        orderBy: { lastSeenAt: 'asc' },
     })
     return rows.map(r => ({
         id: r.id,
@@ -76,7 +78,7 @@ export async function getDormantStudents(): Promise<SegmentStudent[]> {
     }))
 }
 
-// ── Bulk nudge (in-app notification only) ─────────────────────────────────────
+// ── Bulk nudge (in-app only — no attachments) ─────────────────────────────────
 
 export async function nudgeSegment(
     segment: 'fresh' | 'dormant',
@@ -106,16 +108,33 @@ export async function nudgeSegment(
     return { sent: students.length }
 }
 
-// ── Bulk email ────────────────────────────────────────────────────────────────
+// ── Bulk email (FormData — enables optional file attachment) ──────────────────
 
 export async function emailSegment(
-    segment: 'fresh' | 'dormant',
-    subject: string,
-    body: string,
+    formData: FormData,
 ): Promise<{ sent: number; failed: number; error?: string }> {
     const session = await auth()
     if (session?.user?.role !== 'ADMIN') return { sent: 0, failed: 0, error: 'Unauthorized' }
-    if (!subject.trim() || !body.trim()) return { sent: 0, failed: 0, error: 'Subject and body are required' }
+
+    const segment = formData.get('segment') as 'fresh' | 'dormant'
+    const subject = (formData.get('subject') as string)?.trim()
+    const body = (formData.get('body') as string)?.trim()
+    const attachmentFile = formData.get('attachment') as File | null
+
+    if (!segment || !subject || !body) return { sent: 0, failed: 0, error: 'Subject and body are required' }
+
+    // Parse and validate optional attachment
+    let attachment: { filename: string; content: Buffer } | undefined
+    if (attachmentFile && attachmentFile.size > 0) {
+        if (attachmentFile.size > MAX_ATTACHMENT_BYTES) {
+            return { sent: 0, failed: 0, error: 'Attachment too large (max 5 MB)' }
+        }
+        const buf = Buffer.from(await attachmentFile.arrayBuffer())
+        if (!validateFileSignature(buf, attachmentFile.type)) {
+            return { sent: 0, failed: 0, error: 'Attachment content does not match declared type' }
+        }
+        attachment = { filename: attachmentFile.name, content: buf }
+    }
 
     const students = segment === 'fresh'
         ? await getFreshStudents()
@@ -126,13 +145,13 @@ export async function emailSegment(
     let sent = 0
     let failed = 0
 
-    // Sequential — avoids SMTP/Resend rate limit blasts
     for (const student of students) {
         try {
             await sendEmail({
                 to: student.email,
-                subject: `[EdUmeetup] ${subject.trim()}`,
-                html: generateEmailHtml(subject.trim(), EmailTemplates.announcement(subject.trim(), body.trim())),
+                subject: `[EdUmeetup] ${subject}`,
+                html: generateEmailHtml(subject, EmailTemplates.announcement(subject, body)),
+                ...(attachment ? { attachments: [attachment] } : {}),
             })
             sent++
         } catch (e) {

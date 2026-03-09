@@ -13,8 +13,12 @@ interface EmailPayload {
     to: string
     subject: string
     html: string
-    replyTo?: string          // ← NEW
+    replyTo?: string
     text?: string             // optional override; auto-generated if omitted
+    attachments?: Array<{     // optional file attachments (Resend native support)
+        filename: string
+        content: Buffer
+    }>
 }
 
 interface PublicInquiryData {
@@ -139,7 +143,7 @@ export async function sendMarketingEmail(
 }
 
 
-export async function sendEmail({ to, subject, html, replyTo, text }: EmailPayload) {
+export async function sendEmail({ to, subject, html, replyTo, text, attachments }: EmailPayload) {
     // Rate limit: max 10 emails per recipient per hour
     const isAllowed = checkRateLimit(`email:${to}`, 10)
     if (!isAllowed) {
@@ -180,7 +184,13 @@ ${plainText.slice(0, 300)}
             subject,
             html,
             text: plainText,
-            ...(replyTo ? { replyTo } : {})
+            ...(replyTo ? { replyTo } : {}),
+            ...(attachments && attachments.length > 0 ? {
+                attachments: attachments.map(a => ({
+                    filename: a.filename,
+                    content: a.content,
+                }))
+            } : {})
         })
 
         if (error) throw new Error((error as any).message)

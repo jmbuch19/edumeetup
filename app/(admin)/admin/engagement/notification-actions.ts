@@ -3,6 +3,9 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { sendEmail, generateEmailHtml, EmailTemplates } from "@/lib/email"
+import { validateFileSignature } from "@/lib/file-signature"
+
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024 // 5 MB
 
 const ALLOWED_NOTIFICATION_TYPES = ['INFO', 'WARNING', 'ACTION_REQUIRED'] as const
 
@@ -15,8 +18,22 @@ export async function sendNotification(formData: FormData) {
     const message = formData.get("message") as string
     const actionUrl = (formData.get("actionUrl") as string)?.trim() || undefined
     const notifType = (formData.get("notifType") as string) || "INFO"
+    const attachmentFile = formData.get("attachment") as File | null
 
     if (!recipientEmail || !title || !message) return { error: "Missing fields" }
+
+    // Parse and validate optional attachment
+    let attachment: { filename: string; content: Buffer } | undefined
+    if (attachmentFile && attachmentFile.size > 0) {
+        if (attachmentFile.size > MAX_ATTACHMENT_BYTES) {
+            return { error: `Attachment too large (max 5 MB)` }
+        }
+        const buf = Buffer.from(await attachmentFile.arrayBuffer())
+        if (!validateFileSignature(buf, attachmentFile.type)) {
+            return { error: 'Attachment content does not match declared type' }
+        }
+        attachment = { filename: attachmentFile.name, content: buf }
+    }
 
     // Security: reject external URLs to prevent open redirect / phishing
     if (actionUrl && !actionUrl.startsWith('/')) {
@@ -71,11 +88,12 @@ export async function sendNotification(formData: FormData) {
             })
         }
 
-        // Always send transactional email for targeted admin push (bypasses consentMarketing gate)
+        // Always send transactional email for targeted admin push
         await sendEmail({
             to: user.email,
             subject: `[EdUmeetup] ${title}`,
-            html: generateEmailHtml(title, EmailTemplates.announcement(title, message))
+            html: generateEmailHtml(title, EmailTemplates.announcement(title, message)),
+            ...(attachment ? { attachments: [attachment] } : {})
         })
 
         return { success: true }

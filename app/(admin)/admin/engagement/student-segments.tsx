@@ -14,6 +14,7 @@ import {
 import { Bell, Mail, Users, Clock, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { nudgeSegment, emailSegment, type SegmentStudent } from './segment-actions'
+import { AttachmentPicker } from '@/components/admin/attachment-picker'
 
 interface Props {
     freshStudents: SegmentStudent[]
@@ -74,12 +75,7 @@ function StudentTable({ students, type }: { students: SegmentStudent[]; type: Se
 }
 
 function SegmentPanel({
-    segment,
-    students,
-    icon: Icon,
-    title,
-    description,
-    badgeVariant,
+    segment, students, icon: Icon, title, description, badgeVariant,
 }: {
     segment: Segment
     students: SegmentStudent[]
@@ -93,6 +89,7 @@ function SegmentPanel({
     const [nudgeMsg, setNudgeMsg] = useState('')
     const [emailSubject, setEmailSubject] = useState('')
     const [emailBody, setEmailBody] = useState('')
+    const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
     const [isPending, startTransition] = useTransition()
 
     const handleNudge = () => {
@@ -100,20 +97,25 @@ function SegmentPanel({
             const result = await nudgeSegment(segment, nudgeTitle, nudgeMsg)
             if (result.error) { toast.error(result.error); return }
             toast.success(`Nudge sent to ${result.sent} student${result.sent !== 1 ? 's' : ''}`)
-            setActivePanel(null)
-            setNudgeTitle('')
-            setNudgeMsg('')
+            setActivePanel(null); setNudgeTitle(''); setNudgeMsg('')
         })
     }
 
     const handleEmail = () => {
         startTransition(async () => {
-            const result = await emailSegment(segment, emailSubject, emailBody)
+            const fd = new FormData()
+            fd.append('segment', segment)
+            fd.append('subject', emailSubject)
+            fd.append('body', emailBody)
+            if (attachmentFile) fd.append('attachment', attachmentFile)
+
+            const result = await emailSegment(fd)
             if (result.error) { toast.error(result.error); return }
-            toast.success(`Email sent to ${result.sent} student${result.sent !== 1 ? 's' : ''}${result.failed > 0 ? ` (${result.failed} failed)` : ''}`)
-            setActivePanel(null)
-            setEmailSubject('')
-            setEmailBody('')
+            toast.success(
+                `Email sent to ${result.sent} student${result.sent !== 1 ? 's' : ''}` +
+                (result.failed > 0 ? ` (${result.failed} failed)` : '')
+            )
+            setActivePanel(null); setEmailSubject(''); setEmailBody(''); setAttachmentFile(null)
         })
     }
 
@@ -134,28 +136,15 @@ function SegmentPanel({
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={students.length === 0}
-                        onClick={() => setActivePanel('nudge')}
-                    >
-                        <Bell className="h-4 w-4 mr-1" />
-                        Nudge
+                    <Button size="sm" variant="outline" disabled={students.length === 0} onClick={() => setActivePanel('nudge')}>
+                        <Bell className="h-4 w-4 mr-1" />Nudge
                     </Button>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={students.length === 0}
-                        onClick={() => setActivePanel('email')}
-                    >
-                        <Mail className="h-4 w-4 mr-1" />
-                        Email All
+                    <Button size="sm" variant="outline" disabled={students.length === 0} onClick={() => setActivePanel('email')}>
+                        <Mail className="h-4 w-4 mr-1" />Email All
                     </Button>
                 </div>
             </div>
 
-            {/* Student table */}
             <StudentTable students={students} type={segment} />
 
             {/* Nudge dialog */}
@@ -164,30 +153,17 @@ function SegmentPanel({
                     <DialogHeader>
                         <DialogTitle>Send In-App Nudge</DialogTitle>
                         <DialogDescription>
-                            This will create an in-app notification for all <strong>{students.length}</strong> {title.toLowerCase()} students. No email is sent.
+                            Creates a notification for <strong>{students.length}</strong> {title.toLowerCase()} students. No email is sent.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-3 py-2">
                         <div>
                             <Label htmlFor="nudge-title">Title</Label>
-                            <Input
-                                id="nudge-title"
-                                value={nudgeTitle}
-                                onChange={e => setNudgeTitle(e.target.value)}
-                                placeholder="Welcome to EdUmeetup! 👋"
-                                maxLength={80}
-                            />
+                            <Input id="nudge-title" value={nudgeTitle} onChange={e => setNudgeTitle(e.target.value)} placeholder="Welcome to EdUmeetup! 👋" maxLength={80} />
                         </div>
                         <div>
                             <Label htmlFor="nudge-msg">Message</Label>
-                            <Textarea
-                                id="nudge-msg"
-                                value={nudgeMsg}
-                                onChange={e => setNudgeMsg(e.target.value)}
-                                placeholder="Explore universities and find your perfect match."
-                                rows={3}
-                                maxLength={300}
-                            />
+                            <Textarea id="nudge-msg" value={nudgeMsg} onChange={e => setNudgeMsg(e.target.value)} placeholder="Explore universities and find your perfect match." rows={3} maxLength={300} />
                         </div>
                     </div>
                     <DialogFooter>
@@ -201,46 +177,33 @@ function SegmentPanel({
 
             {/* Email dialog */}
             <Dialog open={activePanel === 'email'} onOpenChange={open => !open && setActivePanel(null)}>
-                <DialogContent>
+                <DialogContent className="max-w-lg">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <AlertTriangle className="h-4 w-4 text-amber-500" />
                             Send Bulk Email
                         </DialogTitle>
                         <DialogDescription>
-                            This will send a real email to <strong>{students.length}</strong> {title.toLowerCase()} students. Cannot be undone.
+                            Real email to <strong>{students.length}</strong> {title.toLowerCase()} students. Cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-3 py-2">
                         <div>
                             <Label htmlFor="email-subject">Subject</Label>
-                            <Input
-                                id="email-subject"
-                                value={emailSubject}
-                                onChange={e => setEmailSubject(e.target.value)}
-                                placeholder="Discover your future university"
-                                maxLength={100}
-                            />
+                            <Input id="email-subject" value={emailSubject} onChange={e => setEmailSubject(e.target.value)} placeholder="Discover your future university" maxLength={100} />
                         </div>
                         <div>
                             <Label htmlFor="email-body">Body</Label>
-                            <Textarea
-                                id="email-body"
-                                value={emailBody}
-                                onChange={e => setEmailBody(e.target.value)}
-                                placeholder="Hi there! We noticed you recently joined EdUmeetup..."
-                                rows={5}
-                                maxLength={1500}
-                            />
+                            <Textarea id="email-body" value={emailBody} onChange={e => setEmailBody(e.target.value)} placeholder="Hi there! We noticed you recently joined EdUmeetup..." rows={4} maxLength={1500} />
+                        </div>
+                        <div>
+                            <Label className="mb-1.5 block">Attachment <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                            <AttachmentPicker onChange={setAttachmentFile} />
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setActivePanel(null)} disabled={isPending}>Cancel</Button>
-                        <Button
-                            variant="destructive"
-                            onClick={handleEmail}
-                            disabled={isPending || !emailSubject.trim() || !emailBody.trim()}
-                        >
+                        <Button variant="destructive" onClick={handleEmail} disabled={isPending || !emailSubject.trim() || !emailBody.trim()}>
                             {isPending ? 'Sending…' : `Email ${students.length} Students`}
                         </Button>
                     </DialogFooter>
@@ -253,23 +216,11 @@ function SegmentPanel({
 export function StudentSegments({ freshStudents, dormantStudents }: Props) {
     return (
         <div className="space-y-8">
-            <SegmentPanel
-                segment="fresh"
-                students={freshStudents}
-                icon={Users}
-                title="New Students"
-                description={`Joined in the last 30 days`}
-                badgeVariant="default"
-            />
+            <SegmentPanel segment="fresh" students={freshStudents} icon={Users} title="New Students"
+                description="Joined in the last 30 days" badgeVariant="default" />
             <div className="border-t pt-8">
-                <SegmentPanel
-                    segment="dormant"
-                    students={dormantStudents}
-                    icon={Clock}
-                    title="Dormant Students"
-                    description={`Joined >60 days ago, not seen in 60+ days`}
-                    badgeVariant="secondary"
-                />
+                <SegmentPanel segment="dormant" students={dormantStudents} icon={Clock} title="Dormant Students"
+                    description="Joined >60 days ago, not seen in 60+ days" badgeVariant="secondary" />
             </div>
         </div>
     )

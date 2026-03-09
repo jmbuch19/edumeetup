@@ -8,13 +8,16 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { sendNotification } from "./notification-actions"
+import { AttachmentPicker } from "@/components/admin/attachment-picker"
 import { Loader2, Send, Link } from "lucide-react"
 
 export function NotificationsSender() {
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
 
     async function handleSubmit(formData: FormData) {
         setIsSubmitting(true)
+        if (attachmentFile) formData.append('attachment', attachmentFile)
         const res = await sendNotification(formData)
 
         if (res?.error) {
@@ -23,6 +26,7 @@ export function NotificationsSender() {
             toast.success("Notification sent successfully!")
             const form = document.getElementById("notif-form") as HTMLFormElement
             form?.reset()
+            setAttachmentFile(null)
         }
         setIsSubmitting(false)
     }
@@ -87,6 +91,13 @@ export function NotificationsSender() {
                         <p className="text-xs text-muted-foreground">
                             Internal paths only (must start with <code>/</code>). Clicking the notification will navigate here.
                         </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>
+                            Email Attachment <span className="text-muted-foreground font-normal">(optional — sent with the email)</span>
+                        </Label>
+                        <AttachmentPicker onChange={setAttachmentFile} />
                     </div>
 
                     <Button type="submit" disabled={isSubmitting}>
