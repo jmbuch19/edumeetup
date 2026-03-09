@@ -57,6 +57,9 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
         setInput('')
         setLoading(true)
 
+        // Add an empty assistant message that we'll fill as the stream arrives
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }])
+
         try {
             const res = await fetch('/api/chat', {
                 method: 'POST',
@@ -67,16 +70,57 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                 }),
             })
 
-            const data = await res.json()
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: data.reply || 'Sorry, I could not process that. Please try again.',
-            }])
+            if (!res.ok || !res.body) {
+                setMessages(prev => {
+                    const copy = [...prev]
+                    copy[copy.length - 1] = { role: 'assistant', content: '⚠️ Server error. Please try again.' }
+                    return copy
+                })
+                return
+            }
+
+            // Read the AI SDK data stream — each line is: 0:"chunk" for text tokens
+            const reader = res.body.getReader()
+            const decoder = new TextDecoder()
+            let accumulated = ''
+
+            while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+
+                const chunk = decoder.decode(value, { stream: true })
+                // AI SDK stream format: lines like `0:"hello "` or `0:" world"`
+                for (const line of chunk.split('\n')) {
+                    if (line.startsWith('0:')) {
+                        try {
+                            // Value after "0:" is a JSON-encoded string
+                            const token = JSON.parse(line.slice(2))
+                            accumulated += token
+                            // Update the last (assistant) message in real-time
+                            setMessages(prev => {
+                                const copy = [...prev]
+                                copy[copy.length - 1] = { role: 'assistant', content: accumulated }
+                                return copy
+                            })
+                        } catch { /* skip malformed chunks */ }
+                    }
+                }
+            }
+
+            // Final safety: if nothing came through, show fallback
+            if (!accumulated.trim()) {
+                setMessages(prev => {
+                    const copy = [...prev]
+                    copy[copy.length - 1] = { role: 'assistant', content: "I'm sorry, I couldn't find an answer right now. Please try rephrasing your question." }
+                    return copy
+                })
+            }
         } catch {
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: '⚠️ Connection issue. Please try again in a moment.',
-            }])
+            setMessages(prev => {
+                const copy = [...prev]
+                copy[copy.length - 1] = { role: 'assistant', content: '⚠️ Connection issue. Please try again in a moment.' }
+                return copy
+            })
         } finally {
             setLoading(false)
         }

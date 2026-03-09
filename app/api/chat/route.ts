@@ -1,9 +1,9 @@
 // app/api/chat/route.ts
 // EdUmeetup Admissions Concierge Bot — powered by Gemini via Vercel AI SDK
-// Function calling: searchInternalUniversities, getStudentProfile, searchGlobalUniversities, getUpcomingFairs
+// Uses streamText so the agentic multi-step tool loop (Tier 1 → Tier 2) works correctly.
 
-import { NextRequest, NextResponse } from 'next/server'
-import { generateText, tool } from 'ai'
+import { NextRequest } from 'next/server'
+import { streamText, tool } from 'ai'
 import { z } from 'zod'
 import { google } from '@/lib/ai'
 import { auth } from '@/lib/auth'
@@ -18,7 +18,9 @@ export async function POST(req: NextRequest) {
     const { messages, studentId } = await req.json()
 
     if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json({ error: 'messages array required' }, { status: 400 })
+      return new Response(JSON.stringify({ error: 'messages array required' }), {
+        status: 400, headers: { 'Content-Type': 'application/json' }
+      })
     }
 
     // ── 1. Load student context ───────────────────────────────────────────
@@ -40,11 +42,44 @@ export async function POST(req: NextRequest) {
     // ── 2. Build system prompt ────────────────────────────────────────────
     const systemPrompt = buildSystemPrompt(studentContext)
 
-    // ── 3. Run Gemini with tools ──────────────────────────────────────────
-    const result = await generateText({
+    // ── 3. Stream with tool loop ──────────────────────────────────────────
+    // streamText supports maxSteps natively — each step: Gemini calls a tool,
+    // we execute it, feed the result back, Gemini generates the final reply.
+    const result = streamText({
       model: google('gemini-2.0-flash'),
       system: systemPrompt,
       messages,
+      maxSteps: 5, // up to 5 tool calls per conversation turn (Tier 1 + Tier 2)
+      onFinish: async ({ text, steps }) => {
+        // ── 4. Log to SystemLog (non-blocking) ────────────────────────────
+        try {
+          const session = await auth()
+          await prisma.systemLog.create({
+            data: {
+              level: 'INFO', type: 'BOT_SESSION',
+              message: `Admissions bot — ${messages.length} messages, ${steps.length} steps`,
+              metadata: {
+                botVersion: BOT_VERSION,
+                studentId: studentId || null,
+                userId: session?.user?.id || null,
+                toolCalls: steps.length,
+                question: messages[messages.length - 1]?.content?.slice(0, 100),
+              }
+            }
+          })
+        } catch { /* non-fatal */ }
+
+        // ── 5. Log BotMisses if bot couldn't help ─────────────────────────
+        if (
+          text.toLowerCase().includes('i do not have that information') ||
+          text.toLowerCase().includes('feature not available')
+        ) {
+          try {
+            const lastQ = messages[messages.length - 1]?.content
+            if (lastQ) await prisma.botMisses.create({ data: { question: lastQ.slice(0, 500) } })
+          } catch { /* non-fatal */ }
+        }
+      },
       tools: {
         searchInternalUniversities: tool({
           description: "Search EdUmeetup's verified partner universities. Always call this FIRST before global search.",
@@ -91,7 +126,7 @@ export async function POST(req: NextRequest) {
             })
 
             if (universities.length === 0) {
-              return { found: false, message: 'No verified partner universities found. Suggest global search.' }
+              return { found: false, message: 'No verified partner universities found for this search. Tier 2 global search will now be attempted.' }
             }
             return {
               found: true, source: 'INTERNAL', count: universities.length,
@@ -106,7 +141,7 @@ export async function POST(req: NextRequest) {
         }),
 
         getStudentProfile: tool({
-          description: "Get the logged-in student's profile to personalize recommendations.",
+          description: "Get the logged-in student's profile to personalise recommendations.",
           inputSchema: z.object({
             studentId: z.string().describe("The student's database ID"),
           }),
@@ -173,38 +208,13 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // ── 4. Log to SystemLog ───────────────────────────────────────────────
-    try {
-      const session = await auth()
-      await prisma.systemLog.create({
-        data: {
-          level: 'INFO', type: 'BOT_SESSION',
-          message: `Admissions bot — ${messages.length} messages, ${result.steps?.length || 0} steps`,
-          metadata: {
-            botVersion: BOT_VERSION,
-            studentId: studentId || null,
-            userId: session?.user?.id || null,
-            toolCalls: result.steps?.length || 0,
-            question: messages[messages.length - 1]?.content?.slice(0, 100),
-          }
-        }
-      })
-    } catch { /* non-fatal */ }
-
-    // ── 5. Log BotMisses if Gemini said it can't help ────────────────────
-    const replyText = result.text
-    if (replyText.toLowerCase().includes('i do not have that information') ||
-      replyText.toLowerCase().includes('feature not available')) {
-      try {
-        const lastQ = messages[messages.length - 1]?.content
-        if (lastQ) await prisma.botMisses.create({ data: { question: lastQ.slice(0, 500) } })
-      } catch { /* non-fatal */ }
-    }
-
-    return NextResponse.json({ reply: replyText })
+    // Return the AI SDK data stream — AdmissionsChat reads this with fetch + ReadableStream
+    return result.toDataStreamResponse()
 
   } catch (error) {
     console.error('[/api/chat] error:', error)
-    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
+    return new Response(JSON.stringify({ error: 'Something went wrong. Please try again.' }), {
+      status: 500, headers: { 'Content-Type': 'application/json' }
+    })
   }
 }
