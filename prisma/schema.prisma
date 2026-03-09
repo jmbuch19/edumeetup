@@ -1049,10 +1049,13 @@ model FairMessage {
   id               String         @id @default(cuid())
   fairAttendanceId String
   fairAttendance   FairAttendance @relation(fields: [fairAttendanceId], references: [id], onDelete: Cascade)
+  // ENFORCE UPPERCASE: only "STUDENT" or "UNIVERSITY" — never lowercase or other values
   senderRole       String
   senderId         String
   content          String
-  readAt           DateTime?
+  // Split per-party: one party marking read must NOT clear it for the other
+  studentReadAt    DateTime?      // set when the student reads this message
+  universityReadAt DateTime?      // set when the university rep reads this message
   createdAt        DateTime       @default(now())
 
   @@index([fairAttendanceId])
@@ -1129,9 +1132,12 @@ model DirectMessage {
   id             String       @id @default(cuid())
   conversationId String
   senderId       String       // User.id
-  senderRole     String       // "STUDENT" | "UNIVERSITY"
+  // ENFORCE UPPERCASE: only "STUDENT" or "UNIVERSITY" — never lowercase or other values
+  senderRole     String
   content        String
-  readAt         DateTime?
+  // Split per-party: one party marking read must NOT clear it for the other
+  studentReadAt    DateTime?  // set when the student reads this message
+  universityReadAt DateTime?  // set when the university rep reads this message
   createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
