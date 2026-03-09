@@ -662,22 +662,40 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
     }
 
     try {
+        // ── 1. Duplicate guard ────────────────────────────────────────────────
         const existingUser = await prisma.user.findUnique({ where: { email } })
         if (existingUser) {
-            return { error: 'User already exists' }
+            return { error: 'An account already exists for this email. Please sign in instead.' }
         }
 
+        // ── 2. Parent Institution Auto-Detection ──────────────────────────────
+        // Extract domain and check if a VERIFIED parent university shares it.
+        // If matched → auto-approve as a school under that parent (no admin queue).
+        const emailDomain = email.split('@')[1]?.toLowerCase()
+        let parentMatch: { id: string; groupSlug: string | null; institutionName: string } | null = null
+
+        if (emailDomain) {
+            parentMatch = await prisma.university.findFirst({
+                where: {
+                    isParent: true,
+                    verificationStatus: 'VERIFIED',
+                    OR: [
+                        { repEmail: { endsWith: `@${emailDomain}` } },
+                        { contactEmail: { endsWith: `@${emailDomain}` } },
+                    ]
+                },
+                select: { id: true, groupSlug: true, institutionName: true }
+            })
+        }
+
+        const isAutoApproved = !!parentMatch
+        const verificationStatus = isAutoApproved ? 'VERIFIED' : 'PENDING'
+
+        // ── 3. Create user + university record ────────────────────────────────
         await prisma.user.create({
             data: {
                 email,
                 role: 'UNIVERSITY',
-                // status: 'PENDING', // Removed as not in User schema
-                // phoneNumber: contactPhone, // Moved to profile or kept? User has no phone field in new schema? check schema.
-                // Schema has phoneNumber in User? No, simplified user. 
-                // Wait, I updated User schema. Let me check my memory.
-                // User schema has NO phone number. Student has phone. University has contactPhone.
-                // So remove phoneNumber from User create.
-
                 university: {
                     create: {
                         institutionName,
@@ -688,21 +706,22 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
                         repDesignation,
                         repEmail: email,
                         contactPhone,
-                        // phoneNumber: contactPhone, // University has contactPhone AND phoneNumber? 
-                        // Prompt said: University model: universityName, country, city, website, accreditationNo, isVerified...
-                        // I added preserved fields.
-
                         accreditationNo: accreditation,
                         scholarshipsAvailable,
-                        // Certification
                         certAuthority,
                         certLegitimacy,
                         certPurpose,
                         certAccountability,
                         certIp: ip,
                         certTimestamp: new Date(),
-                        verificationStatus: 'PENDING',
-                        // Email-validated institution info
+                        verificationStatus,
+                        // Auto-approval fields — only set if parent matched
+                        ...(isAutoApproved ? {
+                            verifiedAt: new Date(),
+                            verifiedByAdmin: 'AUTO_PARENT_MATCH',
+                            parentId: parentMatch!.id,
+                            groupSlug: parentMatch!.groupSlug,
+                        } : {}),
                         universityNameFromEmail: detectedUniversityName || null,
                         countryFromEmail: detectedCountry || null,
                         programs: {
@@ -725,19 +744,36 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
             }
         })
 
-        console.log(`New university registered with ${programs.length} programs: ${institutionName}`)
+        console.log(
+            `[REGISTER] ${institutionName} registered with ${programs.length} programs` +
+            (isAutoApproved ? ` — AUTO-APPROVED under parent: ${parentMatch!.institutionName}` : ' — PENDING admin review')
+        )
 
-        // Send magic link directly (bypasses Auth.js signIn which silently fails in Netlify serverless)
+        // ── 4. Send magic link ────────────────────────────────────────────────
         await sendMagicLink(email, '/university/dashboard')
 
-        // Alert admin about new university registration
-        const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL
-        if (adminEmail) {
+        // ── 5. Notification emails ────────────────────────────────────────────
+        if (isAutoApproved) {
+            // "Verified under parent" email — no admin queue entry created
             await sendEmail({
-                to: adminEmail,
-                subject: `[ACTION REQUIRED] New University Registration: ${institutionName}`,
-                html: generateEmailHtml('New University Registration', EmailTemplates.adminNewUniversity(institutionName, email))
+                to: email,
+                subject: `✅ Your EdUmeetup account is verified under ${parentMatch!.institutionName}`,
+                html: generateEmailHtml('Account Automatically Verified', `
+                    <p>Your institution <strong>${institutionName}</strong> has been automatically verified on EdUmeetup as a school under <strong>${parentMatch!.institutionName}</strong>.</p>
+                    <p>No manual review is needed — your dashboard is ready immediately after you sign in via the login link sent to this email.</p>
+                    <p>Your school profile will appear on EdUmeetup alongside other institutions in the ${parentMatch!.institutionName} group.</p>
+                `)
             })
+        } else {
+            // Alert admin about new university pending review
+            const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL
+            if (adminEmail) {
+                await sendEmail({
+                    to: adminEmail,
+                    subject: `[ACTION REQUIRED] New University Registration: ${institutionName}`,
+                    html: generateEmailHtml('New University Registration', EmailTemplates.adminNewUniversity(institutionName, email))
+                })
+            }
         }
 
     } catch (error) {
@@ -747,6 +783,7 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
 
     return { success: true, email, message: "Registered! Check your email to login." }
 }
+
 
 export async function deleteProgram(programId: string) {
     try {
