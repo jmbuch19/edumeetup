@@ -308,7 +308,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 token.id = user.id
             }
 
-            const REFRESH_INTERVAL_MS = 5 * 60 * 1000
+            // 15 min interval — 3× less DB traffic than the previous 5 min
+            const REFRESH_INTERVAL_MS = 15 * 60 * 1000
             const shouldRefresh =
                 !!user ||
                 trigger === 'update' ||
@@ -317,26 +318,45 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
             if (shouldRefresh && token.sub) {
                 console.log(`[AUTH jwt] Refreshing role for sub=${token.sub}`)
-                const dbUser = await prisma.user.findUnique({
+
+                // Primary lookup: by ID (the happy path)
+                let dbUser = await prisma.user.findUnique({
                     where: { id: token.sub },
-                    select: { role: true, isActive: true }
+                    select: { id: true, role: true, isActive: true }
                 })
+
+                // Fallback: sub doesn't match any ID — try by email (handles re-provisioned accounts)
+                if (!dbUser && token.email) {
+                    console.warn(`[AUTH jwt] sub=${token.sub} not in DB — trying email fallback`)
+                    dbUser = await prisma.user.findFirst({
+                        where: { email: token.email as string },
+                        select: { id: true, role: true, isActive: true }
+                    })
+                    if (dbUser) {
+                        // Patch token.sub so future lookups use the real DB id
+                        token.sub = dbUser.id
+                        console.log(`[AUTH jwt] Patched sub to ${dbUser.id} via email fallback`)
+                    }
+                }
+
                 if (dbUser) {
                     token.role = dbUser.role as any
                     token.lastRefreshed = Date.now()
                     console.log(`[AUTH jwt] Stamped role=${token.role} for sub=${token.sub}`)
                     if (!dbUser.isActive) return null
 
-                    // Admin gets a short 24h hard cap — tighter security for privileged account
+                    // Admin gets a short 24h hard cap
                     if (dbUser.role === 'ADMIN') {
                         const oneDayFromNow = Math.floor(Date.now() / 1000) + 24 * 60 * 60
-                        // Only shorten — never extend beyond what's already set
                         if (!token.exp || (token.exp as number) > oneDayFromNow) {
                             token.exp = oneDayFromNow
                         }
                     }
                 } else {
-                    console.warn(`[AUTH jwt] No DB user found for sub=${token.sub}`)
+                    // No user found by ID or email — token is orphaned, clear it
+                    // This stops the refresh storm and sends the user to /login cleanly
+                    console.warn(`[AUTH jwt] Orphaned token for sub=${token.sub} — invalidating session`)
+                    return null
                 }
             }
 
