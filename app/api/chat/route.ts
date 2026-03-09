@@ -17,13 +17,21 @@ import { getQuotaStatus, consumeMessage } from '@/lib/bot/quota'
 
 export const maxDuration = 30
 
-// 30 messages per hour per IP — blocks bots and trolls, fine for real students
-const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(30, '1 h'),
-  prefix: 'bot:chat',
-  ephemeralCache: new Map(), // in-memory dedup for repeated checks within same request
-})
+// Lazy rate-limiter — initialised inside the handler so missing Redis env vars
+// only skip rate-limiting, never crash the whole function at module load time.
+function getRatelimit(): Ratelimit | null {
+  try {
+    return new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(30, '1 h'),
+      prefix: 'bot:chat',
+      ephemeralCache: new Map(),
+    })
+  } catch {
+    console.warn('[chat] Redis unavailable — rate limiting skipped')
+    return null
+  }
+}
 
 
 export async function POST(req: NextRequest) {
@@ -39,20 +47,23 @@ export async function POST(req: NextRequest) {
       || req.headers.get('x-real-ip')
       || '127.0.0.1'
 
-    const { success, limit, remaining, reset } = await ratelimit.limit(ip)
-    if (!success) {
-      const retryAfterSec = Math.ceil((reset - Date.now()) / 1000)
-      return NextResponse.json(
-        { reply: `You've sent a lot of messages! 😊 Please wait ${Math.ceil(retryAfterSec / 60)} minute(s) and try again. Our bot is here for you — this limit keeps it available for everyone.` },
-        {
-          status: 200,
-          headers: {
-            'X-RateLimit-Limit': String(limit),
-            'X-RateLimit-Remaining': String(remaining),
-            'Retry-After': String(retryAfterSec),
+    const rl = getRatelimit()
+    if (rl) {
+      const { success, limit, remaining, reset } = await rl.limit(ip)
+      if (!success) {
+        const retryAfterSec = Math.ceil((reset - Date.now()) / 1000)
+        return NextResponse.json(
+          { reply: `You've sent a lot of messages! 😊 Please wait ${Math.ceil(retryAfterSec / 60)} minute(s) and try again. Our bot is here for you — this limit keeps it available for everyone.` },
+          {
+            status: 200,
+            headers: {
+              'X-RateLimit-Limit': String(limit),
+              'X-RateLimit-Remaining': String(remaining),
+              'Retry-After': String(retryAfterSec),
+            }
           }
-        }
-      )
+        )
+      }
     }
 
 
