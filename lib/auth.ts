@@ -414,6 +414,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     update: {}
                 })
             }
+
+            // Stamp lastSeenAt on every student login (used for dormant detection)
+            if (dbUser.role === 'STUDENT') {
+                await prisma.student.updateMany({
+                    where: { userId: dbUser.id },
+                    data: { lastSeenAt: new Date() }
+                })
+            }
         }
     }
 })
