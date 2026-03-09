@@ -77,3 +77,51 @@ export async function searchUniversities({
         return { universities: [], totalPages: 0, currentPage: 1, totalCount: 0, error: "Failed to fetch universities" }
     }
 }
+
+// ── Grouped view data ──────────────────────────────────────────────────────────
+// Returns parent institutions (with schools nested) + standalone universities.
+// Used for the "By Institution" toggle on the /universities browse page.
+export async function getGroupedUniversities() {
+    try {
+        const [parents, standalones] = await Promise.all([
+            // Parent universities with their verified schools + program previews
+            prisma.university.findMany({
+                where: { isParent: true, verificationStatus: 'VERIFIED', isPublic: true },
+                include: {
+                    schools: {
+                        where: { verificationStatus: 'VERIFIED', isPublic: true },
+                        include: {
+                            programs: {
+                                select: { id: true, programName: true, degreeLevel: true, fieldCategory: true },
+                                take: 5,
+                            }
+                        },
+                        orderBy: { institutionName: 'asc' },
+                    },
+                    programs: { select: { id: true } }, // just for count
+                },
+                orderBy: { institutionName: 'asc' },
+            }),
+            // Standalone universities — not a parent, not a school under a parent
+            prisma.university.findMany({
+                where: {
+                    isParent: false,
+                    parentId: null,
+                    verificationStatus: 'VERIFIED',
+                    isPublic: true,
+                },
+                include: {
+                    programs: {
+                        select: { fieldCategory: true, programName: true, degreeLevel: true }
+                    }
+                },
+                orderBy: { institutionName: 'asc' },
+            }),
+        ])
+
+        return { parents, standalones }
+    } catch (error) {
+        console.error('[getGroupedUniversities] error:', error)
+        return { parents: [], standalones: [] }
+    }
+}
