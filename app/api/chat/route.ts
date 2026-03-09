@@ -3,7 +3,7 @@
 // Uses streamText so the agentic multi-step tool loop (Tier 1 → Tier 2) works correctly.
 
 import { NextRequest } from 'next/server'
-import { streamText, tool } from 'ai'
+import { streamText, tool, stepCountIs } from 'ai'
 import { z } from 'zod'
 import { google } from '@/lib/ai'
 import { auth } from '@/lib/auth'
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       model: google('gemini-2.0-flash'),
       system: systemPrompt,
       messages,
-      maxSteps: 5, // up to 5 tool calls per conversation turn (Tier 1 + Tier 2)
+      stopWhen: stepCountIs(5), // up to 5 tool calls per turn (Tier 1 → Tier 2 loop)
       onFinish: async ({ text, steps }) => {
         // ── 4. Log to SystemLog (non-blocking) ────────────────────────────
         try {
@@ -209,7 +209,7 @@ export async function POST(req: NextRequest) {
     })
 
     // Return the AI SDK data stream — AdmissionsChat reads this with fetch + ReadableStream
-    return result.toDataStreamResponse()
+    return result.toTextStreamResponse()
 
   } catch (error) {
     console.error('[/api/chat] error:', error)

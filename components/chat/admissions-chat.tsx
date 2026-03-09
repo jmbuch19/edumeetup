@@ -79,7 +79,7 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                 return
             }
 
-            // Read the AI SDK data stream — each line is: 0:"chunk" for text tokens
+            // Read the AI SDK text stream — toTextStreamResponse() emits raw text chunks
             const reader = res.body.getReader()
             const decoder = new TextDecoder()
             let accumulated = ''
@@ -88,23 +88,14 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                 const { done, value } = await reader.read()
                 if (done) break
 
+                // Plain text stream — just decode and accumulate directly
                 const chunk = decoder.decode(value, { stream: true })
-                // AI SDK stream format: lines like `0:"hello "` or `0:" world"`
-                for (const line of chunk.split('\n')) {
-                    if (line.startsWith('0:')) {
-                        try {
-                            // Value after "0:" is a JSON-encoded string
-                            const token = JSON.parse(line.slice(2))
-                            accumulated += token
-                            // Update the last (assistant) message in real-time
-                            setMessages(prev => {
-                                const copy = [...prev]
-                                copy[copy.length - 1] = { role: 'assistant', content: accumulated }
-                                return copy
-                            })
-                        } catch { /* skip malformed chunks */ }
-                    }
-                }
+                accumulated += chunk
+                setMessages(prev => {
+                    const copy = [...prev]
+                    copy[copy.length - 1] = { role: 'assistant', content: accumulated }
+                    return copy
+                })
             }
 
             // Final safety: if nothing came through, show fallback
