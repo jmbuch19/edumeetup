@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, X, Send, Loader2, ExternalLink, GraduationCap, Globe } from 'lucide-react'
+import { MessageCircle, X, Send, Loader2, ExternalLink, GraduationCap, Globe, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -14,8 +14,12 @@ interface AdmissionsChatProps {
     studentId?: string
 }
 
+const HIDE_KEY = 'edumeetup:concierge:hidden'
+
 export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
+    // open = chat panel visible; hidden = entire widget dismissed for session
     const [open, setOpen] = useState(false)
+    const [hidden, setHidden] = useState(false)
     const [messages, setMessages] = useState<Message[]>([
         {
             role: 'assistant',
@@ -26,9 +30,22 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
     const [loading, setLoading] = useState(false)
     const bottomRef = useRef<HTMLDivElement>(null)
 
+    // Restore hide state from sessionStorage on mount
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setHidden(sessionStorage.getItem(HIDE_KEY) === '1')
+        }
+    }, [])
+
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages])
+
+    function hideForSession() {
+        sessionStorage.setItem(HIDE_KEY, '1')
+        setHidden(true)
+        setOpen(false)
+    }
 
     async function sendMessage(e?: React.FormEvent) {
         e?.preventDefault()
@@ -72,6 +89,9 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
         'Book a meeting with a university',
     ]
 
+    // Entire widget dismissed for this session
+    if (hidden) return null
+
     return (
         <>
             {/* Floating Trigger Button */}
@@ -98,13 +118,25 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                                 <p className="text-blue-200 text-xs">Powered by EdUmeetup AI</p>
                             </div>
                         </div>
-                        <button
-                            onClick={() => setOpen(false)}
-                            className="text-blue-200 hover:text-white transition-colors"
-                            aria-label="Close chat"
-                        >
-                            <X className="h-5 w-5" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                            {/* Hide for session button */}
+                            <button
+                                onClick={hideForSession}
+                                className="text-blue-200 hover:text-white transition-colors p-1 rounded"
+                                aria-label="Hide chat for this session"
+                                title="Hide for this session"
+                            >
+                                <EyeOff className="h-4 w-4" />
+                            </button>
+                            {/* Minimise button */}
+                            <button
+                                onClick={() => setOpen(false)}
+                                className="text-blue-200 hover:text-white transition-colors p-1 rounded"
+                                aria-label="Minimise chat"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Messages */}
@@ -113,8 +145,8 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div
                                     className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap leading-relaxed ${msg.role === 'user'
-                                            ? 'bg-blue-600 text-white rounded-br-sm'
-                                            : 'bg-white text-gray-800 shadow-sm border border-gray-100 rounded-bl-sm'
+                                        ? 'bg-blue-600 text-white rounded-br-sm'
+                                        : 'bg-white text-gray-800 shadow-sm border border-gray-100 rounded-bl-sm'
                                         }`}
                                 >
                                     {renderMessageContent(msg.content)}
@@ -166,6 +198,11 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                             <Send className="h-4 w-4" />
                         </Button>
                     </form>
+
+                    {/* Hide hint shown at bottom */}
+                    <p className="text-center text-[10px] text-gray-400 pb-1">
+                        Tap <EyeOff className="inline h-3 w-3" /> to hide this chat for your session
+                    </p>
                 </div>
             )}
         </>
@@ -174,7 +211,6 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
 
 /** Render message content — detect external links and internal verified badges */
 function renderMessageContent(content: string) {
-    // Simple URL detection for external links
     const urlRegex = /(https?:\/\/[^\s]+)/g
     const parts = content.split(urlRegex)
 

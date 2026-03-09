@@ -3,7 +3,7 @@ import { FIELD_CATEGORIES } from '@/lib/constants'
 import { requireUser } from '@/lib/auth'
 import { DashboardUI } from '@/components/student/dashboard-ui'
 import { getStudentAdvisoryStatus } from '@/app/actions/advisory-actions'
-import { AdmissionsChat } from '@/components/chat/admissions-chat'
+
 
 export const dynamic = 'force-dynamic'
 
@@ -99,17 +99,14 @@ export default async function StudentDashboard() {
     const interestedUniIds = interests.map(i => i.universityId)
 
     return (
-        <>
-            <DashboardUI
-                student={JSON.parse(JSON.stringify(student))}
-                matchedPrograms={JSON.parse(JSON.stringify(programs))}
-                recommendedUniversities={JSON.parse(JSON.stringify(universities))}
-                myMeetings={JSON.parse(JSON.stringify(meetings))}
-                interestedUniIds={interestedUniIds}
-                advisoryStatus={JSON.parse(JSON.stringify(advisory))}
-                hasCv={!!student.cvFileName}
-            />
-            <AdmissionsChat studentId={student.id} />
-        </>
+        <DashboardUI
+            student={JSON.parse(JSON.stringify(student))}
+            matchedPrograms={JSON.parse(JSON.stringify(programs))}
+            recommendedUniversities={JSON.parse(JSON.stringify(universities))}
+            myMeetings={JSON.parse(JSON.stringify(meetings))}
+            interestedUniIds={interestedUniIds}
+            advisoryStatus={JSON.parse(JSON.stringify(advisory))}
+            hasCv={!!student.cvFileName}
+        />
     )
 }

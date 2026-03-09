@@ -6,8 +6,11 @@
 
 import dynamic from 'next/dynamic'
 
-const ChatWidget = dynamic(
-    () => import('@/components/ai/chat-widget').then(m => m.ChatWidget),
+// AdmissionsChat is the global concierge — available on every page.
+// studentId is not passed here (user may not be logged in); the API
+// gracefully handles unauthenticated visitors too.
+const AdmissionsChat = dynamic(
+    () => import('@/components/chat/admissions-chat').then(m => m.AdmissionsChat),
     { ssr: false }
 )
 
@@ -19,7 +22,7 @@ const SessionGuard = dynamic(
 export function ClientOnlyWidgets() {
     return (
         <>
-            <ChatWidget />
+            <AdmissionsChat />
             <SessionGuard />
         </>
     )
