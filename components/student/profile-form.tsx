@@ -23,15 +23,15 @@ interface ProfileFormProps {
     logCount?: number
 }
 
-// Degree values that map to UG vs Graduate tracks
-const UG_DEGREES = ["Bachelor's", "Foundation Year", "Associate Degree", "Diploma", "Undergraduate"]
-const GRAD_DEGREES = ["Master's", "MBA", "PhD", "PGDip", "Postgraduate Diploma", "Doctorate"]
+// Exact values from lib/constants.ts DegreeLevels
+const UG_TRACK = new Set(["Associate", "Bachelor's"])
+const GRAD_TRACK = new Set(["Master's", "MBA", "PhD"])
 
 function getDegreeTrack(degree?: string | null): 'UG' | 'GRAD' | 'NONE' {
     if (!degree) return 'NONE'
-    if (UG_DEGREES.some(d => degree.toLowerCase().includes(d.toLowerCase()))) return 'UG'
-    if (GRAD_DEGREES.some(d => degree.toLowerCase().includes(d.toLowerCase()))) return 'GRAD'
-    return 'NONE'
+    if (UG_TRACK.has(degree)) return 'UG'
+    if (GRAD_TRACK.has(degree)) return 'GRAD'
+    return 'NONE'  // Certificate = ambiguous, show no track-specific tests
 }
 
 export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: ProfileFormProps) {
