@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth'
 import { validateFileSignature } from '@/lib/file-signature'
 
 const MAX_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
-const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp', 'image/gif']
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']
 
 async function uploadToR2(buffer: Buffer, key: string, mimeType: string): Promise<string> {
     const accountId = process.env.R2_ACCOUNT_ID
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-        return NextResponse.json({ error: 'Unsupported image type. Upload a PNG, JPG, SVG, or WebP.' }, { status: 422 })
+        return NextResponse.json({ error: 'Unsupported image type. Upload a PNG, JPG, WebP, or GIF.' }, { status: 422 })
     }
 
     if (file.size > MAX_SIZE_BYTES) {

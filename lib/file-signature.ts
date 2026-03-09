@@ -31,19 +31,14 @@ const SIGNATURES: Record<string, MagicCheck[]> = {
         { bytes: [0x47, 0x49, 0x46, 0x38, 0x37, 0x61] }, // GIF87a
         { bytes: [0x47, 0x49, 0x46, 0x38, 0x39, 0x61] }, // GIF89a
     ],
-    // SVG is XML — no reliable magic bytes. Handled separately (see below).
+    // SVG removed — too many XSS attack vectors (inline JS, CSS, external entities)
 }
 
 /**
  * Returns true if the buffer's magic bytes match the declared mimeType.
- * For SVG, returns true only if the content starts with valid XML/SVG markers.
  * Returns false for any mimeType not in the signature table.
  */
 export function validateFileSignature(buffer: Buffer, mimeType: string): boolean {
-    if (mimeType === 'image/svg+xml') {
-        return validateSVG(buffer)
-    }
-
     const checks = SIGNATURES[mimeType]
     if (!checks) return false // unknown type — reject
 
@@ -56,23 +51,4 @@ export function validateFileSignature(buffer: Buffer, mimeType: string): boolean
     }
 
     return false
-}
-
-/**
- * SVG-specific validation:
- * 1. Must start with XML/SVG text markers
- * 2. Must NOT contain <script tags (basic XSS guard)
- *    Full sanitisation requires DOMParser — this is a server-side guard only.
- */
-function validateSVG(buffer: Buffer): boolean {
-    const text = buffer.subarray(0, 512).toString('utf8').trimStart().toLowerCase()
-
-    const isXMLSVG = text.startsWith('<?xml') || text.startsWith('<svg')
-    if (!isXMLSVG) return false
-
-    // Block any SVG containing a <script element — belt-and-suspenders XSS guard
-    const full = buffer.toString('utf8').toLowerCase()
-    if (full.includes('<script')) return false
-
-    return true
 }
