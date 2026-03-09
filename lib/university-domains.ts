@@ -140,10 +140,9 @@ async function ensureLoaded(): Promise<void> {
     }
 }
 
-// Kick off loading immediately on module import (server-side only)
-if (typeof window === 'undefined') {
-    ensureLoaded()
-}
+// NOTE: Do NOT eager-load here. Fetching 77k domains from GitHub on every
+// Netlify cold start consumed 3-5s of the 10s function budget.
+// Cache loads lazily on first call, refreshed weekly by the cron endpoint.
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
