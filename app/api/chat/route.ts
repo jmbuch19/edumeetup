@@ -49,20 +49,25 @@ export async function POST(req: NextRequest) {
 
     const rl = getRatelimit()
     if (rl) {
-      const { success, limit, remaining, reset } = await rl.limit(ip)
-      if (!success) {
-        const retryAfterSec = Math.ceil((reset - Date.now()) / 1000)
-        return NextResponse.json(
-          { reply: `You've sent a lot of messages! 😊 Please wait ${Math.ceil(retryAfterSec / 60)} minute(s) and try again.` },
-          {
-            status: 200,
-            headers: {
-              'X-RateLimit-Limit': String(limit),
-              'X-RateLimit-Remaining': String(remaining),
-              'Retry-After': String(retryAfterSec),
+      try {
+        const { success, limit, remaining, reset } = await rl.limit(ip)
+        if (!success) {
+          const retryAfterSec = Math.ceil((reset - Date.now()) / 1000)
+          return NextResponse.json(
+            { reply: `You've sent a lot of messages! 😊 Please wait ${Math.ceil(retryAfterSec / 60)} minute(s) and try again.` },
+            {
+              status: 200,
+              headers: {
+                'X-RateLimit-Limit': String(limit),
+                'X-RateLimit-Remaining': String(remaining),
+                'Retry-After': String(retryAfterSec),
+              }
             }
-          }
-        )
+          )
+        }
+      } catch (e) {
+        // Redis auth/network failure — skip rate limiting, keep bot alive
+        console.warn('[chat] rate-limit Redis error (skipping):', (e as Error).message)
       }
     }
 
@@ -70,7 +75,14 @@ export async function POST(req: NextRequest) {
     // ── Quota check (session/daily limits) ───────────────────────────────
     const session = await auth()
     const userId = session?.user?.id ?? null
-    const quota = await getQuotaStatus(ip, userId)
+    let quota
+    try {
+      quota = await getQuotaStatus(ip, userId)
+    } catch (e) {
+      // Redis auth/network failure — allow through, quota enforcement degraded
+      console.warn('[chat] quota Redis error (allowing through):', (e as Error).message)
+      quota = { allowed: true, remaining: 10, isRegistered: !!userId, dailyLimit: 10 } as const
+    }
 
     if (!quota.allowed) {
       return NextResponse.json({ quota: quota })
@@ -224,10 +236,8 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('[/api/chat] error:', error)
-    // TEMP DEBUG — expose real error in the chat bubble, revert before go-live
-    const msg = error instanceof Error ? error.message : String(error)
     return new Response(
-      `Debug error: ${msg}`,
+      "I'm having a moment of trouble. Please try again — I'm here to help! 😊",
       { status: 200, headers: { 'Content-Type': 'text/plain' } }
     )
   }
