@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { Loader2, History, CheckCircle2 } from 'lucide-react'
+import { Loader2, History, CheckCircle2, GraduationCap, BookOpen } from 'lucide-react'
 import Link from 'next/link'
 
 interface ProfileData extends Student {
@@ -23,9 +23,26 @@ interface ProfileFormProps {
     logCount?: number
 }
 
+// Degree values that map to UG vs Graduate tracks
+const UG_DEGREES = ["Bachelor's", "Foundation Year", "Associate Degree", "Diploma", "Undergraduate"]
+const GRAD_DEGREES = ["Master's", "MBA", "PhD", "PGDip", "Postgraduate Diploma", "Doctorate"]
+
+function getDegreeTrack(degree?: string | null): 'UG' | 'GRAD' | 'NONE' {
+    if (!degree) return 'NONE'
+    if (UG_DEGREES.some(d => degree.toLowerCase().includes(d.toLowerCase()))) return 'UG'
+    if (GRAD_DEGREES.some(d => degree.toLowerCase().includes(d.toLowerCase()))) return 'GRAD'
+    return 'NONE'
+}
+
 export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: ProfileFormProps) {
     const [isPending, startTransition] = useTransition()
 
+    // ── Degree track cascade ───────────────────────────────────────────────────
+    const [degreeTrack, setDegreeTrack] = useState<'UG' | 'GRAD' | 'NONE'>(
+        getDegreeTrack(initialData.preferredDegree)
+    )
+
+    // ── Per-test taken toggles (within each track's visible section) ───────────
     const [greTaken, setGreTaken] = useState<boolean>(!!initialData.greScore)
     const [gmatTaken, setGmatTaken] = useState<boolean>(!!initialData.gmatScore)
     const [satTaken, setSatTaken] = useState<boolean>(!!initialData.satScore)
@@ -33,6 +50,10 @@ export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: Prof
     const [savedVersion, setSavedVersion] = useState<number | null>(null)
 
     const formatEnum = (key: string) => key.replace(/_/g, ' ')
+
+    const handleDegreeChange = (value: string) => {
+        setDegreeTrack(getDegreeTrack(value))
+    }
 
     const handleSubmit = (formData: FormData) => {
         startTransition(async () => {
@@ -84,7 +105,7 @@ export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: Prof
                             <Label htmlFor="id_full_name">Full Name <span className="text-red-500">*</span></Label>
                             <Input id="id_full_name" name="fullName" defaultValue={initialData.fullName || ''} required placeholder="As it appears on your passport / government ID" />
                             <p className="text-xs text-amber-600 flex items-center gap-1">
-                                ⚠️ Please enter your name exactly as it appears on your official government-issued ID or passport. This name will be shared with universities.
+                                ⚠️ Please enter your name exactly as it appears on your official government-issued ID or passport.
                             </p>
                         </div>
 
@@ -107,9 +128,7 @@ export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: Prof
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="id_phone">
-                                Phone Number <span className="text-red-500">*</span>
-                            </Label>
+                            <Label htmlFor="id_phone">Phone Number <span className="text-red-500">*</span></Label>
                             <Input
                                 id="id_phone"
                                 name="phone"
@@ -118,7 +137,7 @@ export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: Prof
                                 defaultValue={initialData.phone || initialData.phoneNumber || ''}
                                 placeholder="+91 98765 43210"
                             />
-                            <p className="text-xs text-muted-foreground">Include country code — e.g. +91 for India, +1 for USA</p>
+                            <p className="text-xs text-muted-foreground">Include country code — e.g. +91 for India</p>
                         </div>
 
                         <div className="space-y-2">
@@ -162,8 +181,8 @@ export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: Prof
                                 <SelectTrigger><SelectValue placeholder="Select Age Group" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="Under 20">Under 20</SelectItem>
-                                    <SelectItem value="21-25">21-25</SelectItem>
-                                    <SelectItem value="26-30">26-30</SelectItem>
+                                    <SelectItem value="21-25">21–25</SelectItem>
+                                    <SelectItem value="26-30">26–30</SelectItem>
                                     <SelectItem value="31+">31+</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -204,9 +223,19 @@ export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: Prof
                             </Select>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label>Preferred Degree Level</Label>
-                            <Select name="preferredDegree" defaultValue={initialData.preferredDegree || undefined}>
+                        {/* ── DEGREE LEVEL — the cascade trigger ── */}
+                        <div className="space-y-2 col-span-full">
+                            <Label>
+                                Preferred Degree Level{' '}
+                                <span className="text-xs font-normal text-indigo-600 ml-1">
+                                    ← This personalises your test score section below
+                                </span>
+                            </Label>
+                            <Select
+                                name="preferredDegree"
+                                defaultValue={initialData.preferredDegree || undefined}
+                                onValueChange={handleDegreeChange}
+                            >
                                 <SelectTrigger><SelectValue placeholder="Select Degree" /></SelectTrigger>
                                 <SelectContent>
                                     {DegreeLevels.map((level) => (
@@ -214,6 +243,20 @@ export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: Prof
                                     ))}
                                 </SelectContent>
                             </Select>
+
+                            {/* Track badge */}
+                            {degreeTrack !== 'NONE' && (
+                                <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full mt-1
+                                    ${degreeTrack === 'UG'
+                                        ? 'bg-blue-50 text-blue-700'
+                                        : 'bg-violet-50 text-violet-700'}`}
+                                >
+                                    {degreeTrack === 'UG'
+                                        ? <><BookOpen className="h-3 w-3" /> Undergraduate track — SAT &amp; ACT section shown below</>
+                                        : <><GraduationCap className="h-3 w-3" /> Graduate track — GRE &amp; GMAT section shown below</>
+                                    }
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -237,8 +280,8 @@ export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: Prof
                                 <SelectTrigger><SelectValue placeholder="Select Budget" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="< 15,000">&lt; $15,000</SelectItem>
-                                    <SelectItem value="15,000-25,000">$15,000 - $25,000</SelectItem>
-                                    <SelectItem value="25,000-40,000">$25,000 - $40,000</SelectItem>
+                                    <SelectItem value="15,000-25,000">$15,000 – $25,000</SelectItem>
+                                    <SelectItem value="25,000-40,000">$25,000 – $40,000</SelectItem>
                                     <SelectItem value="40,000+">$40,000+</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -257,14 +300,19 @@ export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: Prof
                     </CardContent>
                 </Card>
 
-                {/* ── Section 3: Test Scores ── */}
+                {/* ── Section 3: Test Scores (cascaded) ── */}
                 <Card>
                     <CardHeader>
                         <CardTitle>Test Scores</CardTitle>
-                        <CardDescription>Update whenever you retake or get new scores. These are visible to advisors and universities.</CardDescription>
+                        <CardDescription>
+                            {degreeTrack === 'UG' && 'Showing tests relevant for Undergraduate admission: English, SAT, ACT.'}
+                            {degreeTrack === 'GRAD' && 'Showing tests relevant for Graduate admission: English, GRE, GMAT.'}
+                            {degreeTrack === 'NONE' && 'Select your degree level above to see relevant test sections.'}
+                        </CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-6 md:grid-cols-2">
-                        {/* English */}
+
+                        {/* ── English — always shown ── */}
                         <div className="space-y-2">
                             <Label>English Proficiency Test</Label>
                             <Select name="englishTestType" defaultValue={initialData.englishTestType || undefined}>
@@ -284,167 +332,124 @@ export function ProfileForm({ initialData, fieldCategories, logCount = 0 }: Prof
                             <Input id="id_eng_score" name="englishScore" defaultValue={initialData.englishScore || ''} placeholder="e.g. 7.5 or 105" />
                         </div>
 
-                        {/* GRE */}
-                        <div className="space-y-2 col-span-full">
-                            <Label>GRE</Label>
-                            <div className="flex gap-4">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="greTakenUI"
-                                        value="yes"
-                                        checked={greTaken}
-                                        onChange={() => setGreTaken(true)}
-                                        className="accent-primary"
-                                    />
-                                    Yes, I have taken GRE
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="greTakenUI"
-                                        value="no"
-                                        checked={!greTaken}
-                                        onChange={() => { setGreTaken(false) }}
-                                        className="accent-primary"
-                                    />
-                                    Not taken / Not applicable
-                                </label>
-                            </div>
-                            {greTaken && (
-                                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <Label htmlFor="id_gre_score">GRE Score</Label>
-                                        <Input id="id_gre_score" name="greScore" type="number" min={260} max={340}
-                                            defaultValue={initialData.greScore || ''} placeholder="e.g. 320" />
-                                    </div>
+                        {/* ── GRE — Graduate only ── */}
+                        {degreeTrack === 'GRAD' && (
+                            <div className="space-y-2 col-span-full">
+                                <Label>GRE</Label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="greTakenUI" value="yes" checked={greTaken} onChange={() => setGreTaken(true)} className="accent-primary" />
+                                        Yes, I have taken GRE
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="greTakenUI" value="no" checked={!greTaken} onChange={() => setGreTaken(false)} className="accent-primary" />
+                                        Not taken / Not applicable
+                                    </label>
                                 </div>
-                            )}
-                            {!greTaken && <input type="hidden" name="greScore" value="" />}
-                        </div>
+                                {greTaken && (
+                                    <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <Label htmlFor="id_gre_score">GRE Score</Label>
+                                            <Input id="id_gre_score" name="greScore" type="number" min={260} max={340}
+                                                defaultValue={initialData.greScore || ''} placeholder="e.g. 320" />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                        {/* GMAT */}
-                        <div className="space-y-2 col-span-full">
-                            <Label>GMAT</Label>
-                            <div className="flex gap-4">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="gmatTakenUI"
-                                        value="yes"
-                                        checked={gmatTaken}
-                                        onChange={() => setGmatTaken(true)}
-                                        className="accent-primary"
-                                    />
-                                    Yes, I have taken GMAT
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="gmatTakenUI"
-                                        value="no"
-                                        checked={!gmatTaken}
-                                        onChange={() => { setGmatTaken(false) }}
-                                        className="accent-primary"
-                                    />
-                                    Not taken / Not applicable
-                                </label>
-                            </div>
-                            {gmatTaken && (
-                                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <Label htmlFor="id_gmat_score">GMAT Score</Label>
-                                        <Input id="id_gmat_score" name="gmatScore" type="number" min={200} max={800}
-                                            defaultValue={initialData.gmatScore || ''} placeholder="e.g. 680" />
-                                    </div>
+                        {/* ── GMAT — Graduate only ── */}
+                        {degreeTrack === 'GRAD' && (
+                            <div className="space-y-2 col-span-full">
+                                <Label>GMAT</Label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="gmatTakenUI" value="yes" checked={gmatTaken} onChange={() => setGmatTaken(true)} className="accent-primary" />
+                                        Yes, I have taken GMAT
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="gmatTakenUI" value="no" checked={!gmatTaken} onChange={() => setGmatTaken(false)} className="accent-primary" />
+                                        Not taken / Not applicable
+                                    </label>
                                 </div>
-                            )}
-                            {!gmatTaken && <input type="hidden" name="gmatScore" value="" />}
-                        </div>
+                                {gmatTaken && (
+                                    <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <Label htmlFor="id_gmat_score">GMAT Score</Label>
+                                            <Input id="id_gmat_score" name="gmatScore" type="number" min={200} max={800}
+                                                defaultValue={initialData.gmatScore || ''} placeholder="e.g. 680" />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                        {/* SAT */}
-                        <div className="space-y-2 col-span-full">
-                            <Label>SAT <span className="text-xs text-muted-foreground font-normal">(optional — for UG applicants)</span></Label>
-                            <div className="flex gap-4">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="satTakenUI"
-                                        value="yes"
-                                        checked={satTaken}
-                                        onChange={() => setSatTaken(true)}
-                                        className="accent-primary"
-                                    />
-                                    Yes, I have taken SAT
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="satTakenUI"
-                                        value="no"
-                                        checked={!satTaken}
-                                        onChange={() => { setSatTaken(false) }}
-                                        className="accent-primary"
-                                    />
-                                    Not taken / Not applicable
-                                </label>
-                            </div>
-                            {satTaken && (
-                                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <Label htmlFor="id_sat_score">SAT Score</Label>
-                                        <Input id="id_sat_score" name="satScore" type="number" min={400} max={1600}
-                                            defaultValue={initialData.satScore || ''} placeholder="e.g. 1350" />
-                                        <p className="text-xs text-muted-foreground">Scale: 400–1600</p>
-                                    </div>
+                        {/* ── SAT — UG only ── */}
+                        {degreeTrack === 'UG' && (
+                            <div className="space-y-2 col-span-full">
+                                <Label>SAT</Label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="satTakenUI" value="yes" checked={satTaken} onChange={() => setSatTaken(true)} className="accent-primary" />
+                                        Yes, I have taken SAT
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="satTakenUI" value="no" checked={!satTaken} onChange={() => setSatTaken(false)} className="accent-primary" />
+                                        Not taken / Not applicable
+                                    </label>
                                 </div>
-                            )}
-                            {!satTaken && <input type="hidden" name="satScore" value="" />}
-                        </div>
+                                {satTaken && (
+                                    <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <Label htmlFor="id_sat_score">SAT Score</Label>
+                                            <Input id="id_sat_score" name="satScore" type="number" min={400} max={1600}
+                                                defaultValue={initialData.satScore || ''} placeholder="e.g. 1350" />
+                                            <p className="text-xs text-muted-foreground">Scale: 400–1600</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                        {/* ACT */}
-                        <div className="space-y-2 col-span-full">
-                            <Label>ACT <span className="text-xs text-muted-foreground font-normal">(optional — for UG applicants)</span></Label>
-                            <div className="flex gap-4">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="actTakenUI"
-                                        value="yes"
-                                        checked={actTaken}
-                                        onChange={() => setActTaken(true)}
-                                        className="accent-primary"
-                                    />
-                                    Yes, I have taken ACT
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="actTakenUI"
-                                        value="no"
-                                        checked={!actTaken}
-                                        onChange={() => { setActTaken(false) }}
-                                        className="accent-primary"
-                                    />
-                                    Not taken / Not applicable
-                                </label>
-                            </div>
-                            {actTaken && (
-                                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <Label htmlFor="id_act_score">ACT Score</Label>
-                                        <Input id="id_act_score" name="actScore" type="number" min={1} max={36}
-                                            defaultValue={initialData.actScore || ''} placeholder="e.g. 28" />
-                                        <p className="text-xs text-muted-foreground">Scale: 1–36</p>
-                                    </div>
+                        {/* ── ACT — UG only ── */}
+                        {degreeTrack === 'UG' && (
+                            <div className="space-y-2 col-span-full">
+                                <Label>ACT</Label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="actTakenUI" value="yes" checked={actTaken} onChange={() => setActTaken(true)} className="accent-primary" />
+                                        Yes, I have taken ACT
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="actTakenUI" value="no" checked={!actTaken} onChange={() => setActTaken(false)} className="accent-primary" />
+                                        Not taken / Not applicable
+                                    </label>
                                 </div>
-                            )}
-                            {!actTaken && <input type="hidden" name="actScore" value="" />}
-                        </div>
+                                {actTaken && (
+                                    <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <Label htmlFor="id_act_score">ACT Score</Label>
+                                            <Input id="id_act_score" name="actScore" type="number" min={1} max={36}
+                                                defaultValue={initialData.actScore || ''} placeholder="e.g. 28" />
+                                            <p className="text-xs text-muted-foreground">Scale: 1–36</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ── No degree track selected ── */}
+                        {degreeTrack === 'NONE' && (
+                            <div className="col-span-full rounded-xl border border-dashed border-slate-200 bg-slate-50 py-6 text-center text-sm text-slate-400">
+                                👆 Select your Preferred Degree Level above to see the relevant test score fields (SAT/ACT for UG, GRE/GMAT for Graduate).
+                            </div>
+                        )}
+
                     </CardContent>
                     <CardFooter className="flex flex-col items-end gap-2">
                         <p className="text-xs text-muted-foreground self-start">
                             💡 Each save is logged with a timestamp. Universities and advisors always see your latest version.
+                            Test scores from previous tracks are preserved in your record even when not shown.
                         </p>
                         <Button type="submit" disabled={isPending}>
                             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
