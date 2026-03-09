@@ -45,11 +45,10 @@ export async function POST(req: NextRequest) {
       model: google('gemini-2.0-flash'),
       system: systemPrompt,
       messages,
-      maxSteps: 5, // agentic loop — up to 5 tool calls
       tools: {
         searchInternalUniversities: tool({
           description: "Search EdUmeetup's verified partner universities. Always call this FIRST before global search.",
-          parameters: z.object({
+          inputSchema: z.object({
             fieldOfStudy: z.string().optional().describe('e.g. Computer Science, Business, Engineering'),
             country: z.string().optional().describe('e.g. Canada, United Kingdom, Australia'),
             degreeLevel: z.string().optional().describe('e.g. Masters, Bachelor, PhD'),
@@ -108,7 +107,7 @@ export async function POST(req: NextRequest) {
 
         getStudentProfile: tool({
           description: "Get the logged-in student's profile to personalize recommendations.",
-          parameters: z.object({
+          inputSchema: z.object({
             studentId: z.string().describe("The student's database ID"),
           }),
           execute: async ({ studentId: sId }) => {
@@ -127,7 +126,7 @@ export async function POST(req: NextRequest) {
 
         searchGlobalUniversities: tool({
           description: 'FALLBACK ONLY — use when searchInternalUniversities returns no results. Searches global sources. Always label results as external.',
-          parameters: z.object({
+          inputSchema: z.object({
             query: z.string().describe('e.g. "top universities for Computer Science in Canada"'),
           }),
           execute: async ({ query }) => {
@@ -156,7 +155,7 @@ export async function POST(req: NextRequest) {
 
         getUpcomingFairs: tool({
           description: 'Get upcoming EdUmeetup campus fairs for students to attend.',
-          parameters: z.object({}),
+          inputSchema: z.object({}),
           execute: async () => {
             const fairs = await prisma.fairEvent.findMany({
               where: { status: { in: ['UPCOMING', 'LIVE'] }, startDate: { gte: new Date() } },
