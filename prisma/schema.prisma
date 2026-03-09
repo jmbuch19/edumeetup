@@ -197,6 +197,14 @@ model University {
   notifQuota              Int                      @default(3)    // weekly campaigns admin can set
   notifPaused             Boolean                  @default(false) // admin kill switch
   proactiveCooldownDays   Int                      @default(21)   // nudge cooldown per student
+  // ── Parent-School Architecture ──────────────────────────────────────
+  parentId    String?      // null = standalone OR parent itself
+  groupSlug   String?      // e.g. "arizona-state-university"; set on parent, inherited by schools
+  isParent    Boolean      @default(false)  // true = has schools under it
+
+  parent      University?  @relation("UniversitySchools", fields: [parentId], references: [id], onDelete: SetNull)
+  schools     University[] @relation("UniversitySchools")
+
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
   universityNameFromEmail String?
@@ -250,6 +258,8 @@ model University {
 
   @@index([verificationStatus])
   @@index([country])
+  @@index([parentId])
+  @@index([groupSlug])
 }
 
 model UniversityDocument {
