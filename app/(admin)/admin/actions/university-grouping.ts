@@ -47,6 +47,14 @@ export async function setUniversityGrouping(args: SetGroupingArgs) {
                 where: { id: universityId },
                 data: { isParent: true, parentId: null, groupSlug: groupSlug.trim() }
             })
+
+            // Cascade slug to all linked schools — keeps denormalized field in sync
+            // so future search/filter features that query by groupSlug stay accurate.
+            await prisma.university.updateMany({
+                where: { parentId: universityId },
+                data: { groupSlug: groupSlug.trim() }
+            })
+
         } else if (type === 'SCHOOL') {
             if (!parentId) return { error: 'Parent institution is required for a School.' }
 
