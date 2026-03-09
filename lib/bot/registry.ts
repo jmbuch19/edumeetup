@@ -13,6 +13,11 @@ export interface BotFeature {
 
 export const ACTIVE_FEATURES: BotFeature[] = [
     {
+        name: 'Portal Support & Help Desk',
+        status: 'ACTIVE',
+        description: 'Answer questions about how the platform works: QR passes, meetings, login issues, profile updates, fair registration, and navigation.',
+    },
+    {
         name: 'University Search',
         status: 'ACTIVE',
         description: 'Search verified partner universities in our database by field, country, budget, and degree level.',

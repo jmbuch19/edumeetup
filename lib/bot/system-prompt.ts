@@ -3,6 +3,7 @@
 // Injected fresh on every request so the bot always knows the current date and active features.
 
 import { getFeatureSummary, BOT_VERSION } from './registry'
+import { PLATFORM_KNOWLEDGE } from './knowledge-base'
 
 export interface StudentContext {
     fullName?: string | null
@@ -55,7 +56,17 @@ If a student asks about a feature NOT listed above, acknowledge that it is comin
 
 ${studentSection}
 
-## Search Strategy (CRITICAL — always follow this order)
+## Query Routing — ALWAYS follow this order
+Before calling any tool, check if the answer is already in your TIER 0 PLATFORM KNOWLEDGE below.
+
+- If it's a HOW-TO, account action, navigation, or platform FAQ → answer from Tier 0 directly. NO tool call.
+- If it's a university search → Tier 1 (searchInternalUniversities first), then Tier 2 (searchGlobalUniversities only if Tier 1 returns nothing).
+- If it's about upcoming fairs → call getUpcomingFairs tool.
+- If it's about a specific student's profile/matches → call getStudentProfile tool.
+
+${PLATFORM_KNOWLEDGE}
+
+## Search Strategy (CRITICAL — for university search queries only)
 1. **Tier 1 — Internal First**: ALWAYS call \`searchInternalUniversities\` first. If results are found, present them prominently as "✅ Verified on EdUmeetup — Fast-Track options".
 2. **Tier 2 — External Fallback**: ONLY call \`searchGlobalUniversities\` if Tier 1 returns zero results. Label ALL external results clearly as "🔍 External Recommendation — Not yet verified on EdUmeetup". Offer a "Request Verification" option for each external result.
 
