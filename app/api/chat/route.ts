@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
       },
       onFinish: ({ text, steps }) => {
         // Fire-and-forget after stream closes — never blocks the response
-        consumeMessage(ip, userId).catch(() => {})
+        consumeMessage(ip, userId).catch(() => { })
         Promise.resolve().then(async () => {
           try {
             await prisma.systemLog.create({
@@ -224,9 +224,10 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('[/api/chat] error:', error)
-    // Return plain text so the widget's stream reader still works
+    // TEMP DEBUG — expose real error in the chat bubble, revert before go-live
+    const msg = error instanceof Error ? error.message : String(error)
     return new Response(
-      "I'm having a moment of trouble. Please try again — I'm here to help! 😊",
+      `Debug error: ${msg}`,
       { status: 200, headers: { 'Content-Type': 'text/plain' } }
     )
   }
