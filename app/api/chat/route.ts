@@ -1,10 +1,13 @@
 // app/api/chat/route.ts
 // EdUmeetup Admissions Concierge Bot — Groq (Llama 3.3 70B)
 // Single tool call max — stays well within Netlify's 10-second function limit.
+// Rate limited: 30 requests/hour per IP via Upstash Redis.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { generateText, tool, stepCountIs } from 'ai'
 import { z } from 'zod'
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
 import { groq } from '@/lib/ai'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -13,6 +16,15 @@ import { BOT_VERSION } from '@/lib/bot/registry'
 
 export const maxDuration = 30
 
+// 30 messages per hour per IP — blocks bots and trolls, fine for real students
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(30, '1 h'),
+  prefix: 'bot:chat',
+  ephemeralCache: new Map(), // in-memory dedup for repeated checks within same request
+})
+
+
 export async function POST(req: NextRequest) {
   try {
     const { messages, studentId } = await req.json()
@@ -20,6 +32,28 @@ export async function POST(req: NextRequest) {
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'messages array required' }, { status: 400 })
     }
+
+    // ── Rate limit — 30 req/hour per IP ──────────────────────────────────
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('x-real-ip')
+      || '127.0.0.1'
+
+    const { success, limit, remaining, reset } = await ratelimit.limit(ip)
+    if (!success) {
+      const retryAfterSec = Math.ceil((reset - Date.now()) / 1000)
+      return NextResponse.json(
+        { reply: `You've sent a lot of messages! 😊 Please wait ${Math.ceil(retryAfterSec / 60)} minute(s) and try again. Our bot is here for you — this limit keeps it available for everyone.` },
+        {
+          status: 200,
+          headers: {
+            'X-RateLimit-Limit': String(limit),
+            'X-RateLimit-Remaining': String(remaining),
+            'Retry-After': String(retryAfterSec),
+          }
+        }
+      )
+    }
+
 
     // ── 1. Load student context (non-fatal) ───────────────────────────────
     let studentContext = null
