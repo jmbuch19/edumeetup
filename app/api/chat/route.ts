@@ -53,8 +53,21 @@ export async function POST(req: NextRequest) {
       messages,
       stopWhen: stepCountIs(5),
       tools: {
+        getKnowledge: tool({
+          description: 'Get EdUmeetup platform knowledge: how to register, campus fairs, meetings, login help, study abroad FAQs (costs, exams, countries, visas, scholarships, backlogs, gap years). Call this for ANY question about the platform or general study abroad guidance.',
+          inputSchema: z.object({
+            topic: z.string().describe('The topic the user is asking about, e.g. "registration", "campus fair", "CS in Canada cost", "backlogs", "study gap"'),
+          }),
+          execute: async ({ topic: _topic }) => {
+            // Return the full knowledge base — Groq will extract the relevant section
+            const { PLATFORM_KNOWLEDGE } = await import('@/lib/bot/knowledge-base')
+            return { knowledge: PLATFORM_KNOWLEDGE }
+          }
+        }),
+
         searchInternalUniversities: tool({
-          description: "Search EdUmeetup's verified partner universities. Always call this FIRST before global search.",
+          description: "Search EdUmeetup's verified partner universities. Call this when user asks for specific universities, programs, or 'show me' requests.",
+
           inputSchema: z.object({
             fieldOfStudy: z.string().optional().describe('e.g. Computer Science, Business, Engineering'),
             country: z.string().optional().describe('e.g. Canada, United Kingdom, Australia'),
