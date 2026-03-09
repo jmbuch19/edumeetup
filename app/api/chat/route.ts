@@ -58,10 +58,9 @@ export async function POST(req: NextRequest) {
           inputSchema: z.object({
             topic: z.string().describe('The topic the user is asking about, e.g. "registration", "campus fair", "CS in Canada cost", "backlogs", "study gap"'),
           }),
-          execute: async ({ topic: _topic }) => {
-            // Return the full knowledge base — Groq will extract the relevant section
-            const { PLATFORM_KNOWLEDGE } = await import('@/lib/bot/knowledge-base')
-            return { knowledge: PLATFORM_KNOWLEDGE }
+          execute: async ({ topic }) => {
+            const { getRelevantKnowledge } = await import('@/lib/bot/knowledge-base')
+            return { knowledge: getRelevantKnowledge(topic) }
           }
         }),
 

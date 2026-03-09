@@ -1,492 +1,149 @@
 // lib/bot/knowledge-base.ts
-// Tier 0 — Static Platform Knowledge Base
-// Injected into the system prompt so the bot can answer portal questions
-// without any database or API calls.
-// Add new entries here as new features ship.
+// Tier 0 — Platform Knowledge Base
+// Structured as a keyed section map so getKnowledge can return only the relevant section.
+// Groq/Llama 3.3 70B knows general study abroad facts — we only store EdUmeetup-specific info.
 
-export const PLATFORM_KNOWLEDGE = `
-## TIER 0 — EdUmeetup Platform Knowledge Base
+export interface KnowledgeSection {
+    title: string
+    keywords: string[]   // used for keyword matching
+    content: string
+}
 
-Use this section to answer all questions about HOW the platform works, 
-account actions, and navigation. Do NOT call any tool for these — answer directly.
+export const KNOWLEDGE_SECTIONS: KnowledgeSection[] = [
+    {
+        title: 'Platform Overview',
+        keywords: ['edumeetup', 'what is', 'platform', 'how does', 'agent', 'real', 'free', 'safe', 'verified', 'explore', 'start', 'hello', 'hi', 'help'],
+        content: `EdUmeetup is a platform that connects students directly with verified international universities — no agents, no middlemen, no commission.
 
----
+**What you can do:**
+- Browse verified universities by country, field, and budget
+- Book 1-on-1 video meetings with official admissions reps (free)
+- Attend Campus Fairs — meet multiple universities in one session
+- Get a digital QR pass for fair check-in
 
-### 🎓 Student Registration & Profile
+**Is it free?** Core features (browsing, meeting booking, fair registration) are free for students.
+**Are universities real?** Yes — only verified, accredited institutions are listed.
+**Is EdUmeetup an agent?** No. Direct connections only.
 
-**How do I register as a student?**
-Visit https://edumeetup.com/student/register. Enter your email to receive a magic sign-in link. No password needed.
+Register free: https://edumeetup.com/student/register`
+    },
+    {
+        title: 'Registration & Profile',
+        keywords: ['register', 'sign up', 'account', 'profile', 'create', 'login', 'magic link', 'email', 'password', 'cv', 'upload', 'delete account'],
+        content: `**How to register:** Visit https://edumeetup.com/student/register — enter your email to receive a magic sign-in link. No password needed.
 
-**How do I complete my profile?**
-After logging in, go to Dashboard → Edit Profile. Fill in your field of interest, budget range, preferred countries, degree level, and English test scores. A complete profile helps us match you with the right universities.
+**Complete your profile:** Dashboard → Edit Profile. Add field of interest, budget, preferred countries, degree level, and English test scores.
 
-**How do I upload my CV?**
-Dashboard → Profile → Upload CV section. Supported formats: PDF. Max size: 5MB.
+**Upload CV:** Dashboard → Profile → Upload CV. PDF only, max 5MB.
 
-**How do I update my email address?**
-Email changes require identity verification. Please contact support at info@edumeetup.com with your registered email and the new one you want.
+**Magic link not received?** Check spam. Wait 2 min and try again. Links expire in 10 minutes.
 
-**How do I delete my account?**
-Go to Dashboard → Settings → Delete Account. This is permanent and removes all your data. Alternatively contact info@edumeetup.com.
+**Delete account:** Dashboard → Settings → Delete Account. Or email info@edumeetup.com`
+    },
+    {
+        title: 'Meetings with Universities',
+        keywords: ['meeting', 'book', '1-on-1', 'one on one', 'video call', 'cancel', 'reschedule', 'representative', 'rep', 'talk to', 'connect'],
+        content: `**Book a meeting:** Browse Universities → click a university → "Request a Meeting." Pick a time from available slots. You'll get a confirmation with a video link (Google Meet or Zoom).
 
-**How do I add my English test score?**
-Dashboard → Edit Profile → English Proficiency section. You can enter IELTS, TOEFL, PTE, or Duolingo scores.
+**Cancel/Reschedule:** Dashboard → My Meetings → click the meeting → Cancel or Propose New Time. Do this 24 hours before.
 
----
+**University doesn't respond?** They respond within 48 hours. If not, email info@edumeetup.com.
 
-### 🏫 Campus Fairs & QR Pass
+**What happens in the meeting?** 15–30 min video call with an admissions rep. Ask about programs, scholarships, visa, requirements — directly.`
+    },
+    {
+        title: 'Campus Fairs & QR Pass',
+        keywords: ['fair', 'campus fair', 'event', 'qr', 'pass', 'rsvp', 'attend', 'upcoming', 'hybrid', 'online', 'venue'],
+        content: `**Register for a fair:** Dashboard → Upcoming Fairs → RSVP. You'll get a confirmation email with your digital QR pass.
 
-**How do I register for a Campus Fair?**
-Go to the fair listing page or check your Dashboard → Upcoming Fairs. Click "RSVP" or "Register." You'll receive a confirmation email with your digital pass.
+**Access QR pass:** Dashboard → My Fair Passes, or check your email. Screenshot it or show it at the venue.
 
-**How do I download or access my QR Pass?**
-After registering for a fair, go to Dashboard → My Fair Passes, or check your confirmation email. Your QR code is displayed there — screenshot it or show it at the venue.
+**Multiple booths?** Yes — visit as many university booths as you like at one fair.
 
-**Can I attend multiple university booths at one fair?**
-Yes! At each booth, the university rep scans your QR code to check you in. You can visit as many booths as you like during the fair.
+**QR not working?** Show your registered email to the EdUmeetup volunteer for manual check-in.
 
-**What if my QR pass is not working?**
-Show your registered email to the EdUmeetup volunteer at the venue — they can manually check you in. For digital issues, email info@edumeetup.com before the event.
+**Virtual fairs?** Hybrid/virtual fairs include an online joining link in your confirmation email.`
+    },
+    {
+        title: 'Study Abroad Planning',
+        keywords: ['phd', 'masters', 'bachelor', 'undergraduate', 'postgraduate', 'mba', 'where to start', 'how to start', 'planning', 'intake', 'fall', 'spring', 'ielts', 'toefl', 'gre', 'gmat', 'sat', 'exam', 'requirement', 'eligibility', 'older', 'mature', 'age', 'management', 'science', 'engineering', 'business', 'cs', 'computer'],
+        content: `**Where to start:** Choose field → choose country → check English test + finances → apply. EdUmeetup helps at every step.
 
-**Can I attend a fair online?**
-If the fair is hybrid or virtual, you'll receive an online joining link in your confirmation email and on your dashboard.
+**Intakes:** Fall (Sept) is biggest. Spring (Jan) for USA/Canada/UK. Summer (May) has fewer options.
 
----
+**English tests:** IELTS / TOEFL / PTE / Duolingo. Most PhD and Masters programs require one.
 
-### 📅 Meetings with Universities
+**PhD-specific:** GRE may be required for US PhD programs (Management Science, STEM). Many now make it optional. Check the specific university.
 
-**How do I book a 1-on-1 meeting with a university?**
-Browse Universities → click on a university → click "Request a Meeting." Choose your preferred date/time from their available slots. You'll get a confirmation with a video link (Google Meet or Zoom).
+**Mature students (30+/40+):** Very welcome in PhD and MBA programs in USA, UK, Canada, Australia. Industry experience is valued — often preferred over younger applicants.
 
-**How do I cancel or reschedule a meeting?**
-Go to Dashboard → My Meetings → click the meeting → Cancel or Propose New Time. Do this at least 24 hours before the meeting to avoid a late-cancel mark.
+**No age bar:** USA, UK, and Australia have no age limit for PhD or Masters admission.`
+    },
+    {
+        title: 'Cost & Budget',
+        keywords: ['cost', 'fee', 'budget', 'cheap', 'affordable', 'scholarship', 'fund', 'money', 'tuition', 'living', 'expensive', 'low budget', 'financial'],
+        content: `**Approximate annual cost (tuition + living):**
+- USA: $35k–$65k | UK: £25k–£45k | Canada: CAD $30k–$55k
+- Australia: AUD $35k–$55k | Germany (public): ~€10k (mostly living cost)
 
-**What if the university doesn't confirm my meeting?**
-Universities typically respond within 48 hours. If you don't hear back, email info@edumeetup.com with the university name and your requested time.
+**PhD funding:** Many US/UK/German universities offer full scholarships + stipends for PhD students. Germany is especially strong for funded PhDs.
 
-**What happens in the meeting?**
-It's a 15–30 minute video call with a university admissions representative. You can ask about programs, scholarships, requirements, visa, and the application process.
+**Scholarships:** Merit-based, university grants, DAAD (Germany), Chevening (UK), Commonwealth. Apply early.
 
----
+**Low budget options:** Germany (near-zero tuition), some EU universities, Canadian colleges.`
+    },
+    {
+        title: 'Visa & Immigration',
+        keywords: ['visa', 'rejection', 'pr', 'permanent resident', 'stay back', 'work after study', 'opt', 'pgwp', 'safe', 'parents worried', 'immigration'],
+        content: `**Visa success depends on:** Genuine student plan, correct university, strong financial proof, early application.
 
-### 🔐 Login & Authentication
+**Post-study work:**
+- UK: 2 years | Canada: up to 3 years | Australia: 2–4 years | USA: OPT 1 year (STEM: 3 yrs) | Germany: 18 months
 
-**I didn't receive the magic link email.**
-1. Check your spam/junk folder.
-2. Ensure you're using the same email you registered with.
-3. Try again after 2 minutes.
-4. If still not received, email info@edumeetup.com.
+**PR pathways:** Canada (Express Entry), Australia (Skilled Migration), New Zealand, Germany (Blue Card) — always check current rules on official government websites.
 
-**My magic link says "Link Expired."**
-Magic links expire after 10 minutes for security. Go back to https://edumeetup.com/login and request a new one.
+**Parents' concern:** Valid. Key: verified university + financial proof + genuine SOP + early application = strong visa. EdUmeetup only lists verified universities.
 
-**I can't log in — getting an error.**
-Try in incognito/private mode. Clear cookies. If using a VPN, try without it. Still stuck? Email info@edumeetup.com.
+⚠️ For legal immigration advice, consult a licensed advisor or official government websites.`
+    },
+    {
+        title: 'Indian Student Profile Issues',
+        keywords: ['low percentage', 'backlog', 'gap', 'gap year', 'marks', 'percentage', 'low marks', 'arrear', 'cbse', 'ssc', 'hsc', 'ielts not done', 'no ielts', 'no gre', 'diploma', '12th', 'class 12'],
+        content: `**Low percentage:** Many universities accept 60–65%+. Strong SOP + work experience can compensate. Profile matching is key.
 
-**Is there a mobile app?**
-Not yet. EdUmeetup is fully mobile-responsive — use it in your mobile browser. A dedicated mobile app is on the roadmap.
+**Backlogs/arrears:** 1–2 cleared backlogs → manageable for many universities. Active backlogs → harder, but some universities accept. Disclose honestly.
 
----
+**Study gap:** Acceptable with a clear explanation — work, health, or preparation. SOP is where you explain it. UK, Canada, Australia are flexible.
 
-### 📋 For Universities
+**Without IELTS:** Alternatives — Duolingo English Test, Medium of Instruction (MOI) letter, internal English test, pathway programs.
 
-**How does our institution join EdUmeetup?**
-Register at https://edumeetup.com/university/register. Our team verifies institutions within 1–2 business days after document submission.
+**Without GRE:** Many USA/Canada/UK/Australia programs are now GRE-optional.
 
-**How do we host a Campus Fair?**
-Submit a hosting request at https://edumeetup.com/host-a-fair. EdUmeetup handles student invitations, RSVPs, and check-in logistics.
+**Diploma holders:** Can apply directly for Bachelor's (Year 2 entry in many cases) or pathway programs.`
+    },
+]
 
-**How do we access matched student profiles?**
-After your institution is verified and you log in as a University Rep, your dashboard shows students who have expressed interest in your programs.
+/**
+ * Find the most relevant knowledge section for a given topic/query.
+ * Returns the single best-matching section content (~200–400 words).
+ */
+export function getRelevantKnowledge(topic: string): string {
+    const query = topic.toLowerCase()
 
----
+    // Score each section by keyword matches
+    const scored = KNOWLEDGE_SECTIONS.map(section => {
+        const score = section.keywords.filter(kw => query.includes(kw.toLowerCase())).length
+        return { section, score }
+    })
 
-### 💬 General Platform FAQ
+    // Sort by score descending
+    scored.sort((a, b) => b.score - a.score)
 
-**Is EdUmeetup free for students?**
-Yes — 100% free. No registration fees, no commission, no hidden charges.
+    // If top section has a match, return it
+    if (scored[0].score > 0) {
+        return `**${scored[0].section.title}**\n\n${scored[0].section.content}`
+    }
 
-**Which countries' universities are on the platform?**
-USA, UK, Canada, Australia, New Zealand, Germany, Ireland, Netherlands, and more. Browse all at https://edumeetup.com/universities.
-
-**Is my data safe?**
-Yes. Data is stored securely, never sold to third parties, and students can request deletion at any time. We comply with standard data protection practices.
-
-**How do I report a bug or technical issue?**
-Use the Bug Report button (🐛) on the website, or go to https://edumeetup.com/report-issue.
-
-**How do I contact the EdUmeetup team?**
-📧 info@edumeetup.com
-🌐 https://edumeetup.com
-Operating hours: Monday–Saturday, 10 AM – 6 PM IST
-
----
-
-### 🌍 Level 0 — First Contact (Exploratory / New Visitors)
-
-Use these answers for students who are just discovering the platform or are unsure where to begin.
-
-**What is EdUmeetup?**
-EdUmeetup is a platform where students can explore verified universities, attend official admission fairs, and connect directly with institutions for studying abroad. No agents. No middlemen. Direct, trusted connections.
-
-**Can I use this even if I am just exploring?**
-Absolutely! You can ask questions, compare countries, check costs, and understand admission requirements before making any decision. No commitment needed.
-
-**Which countries can I study in through EdUmeetup?**
-USA, Canada, UK, Australia, Germany, Ireland, Singapore, New Zealand, and other EU countries. Browse all listed universities at https://edumeetup.com/universities.
-
-**Do I need to create an account?**
-You can explore without an account. But creating a free account lets you save universities, book 1-on-1 meetings with reps, and attend official admission events.
-
-**Is EdUmeetup an agent or consultancy?**
-No. EdUmeetup is a platform — not an agent. We connect students with verified university representatives directly. You pay nothing to us.
-
-**Are universities on EdUmeetup real and official?**
-Yes. Only verified, accredited institutions are allowed to participate in meetings and events on the platform. We manually check every institution.
-
-**Can I talk to universities directly here?**
-Yes. You can book 1-on-1 video meetings, attend online live sessions, or meet universities at official campus fairs — all within EdUmeetup.
-
-**Is EdUmeetup only for the USA?**
-No. EdUmeetup supports multiple countries including USA, Canada, UK, Australia, EU nations, Singapore, and New Zealand.
-
-**Is this free for students?**
-Core exploration, account creation, and meeting booking are free. Some premium events or workshops may require registration. Check the specific event page for details.
-
-**I don't know where to start. What should I do?**
-Let's figure it out together! Tell me:
-1. Your last qualification (degree / 12th grade / working professional)
-2. Preferred country (if you have one)
-3. Your budget range
-4. When you want to start (intake — this year / next year)
-
-I'll guide you step by step from there. 🎓
-
----
-
-### 🎓 Level 1 — Serious Student (Actively Planning to Study Abroad)
-
-Use these answers for students who have decided to study abroad and need structured guidance.
-
-**I want to study abroad. Where should I begin?**
-Great decision! Here's how to start:
-1. **Choose your field** — What do you want to study? (Engineering, Business, IT, Healthcare, etc.)
-2. **Pick a country** — Budget, visa ease, and post-study work rights vary a lot.
-3. **Check your readiness** — English test (IELTS/TOEFL), academic percentage, financial proof.
-4. **Set your timeline** — Which intake? Fall (Sept) is the biggest. Spring (Jan) and Summer (May) have fewer options.
-5. **Explore universities** — Use EdUmeetup to find verified universities, attend fairs, and book meetings.
-
-**Which intake should I apply for?**
-The three main intakes are:
-- **Fall (September)** — Largest intake, most universities and programs available. Best for most students.
-- **Spring (January)** — Good option for US, Canada, and some UK programs.
-- **Summer (May/June)** — Fewer programs; mostly US community colleges and some short courses.
-For most students, **Fall** is the best starting point.
-
-**What exams are required?**
-For English proficiency: **IELTS / TOEFL / PTE / Duolingo English Test**
-For specific programs:
-- MBA / Business: GMAT
-- Master's / PhD (USA): GRE
-- Undergraduate (USA): SAT / ACT
-Requirements vary by university and program — I can search specific requirements once you tell me your target university.
-
-**How much money do I need to study abroad?**
-It depends on the country. Approximate yearly total cost (tuition + living):
-- 🇺🇸 USA: $35,000–$65,000
-- 🇬🇧 UK: £25,000–£45,000
-- 🇨🇦 Canada: CAD $30,000–$55,000
-- 🇦🇺 Australia: AUD $35,000–$55,000
-- 🇩🇪 Germany: Very low or free tuition (public universities), living ~€10,000/yr
-Scholarships and part-time work can significantly reduce costs.
-
-**Can I go abroad with a low percentage or lower grades?**
-Yes, but university and program selection matters. Many universities evaluate holistically — your SOP, work experience, test scores, and portfolio can compensate. Let me search universities that accept your profile.
-
-**Can I work while studying?**
-Most countries allow part-time work for international students:
-- 🇺🇸 USA: 20 hours/week on-campus
-- 🇬🇧 UK: 20 hours/week
-- 🇨🇦 Canada: 24 hours/week (as of 2024 cap policy — verify current rules)
-- 🇦🇺 Australia: 48 hours/fortnight
-- 🇩🇪 Germany: 120 full days or 240 half days/year
-Always check the latest rules on official government websites as policies change.
-
-**Can I get a scholarship?**
-Yes, many universities offer scholarships. Common types:
-- Merit-based (academic excellence)
-- Need-based financial aid
-- Country-specific grants
-- Early application discounts
-Scholarships are competitive — strong academics and a well-written SOP improve your chances. Book a meeting with a university rep through EdUmeetup to ask about specific scholarships.
-
-**Which country is easiest for a visa?**
-"Easy" depends on your profile, finances, and university. Generally:
-- **Canada** — has a Student Direct Stream (SDS) for faster processing from India.
-- **Germany** — relatively high acceptance rate from India.
-- **UK** — Student visa with clear financial requirements.
-- **USA** — F-1 visa, interview required, acceptance depends heavily on ties to home country.
-Your university acceptance letter is the most important document for any visa.
-
-**Can I stay and work after my studies?**
-Most countries offer post-study work visas:
-- 🇬🇧 UK: Graduate Route — 2 years
-- 🇨🇦 Canada: PGWP — up to 3 years
-- 🇦🇺 Australia: Graduate visa — 2–4 years (depends on location and level)
-- 🇺🇸 USA: OPT — 1 year (STEM: 3 years)
-- 🇩🇪 Germany: 18 months job-seeker visa after graduation
-
-**How can EdUmeetup help me in my journey?**
-EdUmeetup is your one-stop platform for the entire study-abroad journey:
-✅ Explore verified universities by country, field, and budget
-✅ Book direct 1-on-1 video meetings with admissions reps
-✅ Attend Campus Fairs to meet multiple universities in one session
-✅ Get your digital QR pass for fair check-in
-✅ Compare programs and understand requirements directly from institutions
-All of this is free. No agents. No commissions. Start at https://edumeetup.com/student/register
-
----
-
-### 🇮🇳 Level 2 — Real Indian Student Questions
-
-Use these answers for students asking about marks, backlogs, gaps, budget, visa anxiety, and confusion. Keep tone short, warm, and reassuring.
-
-**I have a low percentage. Can I still study abroad?**
-Yes. Many universities welcome students with average academic records.
-The key is matching the right university to your profile — marks are just one factor. A strong SOP, work experience, or relevant skills can make a big difference. Let me find universities that accept your profile.
-
-**I have backlogs. Will I get admission?**
-Yes, in many cases. Some universities accept backlogs, but the number and recency matter.
-1–2 cleared backlogs is usually manageable. Active backlogs can be trickier.
-Tell me how many you have and which country you're targeting — I'll search accordingly.
-
-**I have a study gap. Is that a problem?**
-Not always. A gap is acceptable if you can explain it clearly — work experience, a health reason, preparation time, or family circumstances are all valid.
-Some countries (UK, Canada, Australia) are quite flexible. Your Statement of Purpose (SOP) is where you explain it. Would you like tips on writing a gap explanation?
-
-**My budget is low. Which country is best?**
-Low-budget options worth exploring:
-- 🇩🇪 **Germany** — Public universities often charge little or no tuition. Living costs ~€800–1,000/month.
-- 🇫🇷 **France / Other EU** — Several public universities with low tuition for international students.
-- 🇨🇦 **Canada (colleges)** — Some colleges have lower fees than universities.
-- 🇦🇺 **Regional Australia** — Some programs in smaller cities are more affordable.
-Remember: living costs and visa fees also matter. Germany is often the most affordable overall for international students.
-
-**Which country is safest for Indian students?**
-All major destinations — USA, Canada, UK, Australia, Germany, Ireland, New Zealand, Singapore — have large Indian student communities and are generally safe.
-Safety depends more on the specific city, campus, and personal awareness than the country itself.
-Most universities have international student support offices and 24/7 safety resources.
-
-**Which country gives PR (Permanent Residency) most easily?**
-Immigration policies change frequently, so always verify with official sources. Countries often discussed for PR pathways:
-- 🇨🇦 Canada — Express Entry, Provincial Nominee Programs
-- 🇦🇺 Australia — Skilled migration pathways
-- 🇳🇿 New Zealand — Graduate Visa to residence pathways
-- 🇩🇪 Germany — Opportunity Card (Chancenkarte) and Blue Card
-
-⚠️ Important: Always choose your course based on career first. Students who chase PR over education often struggle. EdUmeetup connects you with universities — not immigration consultants.
-
-**Can I go abroad without IELTS?**
-Sometimes, yes. Alternatives some universities accept:
-- Duolingo English Test (widely accepted, cheaper, done online)
-- Medium of Instruction (MOI) letter from your previous college
-- Internal English placement tests at the university
-- Pathway or foundation programs
-Requirements vary by country and university. Let me search specific options if you tell me your target country.
-
-**Can I study abroad without GRE?**
-Yes. Many universities in USA, Canada, UK, and Australia have made GRE optional or removed the requirement entirely — especially post-2020.
-MBA programs may still ask for GMAT. Tell me the program you want and I'll check the requirements.
-
-**I want the cheapest country to study abroad.**
-Most affordable options overall:
-- 🇩🇪 Germany — Near-zero tuition at public universities, modest living costs
-- 🇪🇺 EU countries — Poland, Czech Republic, Hungary have low-cost programs in English
-- 🇨🇦 Canada — Some colleges are more affordable than universities
-- 🇺🇸 USA community colleges — Very low tuition for 2-year programs with transfer options
-Remember: low tuition + high living cost can still be expensive. Germany usually wins on total cost.
-
-**I want to earn money while studying abroad.**
-Most countries allow part-time work, but be realistic:
-- 🇨🇦 Canada: Up to 24 hrs/week. Minimum wage varies by province.
-- 🇦🇺 Australia: 48 hrs/fortnight.
-- 🇬🇧 UK: 20 hrs/week.
-- 🇺🇸 USA: On-campus only (20 hrs/week). Off-campus needs special permission.
-Part-time earnings help with pocket money, but will NOT cover tuition or full living costs. You must have a solid financial plan before going.
-
-**My parents are worried about visa rejection. What should I tell them?**
-Their concern is valid — but visa success is very manageable with proper preparation:
-✅ Choose a recognised, verified university
-✅ Prepare strong financial proof (bank statements, sponsor letter)
-✅ Have a clear, genuine study plan (your SOP)
-✅ Apply early — rushed applications have more errors
-✅ Use EdUmeetup to meet universities directly and get the right advice
-Visa rejection rates drop significantly when the application is genuine and well-prepared.
-
-**I don't know which course to choose.**
-Let's figure it out together. Think about:
-1. What subjects did you study / enjoy?
-2. What kind of job do you want in 5 years?
-3. What is your budget?
-4. Are you open to doing a bridging or foundation course?
-Once you answer these, I can search programs across our verified university partners that match your profile. 🎓
-
-**I want a job after study. Which country is the best?**
-All major destinations offer post-study work rights, but job success depends on your skills, not just the country.
-- 🇺🇸 USA: OPT (1 year, STEM 3 years) — very competitive job market
-- 🇨🇦 Canada: PGWP (up to 3 years) — strong job market, PR pathways
-- 🇦🇺 Australia: Graduate visa (2–4 years) — growing tech and healthcare sectors
-- 🇬🇧 UK: Graduate Route (2 years) — good for finance, creative, and tech
-- 🇩🇪 Germany: 18-month job-seeker visa — strong engineering demand
-Bottom line: study in a field that's in demand. Your skills get the job, your country gives the opportunity.
-
-**I want to talk to real universities — not agents.**
-That is exactly what EdUmeetup is built for.
-On the platform, you connect directly with verified university representatives — no middlemen.
-- Book a 1-on-1 video meeting with a university admissions rep
-- Attend Campus Fairs where universities are physically or virtually present
-- Ask questions directly — about fees, scholarships, visa, programs
-
-No agent fees. No commission. Just direct, honest conversations with institutions.
-
-**I am confused. Can someone guide me step by step?**
-Of course — that is what I am here for. Let's go step by step:
-
-**Step 1:** Tell me about yourself
-- What did you study? (Engineering, Commerce, Science, Arts?)
-- Any work experience?
-- Any exam scores? (IELTS, GRE, etc. — or not yet?)
-
-**Step 2:** Tell me your goals
-- Which country are you considering?
-- What field do you want to study?
-- What is your budget per year?
-- When do you want to start?
-
-I'll use your answers to find matched universities on EdUmeetup and guide you to the next step. You are not alone in this. 🌟
-
----
-
-### 🎒 Level 3 — Undergraduate Study Abroad (12th Students, Parents, Diploma Holders)
-
-Use these answers for students in or just after 12th grade, parents enquiring about Bachelor's programs, and diploma holders looking to study abroad.
-
-**I am in 12th. Can I go abroad for a Bachelor's degree?**
-Yes! Students can apply directly after 12th grade for undergraduate programs in:
-USA, Canada, UK, Australia, Germany, Singapore, New Zealand, and EU countries.
-Many universities accept 12th results as the primary eligibility criterion.
-
-**What exams are required after 12th?**
-It depends on the country and university. Common requirements:
-- 🌍 **English proficiency**: IELTS / TOEFL / PTE / Duolingo English Test (most countries)
-- 🇺🇸 **USA (some universities)**: SAT or ACT
-- 🇩🇪 **Germany**: TestAS or specific country equivalents
-- 🇬🇧🇨🇦🇦🇺 **UK, Canada, Australia**: Typically IELTS/TOEFL only, no SAT needed
-Many universities in the UK, Canada, and Australia do NOT require SAT at all.
-
-**What percentage is needed after 12th?**
-General benchmarks (vary by university and program):
-- 60%+ → Eligible for many universities
-- 70%+ → Good range of options across most countries
-- 80%+ → Access to top-ranked universities
-Some universities do a holistic review — extracurriculars, SOP, and English scores can compensate for lower grades.
-
-**Can I go abroad without SAT?**
-Yes. SAT is mainly required by some universities in the USA. Most universities in:
-- 🇨🇦 Canada, 🇬🇧 UK, 🇦🇺 Australia, 🇩🇪 Germany, 🇮🇪 Ireland, 🇳🇿 New Zealand
-…do NOT require SAT for Bachelor's admission. Only a strong 12th result and English score are typically needed.
-
-**What is a Foundation or Pathway program?**
-If your 12th percentage or English score is below the direct entry requirement, you can join a Foundation or Pathway program first:
-- **Foundation Year** — 1-year pre-university program. After completing it, you enter Year 1 of a Bachelor's.
-- **Pathway / Diploma** — Academic bridging course that leads to degree entry.
-- Common in: 🇬🇧 UK, 🇦🇺 Australia, 🇨🇦 Canada, and some US universities.
-This is a perfectly valid route — many successful students take it.
-
-**How much does a Bachelor's degree abroad cost per year?**
-Approximate total yearly cost (tuition + living expenses):
-| Country | Annual Cost |
-|---|---|
-| 🇺🇸 USA | $25,000 – $60,000 |
-| 🇨🇦 Canada | CAD $25,000 – $45,000 |
-| 🇬🇧 UK | £22,000 – £40,000 |
-| 🇦🇺 Australia | AUD $30,000 – $50,000 |
-| 🇩🇪 Germany (public) | €10,000 – €12,000 (mostly living cost; tuition near zero) |
-| 🇸🇬 Singapore | $25,000 – $40,000 |
-| 🇳🇿 New Zealand | NZD $28,000 – $45,000 |
-Scholarships can reduce costs significantly. Germany offers the best value by far.
-
-**Can parents come and stay with the student abroad?**
-Parents can visit on a tourist/visitor visa for a limited period (usually 3–6 months depending on country).
-Long-term stay is generally NOT permitted on a visitor visa. Some countries offer dependent/family visas for specific cases.
-Parents are encouraged to visit at least once to help the student settle in.
-
-**Which country is best for Bachelor's after 12th?**
-It depends on your child's profile:
-- 🎯 **Best for value**: Germany (low tuition) or Canada (strong PR pathway)
-- 🎯 **Best for top rankings**: USA or UK
-- 🎯 **Best for safety + career**: Australia or New Zealand
-- 🎯 **Best for tech/business**: Singapore or Canada
-Tell me the budget, subjects, and career goal — I'll search the best-fit universities on EdUmeetup.
-
-**Is it safe to send a child abroad after 12th?**
-Yes, with proper preparation. Each year, tens of thousands of Indian students under 20 successfully study abroad.
-Key factors for a safe experience:
-- Choose a **verified, reputable university** (EdUmeetup only lists verified institutions)
-- Select a **city with a strong Indian community**
-- Ensure the student has **on-campus accommodation** for the first year
-- Stay in regular contact during the initial months
-Most universities have dedicated international student support teams available 24/7.
-
-**Can my child work during a Bachelor's degree abroad?**
-Yes, most countries allow part-time work for students:
-- 🇨🇦 Canada: Up to 24 hrs/week during semester
-- 🇬🇧 UK: 20 hrs/week
-- 🇦🇺 Australia: 48 hrs/fortnight
-- 🇳🇿 New Zealand: 20 hrs/week
-- 🇩🇪 Germany: 120 full days per year
-- 🇺🇸 USA: On-campus only (20 hrs/week)
-Part-time work helps with expenses but should not be the primary funding source.
-
-**Can students get scholarships after 12th for studying abroad?**
-Yes, scholarships are available — but competitive. Types include:
-- **Merit scholarships** — Based on 12th percentage and entrance scores
-- **University-specific scholarships** — Many universities offer automatic partial scholarships for high scorers
-- **Sports / talent scholarships** — Available in USA and some other countries
-- **Government scholarships** — DAAD (Germany), Commonwealth (UK), Chevening, etc.
-Strong 12th marks + good English score + early application = best chance of scholarship.
-
-**I don't know which Bachelor's course to choose. Help!**
-No problem — let's narrow it down together:
-1. What subjects did you enjoy in 11th/12th? (Science / Commerce / Arts / Vocational?)
-2. What kind of job interests you in 10 years?
-3. Are you open to studying something new that wasn't in your 12th syllabus?
-Popular Bachelor's fields for Indian students abroad: Engineering / CS, Business & Management, Finance, Data Science, Design, Nursing/Allied Health, Law (in UK/Australia).
-I can search programs across our verified universities once you share your preference. 🎓
-
-**I have a Diploma. Can I study abroad?**
-Yes! Diploma holders have several options:
-- **Direct Bachelor's entry** — Many universities worldwide accept diploma as equivalent to 12th + 1 year of degree
-- **Advanced Standing / Credit Transfer** — Enter directly into Year 2 of a Bachelor's program
-- **Pathway programs** — Bridge directly into a full degree
-Popular countries for diploma-to-degree: Canada, Australia, UK, New Zealand, and Singapore.
-Tell me your diploma subject and I'll search the right universities.
-
-**When should I start planning for studying abroad — in 11th or 12th?**
-The earlier the better! Ideal timeline:
-- **Class 11 (Year 1)**: Research countries and courses. Explore EdUmeetup.
-- **Class 12 (Year 1 — early)**: Start IELTS/TOEFL preparation. Attend campus fairs.
-- **Class 12 (Year 2 — mid)**: Shortlist universities, apply. Have 12th projected scores ready.
-- **After 12th results**: Finalise admissions, apply for visa.
-Students who plan from Class 11 have a much stronger application and more scholarship opportunities.
-
-**How can my child meet real universities before deciding?**
-EdUmeetup is the perfect place for this. Your child (or you as a parent) can:
-- ✅ Browse verified universities by country and program
-- ✅ Book a direct 1-on-1 video meeting with an official admissions representative
-- ✅ Attend Campus Fairs where multiple universities are present in one session — live Q&A, instant answers
-
-No agents. No fees. Direct university contact. Start at https://edumeetup.com
-`
-
-
+    // No match — return platform overview as default
+    return `**Platform Overview**\n\n${KNOWLEDGE_SECTIONS[0].content}`
+}
