@@ -99,9 +99,9 @@ export async function markConversationRead(conversationId: string) {
         where: {
             conversationId,
             senderRole: 'UNIVERSITY',
-            readAt: null,
+            studentReadAt: null,       // messages the student hasn't read yet
         },
-        data: { readAt: new Date() },
+        data: { studentReadAt: new Date() },
     })
 
     revalidatePath('/student/messages')
@@ -142,7 +142,7 @@ export async function getStudentConversations() {
     const withUnread = await Promise.all(
         conversations.map(async (c) => {
             const unreadCount = await prisma.directMessage.count({
-                where: { conversationId: c.id, senderRole: 'UNIVERSITY', readAt: null },
+                where: { conversationId: c.id, senderRole: 'UNIVERSITY', studentReadAt: null },
             })
             return { ...c, unreadCount }
         })

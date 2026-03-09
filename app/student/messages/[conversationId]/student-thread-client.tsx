@@ -12,7 +12,7 @@ interface Message {
     content: string
     senderRole: string
     createdAt: Date
-    readAt: Date | null
+    studentReadAt: Date | null
 }
 
 interface Conversation {
@@ -131,7 +131,7 @@ export function StudentThreadClient({ conversation, quota, userId }: Props) {
                                     <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-teal-100' : ''}`}
                                         style={!isMe ? { color: 'var(--text-muted)' } : {}}>
                                         {new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                                        {isMe && msg.readAt && ' · ✓'}
+                                        {isMe && msg.studentReadAt && ' · ✓'}
                                     </p>
                                 </div>
                             </div>
