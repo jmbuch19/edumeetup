@@ -87,12 +87,13 @@ export async function POST(req: NextRequest) {
 
     // ── 3. Generate — max 2 steps (1 optional tool call + final reply) ───
     // Keeping steps low is CRITICAL on Netlify free (10s limit).
-    // Llama 3.3 70B knows study abroad topics from training — tools are only
-    // for live EdUmeetup DB data (verified universities, upcoming fairs).
+    // llama-3.1-8b-instant is ~3x faster than 70B — fine for tool summarisation.
+    // maxTokens keeps the final reply generation short and predictable.
     const { text, steps } = await generateText({
-      model: groq('llama-3.3-70b-versatile'),
+      model: groq('llama-3.1-8b-instant'),
       system: systemPrompt,
       messages,
+      maxTokens: 400,
       stopWhen: stepCountIs(2), // max 1 tool call → fits in 10s
       tools: {
 
