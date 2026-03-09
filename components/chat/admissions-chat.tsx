@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { MessageCircle, X, Send, Loader2, ExternalLink, GraduationCap, Globe, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { RegistrationGate } from './RegistrationGate'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -52,6 +53,11 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
     ])
     const [input, setInput] = useState('')
     const [loading, setLoading] = useState(false)
+    const [gate, setGate] = useState<{
+        reason: 'anon_limit' | 'anon_cooldown' | 'registered_limit'
+        visitNumber?: number
+        cooldownEndsAt?: number
+    } | null>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
 
     // Restore hide state from sessionStorage on mount
@@ -92,7 +98,7 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
             })
 
             // Safe JSON parse — during deploys Netlify may briefly serve HTML error pages
-            let data: { reply?: string } = {}
+            let data: { reply?: string; quota?: { allowed: false; reason: string; visitNumber?: number; cooldownEndsAt?: number } } = {}
             const contentType = res.headers.get('content-type') || ''
             if (contentType.includes('application/json')) {
                 data = await res.json()
@@ -102,6 +108,17 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                     role: 'assistant',
                     content: '⏳ The bot is still deploying. Please wait 1–2 minutes and try again!',
                 }])
+                setLoading(false)
+                return
+            }
+
+            // Quota gate
+            if (data.quota && !data.quota.allowed) {
+                setGate({
+                    reason: data.quota.reason as 'anon_limit' | 'anon_cooldown' | 'registered_limit',
+                    visitNumber: data.quota.visitNumber,
+                    cooldownEndsAt: data.quota.cooldownEndsAt,
+                })
                 setLoading(false)
                 return
             }
@@ -146,7 +163,16 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
 
             {/* Chat Panel */}
             {open && (
-                <div className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-24px)] h-[560px] max-h-[calc(100vh-80px)] flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                <div className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-24px)] h-[560px] max-h-[calc(100vh-80px)] flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden relative">
+                    {/* Registration Gate overlay */}
+                    {gate && (
+                        <RegistrationGate
+                            reason={gate.reason}
+                            visitNumber={gate.visitNumber}
+                            cooldownEndsAt={gate.cooldownEndsAt}
+                            onDismiss={() => setGate(null)}
+                        />
+                    )}
                     {/* Header */}
                     <div className="bg-blue-600 px-4 py-3 flex items-center justify-between flex-shrink-0">
                         <div className="flex items-center gap-2">

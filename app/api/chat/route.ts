@@ -13,6 +13,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { buildSystemPrompt } from '@/lib/bot/system-prompt'
 import { BOT_VERSION } from '@/lib/bot/registry'
+import { getQuotaStatus, consumeMessage } from '@/lib/bot/quota'
 
 export const maxDuration = 30
 
@@ -52,6 +53,16 @@ export async function POST(req: NextRequest) {
           }
         }
       )
+    }
+
+
+    // ── Quota check (session/daily limits) ───────────────────────────────
+    const session = await auth()
+    const userId = session?.user?.id ?? null
+    const quota = await getQuotaStatus(ip, userId)
+
+    if (!quota.allowed) {
+      return NextResponse.json({ quota: quota })
     }
 
 
@@ -177,10 +188,12 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // ── 4. Log session async (non-blocking) ──────────────────────────────
+    // ── 4. Consume one message from quota (non-blocking) ─────────────────
+    consumeMessage(ip, userId).catch(() => {/* non-fatal */})
+
+    // ── 5. Log session async (non-blocking) ──────────────────────────────
     Promise.resolve().then(async () => {
       try {
-        const session = await auth()
         await prisma.systemLog.create({
           data: {
             level: 'INFO', type: 'BOT_SESSION',
@@ -188,7 +201,7 @@ export async function POST(req: NextRequest) {
             metadata: {
               botVersion: BOT_VERSION,
               studentId: studentId || null,
-              userId: session?.user?.id || null,
+              userId: userId || null,
               toolCalls: steps.length,
               question: messages[messages.length - 1]?.content?.slice(0, 100),
             }
