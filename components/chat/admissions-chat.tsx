@@ -91,7 +91,20 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                 }),
             })
 
-            const data = await res.json()
+            // Safe JSON parse — during deploys Netlify may briefly serve HTML error pages
+            let data: { reply?: string } = {}
+            const contentType = res.headers.get('content-type') || ''
+            if (contentType.includes('application/json')) {
+                data = await res.json()
+            } else {
+                // Non-JSON response = build in progress or function crashed
+                setMessages(prev => [...prev, {
+                    role: 'assistant',
+                    content: '⏳ The bot is still deploying. Please wait 1–2 minutes and try again!',
+                }])
+                setLoading(false)
+                return
+            }
             setMessages(prev => [...prev, {
                 role: 'assistant',
                 content: data.reply || "I'm having a bit of trouble right now. Please try again in a moment.",
