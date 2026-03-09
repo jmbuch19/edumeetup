@@ -130,41 +130,61 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                 }),
             })
 
-            // Safe JSON parse — during deploys Netlify may briefly serve HTML error pages
-            let data: { reply?: string; quota?: { allowed: false; reason: string; visitNumber?: number; cooldownEndsAt?: number } } = {}
             const contentType = res.headers.get('content-type') || ''
+
+            // ── JSON response: quota gate or deploy error ─────────────────
             if (contentType.includes('application/json')) {
-                data = await res.json()
-            } else {
-                // Non-JSON response = build in progress or function crashed
-                setMessages(prev => [...prev, {
-                    role: 'assistant',
-                    content: '⏳ The bot is still deploying. Please wait 1–2 minutes and try again!',
-                }])
+                const data = await res.json()
+                if (data.quota && !data.quota.allowed) {
+                    setGate({
+                        reason: data.quota.reason as 'anon_limit' | 'anon_cooldown' | 'registered_limit',
+                        visitNumber: data.quota.visitNumber,
+                        cooldownEndsAt: data.quota.cooldownEndsAt,
+                    })
+                    setLoading(false)
+                    return
+                }
+                // Fallback JSON reply (shouldn't happen in normal flow)
+                if (data.reply) {
+                    setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+                }
                 setLoading(false)
                 return
             }
 
-            // Quota gate
-            if (data.quota && !data.quota.allowed) {
-                setGate({
-                    reason: data.quota.reason as 'anon_limit' | 'anon_cooldown' | 'registered_limit',
-                    visitNumber: data.quota.visitNumber,
-                    cooldownEndsAt: data.quota.cooldownEndsAt,
-                })
+            // ── Stream response: read tokens as they arrive ───────────────
+            if (!res.body) {
+                setMessages(prev => [...prev, { role: 'assistant', content: '⏳ No response received. Please try again.' }])
                 setLoading(false)
                 return
             }
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: data.reply || "I'm having a bit of trouble right now. Please try again in a moment.",
-            }])
+
+            // Add an empty assistant bubble that we'll fill token-by-token
+            setMessages(prev => [...prev, { role: 'assistant', content: '' }])
+            setLoading(false) // spinner off — text is appearing live
+
+            const reader = res.body.getReader()
+            const decoder = new TextDecoder()
+
+            while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+                const chunk = decoder.decode(value, { stream: true })
+                setMessages(prev => {
+                    const msgs = [...prev]
+                    const last = msgs[msgs.length - 1]
+                    if (last?.role === 'assistant') {
+                        msgs[msgs.length - 1] = { ...last, content: last.content + chunk }
+                    }
+                    return msgs
+                })
+            }
+
         } catch {
             setMessages(prev => [...prev, {
                 role: 'assistant',
                 content: '⚠️ Connection issue. Please check your internet and try again.',
             }])
-        } finally {
             setLoading(false)
         }
     }

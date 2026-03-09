@@ -1,10 +1,10 @@
 // app/api/chat/route.ts
-// EdUmeetup Admissions Concierge Bot — Groq (Llama 3.3 70B)
-// Single tool call max — stays well within Netlify's 10-second function limit.
-// Rate limited: 30 requests/hour per IP via Upstash Redis.
+// EdUmeetup Admissions Concierge Bot — Groq (Llama 3.1 8B)
+// Streaming response — changes Netlify timeout from "10s total" to "10s idle".
+// First token arrives ~1s, resets the clock — full reply completes easily.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { generateText, tool, stepCountIs } from 'ai'
+import { streamText, tool, stepCountIs } from 'ai'
 import { z } from 'zod'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       if (!success) {
         const retryAfterSec = Math.ceil((reset - Date.now()) / 1000)
         return NextResponse.json(
-          { reply: `You've sent a lot of messages! 😊 Please wait ${Math.ceil(retryAfterSec / 60)} minute(s) and try again. Our bot is here for you — this limit keeps it available for everyone.` },
+          { reply: `You've sent a lot of messages! 😊 Please wait ${Math.ceil(retryAfterSec / 60)} minute(s) and try again.` },
           {
             status: 200,
             headers: {
@@ -96,15 +96,14 @@ export async function POST(req: NextRequest) {
     // ── 2. Build system prompt ────────────────────────────────────────────
     const systemPrompt = buildSystemPrompt(studentContext)
 
-    // ── 3. Generate — max 2 steps (1 optional tool call + final reply) ───
-    // Keeping steps low is CRITICAL on Netlify free (10s limit).
-    // llama-3.1-8b-instant is ~3x faster than 70B — fine for tool summarisation.
-    // maxTokens keeps the final reply generation short and predictable.
-    const { text, steps } = await generateText({
+    // ── 3. Stream — max 2 steps (1 optional tool call + final reply) ──────
+    // streamText changes Netlify timeout from "10s total" to "10s idle".
+    // First token arrives ~1s, resets the clock — full reply completes easily.
+    const result = streamText({
       model: groq('llama-3.1-8b-instant'),
       system: systemPrompt,
       messages,
-      stopWhen: stepCountIs(2), // max 1 tool call → fits in 10s
+      stopWhen: stepCountIs(2), // max 1 tool call
       tools: {
 
         searchInternalUniversities: tool({
@@ -197,36 +196,38 @@ export async function POST(req: NextRequest) {
         }),
 
       },
-    })
-
-    // ── 4. Consume one message from quota (non-blocking) ─────────────────
-    consumeMessage(ip, userId).catch(() => {/* non-fatal */})
-
-    // ── 5. Log session async (non-blocking) ──────────────────────────────
-    Promise.resolve().then(async () => {
-      try {
-        await prisma.systemLog.create({
-          data: {
-            level: 'INFO', type: 'BOT_SESSION',
-            message: `Bot — ${messages.length} msgs, ${steps.length} steps`,
-            metadata: {
-              botVersion: BOT_VERSION,
-              studentId: studentId || null,
-              userId: userId || null,
-              toolCalls: steps.length,
-              question: messages[messages.length - 1]?.content?.slice(0, 100),
-            }
-          }
+      onFinish: ({ text, steps }) => {
+        // Fire-and-forget after stream closes — never blocks the response
+        consumeMessage(ip, userId).catch(() => {})
+        Promise.resolve().then(async () => {
+          try {
+            await prisma.systemLog.create({
+              data: {
+                level: 'INFO', type: 'BOT_SESSION',
+                message: `Bot — ${messages.length} msgs, ${steps.length} steps`,
+                metadata: {
+                  botVersion: BOT_VERSION,
+                  studentId: studentId || null,
+                  userId: userId || null,
+                  toolCalls: steps.length,
+                  question: messages[messages.length - 1]?.content?.slice(0, 100),
+                }
+              }
+            })
+          } catch { /* non-fatal */ }
         })
-      } catch { /* non-fatal */ }
+      },
     })
 
-    return NextResponse.json({ reply: text })
+    // Return a plain text stream — the widget reads it incrementally
+    return result.toTextStreamResponse()
 
   } catch (error) {
     console.error('[/api/chat] error:', error)
-    return NextResponse.json({
-      reply: "I'm having a moment of trouble. Please try again — I'm here to help! 😊"
-    }, { status: 200 })
+    // Return plain text so the widget's stream reader still works
+    return new Response(
+      "I'm having a moment of trouble. Please try again — I'm here to help! 😊",
+      { status: 200, headers: { 'Content-Type': 'text/plain' } }
+    )
   }
 }
