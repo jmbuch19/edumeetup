@@ -131,6 +131,7 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
             })
 
             const contentType = res.headers.get('content-type') || ''
+            const traceId = res.headers.get('X-Trace-Id') ?? 'unknown'
 
             // ── JSON response: quota gate or deploy error ─────────────────
             if (contentType.includes('application/json')) {
@@ -178,6 +179,12 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                     }
                     return msgs
                 })
+            }
+
+            // Check if the stream produced any content
+            const lastMsg = (() => { let m: Message | undefined; setMessages(prev => { m = prev[prev.length - 1]; return prev }); return m })()
+            if (!lastMsg?.content) {
+                console.warn('[bot] empty stream received', { traceId })
             }
 
         } catch {
