@@ -1,10 +1,11 @@
 import '@/app/dashboard-tokens.css'
 import { auth } from "@/lib/auth"
-
+import { adminRelogin } from "@/app/(admin)/admin-actions"
 import { prisma } from "@/lib/prisma"
 import { AdminNav } from "@/components/admin/admin-nav"
 import { AdminRightSidebar } from "@/components/admin/admin-right-sidebar"
 import { NotificationsCenter } from "@/components/notifications-center"
+
 
 export const dynamic = 'force-dynamic'
 
@@ -32,9 +33,11 @@ export default async function AdminLayout({
                     <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔒</div>
                     <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>Session Expired</h1>
                     <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Your admin session has expired. Please sign in again.</p>
-                    <a href="/login" style={{ display: 'inline-block', background: '#1e40af', color: 'white', padding: '10px 24px', borderRadius: '8px', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }}>
-                        Sign In
-                    </a>
+                    <form action={adminRelogin}>
+                        <button type="submit" style={{ display: 'inline-block', background: '#1e40af', color: 'white', padding: '10px 24px', borderRadius: '8px', border: 'none', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}>
+                            Sign In
+                        </button>
+                    </form>
                 </div>
             </div>
         )
