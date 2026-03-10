@@ -1,5 +1,4 @@
-import { auth } from '@/lib/auth'
-import { redirect } from 'next/navigation'
+
 import { getAdminOverviewMetrics } from '../overview/actions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Building2, Calendar, Clock, BookOpen, MapPin, ArrowRight, QrCode } from 'lucide-react'
@@ -18,8 +17,6 @@ const QUICK_LINKS = [
 ]
 
 export default async function AdminDashboard() {
-    const session = await auth()
-    if (!session || session.user?.role !== 'ADMIN') redirect('/login')
 
     const metrics = await getAdminOverviewMetrics()
     if (!metrics) return <div className="p-8 text-red-500">Failed to load metrics.</div>
