@@ -56,15 +56,14 @@ export function BugReporter() {
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="fixed bottom-4 right-4 z-50 h-10 w-10 rounded-full bg-primary shadow-lg text-white hover:bg-primary/90 md:bottom-8 md:right-8"
-                    title="Report a Bug"
+        <DialogTrigger asChild>
+                <button
+                    className="fixed bottom-0 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 px-3 py-1 text-[11px] text-gray-400 hover:text-gray-600 transition-colors bg-white/80 backdrop-blur-sm border-t border-x border-gray-100 rounded-t-md shadow-sm"
+                    title="Report a bug or issue"
                 >
-                    <Bug className="h-5 w-5" />
-                </Button>
+                    <Bug className="h-3 w-3" />
+                    Report Issue
+                </button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
