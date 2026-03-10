@@ -171,6 +171,14 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                 const { done, value } = await reader.read()
                 if (done) break
                 const chunk = decoder.decode(value, { stream: true })
+
+                // Skip tool call chunks — never show raw JSON to user
+                if (
+                    chunk.includes('"$schema"') ||
+                    chunk.includes('"type":"tool"') ||
+                    chunk.trim().startsWith('{"name":')
+                ) continue
+
                 setMessages(prev => {
                     const msgs = [...prev]
                     const last = msgs[msgs.length - 1]
