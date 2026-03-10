@@ -7,8 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createFairEvent, type FairEventRow } from './actions'
-import { Plus, QrCode, BarChart2, Loader2, X, Calendar, MapPin } from 'lucide-react'
+import { createFairEvent, deleteFairEvent, type FairEventRow } from './actions'
+import { Plus, QrCode, BarChart2, Loader2, X, Calendar, MapPin, Trash2, AlertTriangle } from 'lucide-react'
+import { toast } from 'sonner'
+import {
+    Dialog, DialogContent, DialogDescription,
+    DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog'
 
 const STATUS_STYLES: Record<string, string> = {
     UPCOMING: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -104,19 +109,91 @@ function CreateDialog({ onClose, onCreated }: { onClose: () => void; onCreated: 
     )
 }
 
+// ── Delete confirmation dialog ────────────────────────────────────────────────
+function DeleteConfirmDialog({
+    event,
+    open,
+    onCancel,
+    onConfirm,
+    pending,
+}: {
+    event: FairEventRow | null
+    open: boolean
+    onCancel: () => void
+    onConfirm: () => void
+    pending: boolean
+}) {
+    if (!event) return null
+    return (
+        <Dialog open={open} onOpenChange={open => !open && onCancel()}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-red-600">
+                        <AlertTriangle className="h-5 w-5" />
+                        Archive This Fair?
+                    </DialogTitle>
+                    <DialogDescription>
+                        You are about to archive <strong>{event.name}</strong>.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-900 px-4 py-3 text-sm text-amber-800 dark:text-amber-200 space-y-1">
+                    <p className="font-medium">All data is preserved:</p>
+                    <ul className="list-disc list-inside text-xs space-y-0.5 text-amber-700 dark:text-amber-300">
+                        <li>{event.passes} student passes</li>
+                        <li>{event.scans} booth scans</li>
+                        <li>All registrations, Q&amp;A, and reports</li>
+                    </ul>
+                    <p className="text-xs pt-1">The fair will be hidden from this list but fully recoverable from the database.</p>
+                </div>
+                <DialogFooter className="gap-2">
+                    <Button variant="outline" onClick={onCancel} disabled={pending}>Cancel</Button>
+                    <Button variant="destructive" onClick={onConfirm} disabled={pending}>
+                        {pending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Archiving…</> : <><Trash2 className="w-4 h-4 mr-1" />Archive Fair</>}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 // ── Main list ─────────────────────────────────────────────────────────────────
 export function FairListClient({ initialEvents }: { initialEvents: FairEventRow[] }) {
     const router = useRouter()
     const [showCreate, setShowCreate] = useState(false)
+    const [events, setEvents] = useState(initialEvents)
+    const [toDelete, setToDelete] = useState<FairEventRow | null>(null)
+    const [deletePending, startDeleteTransition] = useTransition()
 
     const handleCreated = (id: string) => {
         setShowCreate(false)
         router.push(`/admin/fairs/${id}`)
     }
 
+    const handleDelete = () => {
+        if (!toDelete) return
+        startDeleteTransition(async () => {
+            const result = await deleteFairEvent(toDelete.id)
+            if (!result.ok) {
+                toast.error(result.error)
+                return
+            }
+            setEvents(prev => prev.filter(e => e.id !== toDelete.id))
+            toast.success(`"${toDelete.name}" archived successfully`)
+            setToDelete(null)
+        })
+    }
+
     return (
         <>
             {showCreate && <CreateDialog onClose={() => setShowCreate(false)} onCreated={handleCreated} />}
+
+            <DeleteConfirmDialog
+                event={toDelete}
+                open={!!toDelete}
+                onCancel={() => setToDelete(null)}
+                onConfirm={handleDelete}
+                pending={deletePending}
+            />
 
             {/* Header actions */}
             <div className="flex justify-end">
@@ -126,7 +203,7 @@ export function FairListClient({ initialEvents }: { initialEvents: FairEventRow[
             </div>
 
             {/* Empty state */}
-            {initialEvents.length === 0 && (
+            {events.length === 0 && (
                 <Card className="border-dashed">
                     <CardContent className="py-16 flex flex-col items-center gap-4 text-center">
                         <QrCode className="w-10 h-10 text-gray-300" />
@@ -142,55 +219,67 @@ export function FairListClient({ initialEvents }: { initialEvents: FairEventRow[
             )}
 
             {/* Events grid */}
-            {initialEvents.length > 0 && (
+            {events.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {initialEvents.map((ev) => (
-                        <Link key={ev.id} href={`/admin/fairs/${ev.id}`}>
-                            <Card className="hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer h-full">
-                                <CardHeader className="pb-3">
-                                    <div className="flex items-start justify-between gap-2">
-                                        <CardTitle className="text-base leading-tight">{ev.name}</CardTitle>
-                                        <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLES[ev.status] ?? STATUS_STYLES.UPCOMING}`}>
-                                            {ev.status === 'LIVE' && <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse" />}
-                                            {ev.status}
-                                        </span>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="space-y-3">
-                                    <div className="text-sm text-gray-500 space-y-1">
-                                        {(ev.city || ev.country) && (
+                    {events.map((ev) => (
+                        <div key={ev.id} className="relative group">
+                            {/* Delete X — top-right, appears on hover */}
+                            <button
+                                onClick={e => { e.preventDefault(); e.stopPropagation(); setToDelete(ev) }}
+                                className="absolute -top-2 -right-2 z-10 w-6 h-6 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+                                title="Archive this fair"
+                                aria-label={`Archive ${ev.name}`}
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+
+                            <Link href={`/admin/fairs/${ev.id}`}>
+                                <Card className="hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer h-full">
+                                    <CardHeader className="pb-3">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <CardTitle className="text-base leading-tight">{ev.name}</CardTitle>
+                                            <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLES[ev.status] ?? STATUS_STYLES.UPCOMING}`}>
+                                                {ev.status === 'LIVE' && <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse" />}
+                                                {ev.status}
+                                            </span>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3">
+                                        <div className="text-sm text-gray-500 space-y-1">
+                                            {(ev.city || ev.country) && (
+                                                <div className="flex items-center gap-1.5">
+                                                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                                                    {[ev.city, ev.country].filter(Boolean).join(', ')}
+                                                </div>
+                                            )}
                                             <div className="flex items-center gap-1.5">
-                                                <MapPin className="w-3.5 h-3.5 shrink-0" />
-                                                {[ev.city, ev.country].filter(Boolean).join(', ')}
+                                                <Calendar className="w-3.5 h-3.5 shrink-0" />
+                                                {new Date(ev.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                                             </div>
-                                        )}
-                                        <div className="flex items-center gap-1.5">
-                                            <Calendar className="w-3.5 h-3.5 shrink-0" />
-                                            {new Date(ev.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                                         </div>
-                                    </div>
-                                    <div className="flex gap-3 pt-1 border-t border-gray-100">
-                                        <div className="flex-1 text-center">
-                                            <p className="text-xl font-bold text-indigo-600">{ev.passes}</p>
-                                            <p className="text-xs text-gray-400">Passes</p>
+                                        <div className="flex gap-3 pt-1 border-t border-gray-100">
+                                            <div className="flex-1 text-center">
+                                                <p className="text-xl font-bold text-indigo-600">{ev.passes}</p>
+                                                <p className="text-xs text-gray-400">Passes</p>
+                                            </div>
+                                            <div className="w-px bg-gray-100" />
+                                            <div className="flex-1 text-center">
+                                                <p className="text-xl font-bold text-violet-600">{ev.scans}</p>
+                                                <p className="text-xs text-gray-400">Scans</p>
+                                            </div>
                                         </div>
-                                        <div className="w-px bg-gray-100" />
-                                        <div className="flex-1 text-center">
-                                            <p className="text-xl font-bold text-violet-600">{ev.scans}</p>
-                                            <p className="text-xs text-gray-400">Scans</p>
+                                        <div className="flex gap-2 pt-1">
+                                            <span className="flex-1 flex items-center justify-center gap-1 text-xs text-indigo-600 bg-indigo-50 rounded-lg py-1.5">
+                                                <QrCode className="w-3.5 h-3.5" /> Entrance QR
+                                            </span>
+                                            <span className="flex-1 flex items-center justify-center gap-1 text-xs text-violet-600 bg-violet-50 rounded-lg py-1.5">
+                                                <BarChart2 className="w-3.5 h-3.5" /> Report
+                                            </span>
                                         </div>
-                                    </div>
-                                    <div className="flex gap-2 pt-1">
-                                        <span className="flex-1 flex items-center justify-center gap-1 text-xs text-indigo-600 bg-indigo-50 rounded-lg py-1.5">
-                                            <QrCode className="w-3.5 h-3.5" /> Entrance QR
-                                        </span>
-                                        <span className="flex-1 flex items-center justify-center gap-1 text-xs text-violet-600 bg-violet-50 rounded-lg py-1.5">
-                                            <BarChart2 className="w-3.5 h-3.5" /> Report
-                                        </span>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </Link>
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                        </div>
                     ))}
                 </div>
             )}

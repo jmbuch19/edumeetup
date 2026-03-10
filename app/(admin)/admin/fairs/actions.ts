@@ -21,6 +21,7 @@ export async function listFairEvents() {
     await requireAdmin()
 
     const events = await prisma.fairEvent.findMany({
+        where: { deletedAt: null },   // exclude soft-deleted fairs
         orderBy: { startDate: 'desc' },
         include: {
             _count: {
@@ -99,6 +100,25 @@ export async function createFairEvent(formData: {
         return { ok: false, error: 'Failed to create fair event. Please try again.' }
     }
 }
+
+// ── Soft-delete a FairEvent (data preserved) ──────────────────────────────────
+export async function deleteFairEvent(
+    id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+    await requireAdmin()
+    try {
+        await prisma.fairEvent.update({
+            where: { id },
+            data: { deletedAt: new Date() },
+        })
+        revalidatePath('/admin/fairs')
+        return { ok: true }
+    } catch (err) {
+        console.error('[deleteFairEvent]', err)
+        return { ok: false, error: 'Failed to archive fair event.' }
+    }
+}
+
 
 // ── Mark fair as LIVE ─────────────────────────────────────────────────────────
 export async function setFairLive(id: string) {
