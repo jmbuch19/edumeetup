@@ -264,10 +264,10 @@ export async function POST(req: NextRequest) {
                     toolCalls: steps.length,
                     toolNames: steps.flatMap(s => s.toolCalls?.map(t => t.toolName) ?? []).filter(Boolean),
                     // LLM usage
-                    inputTokens: usage?.promptTokens ?? null,
-                    outputTokens: usage?.completionTokens ?? null,
+                    inputTokens: usage?.inputTokens ?? null,
+                    outputTokens: usage?.outputTokens ?? null,
                     // Partial truncation detector (SF-6)
-                    likelyTruncated: !streamEmpty && (usage?.completionTokens ?? 0) > 0 && (usage?.completionTokens ?? 0) < 10,
+                    likelyTruncated: !streamEmpty && (usage?.outputTokens ?? 0) > 0 && (usage?.outputTokens ?? 0) < 10,
                   }
                 }
               })
