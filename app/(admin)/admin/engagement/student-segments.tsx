@@ -11,9 +11,13 @@ import {
     Dialog, DialogContent, DialogDescription,
     DialogFooter, DialogHeader, DialogTitle
 } from '@/components/ui/dialog'
-import { Bell, Mail, Users, Clock, AlertTriangle } from 'lucide-react'
+import { Bell, Mail, Users, Clock, AlertTriangle, ShieldAlert } from 'lucide-react'
 import { toast } from 'sonner'
-import { nudgeSegment, emailSegment, type SegmentStudent } from './segment-actions'
+import {
+    nudgeSegment, emailSegment,
+    getRecentSegmentActivity,
+    type SegmentStudent, type RecentActivity,
+} from './segment-actions'
 import { AttachmentPicker } from '@/components/admin/attachment-picker'
 
 interface Props {
@@ -33,6 +37,15 @@ function formatRelative(d: Date | string | null) {
     if (diffDays === 0) return 'Today'
     if (diffDays === 1) return 'Yesterday'
     return `${diffDays} days ago`
+}
+function formatTimeAgo(d: Date | string) {
+    const ms = Date.now() - new Date(d).getTime()
+    const mins = Math.floor(ms / 60_000)
+    if (mins < 60) return `${mins} minute${mins !== 1 ? 's' : ''} ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs} hour${hrs !== 1 ? 's' : ''} ago`
+    const days = Math.floor(hrs / 24)
+    return `${days} day${days !== 1 ? 's' : ''} ago`
 }
 
 function StudentTable({ students, type }: { students: SegmentStudent[]; type: Segment }) {
@@ -74,6 +87,85 @@ function StudentTable({ students, type }: { students: SegmentStudent[]; type: Se
     )
 }
 
+// ── Duplicate-guard warning dialog ────────────────────────────────────────────
+
+function DuplicateWarningDialog({
+    open,
+    activity,
+    actionType,
+    segmentLabel,
+    onProceed,
+    onCancel,
+}: {
+    open: boolean
+    activity: RecentActivity | null
+    actionType: 'nudge' | 'email'
+    segmentLabel: string
+    onProceed: () => void
+    onCancel: () => void
+}) {
+    if (!activity) return null
+    const typeLabel = actionType === 'nudge' ? 'in-app nudge' : 'bulk email'
+    const windowLabel = actionType === 'nudge' ? '24 hours' : '7 days'
+
+    return (
+        <Dialog open={open} onOpenChange={open => !open && onCancel()}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-amber-600">
+                        <ShieldAlert className="h-5 w-5" />
+                        Already Sent Recently
+                    </DialogTitle>
+                    <DialogDescription>
+                        A {typeLabel} was already sent to this group within the last {windowLabel}.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 p-4 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Sent by</span>
+                        <span className="font-medium">
+                            {activity.adminName ?? activity.adminEmail ?? 'Admin'}
+                        </span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">When</span>
+                        <span className="font-medium">{formatTimeAgo(activity.sentAt)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Segment</span>
+                        <span className="font-medium">{segmentLabel}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Students reached</span>
+                        <span className="font-medium">{activity.count}</span>
+                    </div>
+                    {activity.subject && (
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Subject</span>
+                            <span className="font-medium truncate max-w-[60%] text-right">{activity.subject}</span>
+                        </div>
+                    )}
+                </div>
+
+                <p className="text-sm text-muted-foreground">
+                    Sending again may result in students receiving duplicate messages.
+                    Are you sure you want to proceed?
+                </p>
+
+                <DialogFooter className="gap-2">
+                    <Button variant="outline" onClick={onCancel}>Cancel</Button>
+                    <Button variant="destructive" onClick={onProceed}>
+                        Send Anyway
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+// ── Segment panel ─────────────────────────────────────────────────────────────
+
 function SegmentPanel({
     segment, students, icon: Icon, title, description, badgeVariant,
 }: {
@@ -91,6 +183,33 @@ function SegmentPanel({
     const [emailBody, setEmailBody] = useState('')
     const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
     const [isPending, startTransition] = useTransition()
+
+    // Duplicate-guard state
+    const [checkingActivity, setCheckingActivity] = useState(false)
+    const [duplicateWarning, setDuplicateWarning] = useState<{
+        activity: RecentActivity
+        intendedPanel: Panel
+    } | null>(null)
+
+    // Open a panel — runs the duplicate check first
+    const openPanel = (panel: 'nudge' | 'email') => {
+        setCheckingActivity(true)
+        getRecentSegmentActivity(segment, panel)
+            .then(activity => {
+                if (activity) {
+                    // Show warning — don't open the compose dialog yet
+                    setDuplicateWarning({ activity, intendedPanel: panel })
+                } else {
+                    // Safe to proceed
+                    setActivePanel(panel)
+                }
+            })
+            .catch(() => {
+                // If check fails, proceed without warning
+                setActivePanel(panel)
+            })
+            .finally(() => setCheckingActivity(false))
+    }
 
     const handleNudge = () => {
         startTransition(async () => {
@@ -119,6 +238,8 @@ function SegmentPanel({
         })
     }
 
+    const segmentLabel = segment === 'fresh' ? 'New Students (last 30 days)' : 'Dormant Students (60+ days)'
+
     return (
         <div className="space-y-4">
             {/* Header */}
@@ -136,18 +257,42 @@ function SegmentPanel({
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button size="sm" variant="outline" disabled={students.length === 0} onClick={() => setActivePanel('nudge')}>
-                        <Bell className="h-4 w-4 mr-1" />Nudge
+                    <Button
+                        size="sm" variant="outline"
+                        disabled={students.length === 0 || checkingActivity}
+                        onClick={() => openPanel('nudge')}
+                    >
+                        <Bell className="h-4 w-4 mr-1" />
+                        {checkingActivity ? 'Checking…' : 'Nudge'}
                     </Button>
-                    <Button size="sm" variant="outline" disabled={students.length === 0} onClick={() => setActivePanel('email')}>
-                        <Mail className="h-4 w-4 mr-1" />Email All
+                    <Button
+                        size="sm" variant="outline"
+                        disabled={students.length === 0 || checkingActivity}
+                        onClick={() => openPanel('email')}
+                    >
+                        <Mail className="h-4 w-4 mr-1" />
+                        {checkingActivity ? 'Checking…' : 'Email All'}
                     </Button>
                 </div>
             </div>
 
             <StudentTable students={students} type={segment} />
 
-            {/* Nudge dialog */}
+            {/* Duplicate-guard warning dialog */}
+            <DuplicateWarningDialog
+                open={!!duplicateWarning}
+                activity={duplicateWarning?.activity ?? null}
+                actionType={(duplicateWarning?.intendedPanel ?? 'email') as 'nudge' | 'email'}
+                segmentLabel={segmentLabel}
+                onProceed={() => {
+                    const panel = duplicateWarning?.intendedPanel ?? null
+                    setDuplicateWarning(null)
+                    setActivePanel(panel)
+                }}
+                onCancel={() => setDuplicateWarning(null)}
+            />
+
+            {/* Nudge compose dialog */}
             <Dialog open={activePanel === 'nudge'} onOpenChange={open => !open && setActivePanel(null)}>
                 <DialogContent>
                     <DialogHeader>
@@ -175,7 +320,7 @@ function SegmentPanel({
                 </DialogContent>
             </Dialog>
 
-            {/* Email dialog */}
+            {/* Email compose dialog */}
             <Dialog open={activePanel === 'email'} onOpenChange={open => !open && setActivePanel(null)}>
                 <DialogContent className="max-w-lg">
                     <DialogHeader>

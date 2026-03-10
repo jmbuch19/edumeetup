@@ -10,6 +10,10 @@ const FRESH_DAYS = 30
 const DORMANT_DAYS = 60
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024 // 5 MB
 
+// Duplicate-guard windows
+const NUDGE_GUARD_HOURS = 24      // warn if same segment nudged within 24 h
+const EMAIL_GUARD_DAYS = 7        // warn if same segment emailed within 7 days
+
 function daysAgo(n: number) {
     return new Date(Date.now() - n * 24 * 60 * 60 * 1000)
 }
@@ -21,6 +25,14 @@ export type SegmentStudent = {
     email: string
     joinedAt: Date
     lastSeenAt: Date | null
+}
+
+export type RecentActivity = {
+    adminName: string | null
+    adminEmail: string | null
+    sentAt: Date
+    count: number
+    subject?: string | null
 }
 
 // ── Data fetchers ─────────────────────────────────────────────────────────────
@@ -78,6 +90,46 @@ export async function getDormantStudents(): Promise<SegmentStudent[]> {
     }))
 }
 
+// ── Duplicate-send guard ───────────────────────────────────────────────────────
+
+/**
+ * Checks whether this segment was nudged/emailed recently.
+ * Returns the most recent activity record, or null if safe to proceed.
+ */
+export async function getRecentSegmentActivity(
+    segment: 'fresh' | 'dormant',
+    type: 'nudge' | 'email',
+): Promise<RecentActivity | null> {
+    const session = await auth()
+    if (session?.user?.role !== 'ADMIN') return null
+
+    const logType = type === 'nudge' ? 'SEGMENT_NUDGE' : 'SEGMENT_EMAIL'
+    const windowMs = type === 'nudge'
+        ? NUDGE_GUARD_HOURS * 60 * 60 * 1000
+        : EMAIL_GUARD_DAYS * 24 * 60 * 60 * 1000
+    const since = new Date(Date.now() - windowMs)
+
+    const log = await prisma.systemLog.findFirst({
+        where: {
+            type: logType,
+            createdAt: { gte: since },
+            metadata: { path: ['segment'], equals: segment },
+        },
+        orderBy: { createdAt: 'desc' },
+    })
+
+    if (!log) return null
+
+    const meta = log.metadata as Record<string, unknown>
+    return {
+        adminName: (meta.adminName as string) ?? null,
+        adminEmail: (meta.adminEmail as string) ?? null,
+        sentAt: log.createdAt,
+        count: (meta.count as number) ?? 0,
+        subject: (meta.subject as string) ?? null,
+    }
+}
+
 // ── Bulk nudge (in-app only — no attachments) ─────────────────────────────────
 
 export async function nudgeSegment(
@@ -104,6 +156,22 @@ export async function nudgeSegment(
         })),
         skipDuplicates: true,
     })
+
+    // Log for duplicate-guard
+    await prisma.systemLog.create({
+        data: {
+            level: 'INFO',
+            type: 'SEGMENT_NUDGE',
+            message: `Nudge sent to ${segment} segment (${students.length} students)`,
+            metadata: {
+                segment,
+                adminName: session.user?.name ?? null,
+                adminEmail: session.user?.email ?? null,
+                count: students.length,
+                title: title.trim(),
+            },
+        },
+    }).catch(() => { /* non-fatal */ })
 
     return { sent: students.length }
 }
@@ -159,6 +227,23 @@ export async function emailSegment(
             failed++
         }
     }
+
+    // Log for duplicate-guard
+    await prisma.systemLog.create({
+        data: {
+            level: 'INFO',
+            type: 'SEGMENT_EMAIL',
+            message: `Email sent to ${segment} segment (${sent} sent, ${failed} failed)`,
+            metadata: {
+                segment,
+                adminName: session.user?.name ?? null,
+                adminEmail: session.user?.email ?? null,
+                count: sent,
+                subject,
+                hasAttachment: !!attachment,
+            },
+        },
+    }).catch(() => { /* non-fatal */ })
 
     return { sent, failed }
 }
