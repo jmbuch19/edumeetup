@@ -177,10 +177,13 @@ export function UniversityBrowseClient({
     flatField,
     searchParams,
 }: Props) {
-    const [view, setView] = useState<View>('flat') // SSR safe default
+    const [view, setView] = useState<View>('flat')
+    // isMounted prevents any localStorage-driven state from rendering
+    // before hydration — eliminates the server/client mismatch.
+    const [isMounted, setIsMounted] = useState(false)
 
-    // Restore saved preference from localStorage after hydration
     useEffect(() => {
+        setIsMounted(true)
         try {
             const saved = localStorage.getItem(STORAGE_KEY) as View | null
             if (saved === 'grouped' || saved === 'flat') setView(saved)
@@ -193,16 +196,18 @@ export function UniversityBrowseClient({
     }
 
     const hasGroups = parents.length > 0
+    // While not yet mounted, always show flat view (matches SSR).
+    const activeView: View = isMounted ? view : 'flat'
 
     return (
         <div className="space-y-6">
             {/* View toggle — only shown if there are parent institutions */}
-            {hasGroups && (
+            {hasGroups && isMounted && (
                 <div className="flex items-center gap-2">
                     <div className="inline-flex bg-gray-100 rounded-lg p-1 gap-1">
                         <button
                             onClick={() => switchView('grouped')}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${view === 'grouped'
+                            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${activeView === 'grouped'
                                 ? 'bg-white text-indigo-700 shadow-sm'
                                 : 'text-gray-500 hover:text-gray-700'
                                 }`}
@@ -212,7 +217,7 @@ export function UniversityBrowseClient({
                         </button>
                         <button
                             onClick={() => switchView('flat')}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${view === 'flat'
+                            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${activeView === 'flat'
                                 ? 'bg-white text-indigo-700 shadow-sm'
                                 : 'text-gray-500 hover:text-gray-700'
                                 }`}
@@ -222,7 +227,7 @@ export function UniversityBrowseClient({
                         </button>
                     </div>
                     <p className="text-xs text-gray-400">
-                        {view === 'grouped'
+                        {activeView === 'grouped'
                             ? `${parents.length} institution${parents.length !== 1 ? 's' : ''} · ${standalones.length} standalone`
                             : `${flatUniversities.length} verified schools`
                         }
@@ -231,7 +236,7 @@ export function UniversityBrowseClient({
             )}
 
             {/* Grouped view */}
-            {view === 'grouped' && hasGroups && (
+            {activeView === 'grouped' && hasGroups && (
                 <div className="space-y-4">
                     {parents.map(p => (
                         <ParentCard key={p.id} parent={p} userRole={userRole} />
@@ -250,7 +255,7 @@ export function UniversityBrowseClient({
             )}
 
             {/* Flat view (existing) */}
-            {(view === 'flat' || !hasGroups) && (
+            {(activeView === 'flat' || !hasGroups) && (
                 <>
                     {flatUniversities.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
