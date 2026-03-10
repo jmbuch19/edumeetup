@@ -834,23 +834,25 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
         await waitForCache()
         const info = getUniversityInfo(domain)
         if (!info) {
-            return { error: 'Email domain not recognized as an official university in target countries. Please use your institutional email.' }
+            return { error: 'Email domain not recognized as an official university. Please use your institutional email.' }
         }
     } catch (validationErr) {
         console.warn('[registerUniversity] Email validation skipped due to error:', validationErr)
-        // In case of fetch failure we allow registration but log the warning
     }
 
     try {
         // ── 1. Duplicate guard ────────────────────────────────────────────────
-        const existingUser = await prisma.user.findUnique({ where: { email } })
-        if (existingUser) {
-            return { error: 'An account already exists for this email. Please sign in instead.' }
+        const existingUser = await prisma.user.findUnique({
+            where: { email },
+            include: { university: true }
+        })
+
+        // Block only if they already have a university profile
+        if (existingUser?.university) {
+            return { error: 'A university profile already exists for this email. Please sign in instead.' }
         }
 
         // ── 2. Parent Institution Auto-Detection ──────────────────────────────
-        // Extract domain and check if a VERIFIED parent university shares it.
-        // If matched → auto-approve as a school under that parent (no admin queue).
         const emailDomain = email.split('@')[1]?.toLowerCase()
         let parentMatch: { id: string; groupSlug: string | null; institutionName: string } | null = null
 
@@ -871,58 +873,70 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
         const isAutoApproved = !!parentMatch
         const verificationStatus = isAutoApproved ? 'VERIFIED' : 'PENDING'
 
-        // ── 3. Create user + university record ────────────────────────────────
-        await prisma.user.create({
-            data: {
-                email,
-                role: 'UNIVERSITY',
-                university: {
-                    create: {
-                        institutionName,
-                        country,
-                        city,
-                        website,
-                        repName,
-                        repDesignation,
-                        repEmail: email,
-                        contactPhone,
-                        accreditationNo: accreditation,
-                        scholarshipsAvailable,
-                        certAuthority,
-                        certLegitimacy,
-                        certPurpose,
-                        certAccountability,
-                        certIp: ip,
-                        certTimestamp: new Date(),
-                        verificationStatus,
-                        // Auto-approval fields — only set if parent matched
-                        ...(isAutoApproved ? {
-                            verifiedAt: new Date(),
-                            verifiedByAdmin: 'AUTO_PARENT_MATCH',
-                            parentId: parentMatch!.id,
-                            groupSlug: parentMatch!.groupSlug,
-                        } : {}),
-                        universityNameFromEmail: detectedUniversityName || null,
-                        countryFromEmail: detectedCountry || null,
-                        programs: {
-                            create: programs.map((p: ProgramData) => ({
-                                programName: p.programName,
-                                degreeLevel: p.degreeLevel,
-                                fieldCategory: p.fieldCategory,
-                                stemDesignated: p.stemDesignated,
-                                durationMonths: parseInt(p.durationMonths),
-                                tuitionFee: parseFloat(p.tuitionFee),
-                                currency: p.currency,
-                                intakes: Array.isArray(p.intakes) ? p.intakes : [],
-                                englishTests: Array.isArray(p.englishTests) ? p.englishTests : [],
-                                minEnglishScore: p.minEnglishScore ? parseFloat(p.minEnglishScore) : null,
-                                status: 'ACTIVE'
-                            }))
-                        }
-                    }
-                }
+        const universityData = {
+            institutionName,
+            country,
+            city,
+            website,
+            repName,
+            repDesignation,
+            repEmail: email,
+            contactPhone,
+            accreditationNo: accreditation,
+            scholarshipsAvailable,
+            certAuthority,
+            certLegitimacy,
+            certPurpose,
+            certAccountability,
+            certIp: ip,
+            certTimestamp: new Date(),
+            verificationStatus,
+            ...(isAutoApproved ? {
+                verifiedAt: new Date(),
+                verifiedByAdmin: 'AUTO_PARENT_MATCH',
+                parentId: parentMatch!.id,
+                groupSlug: parentMatch!.groupSlug,
+            } : {}),
+            universityNameFromEmail: detectedUniversityName || null,
+            countryFromEmail: detectedCountry || null,
+            programs: {
+                create: programs.map((p: ProgramData) => ({
+                    programName: p.programName,
+                    degreeLevel: p.degreeLevel,
+                    fieldCategory: p.fieldCategory,
+                    stemDesignated: p.stemDesignated,
+                    durationMonths: parseInt(p.durationMonths),
+                    tuitionFee: parseFloat(p.tuitionFee),
+                    currency: p.currency,
+                    intakes: Array.isArray(p.intakes) ? p.intakes : [],
+                    englishTests: Array.isArray(p.englishTests) ? p.englishTests : [],
+                    minEnglishScore: p.minEnglishScore ? parseFloat(p.minEnglishScore) : null,
+                    status: 'ACTIVE'
+                }))
             }
-        })
+        }
+
+        // ── 3. Create or update user + university record ───────────────────────
+        if (existingUser) {
+            // User exists but has no university record — just create the University
+            await prisma.user.update({
+                where: { id: existingUser.id },
+                data: {
+                    role: 'UNIVERSITY',
+                    name: repName || existingUser.name,
+                    university: { create: universityData }
+                }
+            })
+        } else {
+            // Fresh registration — create user + university together
+            await prisma.user.create({
+                data: {
+                    email,
+                    role: 'UNIVERSITY',
+                    university: { create: universityData }
+                }
+            })
+        }
 
         console.log(
             `[REGISTER] ${institutionName} registered with ${programs.length} programs` +
