@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import type { BotLead, LeadFilter } from './actions'
+import type { BotLead, LeadFilter } from '@/app/(admin)/admin/bot-leads/actions'
 
 const TIER_CONFIG = {
     '🔥 Hot':  { bg: 'bg-red-50',    badge: 'bg-red-100 text-red-700 border-red-200',    dot: 'bg-red-500' },
