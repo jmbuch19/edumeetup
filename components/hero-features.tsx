@@ -41,7 +41,7 @@ export function HeroFeatures() {
 
     return (
         <div className="container mx-auto px-4 w-full">
-            <div className="flex flex-col md:flex-row gap-4 h-auto md:h-64 mb-16">
+            <div className="flex flex-col md:flex-row gap-4 h-auto md:h-64 mb-16 overflow-hidden">
                 {features.map((feature) => {
                     const isActive = activeId === feature.id
 

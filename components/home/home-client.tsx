@@ -41,7 +41,7 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
       */}
 
             {slides.length > 0 ? (
-                <section className="w-full pt-6 pb-12">
+                <section className="w-full pt-6 pb-12 overflow-hidden">
                     <Carousel className="w-full max-w-[95%] xl:max-w-7xl mx-auto" opts={{ loop: true, align: "center" }}>
                         <CarouselContent>
                             {slides.map((slide) => (
@@ -257,7 +257,7 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
             </section>
 
             {/* Hero Features Accordion */}
-            <section className="w-full pb-12 md:pb-24">
+            <section className="w-full pb-12 md:pb-24 overflow-hidden">
                 <HeroFeatures />
             </section>
 

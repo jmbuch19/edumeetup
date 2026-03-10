@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
     Menu, X, LayoutDashboard, Users, School, Globe,
     Megaphone, CalendarDays, FileBarChart2, Sparkles,
-    QrCode, LogOut, User, Settings, HelpCircle, GraduationCap
+    QrCode, LogOut, User, Settings, HelpCircle, GraduationCap, MessageSquare
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
@@ -33,6 +33,7 @@ const NAV_SECTIONS = [
         items: [
             { href: '/admin/overview', label: 'Overview', icon: <CalendarDays className="h-4 w-4" /> },
             { href: '/admin/reports', label: 'Reports', icon: <FileBarChart2 className="h-4 w-4" /> },
+            { href: '/admin/bot-leads', label: 'Bot Leads', icon: <MessageSquare className="h-4 w-4" /> },
             { href: '/admin/engagement?tab=sponsored', label: 'Sponsored Content', icon: <Sparkles className="h-4 w-4" /> },
         ]
     },

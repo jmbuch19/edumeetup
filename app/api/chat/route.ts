@@ -15,6 +15,7 @@ import { prisma } from '@/lib/prisma'
 import { buildSystemPrompt } from '@/lib/bot/system-prompt'
 import { BOT_VERSION } from '@/lib/bot/registry'
 import { getQuotaStatus, consumeMessage } from '@/lib/bot/quota'
+import { scoreConversation } from '@/lib/bot/lead-scorer'
 import * as Sentry from '@sentry/nextjs'
 
 export const maxDuration = 30
@@ -239,6 +240,10 @@ export async function POST(req: NextRequest) {
         onFinish: ({ text, steps, usage }) => {
           timings.total = Date.now() - t0
 
+          // ── Lead scoring ────────────────────────────────────────────────────
+          const allMessages = [...messages, { role: 'assistant', content: text ?? '' }]
+          const lead = scoreConversation(allMessages, !!userId)
+
           // Fire-and-forget after stream closes — never blocks the response
           consumeMessage(ip, userId).catch(() => { })
           Promise.resolve().then(async () => {
@@ -269,6 +274,10 @@ export async function POST(req: NextRequest) {
                     outputTokens: usage?.outputTokens ?? null,
                     // Partial truncation detector (SF-6)
                     likelyTruncated: !streamEmpty && (usage?.outputTokens ?? 0) > 0 && (usage?.outputTokens ?? 0) < 10,
+                    // Lead scoring (Phase 1)
+                    leadScore: lead.score,
+                    leadTier: lead.tier,
+                    leadSignals: lead.signals,
                   }
                 }
               })
