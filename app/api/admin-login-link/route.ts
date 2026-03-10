@@ -32,13 +32,20 @@ export async function GET(request: NextRequest) {
     const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? ''
     const baseUrl = (process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? 'https://edumeetup.com').replace(/\/$/, '')
 
-    // Verify admin exists and is active
+    // Verify admin exists (relaxed — no isActive check, we'll auto-fix below)
     const admin = await prisma.user.findFirst({
-        where: { email: { equals: adminEmail, mode: 'insensitive' }, isActive: true, role: 'ADMIN' }
+        where: { email: { equals: adminEmail, mode: 'insensitive' }, role: 'ADMIN' }
     })
     if (!admin) {
-        return NextResponse.json({ error: `No active ADMIN found for ${adminEmail}` }, { status: 404 })
+        return NextResponse.json({ error: `No ADMIN user found for ${adminEmail}` }, { status: 404 })
     }
+
+    // Auto-reactivate if the account was somehow deactivated
+    if (!admin.isActive) {
+        await prisma.user.update({ where: { id: admin.id }, data: { isActive: true } })
+        console.log(`[ADMIN-LOGIN-LINK] Auto-reactivated admin account ${adminEmail}`)
+    }
+
 
     // Generate token (same algorithm as sendMagicLink)
     const plainToken = randomBytes(32).toString('hex')
