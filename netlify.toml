@@ -1,5 +1,6 @@
 [build]
-  command = "rm -rf .next && npx prisma db push --schema=./prisma/schema.prisma --accept-data-loss && npm run build"
+  command = "rm -rf .next && npx prisma db push --schema=./prisma/schema.prisma --accept-data-loss && node scripts/seed-admin.mjs && npm run build"
+
 
 [build.environment]
   NETLIFY_USE_YARN = "false"
