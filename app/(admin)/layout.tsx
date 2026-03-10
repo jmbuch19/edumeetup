@@ -1,6 +1,6 @@
 import '@/app/dashboard-tokens.css'
 import { auth } from "@/lib/auth"
-import { redirect } from "next/navigation"
+
 import { prisma } from "@/lib/prisma"
 import { AdminNav } from "@/components/admin/admin-nav"
 import { AdminRightSidebar } from "@/components/admin/admin-right-sidebar"
@@ -20,13 +20,28 @@ export default async function AdminLayout({
         console.error('[AdminLayout] auth() failed:', e)
     }
 
-    if (!session?.user) {
-        redirect('/login?callbackUrl=/admin/dashboard')
+    // ── Session check — render interstitial instead of redirect() ─────────────
+    // IMPORTANT: Do NOT use redirect() here. A layout-level redirect() causes
+    // Next.js App Router's client router to call replaceState() in a tight loop
+    // while the middleware bounces back, throttling the browser (crbug.com/1038223).
+    // Instead, render a static interstitial — clean UX, no loop.
+    if (!session?.user || session.user.role !== 'ADMIN') {
+        return (
+            <html lang="en">
+                <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+                    <div style={{ textAlign: 'center', padding: '2rem' }}>
+                        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔒</div>
+                        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>Session Expired</h1>
+                        <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Your admin session has expired. Please sign in again.</p>
+                        <a href="/login" style={{ display: 'inline-block', background: '#1e40af', color: 'white', padding: '10px 24px', borderRadius: '8px', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }}>
+                            Sign In
+                        </a>
+                    </div>
+                </body>
+            </html>
+        )
     }
 
-    if (session.user.role !== 'ADMIN') {
-        redirect('/login')
-    }
 
     const adminName = session.user.name || session.user.email?.split('@')[0] || 'Admin'
 
