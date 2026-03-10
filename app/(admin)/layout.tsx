@@ -27,18 +27,16 @@ export default async function AdminLayout({
     // Instead, render a static interstitial — clean UX, no loop.
     if (!session?.user || session.user.role !== 'ADMIN') {
         return (
-            <html lang="en">
-                <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-                    <div style={{ textAlign: 'center', padding: '2rem' }}>
-                        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔒</div>
-                        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>Session Expired</h1>
-                        <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Your admin session has expired. Please sign in again.</p>
-                        <a href="/login" style={{ display: 'inline-block', background: '#1e40af', color: 'white', padding: '10px 24px', borderRadius: '8px', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }}>
-                            Sign In
-                        </a>
-                    </div>
-                </body>
-            </html>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔒</div>
+                    <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>Session Expired</h1>
+                    <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Your admin session has expired. Please sign in again.</p>
+                    <a href="/login" style={{ display: 'inline-block', background: '#1e40af', color: 'white', padding: '10px 24px', borderRadius: '8px', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }}>
+                        Sign In
+                    </a>
+                </div>
+            </div>
         )
     }
 
