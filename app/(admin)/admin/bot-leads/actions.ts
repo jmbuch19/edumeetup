@@ -54,23 +54,23 @@ export async function getBotLeads(filter: LeadFilter = 'all', limit = 50): Promi
     })
 
     // Extract typed fields from JSON metadata
-    const raw = logs.map(log => {
+    const raw: BotLead[] = logs.map(log => {
         const m = (log.metadata ?? {}) as Record<string, any>
         return {
             id: log.id,
             createdAt: log.createdAt,
-            leadScore: m.leadScore ?? 0,
-            leadTier: m.leadTier ?? '🔵 Cold',
-            leadSignals: Array.isArray(m.leadSignals) ? m.leadSignals : [],
-            question: m.question ?? null,
-            answer: m.answer ?? null,
-            toolNames: Array.isArray(m.toolNames) ? m.toolNames : [],
-            studentId: m.studentId ?? null,
-            userId: m.userId ?? null,
-            streamEmpty: m.streamEmpty ?? false,
-            timings: m.timings ?? {},
-            email: null,
-            name: null,
+            leadScore: (m.leadScore as number) ?? 0,
+            leadTier: (m.leadTier as string) ?? '🔵 Cold',
+            leadSignals: Array.isArray(m.leadSignals) ? (m.leadSignals as string[]) : [],
+            question: (m.question as string | null) ?? null,
+            answer: (m.answer as string | null) ?? null,
+            toolNames: Array.isArray(m.toolNames) ? (m.toolNames as string[]) : [],
+            studentId: (m.studentId as string | null) ?? null,
+            userId: (m.userId as string | null) ?? null,
+            streamEmpty: (m.streamEmpty as boolean) ?? false,
+            timings: (m.timings as Record<string, number>) ?? {},
+            email: null as string | null,
+            name: null as string | null,
         }
     })
 
