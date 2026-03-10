@@ -1727,7 +1727,7 @@ export async function getUniversityMeetings(status?: string) {
 export async function updateMeetingStatus(
     meetingId: string,
     status: 'CONFIRMED' | 'REJECTED' | 'CANCELLED',
-    meetingLink?: string,
+    meetingLink?: string,   // kept for backward compat — overridden by Whereby on CONFIRM
     rejectionReason?: string
 ) {
     const session = await auth()
@@ -1758,6 +1758,25 @@ export async function updateMeetingStatus(
             return { error: 'Unauthorized' }
         }
 
+        // ── Auto-create Whereby room when confirming ──────────────────────────
+        let finalJoinUrl = meetingLink || mtg.joinUrl || null
+        let finalHostRoomUrl = (mtg as any).hostRoomUrl || null
+
+        if (status === 'CONFIRMED' && !finalJoinUrl) {
+            try {
+                const { createWherebyMeeting } = await import('@/lib/whereby')
+                const room = await createWherebyMeeting(
+                    new Date(mtg.startTime),
+                    new Date(mtg.endTime)
+                )
+                finalJoinUrl = room.roomUrl
+                finalHostRoomUrl = room.hostRoomUrl
+            } catch (wherebyErr) {
+                // Whereby failed — don't block the confirmation, just log it
+                console.error('Whereby room creation failed:', wherebyErr)
+            }
+        }
+
         // Update
         const dbStatus = status === 'REJECTED' ? 'CANCELLED' : status
         const cancellationDetails = status === 'REJECTED' || status === 'CANCELLED'
@@ -1772,8 +1791,9 @@ export async function updateMeetingStatus(
             where: { id: meetingId },
             data: {
                 status: dbStatus as MeetingStatus,
-                joinUrl: meetingLink || mtg.joinUrl,
-                videoProvider: meetingLink ? 'EXTERNAL_LINK' : mtg.videoProvider,
+                joinUrl: finalJoinUrl || undefined,
+                hostRoomUrl: finalHostRoomUrl || undefined,
+                videoProvider: finalJoinUrl ? 'EXTERNAL_LINK' : mtg.videoProvider,
                 ...cancellationDetails
             }
         })

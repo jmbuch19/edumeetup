@@ -516,6 +516,7 @@ model Meeting {
   agenda                 String?
   meetingType            String?
   joinUrl                String?
+  hostRoomUrl            String?               // Whereby host URL (university only)
   purpose                MeetingPurpose
   studentQuestions       String?
   uploadedDocUrl         String?

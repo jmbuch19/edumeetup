@@ -21,7 +21,8 @@ interface Meeting {
     status: string
     studentQuestions?: string | null
     meetingIdCode?: string | null
-    meetingLink?: string | null
+    meetingLink?: string | null      // student join URL (roomUrl from Whereby)
+    hostRoomUrl?: string | null      // university host URL (hostRoomUrl from Whereby)
     videoProvider?: string | null
     student: {
         id?: string
@@ -69,10 +70,6 @@ export default function MeetingList({ meetings, compact }: { meetings: Meeting[]
     const [processingId, setProcessingId] = useState<string | null>(null)
     const [expandedId, setExpandedId] = useState<string | null>(null)
 
-    // Confirm flow
-    const [meetingLink, setMeetingLink] = useState('')
-    const [showLinkInputFor, setShowLinkInputFor] = useState<string | null>(null)
-
     // Reject-with-reason flow
     const [showRejectFor, setShowRejectFor] = useState<string | null>(null)
     const [selectedReason, setSelectedReason] = useState(REJECTION_REASONS[0])
@@ -80,13 +77,11 @@ export default function MeetingList({ meetings, compact }: { meetings: Meeting[]
 
     const toggleExpand = (id: string) => setExpandedId(prev => (prev === id ? null : id))
 
+    // One-click confirm — Whereby room is auto-created server-side
     const handleConfirm = async (id: string) => {
-        if (!showLinkInputFor) { setShowLinkInputFor(id); return }
         setProcessingId(id)
-        const res = await updateMeetingStatus(id, 'CONFIRMED', meetingLink)
+        const res = await updateMeetingStatus(id, 'CONFIRMED')
         setProcessingId(null)
-        setShowLinkInputFor(null)
-        setMeetingLink('')
         if (res.error) alert(res.error)
         else router.refresh()
     }
@@ -171,17 +166,17 @@ export default function MeetingList({ meetings, compact }: { meetings: Meeting[]
                                             CV
                                         </a>
                                     )}
-                                    {/* Surfaced join link for CONFIRMED meetings */}
-                                    {meeting.status === 'CONFIRMED' && meeting.meetingLink && (
+                                    {/* Whereby host join link for CONFIRMED meetings */}
+                                    {meeting.status === 'CONFIRMED' && (meeting.hostRoomUrl || meeting.meetingLink) && (
                                         <a
-                                            href={meeting.meetingLink}
+                                            href={meeting.hostRoomUrl || meeting.meetingLink!}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             onClick={e => e.stopPropagation()}
                                             className="inline-flex items-center gap-1 text-xs text-white bg-green-600 hover:bg-green-700 rounded-md px-2 py-1 transition-colors font-medium"
                                         >
                                             <Video className="h-3.5 w-3.5" />
-                                            Join
+                                            Join as Host
                                         </a>
                                     )}
                                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusBadge(meeting.status)}`}>
@@ -241,20 +236,33 @@ export default function MeetingList({ meetings, compact }: { meetings: Meeting[]
                                     )}
                                 </div>
 
-                                {/* Confirmed meeting link */}
+                                {/* Confirmed meeting — show Whereby links */}
                                 {meeting.status === 'CONFIRMED' && (
-                                    <div className="flex flex-col gap-1 text-sm text-green-700 bg-green-50 p-3 rounded border border-green-100">
+                                    <div className="flex flex-col gap-2 text-sm text-green-700 bg-green-50 p-3 rounded border border-green-100">
                                         <div className="flex items-center gap-2 font-medium">
                                             <CheckCircle className="h-4 w-4" />
                                             Meeting Confirmed · ID: {meeting.meetingIdCode}
                                         </div>
-                                        {meeting.meetingLink && (
-                                            <div className="pl-6">
-                                                <a href={meeting.meetingLink} target="_blank" rel="noreferrer" className="text-blue-600 underline hover:text-blue-800">
-                                                    Join Meeting Link
+                                        <div className="pl-6 flex flex-wrap gap-2">
+                                            {/* Host link — university only */}
+                                            {(meeting.hostRoomUrl || meeting.meetingLink) && (
+                                                <a
+                                                    href={meeting.hostRoomUrl || meeting.meetingLink!}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                                                >
+                                                    <Video className="h-3.5 w-3.5" />
+                                                    Join as Host
                                                 </a>
-                                            </div>
-                                        )}
+                                            )}
+                                            {/* Student link (roomUrl) */}
+                                            {meeting.meetingLink && (
+                                                <div className="text-xs text-green-600 self-center">
+                                                    Student link sent by email ✓
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
 
@@ -329,39 +337,18 @@ export default function MeetingList({ meetings, compact }: { meetings: Meeting[]
                                         </Button>
                                     )}
 
-                                    {/* Accept / link flow */}
+                                    {/* One-click Accept — Whereby room auto-created */}
                                     {showRejectFor !== meeting.id && (
-                                        showLinkInputFor === meeting.id ? (
-                                            <div className="flex gap-2 items-center animate-in slide-in-from-right-5 fade-in duration-200">
-                                                <input
-                                                    type="url"
-                                                    placeholder="Paste Google Meet / Zoom link…"
-                                                    className="text-sm border rounded px-2 py-1.5 w-64 focus:ring-2 focus:ring-green-500 outline-none"
-                                                    value={meetingLink}
-                                                    onChange={e => setMeetingLink(e.target.value)}
-                                                    autoFocus
-                                                />
-                                                <Button
-                                                    size="sm"
-                                                    className="bg-green-600 hover:bg-green-700 text-white"
-                                                    onClick={() => handleConfirm(meeting.id)}
-                                                    disabled={processingId === meeting.id || !meetingLink}
-                                                >
-                                                    {processingId === meeting.id ? 'Confirming…' : 'Confirm'}
-                                                </Button>
-                                                <Button variant="ghost" size="sm" onClick={() => setShowLinkInputFor(null)}>Cancel</Button>
-                                            </div>
-                                        ) : (
-                                            <Button
-                                                size="sm"
-                                                className="bg-green-600 hover:bg-green-700 text-white"
-                                                onClick={() => handleConfirm(meeting.id)}
-                                                disabled={processingId === meeting.id}
-                                            >
-                                                <CheckCircle className="h-4 w-4 mr-1" />
-                                                Accept Request
-                                            </Button>
-                                        )
+                                        <Button
+                                            size="sm"
+                                            className="bg-green-600 hover:bg-green-700 text-white"
+                                            onClick={() => handleConfirm(meeting.id)}
+                                            disabled={processingId === meeting.id}
+                                        >
+                                            {processingId === meeting.id
+                                                ? <><span className="animate-spin mr-1">⏳</span> Creating room…</>
+                                                : <><CheckCircle className="h-4 w-4 mr-1" /> Accept &amp; Create Room</>}
+                                        </Button>
                                     )}
                                 </>
                             )}
