@@ -18,22 +18,47 @@ export default async function middleware(req: NextRequest) {
         return NextResponse.next()
     }
 
-    // ── STEP 2: Read JWT — try Secure cookie first (HTTPS/prod), fall back to plain ──
-    // NextAuth v5 writes __Secure-authjs.session-token on HTTPS and authjs.session-token
-    // on HTTP. Both must be checked to avoid redirect loops after magic-link sign-in.
+    // ── STEP 2: Public routes — always pass through, no auth needed ──────────
+    // '/'            — home page (server component, handles its own display logic)
+    // '/universities' — public university profiles
+    // '/university/register', '/student/register' — registration flows
+    // '/university-login' — university login page
+    const isPublicRoute = (
+        nextUrl.pathname === '/' ||
+        nextUrl.pathname.startsWith('/universities') ||
+        nextUrl.pathname.startsWith('/student/register') ||
+        nextUrl.pathname.startsWith('/university/register') ||
+        nextUrl.pathname === '/university-login'
+    )
+    if (isPublicRoute) {
+        return NextResponse.next()
+    }
+
+    // ── STEP 3: Read JWT ──────────────────────────────────────────────────────
+    // NextAuth v5 writes __Secure-authjs.session-token on HTTPS (prod) and
+    // authjs.session-token on HTTP (dev). Pass secureCookie + salt explicitly
+    // to avoid token appearing invalid → undefined role → redirect loop.
     const secret = process.env.AUTH_SECRET
+    const secureCookie = nextUrl.protocol === 'https:'
+
     let token = await getToken({
         req,
         secret,
-        cookieName: '__Secure-authjs.session-token',
+        secureCookie,
+        cookieName: secureCookie ? '__Secure-authjs.session-token' : 'authjs.session-token',
+        salt: secureCookie ? '__Secure-authjs.session-token' : 'authjs.session-token',
     })
+    // Fallback: try the opposite cookie in case hosting environment varies
     if (!token) {
         token = await getToken({
             req,
             secret,
+            secureCookie: false,
             cookieName: 'authjs.session-token',
+            salt: 'authjs.session-token',
         })
     }
+
     const isLoggedIn = !!token
     const role = token?.role as "ADMIN" | "UNIVERSITY" | "UNIVERSITY_REP" | "STUDENT" | undefined
 
@@ -41,37 +66,37 @@ export default async function middleware(req: NextRequest) {
     const isStudentRoute = nextUrl.pathname.startsWith('/student')
     const isUniversityRoute = nextUrl.pathname.startsWith('/university')
     const isAdminRoute = nextUrl.pathname.startsWith('/admin')
-    const isRegistrationPage = nextUrl.pathname === '/student/register' || nextUrl.pathname === '/university/register'
-    const isUniversityLogin = nextUrl.pathname === '/university-login'
 
-    // ── STEP 3: PAGE ROUTE PROTECTION ───────────────────────────────────────
+    // ── STEP 4: PAGE ROUTE PROTECTION ────────────────────────────────────────
 
-    // Explicit /admin → /admin/dashboard redirect
+    // Explicit /admin → /admin/dashboard canonical redirect
     if (nextUrl.pathname === '/admin') {
         return NextResponse.redirect(new URL('/admin/dashboard', nextUrl))
     }
 
-    // Redirect logged-in users away from auth/landing pages
-    if ((isAuthRoute || nextUrl.pathname === '/') && isLoggedIn) {
+    // Redirect logged-in users away from login/register pages
+    // NOTE: '/' is NOT in this list — it is handled as isPublicRoute above
+    if (isAuthRoute && isLoggedIn) {
         if (role === 'ADMIN') return NextResponse.redirect(new URL('/admin/dashboard', nextUrl))
-        if (role === 'UNIVERSITY') return NextResponse.redirect(new URL('/university/dashboard', nextUrl))
-        if (role === 'UNIVERSITY_REP') return NextResponse.redirect(new URL('/university/dashboard', nextUrl))
-        return NextResponse.redirect(new URL('/student/dashboard', nextUrl))
+        if (role === 'UNIVERSITY' || role === 'UNIVERSITY_REP') return NextResponse.redirect(new URL('/university/dashboard', nextUrl))
+        if (role === 'STUDENT') return NextResponse.redirect(new URL('/student/dashboard', nextUrl))
+        // Unknown / unset role — let them through rather than loop
+        return NextResponse.next()
     }
 
     // Redirect unauthenticated users away from protected routes
-    if (!isLoggedIn && !isRegistrationPage && !isUniversityLogin && (isStudentRoute || isUniversityRoute || isAdminRoute)) {
+    if (!isLoggedIn && (isStudentRoute || isUniversityRoute || isAdminRoute)) {
         const callbackUrl = nextUrl.pathname + (nextUrl.search || '')
         return NextResponse.redirect(new URL(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`, nextUrl))
     }
 
-    // Cross-role enforcement — prevent users accessing wrong dashboards
-    if (isLoggedIn) {
+    // Cross-role enforcement — only run when role is known to prevent loops
+    if (isLoggedIn && role) {
         if (isAdminRoute && role !== 'ADMIN') {
             const dest = (role === 'UNIVERSITY' || role === 'UNIVERSITY_REP') ? '/university/dashboard' : '/student/dashboard'
             return NextResponse.redirect(new URL(dest, nextUrl))
         }
-        if (isUniversityRoute && role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP' && !isRegistrationPage) {
+        if (isUniversityRoute && role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP') {
             return NextResponse.redirect(new URL('/student/dashboard', nextUrl))
         }
         if (isStudentRoute && (role === 'ADMIN' || role === 'UNIVERSITY' || role === 'UNIVERSITY_REP')) {
@@ -84,5 +109,5 @@ export default async function middleware(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
+    matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)",],
 }
