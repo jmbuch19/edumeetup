@@ -24,6 +24,7 @@ import { maskName } from '@/lib/outreach-utils'
 import { ActionCentre } from '@/components/university/action-centre'
 import { FairReportCard } from '@/components/university/fair-report-card'
 import { CampusFairInviteCard } from '@/components/university/CampusFairInviteCard'
+import { GroupSessionsTab } from '@/components/university/GroupSessionsTab'
 
 export const dynamic = 'force-dynamic'
 
@@ -279,6 +280,38 @@ export default async function UniversityDashboard() {
         fairModeResult.status === 'fulfilled' ? fairModeResult.value : [null, null, null, []]
     const fairInvitations = fairInvitationsResult.status === 'fulfilled' ? fairInvitationsResult.value : []
 
+    // ── Group sessions (separate fetch for clean typing) ────────────────────
+    const groupSessionsRaw = await prisma.groupSession.findMany({
+        where: { universityId: uni.id },
+        include: {
+            program: { select: { programName: true } },
+            seats: { select: { status: true, waitlistPos: true } },
+        },
+        orderBy: { scheduledAt: 'asc' },
+    }).catch(() => [])
+
+    const groupSessions = groupSessionsRaw.map((s: any) => ({
+        id: s.id,
+        title: s.title,
+        agenda: s.agenda,
+        programName: s.program?.programName ?? null,
+        targetField: s.targetField,
+        scheduledAt: s.scheduledAt,
+        durationMinutes: s.durationMinutes,
+        capacity: s.capacity,
+        status: s.status,
+        joinUrl: s.joinUrl,
+        recapUrl: s.recapUrl,
+        notifiedCount: s.notifiedCount,
+        followUpDraftId: s.followUpDraftId,
+        confirmedCount: s.seats.filter((seat: any) => seat.status === 'CONFIRMED').length,
+        waitlistedCount: s.seats.filter((seat: any) => seat.status === 'WAITLISTED').length,
+    }))
+
+    const hasActiveGroupSessions = groupSessions.some(
+        (s: any) => !['COMPLETED', 'CANCELLED'].includes(s.status)
+    )
+
     // ── Post-processing (unchanged) ──────────────────────────────────────────
     const serialisedHistory = outreachHistory.filter((r: any) => r.student !== null).map((r: any) => ({
         id: r.id,
@@ -486,6 +519,12 @@ export default async function UniversityDashboard() {
                         <TabsTrigger value="overview">Overview</TabsTrigger>
                         <TabsTrigger value="interests">Student Interests</TabsTrigger>
                         <TabsTrigger value="meetings">Meetings</TabsTrigger>
+                        <TabsTrigger value="group-sessions" className="relative">
+                            Group Sessions
+                            {hasActiveGroupSessions && (
+                                <span className="absolute -top-1 -right-1 h-2 w-2 bg-blue-500 rounded-full" />
+                            )}
+                        </TabsTrigger>
                         <TabsTrigger value="programs">Programs</TabsTrigger>
                         <TabsTrigger value="fairs" className="relative">
                             Campus Fairs
@@ -641,66 +680,16 @@ export default async function UniversityDashboard() {
                     </Card>
                 </TabsContent>
 
+                <TabsContent value="group-sessions">
+                    <GroupSessionsTab
+                        sessions={JSON.parse(JSON.stringify(groupSessions))}
+                        programs={uni.programs.map((p: any) => ({ id: p.id, programName: p.programName, fieldCategory: p.fieldCategory }))}
+                    />
+                </TabsContent>
+
                 <TabsContent value="programs">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-1 space-y-6">
-                            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                                <h2 className="text-xl font-bold text-gray-900 mb-4">Add New Program</h2>
-                                <form action={async (formData) => {
-                                    'use server'
-                                    await createProgram(formData)
-                                }} className="space-y-4">
-                                    <input type="hidden" name="universityId" value={uni.id} />
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Program Name</label>
-                                        <Input name="programName" required placeholder="MSc Computer Science" />
-                                    </div>
-
-                                    <div className="grid grid-cols-1 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Degree Level</label>
-                                            <select name="degreeLevel" className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm">
-                                                {DegreeLevels.map((level) => (
-                                                    <option key={level.value} value={level.value}>
-                                                        {level.label}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Field of Study</label>
-                                            <Input name="fieldCategory" required placeholder="Engineering" />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Tuition Fee (USD)</label>
-                                            <Input name="tuitionFee" type="number" required placeholder="50000" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Intakes</label>
-                                            <Input name="intakes" required placeholder="Fall 2025, Spring 2026" />
-                                        </div>
-                                    </div>
-
-                                    {/* Default Hidden Fields */}
-                                    <input type="hidden" name="stemDesignated" value="false" />
-                                    <input type="hidden" name="durationMonths" value="12" />
-                                    <input type="hidden" name="currency" value="USD" />
-
-                                    <Button type="submit" className="w-full">Create Program</Button>
-                                </form>
-                            </div>
-                        </div>
-
-                        <div className="lg:col-span-2">
-                            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                                <h2 className="text-xl font-bold text-gray-900 mb-4">My Programs</h2>
-                                <ProgramList programs={JSON.parse(JSON.stringify(uni.programs))} universityId={uni.id} />
-                            </div>
-                        </div>
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <ProgramList programs={JSON.parse(JSON.stringify(uni.programs))} universityId={uni.id} />
                     </div>
                 </TabsContent>
 

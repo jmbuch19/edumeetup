@@ -147,25 +147,7 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
                             </Button>
                         </div>
 
-                        <div className="flex items-center gap-2 text-sm text-slate-500">
-                            <Link href="/universities">
-                                <motion.div
-                                    className="flex items-center gap-2 px-4 py-2 rounded-full border border-transparent hover:border-slate-200 hover:bg-white hover:shadow-sm transition-all cursor-pointer"
-                                    initial={{ width: "auto" }}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                >
-                                    <span className="font-medium text-slate-600 group-hover:text-primary">Browse Universities</span>
-                                    <motion.span
-                                        initial={{ opacity: 0, x: -10, width: 0 }}
-                                        whileHover={{ opacity: 1, x: 0, width: "auto" }}
-                                        transition={{ type: "spring", stiffness: 300 }}
-                                    >
-                                        <ArrowRight className="h-4 w-4 text-primary" />
-                                    </motion.span>
-                                </motion.div>
-                            </Link>
-                        </div>
+
                     </div>
 
                     {/* Right Column: Visual */}

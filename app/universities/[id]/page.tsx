@@ -2,16 +2,16 @@ import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import {
-  MapPin, Globe, GraduationCap, BookOpen, Clock,
-  DollarSign, Users, Lock, Phone, Mail, Calendar, ExternalLink
+  MapPin, Globe, GraduationCap, BookOpen,
+  Users, Lock, Phone, Mail, Calendar, ExternalLink
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { UniversityLogo } from '@/components/university/university-logo'
 import Link from 'next/link'
-import { expressInterest } from '@/app/actions'
 import ExpressInterestButton from '@/components/university/express-interest-button'
+import { ProgramsSection } from '@/components/university/ProgramsSection'
 
 export const dynamic = 'force-dynamic'
 
@@ -281,77 +281,13 @@ export default async function UniversityDetailPage({
           </Card>
         )}
 
-        {/* ── Programmes — fully visible ────────────────────────────────── */}
+        {/* ── Programmes — multi-select via ProgramsSection ───────────────── */}
         {uni.programs.length > 0 && (
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 mb-4">
-              Programmes ({uni.programs.length})
-            </h2>
-            <div className="grid sm:grid-cols-2 gap-4">
-              {uni.programs.map(program => (
-                <Card key={program.id} className="hover:border-primary/30 transition-colors">
-                  <CardContent className="pt-5 pb-4 space-y-3">
-                    <div>
-                      <h3 className="font-semibold text-slate-900 text-sm leading-snug">
-                        {program.programName}
-                      </h3>
-                      <div className="flex gap-2 mt-1.5 flex-wrap">
-                        <Badge variant="outline" className="text-[10px]">
-                          {program.degreeLevel}
-                        </Badge>
-                        <Badge variant="outline" className="text-[10px]">
-                          {program.fieldCategory}
-                        </Badge>
-                        {program.stemDesignated && (
-                          <Badge className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
-                            STEM
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
-                      {program.durationMonths && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {program.durationMonths} months
-                        </span>
-                      )}
-                      {program.tuitionFee && (
-                        <span className="flex items-center gap-1">
-                          <DollarSign className="h-3 w-3" />
-                          {program.tuitionFee.toLocaleString()} {program.currency ?? 'USD'}/yr
-                        </span>
-                      )}
-                      {program.intakes.length > 0 && (
-                        <span className="flex items-center gap-1 col-span-2">
-                          <Calendar className="h-3 w-3" />
-                          Intakes: {program.intakes.join(', ')}
-                        </span>
-                      )}
-                    </div>
-                    {program.description && (
-                      <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
-                        {program.description}
-                      </p>
-                    )}
-                    {/* Express Interest per-programme — logged-in only */}
-                    {isLoggedIn && (
-                      <div className="pt-3 border-t border-slate-100">
-                        <form action={async () => {
-                          'use server'
-                          await expressInterest(id, undefined, program.id)
-                        }}>
-                          <Button size="sm" variant="outline" className="w-full">
-                            Express Interest in Programme
-                          </Button>
-                        </form>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+          <ProgramsSection
+            programs={JSON.parse(JSON.stringify(uni.programs))}
+            isLoggedIn={isLoggedIn}
+            universityId={id}
+          />
         )}
 
         {/* ── Documents — names visible, download gated ─────────────────── */}

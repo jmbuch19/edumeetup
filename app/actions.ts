@@ -406,79 +406,207 @@ export async function expressInterest(universityId: string, studentEmail?: strin
     }
 }
 
+export async function expressInterestBulk(universityId: string, programIds: string[]) {
+    const user = await requireUser()
+
+    if (user.role !== 'STUDENT') return { error: 'Only students can express interest' }
+    if (!programIds.length) return { error: 'No programmes selected' }
+
+    try {
+        const student = await prisma.student.findFirst({
+            where: { user: { email: user.email ?? '' } },
+            include: { user: true },
+        })
+        if (!student) return { error: 'Student profile not found' }
+
+        const university = await prisma.university.findUnique({
+            where: { id: universityId },
+            include: { user: true },
+        })
+        if (!university) return { error: 'University not found' }
+
+        // Create one record per programme — skip existing silently
+        const result = await prisma.interest.createMany({
+            data: programIds.map(programId => ({
+                studentId: student.id,
+                universityId,
+                programId,
+                status: 'INTERESTED',
+                studentMessage: 'I am interested in this programme.',
+            })),
+            skipDuplicates: true,
+        })
+
+        const created = result.count
+        const skipped = programIds.length - created
+
+        if (created > 0) {
+            // Single university notification for the batch
+            await createNotification({
+                userId: university.user.id,
+                type: 'INTEREST_RECEIVED',
+                title: 'New Student Interest',
+                message: `${student.fullName} expressed interest in ${created} programme${created !== 1 ? 's' : ''} at your university.`,
+                payload: { studentId: student.id, programIds },
+                emailTo: university.contactEmail || university.user.email,
+                emailSubject: `New Interest from ${student.fullName}`,
+                emailHtml: generateEmailHtml(
+                    `New Interest from ${student.fullName}`,
+                    EmailTemplates.universityInterest(
+                        student.fullName || 'Student',
+                        student.user.email,
+                        `Interested in ${created} programme${created !== 1 ? 's' : ''}.`
+                    )
+                ),
+                replyTo: student.user.email,
+            })
+
+            await notifyStudent(student.id, {
+                title: 'Interest Sent!',
+                message: `Your interest in ${created} programme${created !== 1 ? 's' : ''} at ${university.institutionName} was sent successfully.`,
+                type: 'INFO',
+                actionUrl: `/universities/${universityId}`,
+            })
+        }
+
+        revalidatePath(`/universities/${universityId}`)
+        return { success: true, count: created, skipped }
+    } catch (error) {
+        console.error('Failed to bulk express interest:', error)
+        return { error: 'Failed to express interest' }
+    }
+}
+
+
+// ─── Program form helpers ─────────────────────────────────────────────────────
+
+function nullIfEmpty(val: FormDataEntryValue | null): string | null {
+    if (!val) return null
+    const s = String(val).trim()
+    return s === '' ? null : s
+}
+
+function parseOptionalNum(
+    val: FormDataEntryValue | null,
+    parser: (s: string) => number
+): number | null {
+    if (!val) return null
+    const s = String(val).trim()
+    if (s === '' || s === '0' && parser === parseFloat) return null
+    const result = parser(s)
+    return isNaN(result) ? null : result
+}
+
+function programFields(formData: FormData) {
+    return {
+        programName:     String(formData.get('programName') || '').trim(),
+        degreeLevel:     String(formData.get('degreeLevel') || 'Masters'),
+        fieldCategory:   String(formData.get('fieldCategory') || 'Others'),
+        stemDesignated:  formData.get('stemDesignated') === 'true',
+        durationMonths:  parseInt(String(formData.get('durationMonths') || '12')) || 12,
+        tuitionFee:      parseFloat(String(formData.get('tuitionFee') || '0')) || 0,
+        currency:        String(formData.get('currency') || 'USD'),
+        intakes:         String(formData.get('intakes') || '').split(',').map((s: string) => s.trim()).filter(Boolean),
+        englishTests:    String(formData.get('englishTests') || '').split(',').map((s: string) => s.trim()).filter(Boolean),
+        minEnglishScore: parseOptionalNum(formData.get('minEnglishScore'), parseFloat),
+        description:     nullIfEmpty(formData.get('description')),
+        satRequired:     nullIfEmpty(formData.get('satRequired')),
+        satMinScore:     parseOptionalNum(formData.get('satMinScore'), parseInt),
+        satMaxScore:     parseOptionalNum(formData.get('satMaxScore'), parseInt),
+        actRequired:     nullIfEmpty(formData.get('actRequired')),
+        actMinScore:     parseOptionalNum(formData.get('actMinScore'), parseInt),
+        actMaxScore:     parseOptionalNum(formData.get('actMaxScore'), parseInt),
+        greRequired:     nullIfEmpty(formData.get('greRequired')),
+        greMinScore:     parseOptionalNum(formData.get('greMinScore'), parseInt),
+        greMaxScore:     parseOptionalNum(formData.get('greMaxScore'), parseInt),
+        gmatRequired:    nullIfEmpty(formData.get('gmatRequired')),
+        gmatMinScore:    parseOptionalNum(formData.get('gmatMinScore'), parseInt),
+        gmatMaxScore:    parseOptionalNum(formData.get('gmatMaxScore'), parseInt),
+        scholarshipAvail:   nullIfEmpty(formData.get('scholarshipAvail')),
+        scholarshipDetails: nullIfEmpty(formData.get('scholarshipDetails')),
+        applicationFee:    parseOptionalNum(formData.get('applicationFee'), parseFloat),
+        applicationFeeCur: String(formData.get('applicationFeeCur') || 'USD'),
+        appDeadlineType:   nullIfEmpty(formData.get('appDeadlineType')),
+        appDeadlineDate:   formData.get('appDeadlineDate')
+            ? new Date(String(formData.get('appDeadlineDate')))
+            : null,
+        workExpYears:    parseOptionalNum(formData.get('workExpYears'), parseInt),
+        minGpa:          parseOptionalNum(formData.get('minGpa'), parseFloat),
+        minPercentage:   parseOptionalNum(formData.get('minPercentage'), parseFloat),
+        coopAvailable:   formData.get('coopAvailable') === 'true',
+        specialisations: String(formData.get('specialisations') || '').split(',').map((s: string) => s.trim()).filter(Boolean),
+    }
+}
+
 export async function createProgram(formData: FormData) {
     const user = await requireUser()
 
-    // RATE LIMIT
-    // if (!programRateLimiter.check(user.id)) return { error: "Too many requests" }
-
-    const rawData = {
-        programName: formData.get('programName'),
-        degreeLevel: formData.get('degreeLevel'),
-        fieldCategory: formData.get('fieldCategory'),
-        tuitionFee: formData.get('tuitionFee'),
-        durationMonths: formData.get('durationMonths'),
-        currency: formData.get('currency'),
-        intakes: formData.get('intakes') ? String(formData.get('intakes')).split(',').map(s => s.trim()).filter(Boolean) : [],
-        englishTests: formData.get('englishTests') ? String(formData.get('englishTests')).split(',').map(s => s.trim()).filter(Boolean) : [],
-        minEnglishScore: formData.get('minEnglishScore'),
-        stemDesignated: formData.get('stemDesignated')
-    }
-
-    const validation = createProgramSchema.safeParse(rawData)
-
-    if (!validation.success) {
-        return { error: validation.error.flatten().fieldErrors }
-    }
-
-    const data = validation.data
+    const fields = programFields(formData)
+    if (!fields.programName) return { error: 'Program name is required' }
 
     try {
-        const university = await prisma.university.findUnique({
-            where: { userId: user.id }
-        })
-
-        if (!university) return { error: "University profile not found" }
+        const university = await prisma.university.findUnique({ where: { userId: user.id } })
+        if (!university) return { error: 'University profile not found' }
 
         await prisma.program.create({
-            data: {
-                universityId: university.id,
-                programName: data.programName,
-                degreeLevel: data.degreeLevel,
-                fieldCategory: data.fieldCategory,
-                stemDesignated: data.stemDesignated,
-                durationMonths: data.durationMonths,
-                tuitionFee: data.tuitionFee,
-                currency: data.currency,
-                intakes: data.intakes,
-                englishTests: data.englishTests,
-                minEnglishScore: data.minEnglishScore ? parseFloat(data.minEnglishScore) : null,
-                status: 'ACTIVE'
-            }
+            data: { universityId: university.id, status: 'ACTIVE', ...fields },
         })
 
-        // Notify students who have expressed interest in this university
         const interestedStudents = await prisma.interest.findMany({
             where: { universityId: university.id },
             select: { studentId: true },
-            distinct: ['studentId']
+            distinct: ['studentId'],
         })
         for (const { studentId } of interestedStudents) {
             await notifyStudent(studentId, {
                 title: 'New Programme Added',
-                message: `${university.institutionName} has added a new programme: ${data.programName}.`,
+                message: `${university.institutionName} has added a new programme: ${fields.programName}.`,
                 type: 'INFO',
-                actionUrl: `/universities/${university.id}`
+                actionUrl: `/universities/${university.id}`,
             })
         }
 
         revalidatePath('/university/dashboard')
         return { success: true }
     } catch (error) {
-        console.error("Failed to create program:", error)
-        return { error: "Failed to create program" }
+        console.error('Failed to create program:', error)
+        return { error: 'Failed to create program' }
     }
 }
+
+export async function updateProgram(programId: string, formData: FormData) {
+    const user = await requireUser()
+
+    const existing = await prisma.program.findUnique({
+        where: { id: programId },
+        select: { universityId: true },
+    })
+    if (!existing) return { error: 'Program not found' }
+
+    // Ownership check — works for UNIVERSITY and UNIVERSITY_REP
+    let university = await prisma.university.findUnique({ where: { userId: user.id } })
+    if (!university && user.role === 'UNIVERSITY_REP') {
+        const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { universityId: true } })
+        if (dbUser?.universityId) university = await prisma.university.findUnique({ where: { id: dbUser.universityId } })
+    }
+    if (!university || university.id !== existing.universityId) return { error: 'Unauthorized' }
+
+    const fields = programFields(formData)
+    if (!fields.programName) return { error: 'Program name is required' }
+
+    try {
+        await prisma.program.update({
+            where: { id: programId },
+            data: fields,
+        })
+        revalidatePath('/university/dashboard')
+        return { success: true }
+    } catch (error) {
+        console.error('Failed to update program:', error)
+        return { error: 'Failed to update program' }
+    }
+}
+
 
 export async function verifyUniversity(formData: FormData) {
     const universityId = formData.get('universityId') as string
@@ -537,6 +665,58 @@ export async function verifyUniversity(formData: FormData) {
             ),
             ...(!isVerified ? { replyTo: process.env.SUPPORT_EMAIL } : {})
         })
+
+        // ── For VERIFIED universities: send a follow-up email with the CSV template ──
+        // This lets them bulk-import their program catalog immediately, no guesswork.
+        if (isVerified) {
+            const csvTemplate = [
+                'Program Name,Degree Level,Field,Tuition,Duration,Intake',
+                'MSc Computer Science,Masters,Computer Science,25000,12,"Fall 2025, Spring 2026"',
+                'MBA General Management,Masters,Business,35000,18,"Fall 2025"',
+                'BSc Data Science,Bachelors,Data Science,18000,36,"Fall 2025, Spring 2026"',
+                'MA Psychology,Masters,Social Sciences,20000,12,"Fall 2025"',
+                '# ─── HOW TO USE THIS FILE ───────────────────────────────────────────────',
+                '# 1. Delete the example rows above (rows starting with real data).',
+                '# 2. Fill in YOUR programs using the same columns.',
+                '# 3. Degree Level: Bachelors / Masters / PhD / Diploma / Certificate',
+                '# 4. Field: Computer Science / Engineering / Business / Data Science /',
+                '#          Health Sciences / Social Sciences / Arts & Humanities / Law / Architecture / Others',
+                '# 5. Tuition: number only (no $ sign), in USD.',
+                '# 6. Duration: number of months.',
+                '# 7. Intake: e.g. "Fall 2025" or "Fall 2025, Spring 2026"',
+                '# 8. Upload the file to your dashboard → Programs tab → Import CSV.',
+            ].join('\r\n')
+
+            await sendEmail({
+                to: uni.contactEmail || uniProfile.user.email,
+                subject: `Next step: upload your program catalog to EdUmeetup`,
+                html: generateEmailHtml('Add Your Programs in Seconds', `
+                    <p>Hi ${uni.institutionName} team,</p>
+                    <p>Your profile is live — the next step is to add your programs so students can discover and express interest in them.</p>
+                    <p>We've attached a <strong>ready-to-fill CSV template</strong> to this email. Here's all you need to do:</p>
+                    <ol style="padding-left:20px;color:#374151;line-height:2;">
+                        <li>Open the attached <code>program-catalog-template.csv</code> file</li>
+                        <li>Replace the example rows with your programs</li>
+                        <li>Go to your dashboard → <strong>Programs</strong> tab → click <strong>Import CSV</strong></li>
+                        <li>Drop the file in — we'll map the columns automatically</li>
+                    </ol>
+                    <div class="info-box" style="background:#f0f4ff;border-color:#c7d2fe;">
+                        <p style="margin:0 0 6px 0;font-size:13px;font-weight:700;color:#3333cc;">Supported columns</p>
+                        <p style="margin:0;font-size:13px;">Program Name · Degree Level · Field · Tuition · Duration · Intake</p>
+                    </div>
+                    <p style="text-align:center;margin-top:24px;">
+                        <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'}/university/dashboard?tab=programs" class="btn">Go to Programs Tab →</a>
+                    </p>
+                    <p style="font-size:12px;color:#94a3b8;">You can also add programs one by one directly on your dashboard if you prefer.</p>
+                `),
+                attachments: [
+                    {
+                        filename: 'program-catalog-template.csv',
+                        content: Buffer.from(csvTemplate, 'utf-8'),
+                    }
+                ],
+            })
+        }
 
         // Role-specific bell notification
         await notifyUniversity(universityId, {

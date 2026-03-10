@@ -132,6 +132,7 @@ model Student {
   advisoryRequests   AdvisoryRequest[]
   bookmarks          Bookmark[]
   eventRegistrations EventRegistration[]
+  groupSeats         GroupSessionSeat[]
   interests          Interest[]
   meetings           Meeting[]
   changeLogs         ProfileChangeLog[]
@@ -241,6 +242,7 @@ model University {
   availabilitySlots       AvailabilitySlot[]
   bookmarkedBy            Bookmark[]
   events                  Event[]
+  groupSessions           GroupSession[]
   hostOutreach            HostRequestOutreach[]
   interests               Interest[]
   meetings                Meeting[]
@@ -299,10 +301,43 @@ model Program {
   minEnglishScore Float?
   intakes         String[]
   description     String?
+
+  // ── Standardised Tests ──────────────────────────────────────────────────────
+  satRequired        String?   // "REQUIRED" | "RECOMMENDED" | "NOT_REQUIRED"
+  satMinScore        Int?
+  satMaxScore        Int?
+  actRequired        String?   // "REQUIRED" | "RECOMMENDED" | "NOT_REQUIRED"
+  actMinScore        Int?
+  actMaxScore        Int?
+  greRequired        String?   // "REQUIRED" | "RECOMMENDED" | "NOT_REQUIRED"
+  greMinScore        Int?
+  greMaxScore        Int?
+  gmatRequired       String?   // "REQUIRED" | "RECOMMENDED" | "NOT_REQUIRED"
+  gmatMinScore       Int?
+  gmatMaxScore       Int?
+
+  // ── Scholarships ────────────────────────────────────────────────────────────
+  scholarshipAvail   String?   // "YES" | "NO" | "DEPENDS"
+  scholarshipDetails String?
+
+  // ── Application Requirements ────────────────────────────────────────────────
+  applicationFee     Float?
+  applicationFeeCur  String?   @default("USD")
+  appDeadlineType    String?   // "ROLLING" | "FIXED"
+  appDeadlineDate    DateTime?
+  workExpYears       Int?      // 0 = not required
+  minGpa             Float?    // out of 4.0
+  minPercentage      Float?    // e.g. 65.0
+
+  // ── Program Details ─────────────────────────────────────────────────────────
+  coopAvailable      Boolean   @default(false)
+  specialisations    String[]  @default([])
+
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
   interests       Interest[]
   meetings        Meeting[]
+  groupSessions   GroupSession[]
   documents       UniversityDocument[]
   university      University @relation(fields: [universityId], references: [id], onDelete: Cascade)
 }
@@ -612,6 +647,55 @@ model EventRegistration {
   @@unique([eventId, studentId])
 }
 
+// ─── Group Sessions ────────────────────────────────────────────────────────────
+
+model GroupSession {
+  id              String             @id @default(cuid())
+  universityId    String
+  programId       String?            // optional: target a specific program
+  targetField     String?            // e.g. "Computer Science" — for smart matching
+  title           String
+  agenda          String?
+  scheduledAt     DateTime
+  durationMinutes Int                @default(45)
+  capacity        Int                @default(10)  // hard cap, max 10
+  status          GroupSessionStatus @default(OPEN)
+  joinUrl         String?
+  videoProvider   String?
+  recapUrl        String?            // post-session recording/recap upload
+  notifiedCount   Int                @default(0)   // how many students were notified
+  followUpDraftId String?            // auto-created when status = FULL
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  university University         @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  program    Program?           @relation(fields: [programId], references: [id], onDelete: SetNull)
+  seats      GroupSessionSeat[]
+
+  @@index([universityId])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model GroupSessionSeat {
+  id             String    @id @default(cuid())
+  groupSessionId String
+  studentId      String
+  status         String    @default("CONFIRMED")  // CONFIRMED | WAITLISTED | CANCELLED
+  waitlistPos    Int?      // queue position for waitlisted students; null if CONFIRMED
+  joinedAt       DateTime  @default(now())
+  notifiedAt     DateTime? // when the student was notified of a seat opening
+
+  groupSession GroupSession @relation(fields: [groupSessionId], references: [id], onDelete: Cascade)
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([groupSessionId, studentId])
+  @@index([groupSessionId, status])
+  @@index([studentId])
+}
+
+
+
 model SystemLog {
   id        String   @id @default(cuid())
   level     String
@@ -817,6 +901,16 @@ enum MeetingPurpose {
   DOCUMENT_HELP
   APPLICATION_STATUS
   OTHER
+}
+
+enum GroupSessionStatus {
+  DRAFT
+  OPEN
+  FILLING      // >50% seats taken
+  FULL
+  LIVE         // happening now
+  COMPLETED
+  CANCELLED
 }
 
 enum ProctorRequestStatus {

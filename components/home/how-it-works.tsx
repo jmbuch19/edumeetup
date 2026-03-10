@@ -198,6 +198,7 @@ export function HowItWorks({ activeTab: propActiveTab, onTabChange }: HowItWorks
                         </div>
                         <div className={styles.ctaActions}>
                             <Link href="/student/register" className={styles.btnPrimary}>Create Free Profile →</Link>
+                            <Link href="/universities" className={styles.btnGhost}>Browse Universities</Link>
                         </div>
                     </div>
                 </div>

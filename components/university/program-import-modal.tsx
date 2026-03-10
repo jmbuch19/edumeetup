@@ -5,7 +5,7 @@ import React, { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import Papa from 'papaparse'
 import { Button } from '@/components/ui/button'
-import { UploadCloud, CheckCircle, AlertCircle, X } from 'lucide-react'
+import { UploadCloud, CheckCircle, AlertCircle, X, Download } from 'lucide-react'
 import { bulkCreatePrograms, ProgramImportData } from '@/app/actions/bulk-program-actions'
 import { useRouter } from 'next/navigation'
 
@@ -21,6 +21,7 @@ export function ProgramImportModal({ universityId, open, onOpenChange }: Program
     const [parsedData, setParsedData] = useState<ProgramImportData[]>([])
     const [isUploading, setIsUploading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [importResult, setImportResult] = useState<{ count: number; skipped: number } | null>(null)
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         const file = acceptedFiles[0]
@@ -36,15 +37,45 @@ export function ProgramImportModal({ universityId, open, onOpenChange }: Program
                 }
 
                 // Auto-map columns logic (Smart Import)
-                // We assume the user's CSV header names might vary, so we map them to our internal keys
-                // Currently implementing a simple mapping for MVP
+                // Auto-map all 34 columns from the template — graceful fallback for old/partial CSVs
                 const mappedData: ProgramImportData[] = results.data.map((row: any) => ({
-                    programName: row['Program Name'] || row['Program'] || row['Name'] || row['Course'] || 'Untitled Program',
-                    degreeLevel: row['Degree Level'] || row['Degree'] || row['Level'] || "Master's",
-                    fieldCategory: row['Field'] || row['Category'] || row['Department'] || "Others",
-                    tuitionFee: parseFloat(row['Tuition'] || row['Fee'] || row['Cost'] || '0'),
-                    durationMonths: parseInt(row['Duration'] || row['Months'] || '12'),
-                    intakes: row['Intake'] || row['Intakes'] || "Fall 2025"
+                    programName:       row['Program Name'] || row['Program'] || row['Name'] || row['Course'] || 'Untitled',
+                    degreeLevel:       row['Degree Level'] || row['Degree'] || row['Level'] || "Master's",
+                    fieldCategory:     row['Field'] || row['Category'] || row['Department'] || 'Others',
+                    tuitionFee:        parseFloat(row['Tuition'] || row['Fee'] || '0') || 0,
+                    durationMonths:    parseInt(row['Duration (Months)'] || row['Duration'] || row['Months'] || '12') || 12,
+                    intakes:           row['Intakes'] || row['Intake'] || 'Fall 2025',
+                    stemDesignated:    row['STEM'] || 'No',
+                    description:       row['Description'] || '',
+                    englishTests:      row['English Tests'] || '',
+                    minEnglishScore:   row['Min English Score'] || '',
+                    // Standardised tests
+                    satRequired:       row['SAT Required'] || '',
+                    satMinScore:       row['SAT Min Score'] || '',
+                    satMaxScore:       row['SAT Max Score'] || '',
+                    actRequired:       row['ACT Required'] || '',
+                    actMinScore:       row['ACT Min Score'] || '',
+                    actMaxScore:       row['ACT Max Score'] || '',
+                    greRequired:       row['GRE Required'] || '',
+                    greMinScore:       row['GRE Min Score'] || '',
+                    greMaxScore:       row['GRE Max Score'] || '',
+                    gmatRequired:      row['GMAT Required'] || '',
+                    gmatMinScore:      row['GMAT Min Score'] || '',
+                    gmatMaxScore:      row['GMAT Max Score'] || '',
+                    // Scholarships
+                    scholarshipAvail:    row['Scholarship Available'] || '',
+                    scholarshipDetails:  row['Scholarship Details'] || '',
+                    // Application requirements
+                    applicationFee:    row['Application Fee'] || '',
+                    applicationFeeCur: row['Application Fee Currency'] || row['Currency'] || 'USD',
+                    appDeadlineType:   row['Deadline Type'] || '',
+                    appDeadlineDate:   row['Deadline Date'] || '',
+                    workExpYears:      row['Work Experience (Years)'] || row['Work Exp'] || '',
+                    minGpa:            row['Min GPA'] || '',
+                    minPercentage:     row['Min Percentage'] || '',
+                    // Program details
+                    coopAvailable:     row['Co-op Available'] || row['Coop'] || 'No',
+                    specialisations:   row['Specialisations'] || row['Specializations'] || '',
                 }))
 
                 setParsedData(mappedData)
@@ -71,13 +102,14 @@ export function ProgramImportModal({ universityId, open, onOpenChange }: Program
         try {
             const result = await bulkCreatePrograms(universityId, parsedData)
             if (result.success) {
+                setImportResult({ count: result.count ?? 0, skipped: result.skipped ?? 0 })
                 setStep('success')
                 router.refresh()
             } else {
-                setError(result.error || "Import failed")
+                setError(result.error || 'Import failed')
             }
         } catch {
-            setError("An unexpected error occurred.")
+            setError('An unexpected error occurred.')
         } finally {
             setIsUploading(false)
         }
@@ -109,28 +141,40 @@ export function ProgramImportModal({ universityId, open, onOpenChange }: Program
                 {/* Body */}
                 <div className="p-8 overflow-y-auto flex-1">
                     {step === 'upload' && (
-                        <div {...getRootProps()} className={`
-                            border-3 border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 group
-                            ${isDragActive ? 'border-primary bg-primary/5 scale-[0.99]' : 'border-gray-200 hover:border-primary/50 hover:bg-gray-50'}
-                        `}>
-                            <input {...getInputProps()} />
-                            <div className={`p-4 rounded-full mb-4 transition-colors ${isDragActive ? 'bg-primary/20 text-primary' : 'bg-gray-100 text-gray-400 group-hover:bg-primary/10 group-hover:text-primary'}`}>
-                                <UploadCloud size={40} />
-                            </div>
-                            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                                {isDragActive ? "Drop it here!" : "Drag & drop your file here"}
-                            </h3>
-                            <p className="text-gray-500 max-w-sm">
-                                Support for CSV, Excel. We&apos;ll auto-magically map your columns.
-                            </p>
-                            <div className="mt-8">
-                                <Button variant="outline" className="text-gray-600">Select File</Button>
-                            </div>
+                        <>
+                            <div {...getRootProps()} className={`
+                                border-3 border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 group
+                                ${isDragActive ? 'border-primary bg-primary/5 scale-[0.99]' : 'border-gray-200 hover:border-primary/50 hover:bg-gray-50'}
+                            `}>
+                                <input {...getInputProps()} />
+                                <div className={`p-4 rounded-full mb-4 transition-colors ${isDragActive ? 'bg-primary/20 text-primary' : 'bg-gray-100 text-gray-400 group-hover:bg-primary/10 group-hover:text-primary'}`}>
+                                    <UploadCloud size={40} />
+                                </div>
+                                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                    {isDragActive ? "Drop it here!" : "Drag & drop your file here"}
+                                </h3>
+                                <p className="text-gray-500 max-w-sm">
+                                    Support for CSV, Excel. We&apos;ll auto-magically map your columns.
+                                </p>
+                                <div className="mt-8">
+                                    <Button variant="outline" className="text-gray-600">Select File</Button>
+                                </div>
 
-                            <div className="mt-8 text-xs text-gray-400 flex items-center gap-2 bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-100 text-yellow-700">
-                                💡 Tip: You can upload your existing internal spreadsheet direct!
+                                <div className="mt-8 text-xs text-gray-400 flex items-center gap-2 bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-100 text-yellow-700">
+                                    💡 Tip: You can upload your existing internal spreadsheet direct!
+                                </div>
                             </div>
-                        </div>
+                            <div className="flex justify-center mt-3">
+                                <a
+                                    href="/templates/programs-import-template.csv"
+                                    download
+                                    onClick={e => e.stopPropagation()}
+                                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                >
+                                    <Download size={12} /> Download CSV template
+                                </a>
+                            </div>
+                        </>
                     )}
 
                     {step === 'preview' && (
@@ -178,9 +222,14 @@ export function ProgramImportModal({ universityId, open, onOpenChange }: Program
                                 <CheckCircle size={40} />
                             </div>
                             <h2 className="text-3xl font-bold text-gray-900 mb-4">You&apos;re Live!</h2>
-                            <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
-                                {parsedData.length} programs have been successfully imported and are now visible to thousands of students.
+                            <p className="text-lg text-gray-600 mb-3 max-w-md mx-auto">
+                                <strong>{importResult?.count ?? parsedData.length}</strong> program{importResult?.count !== 1 ? 's' : ''} imported successfully.
                             </p>
+                            {(importResult?.skipped ?? 0) > 0 && (
+                                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-4 py-2 inline-block">
+                                    {importResult!.skipped} duplicate{importResult!.skipped !== 1 ? 's' : ''} skipped (already in your catalog)
+                                </p>
+                            )}
                         </div>
                     )}
 
