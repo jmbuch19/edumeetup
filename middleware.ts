@@ -59,8 +59,15 @@ export default async function middleware(req: NextRequest) {
         })
     }
 
-    const isLoggedIn = !!token
-    const role = token?.role as "ADMIN" | "UNIVERSITY" | "UNIVERSITY_REP" | "STUDENT" | undefined
+    // ── Check token expiry ────────────────────────────────────────────────────
+    // getToken() returns the raw JWT payload without validating the exp claim.
+    // An expired Admin token (24 h hard cap) would make middleware think the
+    // user is logged in, while auth() in the layout returns null — producing a
+    // redirect loop (/admin/dashboard ↔ /login?callbackUrl=...).
+    const tokenExpired = token?.exp ? (token.exp as number) < Math.floor(Date.now() / 1000) : false
+
+    const isLoggedIn = !!token && !tokenExpired
+    const role = isLoggedIn ? (token?.role as "ADMIN" | "UNIVERSITY" | "UNIVERSITY_REP" | "STUDENT" | undefined) : undefined
 
     const isAuthRoute = nextUrl.pathname.startsWith('/login') || nextUrl.pathname.startsWith('/register')
     const isStudentRoute = nextUrl.pathname.startsWith('/student')
@@ -86,7 +93,16 @@ export default async function middleware(req: NextRequest) {
 
     // Redirect unauthenticated users away from protected routes
     if (!isLoggedIn && (isStudentRoute || isUniversityRoute || isAdminRoute)) {
-        const callbackUrl = nextUrl.pathname + (nextUrl.search || '')
+        // Strip nested callbackUrl params to prevent snowballing
+        // (e.g. /admin/dashboard?callbackUrl=/admin/dashboard → /admin/dashboard)
+        const cleanSearch = (() => {
+            if (!nextUrl.search) return ''
+            const params = new URLSearchParams(nextUrl.search)
+            params.delete('callbackUrl')
+            const s = params.toString()
+            return s ? `?${s}` : ''
+        })()
+        const callbackUrl = nextUrl.pathname + cleanSearch
         return NextResponse.redirect(new URL(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`, nextUrl))
     }
 
