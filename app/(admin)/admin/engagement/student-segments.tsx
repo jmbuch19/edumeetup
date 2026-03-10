@@ -101,9 +101,10 @@ function DuplicateWarningDialog({
     activity: RecentActivity | null
     actionType: 'nudge' | 'email'
     segmentLabel: string
-    onProceed: () => void
+    onProceed: (reason: string) => void
     onCancel: () => void
 }) {
+    const [overrideReason, setOverrideReason] = useState('')
     if (!activity) return null
     const typeLabel = actionType === 'nudge' ? 'in-app nudge' : 'bulk email'
     const windowLabel = actionType === 'nudge' ? '24 hours' : '7 days'
@@ -153,9 +154,27 @@ function DuplicateWarningDialog({
                     Are you sure you want to proceed?
                 </p>
 
+                <div className="space-y-1.5">
+                    <Label htmlFor="override-reason">
+                        Reason for sending again <span className="text-destructive">*</span>
+                    </Label>
+                    <Textarea
+                        id="override-reason"
+                        value={overrideReason}
+                        onChange={e => setOverrideReason(e.target.value)}
+                        placeholder="e.g. Different content, urgent update, previous send failed..."
+                        rows={2}
+                        maxLength={200}
+                    />
+                </div>
+
                 <DialogFooter className="gap-2">
-                    <Button variant="outline" onClick={onCancel}>Cancel</Button>
-                    <Button variant="destructive" onClick={onProceed}>
+                    <Button variant="outline" onClick={() => { setOverrideReason(''); onCancel() }}>Cancel</Button>
+                    <Button
+                        variant="destructive"
+                        onClick={() => { onProceed(overrideReason); setOverrideReason('') }}
+                        disabled={!overrideReason.trim()}
+                    >
                         Send Anyway
                     </Button>
                 </DialogFooter>
@@ -186,6 +205,7 @@ function SegmentPanel({
 
     // Duplicate-guard state
     const [checkingActivity, setCheckingActivity] = useState(false)
+    const [overrideReason, setOverrideReason] = useState<string | undefined>()
     const [duplicateWarning, setDuplicateWarning] = useState<{
         activity: RecentActivity
         intendedPanel: Panel
@@ -213,10 +233,10 @@ function SegmentPanel({
 
     const handleNudge = () => {
         startTransition(async () => {
-            const result = await nudgeSegment(segment, nudgeTitle, nudgeMsg)
+            const result = await nudgeSegment(segment, nudgeTitle, nudgeMsg, overrideReason)
             if (result.error) { toast.error(result.error); return }
             toast.success(`Nudge sent to ${result.sent} student${result.sent !== 1 ? 's' : ''}`)
-            setActivePanel(null); setNudgeTitle(''); setNudgeMsg('')
+            setActivePanel(null); setNudgeTitle(''); setNudgeMsg(''); setOverrideReason(undefined)
         })
     }
 
@@ -227,6 +247,7 @@ function SegmentPanel({
             fd.append('subject', emailSubject)
             fd.append('body', emailBody)
             if (attachmentFile) fd.append('attachment', attachmentFile)
+            if (overrideReason) fd.append('overrideReason', overrideReason)
 
             const result = await emailSegment(fd)
             if (result.error) { toast.error(result.error); return }
@@ -234,7 +255,7 @@ function SegmentPanel({
                 `Email sent to ${result.sent} student${result.sent !== 1 ? 's' : ''}` +
                 (result.failed > 0 ? ` (${result.failed} failed)` : '')
             )
-            setActivePanel(null); setEmailSubject(''); setEmailBody(''); setAttachmentFile(null)
+            setActivePanel(null); setEmailSubject(''); setEmailBody(''); setAttachmentFile(null); setOverrideReason(undefined)
         })
     }
 
@@ -284,9 +305,10 @@ function SegmentPanel({
                 activity={duplicateWarning?.activity ?? null}
                 actionType={(duplicateWarning?.intendedPanel ?? 'email') as 'nudge' | 'email'}
                 segmentLabel={segmentLabel}
-                onProceed={() => {
+                onProceed={(reason) => {
                     const panel = duplicateWarning?.intendedPanel ?? null
                     setDuplicateWarning(null)
+                    setOverrideReason(reason)
                     setActivePanel(panel)
                 }}
                 onCancel={() => setDuplicateWarning(null)}

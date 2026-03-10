@@ -93,9 +93,9 @@ export async function getDormantStudents(): Promise<SegmentStudent[]> {
 // ── Duplicate-send guard ───────────────────────────────────────────────────────
 
 /**
- * Checks whether this segment was nudged/emailed recently.
- * Returns the most recent activity record, or null if safe to proceed.
- */
+* Checks whether this segment was nudged/emailed recently.
+* Returns the most recent activity record, or null if safe to proceed.
+*/
 export async function getRecentSegmentActivity(
     segment: 'fresh' | 'dormant',
     type: 'nudge' | 'email',
@@ -136,6 +136,7 @@ export async function nudgeSegment(
     segment: 'fresh' | 'dormant',
     title: string,
     message: string,
+    overrideReason?: string,
 ): Promise<{ sent: number; error?: string }> {
     const session = await auth()
     if (session?.user?.role !== 'ADMIN') return { sent: 0, error: 'Unauthorized' }
@@ -169,6 +170,7 @@ export async function nudgeSegment(
                 adminEmail: session.user?.email ?? null,
                 count: students.length,
                 title: title.trim(),
+                ...(overrideReason ? { overrideReason } : {}),
             },
         },
     }).catch(() => { /* non-fatal */ })
@@ -188,6 +190,7 @@ export async function emailSegment(
     const subject = (formData.get('subject') as string)?.trim()
     const body = (formData.get('body') as string)?.trim()
     const attachmentFile = formData.get('attachment') as File | null
+    const overrideReason = (formData.get('overrideReason') as string)?.trim() || undefined
 
     if (!segment || !subject || !body) return { sent: 0, failed: 0, error: 'Subject and body are required' }
 
@@ -241,6 +244,7 @@ export async function emailSegment(
                 count: sent,
                 subject,
                 hasAttachment: !!attachment,
+                ...(overrideReason ? { overrideReason } : {}),
             },
         },
     }).catch(() => { /* non-fatal */ })
