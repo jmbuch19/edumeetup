@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
         model: groq('llama-3.1-8b-instant'),
         system: systemPrompt,
         messages,
-        maxTokens: 2048,         // allow rich, detailed answers (default ~1024 causes truncation)
+        maxOutputTokens: 2048,   // allow rich, detailed answers (ai@6 renamed from maxTokens)
         stopWhen: stepCountIs(2), // max 1 tool call
         tools: {
 
