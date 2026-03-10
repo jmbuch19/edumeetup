@@ -167,9 +167,35 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
             const reader = res.body.getReader()
             const decoder = new TextDecoder()
 
+            // ── rAF-batched chunk flusher ─────────────────────────────────
+            // Calling setMessages on every token fires history.replaceState
+            // 500+ times / 30s — Chrome throttles at 100. Batch via rAF (~60fps).
+            const chunkBuf = { current: '' }
+            const rafId = { current: 0 }
+
+            const flushBuf = () => {
+                const text = chunkBuf.current
+                chunkBuf.current = ''
+                rafId.current = 0
+                if (!text) return
+                setMessages(prev => {
+                    const msgs = [...prev]
+                    const last = msgs[msgs.length - 1]
+                    if (last?.role === 'assistant') {
+                        msgs[msgs.length - 1] = { ...last, content: last.content + text }
+                    }
+                    return msgs
+                })
+            }
+
             while (true) {
                 const { done, value } = await reader.read()
-                if (done) break
+                if (done) {
+                    // Cancel any pending frame and flush remainder immediately
+                    if (rafId.current) cancelAnimationFrame(rafId.current)
+                    flushBuf()
+                    break
+                }
                 const chunk = decoder.decode(value, { stream: true })
 
                 // Skip tool call chunks — never show raw JSON to user
@@ -179,14 +205,11 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                     chunk.trim().startsWith('{"name":')
                 ) continue
 
-                setMessages(prev => {
-                    const msgs = [...prev]
-                    const last = msgs[msgs.length - 1]
-                    if (last?.role === 'assistant') {
-                        msgs[msgs.length - 1] = { ...last, content: last.content + chunk }
-                    }
-                    return msgs
-                })
+                // Accumulate and schedule a single flush per animation frame
+                chunkBuf.current += chunk
+                if (!rafId.current) {
+                    rafId.current = requestAnimationFrame(flushBuf)
+                }
             }
 
             // Check if the stream produced any content
