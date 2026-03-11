@@ -5,10 +5,10 @@
 // not in Server Components (app/layout.tsx is a Server Component).
 
 import dynamic from 'next/dynamic'
+import { usePathname } from 'next/navigation'
 
-// AdmissionsChat is the global concierge — available on every page.
-// studentId is not passed here (user may not be logged in); the API
-// gracefully handles unauthenticated visitors too.
+// AdmissionsChat is the global concierge — available on public pages only.
+// Hidden on dashboard routes since those have dedicated AI chat (Claude bot).
 const AdmissionsChat = dynamic(
     () => import('@/components/chat/admissions-chat').then(m => m.AdmissionsChat),
     { ssr: false }
@@ -19,10 +19,23 @@ const SessionGuard = dynamic(
     { ssr: false }
 )
 
+// Dashboard route prefixes where the concierge should be hidden
+const DASHBOARD_PREFIXES = [
+    '/student/',
+    '/university/',
+    '/admin/',
+    '/student',
+    '/university',
+    '/admin',
+]
+
 export function ClientOnlyWidgets() {
+    const pathname = usePathname()
+    const isOnDashboard = DASHBOARD_PREFIXES.some(prefix => pathname.startsWith(prefix))
+
     return (
         <>
-            <AdmissionsChat />
+            {!isOnDashboard && <AdmissionsChat />}
             <SessionGuard />
         </>
     )
