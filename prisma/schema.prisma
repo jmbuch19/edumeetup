@@ -178,6 +178,18 @@ model University {
   campusSize              String?
   totalStudents           Int?
   internationalStudents   Int?
+  // ── Partner Profile Fields ─────────────────────────────────────────
+  timezone                String?                  // e.g. "Europe/London"
+  linkedin                String?                  // LinkedIn school page URL
+  universityType          String?                  // Public / Private / Research etc.
+  accreditation           String?                  // e.g. "AACSB, EQUIS, NAAC A+"
+  rankingQS               Int?                     // QS World Ranking
+  rankingTHE              Int?                     // Times Higher Education Ranking
+  programTags             String[]   @default([])  // offered program tags for matching
+  intakeMonths            String[]   @default([])  // e.g. ["September","January"]
+  indianStudentTarget     String?                  // e.g. "100–200"
+  wherebyApiKey           String?                  // university's own Whereby API key
+
   repName                 String?
   repDesignation          String?
   repEmail                String?

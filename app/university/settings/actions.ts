@@ -27,6 +27,18 @@ export async function updateUniversitySettings(formData: FormData) {
       brandColor:              formData.get('brandColor') as string || undefined,
       about:                   formData.get('description') as string || undefined,
       isPublic:                formData.get('isPublic') === 'on',
+      // New partner profile fields
+      timezone:                formData.get('timezone') as string || undefined,
+      linkedin:                formData.get('linkedin') as string || undefined,
+      universityType:          formData.get('universityType') as string || undefined,
+      accreditation:           formData.get('accreditation') as string || undefined,
+      rankingQS:               formData.get('rankingQS') ? Number(formData.get('rankingQS')) : undefined,
+      rankingTHE:              formData.get('rankingTHE') ? Number(formData.get('rankingTHE')) : undefined,
+      programTags:             formData.getAll('programTags') as string[],
+      intakeMonths:            formData.getAll('intakeMonths') as string[],
+      indianStudentTarget:     formData.get('indianStudentTarget') as string || undefined,
+      wherebyApiKey:           formData.get('wherebyApiKey') as string || undefined,
+      // Meeting rules
       defaultDuration:         Number(formData.get('defaultDuration')) || 30,
       dailyCapPerRep:          Number(formData.get('dailyCapPerRep')) || 8,
       minLeadTimeHours:        Number(formData.get('minLeadTimeHours')) || 12,
@@ -39,6 +51,7 @@ export async function updateUniversitySettings(formData: FormData) {
   revalidatePath('/university/settings')
   return { success: true }
 }
+
 
 // ── Notification preferences (used by settings/page.tsx) ─────────────────────
 export async function saveUniversityNotificationPrefs(formData: FormData): Promise<void> {
