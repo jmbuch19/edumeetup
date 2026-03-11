@@ -133,8 +133,22 @@ export default function LoginPage() {
                             Sign In with Email
                         </Button>
                     </form>
+
+                    {/* Registration prompt — shown when user has no account */}
+                    <div className="mt-4 pt-4 border-t border-border text-center space-y-1">
+                        <p className="text-xs text-muted-foreground">
+                            New to EdUmeetup, or no email arriving?
+                        </p>
+                        <a
+                            href="/student/register"
+                            className="text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                        >
+                            Create your account here →
+                        </a>
+                    </div>
                 </CardContent>
             </Card>
         </div>
     )
 }
+
