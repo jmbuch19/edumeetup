@@ -17,6 +17,7 @@ import { sendEmail, generateEmailHtml } from '@/lib/email'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
+import { createWherebyMeeting } from '@/lib/whereby'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'
 
@@ -454,21 +455,22 @@ export async function publishFollowUpDraft(
 }
 
 // ─── 6. startGroupSession ─────────────────────────────────────────────────────
-//   Sets join URL (Zoom/Meet/custom), flips to LIVE, notifies confirmed students
+//   Two paths:
+//     1. No joinUrl → auto-create a Whereby room (recommended default)
+//     2. joinUrl provided → use the university's own meeting link (Zoom/Meet/Teams)
 
 export async function startGroupSession(
     sessionId: string,
-    joinUrl: string,
-): Promise<{ success?: boolean; notified?: number; error?: string }> {
+    joinUrl?: string,   // optional — if omitted, Whereby room is auto-created
+): Promise<{ success?: boolean; notified?: number; hostRoomUrl?: string | null; error?: string }> {
     const { error, uni } = await requireUniversity()
     if (error || !uni) return { error: error ?? 'Unauthorized' }
-
-    if (!joinUrl.startsWith('http')) return { error: 'Please provide a valid meeting URL (must start with http)' }
 
     const gs = await prisma.groupSession.findUnique({
         where: { id: sessionId },
         select: {
-            id: true, universityId: true, title: true, scheduledAt: true, status: true,
+            id: true, universityId: true, title: true, scheduledAt: true,
+            status: true, durationMinutes: true,
             seats: {
                 where: { status: 'CONFIRMED' },
                 include: { student: { select: { id: true, fullName: true, user: { select: { email: true } } } } },
@@ -481,17 +483,40 @@ export async function startGroupSession(
         return { error: 'This session has already ended' }
     }
 
-    // Set join URL + mark session LIVE
+    let studentJoinUrl: string
+    let hostUrl: string | null = null
+
+    if (joinUrl) {
+        // Path 2: University provided their own link (Zoom, Meet, Teams etc.)
+        if (!joinUrl.startsWith('http')) return { error: 'Please provide a valid meeting URL (must start with http)' }
+        studentJoinUrl = joinUrl
+        hostUrl = joinUrl  // same URL for custom links
+    } else {
+        // Path 1: Auto-create a Whereby room
+        try {
+            const room = await createWherebyMeeting(gs.title, gs.durationMinutes)
+            studentJoinUrl = room.roomUrl
+            hostUrl = room.hostRoomUrl
+        } catch (e: any) {
+            return { error: `Could not create Whereby room: ${e.message}` }
+        }
+    }
+
+    // Persist URLs + flip to LIVE
     await prisma.groupSession.update({
         where: { id: sessionId },
-        data: { joinUrl, status: 'LIVE' },
+        data: {
+            joinUrl: studentJoinUrl,
+            hostRoomUrl: hostUrl,
+            status: 'LIVE',
+        },
     })
 
     const dateStr = new Date(gs.scheduledAt).toLocaleString('en-IN', {
         weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata',
     }) + ' IST'
 
-    // Notify all confirmed students
+    // Notify all confirmed students with student join URL
     await Promise.all(gs.seats.map(async (seat) => {
         const firstName = seat.student.fullName?.split(' ')[0] || 'there'
 
@@ -501,7 +526,7 @@ export async function startGroupSession(
                 title: `🟢 ${uni.institutionName} session is Live now!`,
                 message: `Your group session "${gs.title}" has started. Click to join now.`,
                 type: 'SUCCESS',
-                actionUrl: joinUrl,
+                actionUrl: studentJoinUrl,
             },
         })
 
@@ -516,9 +541,9 @@ export async function startGroupSession(
                     <div class="info-row"><span class="info-label">When:</span> <span>${dateStr}</span></div>
                 </div>
                 <p style="text-align:center;margin-top:24px;">
-                    <a href="${joinUrl}" class="btn">Join the Session Now →</a>
+                    <a href="${studentJoinUrl}" class="btn">Join the Session Now →</a>
                 </p>
-                <p style="font-size:12px;color:#94a3b8;">Link opens your meeting directly. This link is personal — please don't share it.</p>
+                <p style="font-size:12px;color:#94a3b8;">This link opens your meeting directly.</p>
             `),
         })
     }))
@@ -527,7 +552,7 @@ export async function startGroupSession(
     revalidatePath('/university/group-sessions')
     revalidatePath('/student/dashboard')
 
-    return { success: true, notified: gs.seats.length }
+    return { success: true, notified: gs.seats.length, hostRoomUrl: hostUrl }
 }
 
 // ─── 7. shareRecap ────────────────────────────────────────────────────────────
@@ -627,6 +652,7 @@ export async function getGroupSessions(): Promise<{ sessions?: GroupSessionWithS
             capacity: s.capacity,
             status: s.status,
             joinUrl: s.joinUrl,
+            hostRoomUrl: s.hostRoomUrl ?? null,
             recapUrl: s.recapUrl,
             notifiedCount: s.notifiedCount,
             followUpDraftId: s.followUpDraftId,
@@ -647,6 +673,7 @@ export type GroupSessionWithStats = {
     capacity: number
     status: string
     joinUrl: string | null
+    hostRoomUrl: string | null
     recapUrl: string | null
     notifiedCount: number
     followUpDraftId: string | null

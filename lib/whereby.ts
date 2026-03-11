@@ -14,19 +14,29 @@ export interface WherebyRoom {
 }
 
 /**
- * Creates a Whereby meeting room for a given time slot.
- * endDate defaults to startDate + 1 hour if not provided.
+ * Creates a Whereby meeting room for a group session.
+ * Uses roomMode 'group' — correct for small groups with a designated host.
+ * endDate = session end + 30min buffer so room doesn't expire mid-session.
+ *
+ * @param sessionTitle  Used as room name prefix (sanitised to a-z0-9-)
+ * @param durationMinutes  Session duration — room expires endDate + 1h (Whereby default)
  */
 export async function createWherebyMeeting(
-    startTime: Date,
-    endTime: Date,
-    roomNamePrefix = 'edumeetup'
+    sessionTitle: string,
+    durationMinutes: number,
 ): Promise<WherebyRoom> {
     if (!API_KEY) throw new Error('WHEREBY_API_KEY is not set')
 
-    // Whereby requires endDate to be in the future
-    // Add 24h buffer to be safe with scheduling edge cases
-    const endDate = new Date(endTime)
+    // Room expires at session end + 30min buffer
+    const endDate = new Date(Date.now() + (durationMinutes + 30) * 60 * 1000)
+
+    // Sanitise prefix: lowercase, strip non-alphanumeric, max 39 chars
+    const roomNamePrefix = sessionTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 39) || 'edumeetup'
 
     const response = await fetch(`${WHEREBY_API}/meetings`, {
         method: 'POST',
@@ -36,9 +46,10 @@ export async function createWherebyMeeting(
         },
         body: JSON.stringify({
             endDate: endDate.toISOString(),
+            roomMode: 'group',      // 'group' = host controls, breakout rooms, up to 200
+            roomNamePrefix,
+            roomNamePattern: 'uuid',
             fields: ['hostRoomUrl'],
-            roomMode: 'normal',        // 'normal' = up to 100 participants, 'group' = 200+
-            recording: { type: 'none' },
         }),
     })
 

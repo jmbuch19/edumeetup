@@ -663,6 +663,7 @@ model GroupSession {
   capacity        Int                @default(10)  // hard cap, max 10
   status          GroupSessionStatus @default(OPEN)
   joinUrl         String?
+  hostRoomUrl     String?            // Whereby host URL (university-only, has host controls)
   videoProvider   String?
   recapUrl        String?            // post-session recording/recap upload
   notifiedCount   Int                @default(0)   // how many students were notified

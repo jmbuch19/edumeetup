@@ -113,49 +113,135 @@ function FollowUpPrompt({ session, followUpDraftId, onDone }: {
 // ─── Start Meeting panel ──────────────────────────────────────────────────────
 
 function StartMeetingPanel({ sessionId, onDone }: { sessionId: string; onDone: () => void }) {
-    const [url, setUrl] = useState('')
+    const [mode, setMode] = useState<'choose' | 'custom'>('choose')
+    const [customUrl, setCustomUrl] = useState('')
     const [loading, setLoading] = useState(false)
+    const [hostLink, setHostLink] = useState<string | null>(null)
     const router = useRouter()
 
-    const handleStart = async () => {
-        if (!url) return
+    const handleStart = async (url?: string) => {
         setLoading(true)
         const res = await startGroupSession(sessionId, url)
         setLoading(false)
-        if (res.error) alert(res.error)
-        else {
-            alert(`Session is now LIVE! ${res.notified} student${res.notified !== 1 ? 's' : ''} notified with join link.`)
+
+        if (res.error) {
+            alert(res.error)
+            return
+        }
+
+        // Show host link if Whereby created the room (host gets elevated controls)
+        if (res.hostRoomUrl && res.hostRoomUrl !== url) {
+            setHostLink(res.hostRoomUrl)
+        } else {
+            alert(`Session is now LIVE! ${res.notified} student${res.notified !== 1 ? 's' : ''} notified.`)
             router.refresh()
             onDone()
         }
     }
 
+    // State: Whereby room created — show host link with copy + open
+    if (hostLink) {
+        return (
+            <div className="animate-in fade-in duration-300 mt-3 p-4 bg-green-50 border border-green-200 rounded-xl space-y-3">
+                <p className="text-sm font-bold text-green-900">🟢 Session is LIVE — students have been notified!</p>
+                <p className="text-xs text-green-700">
+                    Your <strong>host link</strong> below gives you elevated controls (mute, admit, record).
+                    Students received a separate join link automatically.
+                </p>
+                <div className="flex gap-2 items-center">
+                    <input
+                        readOnly
+                        value={hostLink}
+                        className="text-xs border border-green-300 rounded-md px-3 py-2 flex-1 bg-white font-mono select-all"
+                        onClick={e => (e.target as HTMLInputElement).select()}
+                    />
+                    <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white gap-1.5 whitespace-nowrap"
+                        onClick={() => { navigator.clipboard.writeText(hostLink); alert('Host link copied!') }}
+                    >
+                        Copy
+                    </Button>
+                    <a href={hostLink} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm" className="bg-primary hover:bg-primary/90 text-white gap-1.5 whitespace-nowrap">
+                            <Video className="h-3.5 w-3.5" /> Open
+                        </Button>
+                    </a>
+                </div>
+                <Button size="sm" variant="ghost" className="text-xs" onClick={() => { router.refresh(); onDone() }}>
+                    Done — close this panel
+                </Button>
+            </div>
+        )
+    }
+
     return (
-        <div className="animate-in slide-in-from-bottom-2 duration-300 mt-3 p-4 bg-green-50 border border-green-200 rounded-xl space-y-3">
-            <p className="text-sm font-semibold text-green-900">Paste your meeting link below</p>
-            <p className="text-xs text-green-700">
-                Works with any link — Google Meet, Zoom, Teams, Whereby, Jitsi etc.
-                Students will receive it by email and in their dashboard instantly.
-            </p>
-            <div className="flex gap-2 items-center">
-                <input
-                    type="url"
-                    placeholder="https://meet.google.com/xxx-xxxx-xxx"
-                    className="text-sm border border-green-300 rounded-md px-3 py-2 flex-1 focus:ring-2 focus:ring-green-500 outline-none bg-white"
-                    value={url}
-                    onChange={e => setUrl(e.target.value)}
-                    autoFocus
-                />
+        <div className="animate-in slide-in-from-bottom-2 duration-300 mt-3 p-4 bg-green-50 border border-green-200 rounded-xl space-y-4">
+            <p className="text-sm font-semibold text-green-900">How would you like to start the session?</p>
+
+            {/* Option 1: Whereby auto-create */}
+            <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                    className={`flex-1 text-left rounded-xl border-2 p-4 transition-all ${
+                        mode === 'choose'
+                            ? 'border-green-400 bg-green-100'
+                            : 'border-gray-200 bg-white hover:border-green-300'
+                    }`}
+                    onClick={() => setMode('choose')}
+                >
+                    <p className="text-sm font-bold text-gray-900">⚡ Use Whereby (recommended)</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                        One click — we create a room instantly. You get a host link with controls.
+                        Students get their join link automatically.
+                    </p>
+                </button>
+
+                {/* Option 2: BYO link */}
+                <button
+                    className={`flex-1 text-left rounded-xl border-2 p-4 transition-all ${
+                        mode === 'custom'
+                            ? 'border-blue-400 bg-blue-50'
+                            : 'border-gray-200 bg-white hover:border-blue-300'
+                    }`}
+                    onClick={() => setMode('custom')}
+                >
+                    <p className="text-sm font-bold text-gray-900">🔗 Use your own meeting link</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                        Paste a Zoom, Google Meet, Teams, or any other link.
+                        All students receive it instantly.
+                    </p>
+                </button>
+            </div>
+
+            {/* Custom URL input — only shown when 'custom' selected */}
+            {mode === 'custom' && (
+                <div className="flex gap-2 items-center animate-in fade-in duration-200">
+                    <input
+                        type="url"
+                        placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                        className="text-sm border border-blue-300 rounded-md px-3 py-2 flex-1 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                        value={customUrl}
+                        onChange={e => setCustomUrl(e.target.value)}
+                        autoFocus
+                    />
+                </div>
+            )}
+
+            {/* CTA */}
+            <div className="flex gap-2">
                 <Button
                     size="sm"
                     className="bg-green-600 hover:bg-green-700 text-white gap-1.5 whitespace-nowrap"
-                    disabled={!url || loading}
-                    onClick={handleStart}
+                    disabled={loading || (mode === 'custom' && !customUrl)}
+                    onClick={() => handleStart(mode === 'custom' ? customUrl : undefined)}
                 >
                     <Video className="h-3.5 w-3.5" />
-                    {loading ? 'Starting…' : 'Start Meeting →'}
+                    {loading
+                        ? (mode === 'choose' ? 'Creating room…' : 'Starting…')
+                        : 'Start Meeting Now →'
+                    }
                 </Button>
-                <Button size="sm" variant="ghost" onClick={onDone}>Cancel</Button>
+                <Button size="sm" variant="ghost" onClick={onDone} disabled={loading}>Cancel</Button>
             </div>
         </div>
     )
