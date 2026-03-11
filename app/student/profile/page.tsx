@@ -5,6 +5,7 @@ import { CvUpload } from '@/components/student/cv-upload'
 import { FIELD_CATEGORIES } from '@/lib/constants'
 import { redirect } from 'next/navigation'
 import ManageMyDataSection from '@/components/my-data/ManageMyDataSection'
+import { SocialProofBubble } from '@/components/student/SocialProofBubble'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,10 +70,19 @@ export default async function StudentProfilePage() {
 
     return (
         <div className="container mx-auto px-4 py-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">My Profile</h1>
-            <p className="text-muted-foreground mb-8 text-sm">
-                You control your profile. Update any field at any time — universities and advisors always see your latest version.
-            </p>
+            {/* Page heading */}
+            <div className="mb-8">
+                <h1
+                    style={{ color: 'oklch(37.9% 0.146 265.522)' }}
+                    className="text-3xl font-bold tracking-tight"
+                >
+                    My Profile
+                </h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                    You control your profile. Update any field at any time —&nbsp;
+                    universities and advisors always see your latest version.
+                </p>
+            </div>
             <div className="max-w-3xl mx-auto space-y-10">
                 {/* Quick access profile forms */}
                 <div className="space-y-6">
@@ -107,6 +117,9 @@ export default async function StudentProfilePage() {
                     />
                 )}
             </div>
+
+            {/* Floating social-proof bubble — real-time student count */}
+            <SocialProofBubble />
         </div>
     )
 }
