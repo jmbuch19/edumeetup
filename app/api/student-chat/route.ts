@@ -1,5 +1,6 @@
 // app/api/student-chat/route.ts
-// Student Advisor — Claude 3.5 Haiku (premium, authenticated students only)
+// Student Advisor — Claude Sonnet 4 (premium, authenticated students only)
+
 // - Hard auth: must be a logged-in STUDENT (not just any session)
 // - Profile fetched server-side by session.user.id — no cross-student leakage
 // - Cost guardrails: maxTokens 500 + 20 messages/day per student via Redis
@@ -170,7 +171,7 @@ export async function POST(req: NextRequest) {
 
             // ── 6. Stream — Claude 3.5 Haiku, 500 token cap ───────────────────────
             const result = streamText({
-                model: anthropic('claude-3-5-haiku-20241022'),
+                model: anthropic('claude-sonnet-4-20250514'),
                 system: systemPrompt,
                 messages,
                 maxOutputTokens: 500, // cost guardrail — ai@6 renamed from maxTokens
