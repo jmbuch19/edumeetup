@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { createSponsoredContent, deleteSponsoredContent, getSponsoredContent } from "./actions"
 import { Loader2, Trash2, ExternalLink } from "lucide-react"
+import { normalizeUrl } from "@/lib/url-utils"
 
 type SponsoredContent = {
     id: string
@@ -246,7 +247,7 @@ export function SponsoredContentManager() {
                                             </span>
                                         </div>
                                         <div className="text-xs text-muted-foreground mt-1">
-                                            <a href={item.targetUrl} target="_blank" rel="noreferrer" className="flex items-center hover:underline">
+                                            <a href={normalizeUrl(item.targetUrl)} target="_blank" rel="noreferrer" className="flex items-center hover:underline">
                                                 {item.targetUrl} <ExternalLink className="h-3 w-3 ml-1" />
                                             </a>
                                         </div>

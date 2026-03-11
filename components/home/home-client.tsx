@@ -9,6 +9,7 @@ import { HeroFeatures } from "@/components/hero-features";
 import { motion } from "framer-motion";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import Image from "next/image"
+import { normalizeUrl } from "@/lib/url-utils"
 
 type HeroSlide = {
     id: string
@@ -62,7 +63,7 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
                                                 <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight drop-shadow-lg">{slide.title}</h2>
                                                 <p className="text-lg md:text-2xl text-white/95 font-medium drop-shadow-md">{slide.partnerName}</p>
                                                 <Button asChild size="lg" className="mt-6 bg-white text-black hover:bg-white/90 border-0 h-12 px-8 text-base">
-                                                    <Link href={slide.targetUrl}>
+                                                    <Link href={normalizeUrl(slide.targetUrl)}>
                                                         {slide.sponsorType === 'UNIVERSITY' ? 'Explore Programs' : 'Learn More'}
                                                     </Link>
                                                 </Button>

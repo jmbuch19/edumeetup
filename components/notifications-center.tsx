@@ -12,6 +12,7 @@ import {
 } from "@/app/notifications/actions"
 import { Bell, Megaphone, ExternalLink, X } from "lucide-react"
 import { CampusFairInviteCard } from "@/components/university/CampusFairInviteCard"
+import { normalizeUrl } from "@/lib/url-utils"
 
 
 interface NotificationsCenterProps {
@@ -82,7 +83,7 @@ export function NotificationsCenter({ userRole, invitationByFairId, programs }: 
                         </div>
                     </div>
                     <Button size="sm" variant="outline" asChild>
-                        <a href={s.targetUrl} target="_blank" rel="noreferrer">
+                        <a href={normalizeUrl(s.targetUrl)} target="_blank" rel="noreferrer">
                             View <ExternalLink className="ml-2 h-3 w-3" />
                         </a>
                     </Button>
@@ -244,7 +245,7 @@ export function NotificationsCenter({ userRole, invitationByFairId, programs }: 
                                 <div className="text-xs font-semibold text-muted-foreground mb-1">Sponsored by {s.partnerName}</div>
                                 <h4 className="font-bold mb-2">{s.title}</h4>
                                 <Button className="w-full" variant="outline" asChild>
-                                    <a href={s.targetUrl} target="_blank" rel="noreferrer">
+                                    <a href={normalizeUrl(s.targetUrl)} target="_blank" rel="noreferrer">
                                         Learn More <ExternalLink className="ml-2 h-3 w-3" />
                                     </a>
                                 </Button>
