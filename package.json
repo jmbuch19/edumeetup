@@ -10,7 +10,7 @@
     "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.44",
+    "@ai-sdk/anthropic": "^3.0.58",
     "@ai-sdk/google": "^3.0.29",
     "@ai-sdk/groq": "^3.0.29",
     "@ai-sdk/openai": "^3.0.29",

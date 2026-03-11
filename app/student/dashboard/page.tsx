@@ -3,6 +3,8 @@ import { FIELD_CATEGORIES } from '@/lib/constants'
 import { requireUser } from '@/lib/auth'
 import { DashboardUI } from '@/components/student/dashboard-ui'
 import { getStudentAdvisoryStatus } from '@/app/actions/advisory-actions'
+import { StudentAdvisor } from '@/components/chat/student-advisor'
+
 
 
 export const dynamic = 'force-dynamic'
@@ -99,14 +101,18 @@ export default async function StudentDashboard() {
     const interestedUniIds = interests.map(i => i.universityId)
 
     return (
-        <DashboardUI
-            student={JSON.parse(JSON.stringify(student))}
-            matchedPrograms={JSON.parse(JSON.stringify(programs))}
-            recommendedUniversities={JSON.parse(JSON.stringify(universities))}
-            myMeetings={JSON.parse(JSON.stringify(meetings))}
-            interestedUniIds={interestedUniIds}
-            advisoryStatus={JSON.parse(JSON.stringify(advisory))}
-            hasCv={!!student.cvFileName}
-        />
+        <>
+            <DashboardUI
+                student={JSON.parse(JSON.stringify(student))}
+                matchedPrograms={JSON.parse(JSON.stringify(programs))}
+                recommendedUniversities={JSON.parse(JSON.stringify(universities))}
+                myMeetings={JSON.parse(JSON.stringify(meetings))}
+                interestedUniIds={interestedUniIds}
+                advisoryStatus={JSON.parse(JSON.stringify(advisory))}
+                hasCv={!!student.cvFileName}
+            />
+            {/* Student-only AI advisor — bottom-left, teal, distinct from public AdmissionsChat */}
+            <StudentAdvisor studentName={student.fullName} />
+        </>
     )
 }
