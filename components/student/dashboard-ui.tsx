@@ -12,6 +12,8 @@ import { AdvisoryForm } from '@/components/student/advisory-form'
 import { expressInterest } from '@/app/actions'
 import { NotificationsCenter } from '@/components/notifications-center'
 import { UniversityLogo } from '@/components/university/university-logo'
+import GroupSessionList from '@/components/student/GroupSessionCard'
+import { type StudentGroupSession } from '@/app/university/actions/group-sessions'
 
 // Types
 // Types
@@ -35,6 +37,7 @@ interface DashboardUIProps {
     interestedUniIds: string[] // Changed from Set to Array for serialization
     advisoryStatus: any // Serialized AdvisoryRequest
     hasCv: boolean
+    groupSessions: StudentGroupSession[]
 }
 
 export function DashboardUI({
@@ -44,7 +47,8 @@ export function DashboardUI({
     myMeetings,
     interestedUniIds, // Now an Array
     advisoryStatus,
-    hasCv
+    hasCv,
+    groupSessions,
 }: DashboardUIProps) {
     // Re-create Set for internal use if needed, or just use includes
     const interestedSet = new Set(interestedUniIds)
@@ -85,6 +89,12 @@ export function DashboardUI({
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
                 <TabsList className="bg-gray-100 p-1 h-auto flex-wrap justify-start">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="group-sessions" className="relative">
+                        Group Sessions
+                        {groupSessions.filter(s => !['COMPLETED', 'CANCELLED'].includes(s.session.status)).length > 0 && (
+                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full border-2 border-white" />
+                        )}
+                    </TabsTrigger>
                     <TabsTrigger value="advisory" className="relative">
                         Guided Pathway
                         {advisoryStatus && advisoryStatus.status === 'NEW' && (
@@ -256,6 +266,17 @@ export function DashboardUI({
                                 ))}
                             </div>
                         )}
+                    </div>
+                </TabsContent>
+
+                {/* ── Group Sessions tab ── */}
+                <TabsContent value="group-sessions" className="space-y-4">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-1">Group Info Sessions</h2>
+                        <p className="text-sm text-muted-foreground mb-6">
+                            Universities invite matched students to small group sessions — meet admissions teams, ask questions live, and reserve your seat.
+                        </p>
+                        <GroupSessionList seats={groupSessions} />
                     </div>
                 </TabsContent>
 
