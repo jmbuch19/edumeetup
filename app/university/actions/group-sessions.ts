@@ -453,7 +453,84 @@ export async function publishFollowUpDraft(
     return { success: true }
 }
 
-// ─── 6. shareRecap ────────────────────────────────────────────────────────────
+// ─── 6. startGroupSession ─────────────────────────────────────────────────────
+//   Sets join URL (Zoom/Meet/custom), flips to LIVE, notifies confirmed students
+
+export async function startGroupSession(
+    sessionId: string,
+    joinUrl: string,
+): Promise<{ success?: boolean; notified?: number; error?: string }> {
+    const { error, uni } = await requireUniversity()
+    if (error || !uni) return { error: error ?? 'Unauthorized' }
+
+    if (!joinUrl.startsWith('http')) return { error: 'Please provide a valid meeting URL (must start with http)' }
+
+    const gs = await prisma.groupSession.findUnique({
+        where: { id: sessionId },
+        select: {
+            id: true, universityId: true, title: true, scheduledAt: true, status: true,
+            seats: {
+                where: { status: 'CONFIRMED' },
+                include: { student: { select: { id: true, fullName: true, user: { select: { email: true } } } } },
+            },
+        },
+    })
+
+    if (!gs || gs.universityId !== uni.id) return { error: 'Session not found' }
+    if (gs.status === 'COMPLETED' || gs.status === 'CANCELLED') {
+        return { error: 'This session has already ended' }
+    }
+
+    // Set join URL + mark session LIVE
+    await prisma.groupSession.update({
+        where: { id: sessionId },
+        data: { joinUrl, status: 'LIVE' },
+    })
+
+    const dateStr = new Date(gs.scheduledAt).toLocaleString('en-IN', {
+        weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata',
+    }) + ' IST'
+
+    // Notify all confirmed students
+    await Promise.all(gs.seats.map(async (seat) => {
+        const firstName = seat.student.fullName?.split(' ')[0] || 'there'
+
+        await prisma.studentNotification.create({
+            data: {
+                studentId: seat.student.id,
+                title: `🟢 ${uni.institutionName} session is Live now!`,
+                message: `Your group session "${gs.title}" has started. Click to join now.`,
+                type: 'SUCCESS',
+                actionUrl: joinUrl,
+            },
+        })
+
+        await sendEmail({
+            to: seat.student.user.email,
+            subject: `🟢 ${uni.institutionName}'s session is live — join now`,
+            html: generateEmailHtml('Your Session is Starting Now!', `
+                <p>Hi ${firstName},</p>
+                <p>Your group info session with <strong>${uni.institutionName}</strong> is starting right now!</p>
+                <div class="info-box">
+                    <div class="info-row"><span class="info-label">Session:</span> <span>${gs.title}</span></div>
+                    <div class="info-row"><span class="info-label">When:</span> <span>${dateStr}</span></div>
+                </div>
+                <p style="text-align:center;margin-top:24px;">
+                    <a href="${joinUrl}" class="btn">Join the Session Now →</a>
+                </p>
+                <p style="font-size:12px;color:#94a3b8;">Link opens your meeting directly. This link is personal — please don't share it.</p>
+            `),
+        })
+    }))
+
+    revalidatePath('/university/dashboard')
+    revalidatePath('/university/group-sessions')
+    revalidatePath('/student/dashboard')
+
+    return { success: true, notified: gs.seats.length }
+}
+
+// ─── 7. shareRecap ────────────────────────────────────────────────────────────
 
 export async function shareRecap(
     sessionId: string,

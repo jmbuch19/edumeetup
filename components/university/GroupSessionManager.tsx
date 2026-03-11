@@ -9,7 +9,7 @@ import {
     Send, BarChart2, Bell, Share2, Plus, AlertTriangle
 } from 'lucide-react'
 import {
-    notifyMatchedStudents, publishFollowUpDraft, shareRecap,
+    notifyMatchedStudents, publishFollowUpDraft, shareRecap, startGroupSession,
     type GroupSessionWithStats
 } from '@/app/university/actions/group-sessions'
 import { useRouter } from 'next/navigation'
@@ -110,7 +110,58 @@ function FollowUpPrompt({ session, followUpDraftId, onDone }: {
     )
 }
 
-// ─── Share recap modal ────────────────────────────────────────────────────────
+// ─── Start Meeting panel ──────────────────────────────────────────────────────
+
+function StartMeetingPanel({ sessionId, onDone }: { sessionId: string; onDone: () => void }) {
+    const [url, setUrl] = useState('')
+    const [loading, setLoading] = useState(false)
+    const router = useRouter()
+
+    const handleStart = async () => {
+        if (!url) return
+        setLoading(true)
+        const res = await startGroupSession(sessionId, url)
+        setLoading(false)
+        if (res.error) alert(res.error)
+        else {
+            alert(`Session is now LIVE! ${res.notified} student${res.notified !== 1 ? 's' : ''} notified with join link.`)
+            router.refresh()
+            onDone()
+        }
+    }
+
+    return (
+        <div className="animate-in slide-in-from-bottom-2 duration-300 mt-3 p-4 bg-green-50 border border-green-200 rounded-xl space-y-3">
+            <p className="text-sm font-semibold text-green-900">Paste your meeting link below</p>
+            <p className="text-xs text-green-700">
+                Works with any link — Google Meet, Zoom, Teams, Whereby, Jitsi etc.
+                Students will receive it by email and in their dashboard instantly.
+            </p>
+            <div className="flex gap-2 items-center">
+                <input
+                    type="url"
+                    placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                    className="text-sm border border-green-300 rounded-md px-3 py-2 flex-1 focus:ring-2 focus:ring-green-500 outline-none bg-white"
+                    value={url}
+                    onChange={e => setUrl(e.target.value)}
+                    autoFocus
+                />
+                <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 text-white gap-1.5 whitespace-nowrap"
+                    disabled={!url || loading}
+                    onClick={handleStart}
+                >
+                    <Video className="h-3.5 w-3.5" />
+                    {loading ? 'Starting…' : 'Start Meeting →'}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={onDone}>Cancel</Button>
+            </div>
+        </div>
+    )
+}
+
+
 
 function ShareRecapPanel({ sessionId, onDone }: { sessionId: string; onDone: () => void }) {
     const [url, setUrl] = useState('')
@@ -151,6 +202,7 @@ function SessionCard({ session }: { session: GroupSessionWithStats }) {
     const [expanded, setExpanded] = useState(false)
     const [notifying, setNotifying] = useState(false)
     const [showRecap, setShowRecap] = useState(false)
+    const [showStartPanel, setShowStartPanel] = useState(false)
 
     const handleNotify = async () => {
         setNotifying(true)
@@ -163,6 +215,8 @@ function SessionCard({ session }: { session: GroupSessionWithStats }) {
     const isFull = session.status === 'FULL'
     const isCompleted = session.status === 'COMPLETED'
     const isDraft = session.status === 'DRAFT'
+    const isLive = session.status === 'LIVE'
+    const canStart = ['OPEN', 'FILLING', 'FULL'].includes(session.status)
 
     return (
         <Card className="overflow-hidden hover:shadow-md transition-shadow border-l-4 border-l-primary/40">
@@ -229,11 +283,33 @@ function SessionCard({ session }: { session: GroupSessionWithStats }) {
 
                     {/* Actions */}
                     <div className="flex flex-wrap gap-2">
-                        {!isDraft && !isFull && !isCompleted && (
+                        {!isDraft && !isFull && !isCompleted && !isLive && (
                             <Button size="sm" variant="outline" className="gap-1.5" disabled={notifying} onClick={handleNotify}>
                                 <Send className="h-3.5 w-3.5" />
                                 {notifying ? 'Notifying…' : 'Notify Matched Students'}
                             </Button>
+                        )}
+
+                        {/* Start Meeting CTA — shown when not yet LIVE */}
+                        {canStart && (
+                            <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
+                                onClick={() => setShowStartPanel(prev => !prev)}
+                            >
+                                <Video className="h-3.5 w-3.5" />
+                                {showStartPanel ? 'Cancel' : 'Start Meeting'}
+                            </Button>
+                        )}
+
+                        {/* Join session — shown when LIVE */}
+                        {isLive && session.joinUrl && (
+                            <a href={session.joinUrl} target="_blank" rel="noopener noreferrer">
+                                <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white gap-1.5 animate-pulse">
+                                    <Video className="h-3.5 w-3.5" />
+                                    🟢 Join Live Session
+                                </Button>
+                            </a>
                         )}
 
                         {isFull && session.waitlistedCount > 0 && (
@@ -241,15 +317,6 @@ function SessionCard({ session }: { session: GroupSessionWithStats }) {
                                 <AlertTriangle className="h-3.5 w-3.5" />
                                 {session.waitlistedCount} couldn&apos;t get in
                             </span>
-                        )}
-
-                        {session.status === 'CONFIRMED' && session.joinUrl && (
-                            <a href={session.joinUrl} target="_blank" rel="noopener noreferrer">
-                                <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white gap-1.5">
-                                    <Video className="h-3.5 w-3.5" />
-                                    Join Now
-                                </Button>
-                            </a>
                         )}
 
                         {isCompleted && !session.recapUrl && (
@@ -267,6 +334,11 @@ function SessionCard({ session }: { session: GroupSessionWithStats }) {
                             </a>
                         )}
                     </div>
+
+                    {/* Start Meeting input panel */}
+                    {showStartPanel && !isLive && (
+                        <StartMeetingPanel sessionId={session.id} onDone={() => setShowStartPanel(false)} />
+                    )}
 
                     {showRecap && (
                         <ShareRecapPanel sessionId={session.id} onDone={() => setShowRecap(false)} />
