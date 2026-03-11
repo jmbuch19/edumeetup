@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 
-import { Inter } from "next/font/google";
+import { Inter, Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -13,7 +13,18 @@ import { SentryUserProvider } from "@/components/sentry-user-provider";
 import { WatiWidget } from "@/components/layout/wati-widget";
 
 
-const inter = Inter({ subsets: ["latin"] }); // id: 7
+const inter = Inter({ subsets: ["latin"] });
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  axes: ["opsz"],
+  variable: "--font-fraunces",
+  display: "swap",
+})
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+  display: "swap",
+})
 
 export const metadata: Metadata = {
   title: "EdUmeetup",
@@ -47,7 +58,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${inter.className} overflow-x-hidden`}>
+      <body className={`${inter.className} ${fraunces.variable} ${plusJakarta.variable} overflow-x-hidden`}>
         <ThemeProvider>
           {/*
             PublicShell is a 'use client' component that reads usePathname().
