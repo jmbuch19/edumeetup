@@ -51,6 +51,8 @@
 #   CRON_SECRET           Random secret shared with the process-deletions function
 #   SUPPORT_EMAIL         support@edumeetup.com  ← used in deletion confirmation emails and server-side error messages
 #   NEXT_PUBLIC_SUPPORT_EMAIL support@edumeetup.com  ← same address, exposed to client error/auth pages
+#   ANTHROPIC_API_KEY     Claude Sonnet 4 API key — required for /student/dashboard AI advisor widget
+
 #
 # ⚠️  REQUIRED: DIRECT_URL — Neon direct (non-pooled) connection string — required for Prisma migrate deploy (runs in build command)
 #

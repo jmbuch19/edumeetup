@@ -169,7 +169,8 @@ export async function POST(req: NextRequest) {
             // ── 5. Build system prompt with live profile ───────────────────────────
             const systemPrompt = buildSystemPrompt(studentProfile)
 
-            // ── 6. Stream — Claude 3.5 Haiku, 500 token cap ───────────────────────
+            // ── 6. Stream — Claude Sonnet 4, 500 token cap ────────────────────────
+
             const result = streamText({
                 model: anthropic('claude-sonnet-4-20250514'),
                 system: systemPrompt,
