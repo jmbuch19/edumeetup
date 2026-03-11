@@ -71,7 +71,8 @@ export default async function RootLayout({
           <Toaster richColors position="top-center" />
         </ThemeProvider>
 
-        <WatiWidget />
+        {/* WhatsApp widget — public visitors only, hidden inside all dashboards */}
+        {!session && <WatiWidget />}
       </body>
     </html>
   );
