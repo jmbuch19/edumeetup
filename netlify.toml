@@ -28,6 +28,10 @@
 [functions."fair-fast-agent"]
   schedule = "*/15 * * * *"
 
+# Every 15 min — group session reminders (24h and 30min before)
+[functions."session-reminders"]
+  schedule = "*/15 * * * *"
+
 # ─── Required Environment Variables ─────────────────────────────────────────
 # Set all of the following in the Netlify dashboard → Site Settings → Env vars:
 #

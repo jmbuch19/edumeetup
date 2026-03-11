@@ -668,6 +668,8 @@ model GroupSession {
   recapUrl        String?            // post-session recording/recap upload
   notifiedCount   Int                @default(0)   // how many students were notified
   followUpDraftId String?            // auto-created when status = FULL
+  reminder24hSent Boolean            @default(false) // day-before reminder sent
+  reminder30mSent Boolean            @default(false) // 30-min reminder sent
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 
