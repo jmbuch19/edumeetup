@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { MessageCircle, X, Send, Loader2, GraduationCap, Minimize2, Maximize2 } from 'lucide-react'
+import { X, Send, Loader2, GraduationCap, Minimize2, Maximize2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { saveAdvisorHistory, loadAdvisorHistory } from '@/app/actions/advisor-history'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -21,26 +22,73 @@ const SUGGESTED = [
     'How does the visa process work?',
 ]
 
+function isToday(isoDate: string): boolean {
+    const saved = new Date(isoDate)
+    const now = new Date()
+    return saved.toDateString() === now.toDateString()
+}
+
+function extractLastTopic(messages: Message[]): string {
+    const lastUser = [...messages].reverse().find(m => m.role === 'user')
+    if (!lastUser) return 'your study abroad plans'
+    const words = lastUser.content.trim().split(/\s+/).slice(0, 8).join(' ')
+    return words.length > 0 ? `"${words}${lastUser.content.split(' ').length > 8 ? '…' : ''}"` : 'your study abroad plans'
+}
+
 export function StudentAdvisor({ studentName }: StudentAdvisorProps) {
     const firstName = studentName?.split(' ')[0] || 'there'
 
     const [open, setOpen] = useState(false)
     const [expanded, setExpanded] = useState(false)
-    const [messages, setMessages] = useState<Message[]>([
-        {
-            role: 'assistant',
-            content: `Hi ${firstName}! 👋 I'm your personal Study Abroad Advisor.\n\nI have your EdUmeetup profile and can help you with anything — university options, visa steps, SOPs, scholarships, test prep, or comparing countries.\n\nWhat's on your mind?`,
-        }
-    ])
+    const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const [loading, setLoading] = useState(false)
     const [dailyLimitHit, setDailyLimitHit] = useState(false)
+    const [historyLoaded, setHistoryLoaded] = useState(false)
+
+    // Previous session messages — injected as context into API but not shown in UI
+    const hiddenContext = useRef<Message[]>([])
 
     const bottomRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages])
+
+    // Load history the first time the chat panel is opened
+    useEffect(() => {
+        if (!open || historyLoaded) return
+        setHistoryLoaded(true)
+
+        loadAdvisorHistory().then(history => {
+            if (!history || history.messages.length === 0) {
+                setMessages([{
+                    role: 'assistant',
+                    content: `Hi ${firstName}! 👋 I'm your personal Study Abroad Advisor.\n\nI have your EdUmeetup profile and can help you with anything — university options, visa steps, SOPs, scholarships, test prep, or comparing countries.\n\nWhat's on your mind?`,
+                }])
+                return
+            }
+
+            if (isToday(history.savedAt)) {
+                // Same day — restore the conversation
+                hiddenContext.current = []
+                setMessages(history.messages)
+            } else {
+                // New day — inject history silently, show friendly welcome-back
+                hiddenContext.current = history.messages
+                const lastTopic = extractLastTopic(history.messages)
+                setMessages([{
+                    role: 'assistant',
+                    content: `Welcome back, ${firstName}! 👋\n\nLast time we were exploring ${lastTopic}.\n\nShould we pick up where we left off, or is there something new on your mind today?`,
+                }])
+            }
+        }).catch(() => {
+            setMessages([{
+                role: 'assistant',
+                content: `Hi ${firstName}! 👋 I'm your personal Study Abroad Advisor. What would you like to explore today?`,
+            }])
+        })
+    }, [open, historyLoaded, firstName])
 
     const sendMessage = useCallback(async (e?: React.FormEvent) => {
         e?.preventDefault()
@@ -53,20 +101,26 @@ export function StudentAdvisor({ studentName }: StudentAdvisorProps) {
         setInput('')
         setLoading(true)
 
+        // Combine hidden context (previous day) + current visible messages for Claude
+        const contextMessages = [...hiddenContext.current, ...updated].map(m => ({
+            role: m.role,
+            content: m.content,
+        }))
+
         try {
             const res = await fetch('/api/student-chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    messages: updated.map(m => ({ role: m.role, content: m.content })),
-                }),
+                body: JSON.stringify({ messages: contextMessages }),
             })
 
-            // Daily limit hit
             if (res.status === 429) {
                 const data = await res.json()
                 setDailyLimitHit(true)
-                setMessages(prev => [...prev, { role: 'assistant', content: data.message || "You've reached your daily limit of 20 messages. See you tomorrow! 😊" }])
+                setMessages(prev => [...prev, {
+                    role: 'assistant',
+                    content: data.message || "You've reached your daily limit of 20 messages. See you tomorrow! 😊"
+                }])
                 setLoading(false)
                 return
             }
@@ -77,7 +131,7 @@ export function StudentAdvisor({ studentName }: StudentAdvisorProps) {
                 return
             }
 
-            // Streaming response
+            // Stream the response
             setMessages(prev => [...prev, { role: 'assistant', content: '' }])
             setLoading(false)
 
@@ -114,6 +168,13 @@ export function StudentAdvisor({ studentName }: StudentAdvisorProps) {
                 }
             }
 
+            // Save updated conversation to DB after each exchange (fire & forget)
+            setMessages(prev => {
+                const toSave = prev.filter(m => m.content.trim())
+                saveAdvisorHistory(toSave).catch(() => { /* non-fatal */ })
+                return prev
+            })
+
         } catch {
             setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Connection issue. Please check your internet and try again.' }])
             setLoading(false)
@@ -122,7 +183,6 @@ export function StudentAdvisor({ studentName }: StudentAdvisorProps) {
 
     return (
         <>
-            {/* Trigger button — bottom-left, teal, above any nav */}
             {!open && (
                 <button
                     onClick={() => setOpen(true)}
@@ -135,16 +195,15 @@ export function StudentAdvisor({ studentName }: StudentAdvisorProps) {
                 </button>
             )}
 
-            {/* Chat panel */}
             {open && (
                 <div
-                    className={`fixed bottom-6 left-6 z-50 flex flex-col rounded-2xl shadow-2xl border border-teal-100 overflow-hidden transition-[width,height] duration-200 ${expanded
+                    className={`fixed bottom-6 left-6 z-50 flex flex-col rounded-2xl shadow-2xl border border-teal-100 overflow-hidden transition-[width,height] duration-200 ${
+                        expanded
                             ? 'w-[min(680px,calc(100vw-48px))] h-[min(75vh,720px)]'
                             : 'w-[380px] max-w-[calc(100vw-24px)] h-[560px] max-h-[calc(100vh-80px)]'
-                        }`}
+                    }`}
                     style={{ background: '#f0fdfa' }}
                 >
-                    {/* Header */}
                     <div
                         className="px-4 py-3 flex items-center justify-between flex-shrink-0"
                         style={{ background: 'linear-gradient(135deg, #0d9488, #0f766e)' }}
@@ -176,15 +235,15 @@ export function StudentAdvisor({ studentName }: StudentAdvisorProps) {
                         </div>
                     </div>
 
-                    {/* Messages */}
                     <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3" style={{ background: '#f0fdfa' }}>
                         {messages.map((msg, i) => (
                             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div
-                                    className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap leading-relaxed ${msg.role === 'user'
+                                    className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap leading-relaxed ${
+                                        msg.role === 'user'
                                             ? 'text-white rounded-br-sm'
                                             : 'bg-white text-gray-800 shadow-sm border border-teal-100 rounded-bl-sm'
-                                        }`}
+                                    }`}
                                     style={msg.role === 'user' ? { background: '#0d9488' } : {}}
                                 >
                                     {msg.content}
@@ -200,7 +259,6 @@ export function StudentAdvisor({ studentName }: StudentAdvisorProps) {
                             </div>
                         )}
 
-                        {/* Quick suggestions on first message */}
                         {messages.length === 1 && (
                             <div className="flex flex-wrap gap-2 pt-1">
                                 {SUGGESTED.map(s => (
@@ -219,7 +277,6 @@ export function StudentAdvisor({ studentName }: StudentAdvisorProps) {
                         <div ref={bottomRef} />
                     </div>
 
-                    {/* Input */}
                     <form
                         onSubmit={sendMessage}
                         className="px-3 py-3 flex gap-2 flex-shrink-0 border-t border-teal-100 bg-white"
@@ -243,7 +300,7 @@ export function StudentAdvisor({ studentName }: StudentAdvisorProps) {
                     </form>
 
                     <p className="text-center text-[10px] text-teal-400 pb-1.5 bg-white">
-                        20 messages/day · Personal to your profile
+                        20 messages/day · Remembers your previous sessions
                     </p>
                 </div>
             )}

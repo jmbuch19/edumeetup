@@ -127,6 +127,7 @@ model Student {
   cvSizeBytes        Int?
   notificationPrefs  Json?
   lastSeenAt         DateTime?             // updated on each student login
+  advisorChatHistory Json?                 // persists last session messages for cross-day context
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
   advisoryRequests   AdvisoryRequest[]
