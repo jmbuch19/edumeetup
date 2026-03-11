@@ -1779,10 +1779,12 @@ export async function updateMeetingStatus(
         if (status === 'CONFIRMED' && !finalJoinUrl) {
             try {
                 const { createWherebyMeeting } = await import('@/lib/whereby')
-                const room = await createWherebyMeeting(
-                    new Date(mtg.startTime),
-                    new Date(mtg.endTime)
+                // Calculate duration from start/end times
+                const durationMinutes = Math.round(
+                    (new Date(mtg.endTime).getTime() - new Date(mtg.startTime).getTime()) / 60000
                 )
+                const sessionTitle = (mtg as any).title || 'edumeetup-session'
+                const room = await createWherebyMeeting(sessionTitle, durationMinutes)
                 finalJoinUrl = room.roomUrl
                 finalHostRoomUrl = room.hostRoomUrl
             } catch (wherebyErr) {
