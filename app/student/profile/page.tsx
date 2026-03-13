@@ -84,26 +84,6 @@ export default async function StudentProfilePage() {
                 </p>
             </div>
             <div className="max-w-3xl mx-auto space-y-10">
-                {/* Quick access profile forms */}
-                <div className="space-y-6">
-                    <ProfileForm
-                        initialData={{
-                            ...student,
-                            fullName: student.fullName ?? user.name ?? null,
-                            phoneNumber: student.phone
-                        }}
-                        fieldCategories={fieldCategories}
-                        logCount={student._count.changeLogs}
-                    />
-                    <CvUpload
-                        studentId={student.id}
-                        initialCvUrl={student.cvUrl}
-                        initialFileName={student.cvFileName}
-                        initialUploadedAt={student.cvUploadedAt}
-                        initialSizeBytes={student.cvSizeBytes}
-                    />
-                </div>
-
                 {/* GDPR: Manage My Data */}
                 {userData && (
                     <ManageMyDataSection
