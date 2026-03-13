@@ -48,7 +48,7 @@ export interface UniversitySettings {
   rankingQS?: number | null
   rankingTHE?: number | null
   indianStudentTarget?: string | null
-  programTags: string[]
+  programs: string[]
   intakeMonths: string[]
   defaultDuration: number
   dailyCapPerRep: number
@@ -224,7 +224,7 @@ export default function SettingsForm({ settings }: { settings: UniversitySetting
         fd.append('accreditation', data.accreditation || '')
         if (data.rankingQS != null) fd.append('rankingQS', String(data.rankingQS))
         if (data.rankingTHE != null) fd.append('rankingTHE', String(data.rankingTHE))
-        data.programTags.forEach(p => fd.append('programTags', p))
+        data.programs.forEach(p => fd.append('programs', p))
         data.intakeMonths.forEach(m => fd.append('intakeMonths', m))
         fd.append('indianStudentTarget', data.indianStudentTarget || '')
         fd.append('wherebyApiKey', data.wherebyApiKey || '')
@@ -496,7 +496,7 @@ export default function SettingsForm({ settings }: { settings: UniversitySetting
             <Field label="Programs Offered" sub="Select all that you actively recruit Indian students for.">
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {PROGRAMS_PRESET.map(p => (
-                  <Chip key={p} label={p} active={data.programTags.includes(p)} onClick={() => toggleArr('programTags', p)} />
+                  <Chip key={p} label={p} active={data.programs.includes(p)} onClick={() => toggleArr('programs', p)} />
                 ))}
               </div>
             </Field>

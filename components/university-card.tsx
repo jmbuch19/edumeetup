@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 
 // Use a type that matches what the search action returns
 type UniversityWithPrograms = University & {
-    programs: { fieldCategory?: unknown, programName?: unknown, degreeLevel?: unknown }[]
+    programList: { fieldCategory?: unknown, programName?: unknown, degreeLevel?: unknown }[]
 }
 
 interface UniversityCardProps {
@@ -68,12 +68,12 @@ export function UniversityCard({ university, userRole }: UniversityCardProps) {
                     {/* Preview Content */}
                     <div className="space-y-2 mb-6 flex-1">
                         <div className="text-sm text-foreground/80">
-                            <span className="font-medium text-foreground">{university.programs?.length || 0}</span> Programs Available
+                            <span className="font-medium text-foreground">{university.programList?.length || 0}</span> Programs Available
                         </div>
-                        {isHovered && university.programs && university.programs.length > 0 && (
+                        {isHovered && university.programList && university.programList.length > 0 && (
                             <div className="mt-2 text-xs text-muted-foreground space-y-1 animate-in fade-in duration-300">
                                 <p className="font-semibold text-primary/80 uppercase tracking-wider text-[10px]">Top Programs</p>
-                                {university.programs.slice(0, 3).map((prog: any, i: number) => (
+                                {university.programList.slice(0, 3).map((prog: any, i: number) => (
                                     <div key={i} className="flex items-center gap-1">
                                         <div className="w-1 h-1 rounded-full bg-primary/50" />
                                         <span className="truncate">{prog.programName || 'Program'}</span>

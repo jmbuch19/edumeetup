@@ -44,7 +44,7 @@ export default async function UniversitySettingsPage() {
       rankingTHE: true,
       indianStudentTarget: true,
       // Programs & intake
-      programTags: true,
+      programs: true,
       intakeMonths: true,
       // Meeting rules
       defaultDuration: true,
@@ -90,7 +90,7 @@ export default async function UniversitySettingsPage() {
         rankingQS:               university.rankingQS,
         rankingTHE:              university.rankingTHE,
         indianStudentTarget:     university.indianStudentTarget,
-        programTags:             university.programTags,
+        programs:                 university.programs,
         intakeMonths:            university.intakeMonths,
         defaultDuration:         university.defaultDuration,
         dailyCapPerRep:          university.dailyCapPerRep,

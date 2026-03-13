@@ -130,7 +130,7 @@ export async function processQRScan(
         // ── 4. Fetch university + programs for matching ───────────────────────
         const university = await prisma.university.findUnique({
             where: { id: universityId },
-            include: { programs: { where: { status: 'ACTIVE' } } },
+            include: { programList: { where: { status: 'ACTIVE' } } },
         })
 
         if (!university) {
@@ -140,7 +140,7 @@ export async function processQRScan(
 
         // Match programs by fieldOfInterest (simple substring check)
         const interestLower = (pass.fieldOfInterest ?? '').toLowerCase()
-        const matchedPrograms = university.programs.filter((p) => {
+        const matchedPrograms = university.programList.filter((p) => {
             if (!interestLower) return true // no filter — include all
             return (
                 p.fieldCategory.toLowerCase().includes(interestLower) ||

@@ -161,7 +161,7 @@ model University {
   id                      String                   @id @default(cuid())
   userId                  String                   @unique
   institutionName         String
-  country                 String
+  country                 String?
   city                    String?
   website                 String?
   accreditationNo         String?
@@ -179,13 +179,13 @@ model University {
   totalStudents           Int?
   internationalStudents   Int?
   // ── Partner Profile Fields ─────────────────────────────────────────
-  timezone                String?                  // e.g. "Europe/London"
+  timezone                String?   @default("UTC") // e.g. "Europe/London"
   linkedin                String?                  // LinkedIn school page URL
   universityType          String?                  // Public / Private / Research etc.
   accreditation           String?                  // e.g. "AACSB, EQUIS, NAAC A+"
-  rankingQS               Int?                     // QS World Ranking
-  rankingTHE              Int?                     // Times Higher Education Ranking
-  programTags             String[]   @default([])  // offered program tags for matching
+  rankingQS               String?                  // QS World Ranking (String to allow ranges/labels)
+  rankingTHE              String?                  // Times Higher Education Ranking
+  programs                String[]   @default([])  // offered program tags (scalar — see Program relation below)
   intakeMonths            String[]   @default([])  // e.g. ["September","January"]
   indianStudentTarget     String?                  // e.g. "100–200"
   wherebyApiKey           String?                  // university's own Whereby API key
@@ -259,7 +259,7 @@ model University {
   hostOutreach            HostRequestOutreach[]
   interests               Interest[]
   meetings                Meeting[]
-  programs                Program[]
+  programList             Program[]
   sponsoredContent        SponsoredContent[]
   user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   documents               UniversityDocument[]
