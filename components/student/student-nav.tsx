@@ -46,7 +46,7 @@ function NavContent({ userName, senderEmail, city, onClose }: StudentNavProps & 
             {/* Logo */}
             <div className="flex items-center gap-3 px-6 py-5 border-b" style={{ borderColor: 'var(--navy-mid)' }}>
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: '#3B3FCC' }}>
+                    style={{ background: 'var(--navy-mid)' }}>
                     <GraduationCap className="h-5 w-5 text-white" />
                 </div>
                 <div>
@@ -73,11 +73,11 @@ function NavContent({ userName, senderEmail, city, onClose }: StudentNavProps & 
                         <Link key={item.href} href={item.href} onClick={onClose}
                             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 relative"
                             style={{
-                                color: active ? 'var(--teal-light)' : 'rgba(255,255,255,0.65)',
-                                background: active ? 'rgba(13,148,136,0.18)' : 'transparent',
+                                color: active ? 'var(--gold)' : 'rgba(255,255,255,0.65)',
+                                background: active ? 'rgba(212,168,67,0.18)' : 'transparent',
                             }}>
                             {active && (
-                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-3/5 rounded-r-sm" style={{ background: 'var(--teal-light)' }} />
+                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-3/5 rounded-r-sm" style={{ background: 'var(--gold)' }} />
                             )}
                             <span className="opacity-80">{item.icon}</span>
                             {item.label}
@@ -154,7 +154,7 @@ function NavContent({ userName, senderEmail, city, onClose }: StudentNavProps & 
                     aria-expanded={popoverOpen}
                 >
                     <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white border-2"
-                        style={{ background: 'linear-gradient(135deg, var(--teal), var(--navy-mid))', borderColor: 'var(--teal)' }}>
+                        style={{ background: 'linear-gradient(135deg, var(--gold), var(--navy-mid))', borderColor: 'var(--gold)' }}>
                         {(userName ?? 'S').charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">

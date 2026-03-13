@@ -4,23 +4,24 @@
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Brand colours */
-  --navy:        #0F2044;
-  --navy-mid:    #1E3A6E;
-  --teal:        #0D9488;
-  --teal-light:  #14B8A6;
-  --teal-pale:   #CCFBF1;
-  --gold:        #F59E0B;
-  --gold-light:  #FDE68A;
+  /* Brand colours - Updated to Deep Indigo Navy and Saffron Gold */
+  --navy:        oklch(37.9% 0.146 265.522); /* Reference --p */
+  --navy-mid:    oklch(48% 0.18 265);        /* Reference --pm */
+  --teal:        oklch(37.9% 0.146 265.522); /* Remapped to primary navy so existing uses match */
+  --teal-light:  oklch(62% 0.18 265);        /* Reference --pl */
+  --teal-pale:   oklch(96% 0.03 265);        /* Reference --pt */
+  --gold:        #D4A843;                    /* Saffron Gold */
+  --gold-light:  oklch(97% 0.04 80);         /* Reference --goldt */
 
   /* Surface & borders */
-  --surface:     #F0F9F8;
-  --border-dash: #D1FAF5;
+  --surface:     #ffffff;                    /* Reference --surf */
+  --surface-alt: oklch(97.5% 0.01 265);      /* Reference --surf2 */
+  --border-dash: oklch(91% 0.02 265);        /* Reference --border */
 
   /* Text */
-  --text-muted:  #6B7E8F;
+  --text-muted:  oklch(60% 0.04 265);        /* Reference --muted */
 
   /* Fonts */
-  --font-display: 'DM Serif Display', Georgia, serif;
-  --font-body:    'DM Sans', system-ui, sans-serif;
+  --font-display: var(--font-fraunces), 'DM Serif Display', Georgia, serif;
+  --font-body:    var(--font-jakarta), 'DM Sans', system-ui, sans-serif;
 }

@@ -91,7 +91,7 @@ export async function StudentRightSidebar() {
                     {compTasks.map((t, i) => (
                         <div key={i} className="flex items-center gap-2 text-xs">
                             {t.done
-                                ? <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--teal)' }} />
+                                ? <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--navy)' }} />
                                 : <Circle className="h-3.5 w-3.5 flex-shrink-0 text-gray-300" />}
                             <span style={{
                                 color: t.done ? 'var(--text-muted)' : 'var(--navy)',
@@ -104,7 +104,7 @@ export async function StudentRightSidebar() {
                 </div>
                 <Link href="/student/profile"
                     className="mt-3 block w-full text-center text-xs font-semibold py-2 rounded-lg transition-colors text-white"
-                    style={{ background: 'var(--teal)' }}>
+                    style={{ background: 'var(--navy)' }}>
                     Complete Profile
                 </Link>
             </div>
@@ -121,7 +121,7 @@ export async function StudentRightSidebar() {
                                 {s.num}
                             </p>
                             <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--navy)' }}>{s.label}</p>
-                            <p className="text-[10px] mt-0.5" style={{ color: 'var(--teal)' }}>{s.sub}</p>
+                            <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{s.sub}</p>
                         </div>
                     ))}
                 </div>

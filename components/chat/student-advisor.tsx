@@ -186,7 +186,7 @@ export function StudentAdvisor({ studentName }: StudentAdvisorProps) {
             {!open && (
                 <button
                     onClick={() => setOpen(true)}
-                    className="fixed bottom-6 left-6 z-50 flex items-center gap-2 text-white px-4 py-3 rounded-full shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95"
+                    className="fixed bottom-6 max-md:left-6 md:left-[284px] z-50 flex items-center gap-2 text-white px-4 py-3 rounded-full shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95"
                     style={{ background: 'linear-gradient(135deg, #0d9488, #0f766e)' }}
                     aria-label="Open your personal Study Abroad Advisor"
                 >
@@ -197,7 +197,7 @@ export function StudentAdvisor({ studentName }: StudentAdvisorProps) {
 
             {open && (
                 <div
-                    className={`fixed bottom-6 left-6 z-50 flex flex-col rounded-2xl shadow-2xl border border-teal-100 overflow-hidden transition-[width,height] duration-200 ${
+                    className={`fixed bottom-6 max-md:left-6 md:left-[284px] z-50 flex flex-col rounded-2xl shadow-2xl border border-teal-100 overflow-hidden transition-[width,height] duration-200 ${
                         expanded
                             ? 'w-[min(680px,calc(100vw-48px))] h-[min(75vh,720px)]'
                             : 'w-[380px] max-w-[calc(100vw-24px)] h-[560px] max-h-[calc(100vh-80px)]'

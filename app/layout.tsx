@@ -58,7 +58,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${inter.className} ${fraunces.variable} ${plusJakarta.variable} overflow-x-hidden`}>
+      <body className={`${plusJakarta.className} ${fraunces.variable} ${plusJakarta.variable} overflow-x-hidden`}>
         <ThemeProvider>
           {/*
             PublicShell is a 'use client' component that reads usePathname().

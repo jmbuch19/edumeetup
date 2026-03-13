@@ -88,7 +88,7 @@ export function DashboardUI({
         <div className="container mx-auto px-4 py-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Student Dashboard</h1>
+                    <h1 className="text-3xl font-serif text-indigo-900">Student Dashboard</h1>
                     <p className="text-gray-600">Welcome, {student.fullName}!</p>
                 </div>
                 <div className="flex gap-2 flex-wrap">
@@ -162,8 +162,8 @@ export function DashboardUI({
                     {/* My Meetings Section */}
                     {myMeetings.length > 0 && (
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                                <Calendar className="h-6 w-6 text-primary" />
+                            <h2 className="text-2xl font-serif text-indigo-900 mb-6 flex items-center gap-2">
+                                <Calendar className="h-6 w-6 text-indigo-600" />
                                 My Meetings
                             </h2>
                             <StudentMeetingsTable meetings={myMeetings} />
@@ -172,24 +172,24 @@ export function DashboardUI({
 
                     {/* Stats */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-indigo-800">
                             <h3 className="text-sm font-medium text-gray-500 mb-1">Matches Found</h3>
-                            <p className="text-2xl font-bold text-primary">{matchedPrograms.length}</p>
+                            <p className="text-2xl font-bold text-indigo-900">{matchedPrograms.length}</p>
                         </div>
-                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-indigo-800">
                             <h3 className="text-sm font-medium text-gray-500 mb-1">Your Interest</h3>
-                            <p className="text-sm font-medium text-gray-900">{student.fieldOfInterest}</p>
+                            <p className="text-sm font-bold text-indigo-900">{student.fieldOfInterest}</p>
                         </div>
-                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-indigo-800">
                             <h3 className="text-sm font-medium text-gray-500 mb-1">Target Degree</h3>
-                            <p className="text-sm font-medium text-gray-900">{student.preferredDegree}</p>
+                            <p className="text-sm font-bold text-indigo-900">{student.preferredDegree}</p>
                         </div>
                     </div>
 
                     {/* Matched Programs */}
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                            <GraduationCap className="h-6 w-6 text-primary" />
+                        <h2 className="text-2xl font-serif text-indigo-900 mb-6 flex items-center gap-2">
+                            <GraduationCap className="h-6 w-6 text-indigo-600" />
                             Programs Matching Your Profile
                         </h2>
 
@@ -282,7 +282,7 @@ export function DashboardUI({
 
                     {/* Recommended Unis */}
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-6">Other Recommended Universities</h2>
+                        <h2 className="text-2xl font-serif text-indigo-900 mb-6">Other Recommended Universities</h2>
                         {recommendedUniversities.length === 0 ? (
                             <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
                                 <p className="text-gray-500">No universities found yet. Check back later!</p>
@@ -324,7 +324,7 @@ export function DashboardUI({
                 {/* ── Group Sessions tab ── */}
                 <TabsContent value="group-sessions" className="space-y-4">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-1">Group Info Sessions</h2>
+                        <h2 className="text-2xl font-serif text-indigo-900 mb-1">Group Info Sessions</h2>
                         <p className="text-sm text-muted-foreground mb-6">
                             Universities invite matched students to small group sessions — meet admissions teams, ask questions live, and reserve your seat.
                         </p>
@@ -471,6 +471,18 @@ export function DashboardUI({
                     )}
                 </TabsContent>
             </Tabs>
+
+            {/* ── FLOATING FIND PROGRAMS PILL ──────────────────────────────────── */}
+            <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center">
+                <Link href="/universities" className="group flex items-center gap-3 bg-gradient-to-r from-amber-400 to-amber-500 text-indigo-950 px-6 py-3 rounded-full font-bold shadow-xl shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-[1.03] transition-all animate-[bounce_1s_ease-in-out_1.5s]">
+                    <span className="text-xl">🎓</span>
+                    Find Programs
+                    <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] border border-amber-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                        {matchedPrograms.length} matched
+                    </span>
+                </Link>
+            </div>
         </div>
     )
 }

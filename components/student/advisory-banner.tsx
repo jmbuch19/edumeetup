@@ -10,7 +10,7 @@ interface AdvisoryBannerProps {
 
 export function AdvisoryBanner({ onOpen }: AdvisoryBannerProps) {
     return (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100 rounded-xl p-6 shadow-sm relative overflow-hidden">
+        <div className="bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-300 rounded-xl p-6 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 -mt-4 -mr-4 bg-yellow-100 rounded-full w-24 h-24 opacity-50 blur-xl"></div>
 
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">

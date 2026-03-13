@@ -27,18 +27,24 @@ export function ProfileRing({
                 viewBox={`0 0 ${size} ${size}`}
                 style={{ transform: 'rotate(-90deg)' }}
             >
+                <defs>
+                    <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="var(--navy)" />
+                        <stop offset="100%" stopColor="var(--gold)" />
+                    </linearGradient>
+                </defs>
                 {/* Track */}
                 <circle
                     cx={center} cy={center} r={r}
                     fill="none"
-                    stroke="var(--border-dash, #D1FAF5)"
+                    stroke="var(--surface-alt)"
                     strokeWidth={strokeWidth}
                 />
                 {/* Progress */}
                 <circle
                     cx={center} cy={center} r={r}
                     fill="none"
-                    stroke={color}
+                    stroke="url(#ring-grad)"
                     strokeWidth={strokeWidth}
                     strokeLinecap="round"
                     strokeDasharray={circ}
