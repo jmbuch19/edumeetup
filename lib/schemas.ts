@@ -63,7 +63,7 @@ export const loginSchema = z.object({
 export const registerStudentSchema = z.object({
     email: emailValidator,
     fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-    country: z.string().min(2, 'Country is required'),
+    country: z.string().optional().default('India'),
     gender: z.string().min(1, 'Please select a gender'),
     ageGroup: z.string().min(1, 'Please select an age group'),
     city: z.string().min(2, 'Please enter your city'),
