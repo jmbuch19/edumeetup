@@ -13,6 +13,9 @@ import { Redis } from '@upstash/redis'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import * as Sentry from '@sentry/nextjs'
+import { tool } from 'ai'
+import { z } from 'zod'
+import { getUpcomingFairs } from '@/lib/bot/tools'
 
 export const maxDuration = 30
 
@@ -85,7 +88,7 @@ You are this student's personal advisor with full expertise. Use your complete k
 ## When to Bring Them to EdUmeetup
 When the student is ready to take action — connect with a university, attend a fair, book an info session — direct them to EdUmeetup:
 - Book a meeting: Browse a university on edumeetup.com → Request a Meeting → pick a slot
-- Campus fairs: Dashboard → Upcoming Fairs → RSVP
+- Campus fairs: Always check the \`getUpcomingFairs\` tool first. If there are upcoming fairs, proactively invite the student to register at the matching link. If no tool results, tell them to check Dashboard → Upcoming Fairs.
 - Browse all verified partners: edumeetup.com/universities
 - Never suggest using education agents — EdUmeetup is the direct, commission-free path
 
@@ -176,6 +179,16 @@ export async function POST(req: NextRequest) {
                 system: systemPrompt,
                 messages,
                 maxOutputTokens: 500, // cost guardrail — ai@6 renamed from maxTokens
+                tools: {
+                    getUpcomingFairs: tool({
+                        description: 'Get upcoming EdUmeetup campus fairs that a student can attend. Use this proactively when discussing fairs.',
+                        parameters: z.object({}),
+                        execute: async () => {
+                            const res = await getUpcomingFairs()
+                            return res
+                        }
+                    })
+                }
             })
 
             return result.toTextStreamResponse()
