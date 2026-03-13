@@ -244,7 +244,8 @@ export async function loginUniversity(formData: FormData) {
         // In Server Actions, `signIn` throws on success redirect. 
         // But with redirect:false? 
         // Let's safe guard.
-        throw error
+        console.error('[loginUniversity] signIn error:', error)
+        return { error: "Something went wrong. Please try again or contact support." }
     }
 }
 
@@ -343,6 +344,18 @@ export async function expressInterest(universityId: string, studentEmail?: strin
         })
 
         if (!university) return { error: "University not found" }
+
+        const existingInterest = await prisma.interest.findFirst({
+            where: {
+                studentId: student.id,
+                universityId: universityId,
+                programId: programId || null
+            }
+        })
+
+        if (existingInterest) {
+            return { success: true, message: 'Interest already recorded.' }
+        }
 
         await prisma.interest.create({
             data: {
