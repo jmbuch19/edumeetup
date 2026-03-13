@@ -39,7 +39,7 @@ export default async function UniversityLayout({ children }: { children: React.R
     const liveFair = await prisma.fairEvent.findFirst({ where: { status: 'LIVE' } }).catch(() => null)
 
     const pendingCount = uni?._count.interests ?? 0
-    const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    const today = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
     return (
         <div className="flex h-screen overflow-hidden" style={{ background: 'var(--surface)', fontFamily: 'var(--font-body)' }}>

@@ -18,9 +18,17 @@ export default async function StudentLayout({ children }: { children: React.Reac
     })
 
     const today = new Date()
-    const hours = today.getHours()
+    
+    // Ensure hours are calculated in IST (Asia/Kolkata), independent of server config
+    const formatter = new Intl.DateTimeFormat('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour: 'numeric',
+      hour12: false
+    })
+    const hours = parseInt(formatter.format(today), 10)
+    
     const greeting = hours < 12 ? 'Good morning' : hours < 17 ? 'Good afternoon' : 'Good evening'
-    const dateStr = today.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
+    const dateStr = today.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', day: 'numeric', month: 'long' })
     const rawName = student?.fullName?.trim() || session.user.name?.trim() || 'there'
     const firstName = rawName.split(' ')[0]
 
