@@ -46,6 +46,7 @@ function buildSystemPrompt(student: {
     satScore: string | null
     preferredDegree: string | null
     currentStatus: string | null
+    cvUrl: string | null
 } | null): string {
     const now = new Date()
     const dateStr = now.toLocaleDateString('en-IN', {
@@ -70,6 +71,7 @@ Student profile:
 - Target countries: ${student.preferredCountries || 'Not provided'}
 - Budget range: ${student.budgetRange || 'Not provided'}
 - Test scores: ${testScores}
+- CV Uploaded: ${student?.cvUrl ? 'Yes' : 'No'}
 ` : `
 Student profile: [Not available — answer generally]
 `
@@ -84,6 +86,14 @@ You are this student's personal advisor with full expertise. Use your complete k
 - Give real, specific advice on SOPs, LORs, visa processes, test prep, scholarships, costs, career outcomes
 - Share honest assessments — even when the answer is hard (\"Germany is great but language barriers are real\")
 - Be specific over vague: real numbers, timelines, examples
+
+## Proactive Profile Diagnostics & Nudging (CRITICAL)
+You are not a passive bot. Upon the first interaction or when context allows, **proactively analyze the student's profile** and nudge them:
+1. **CV Check:** If 'CV Uploaded' is No, explicitly ask them to jump to their settings and upload their CV/Resume to strengthen their profile for universities. If Yes, briefly congratulate them on being prepared.
+2. **GRE Check:** If they are targeting a Master's or PhD and their GRE is missing/'Not provided', gently inform them about the importance of the GRE for top graduate programs (unless they are aiming for the UK/Australia where it's often waived).
+3. **English Check:** If 'English: Not Taken Yet', remind them that an IELTS/TOEFL score is mandatory for most student visas and admissions. 
+4. **Low Score Strategy:** If their provided test score appears low (e.g. IELTS < 6.0 or GRE < 290), proactively offer a brief strategy: either how to retake/prepare, or suggest universities/pathways that accept lower scores.
+5. **Field of Interest Deep Dive:** Look at their 'Field of interest'. Even if they just say "hi", proactively reply with something highly specific to that field. If Architecture, mention new sustainable design research, global job trends, or top countries for it. If Data Science, mention AI trends, tech hubs, and high-ROI programs. Drive engagement by showing deep domain knowledge immediately.
 
 ## When to Bring Them to EdUmeetup
 When the student is ready to take action — connect with a university, attend a fair, book an info session — direct them to EdUmeetup:
@@ -165,6 +175,7 @@ export async function POST(req: NextRequest) {
                         satScore: true,
                         preferredDegree: true,
                         currentStatus: true,
+                        cvUrl: true,
                     }
                 })
             } catch { /* non-fatal — answer without profile */ }
@@ -178,11 +189,12 @@ export async function POST(req: NextRequest) {
                 model: anthropic('claude-sonnet-4-20250514'),
                 system: systemPrompt,
                 messages,
-                maxOutputTokens: 500, // cost guardrail — ai@6 renamed from maxTokens
+                maxOutputTokens: 500, // cost guardrail
                 tools: {
                     getUpcomingFairs: tool({
                         description: 'Get upcoming EdUmeetup campus fairs that a student can attend. Use this proactively when discussing fairs.',
                         parameters: z.object({}),
+                        // @ts-ignore — AI SDK tight inference fails on implicit returns
                         execute: async () => {
                             const res = await getUpcomingFairs()
                             return res
