@@ -8,6 +8,7 @@ import { sendEmail, EmailTemplates, generateEmailHtml } from '@/lib/email'
 import { requireUser, requireRole, signIn, isUniversityEmail } from '@/lib/auth'
 import { sendMagicLink } from '@/lib/magic-link'
 import { logAudit } from '@/lib/audit'
+import { isDisposableEmail } from '@/lib/email-blocklist'
 import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateLimiter, interestRateLimiter, inviteRateLimiter } from '@/lib/ratelimit'
 import { headers } from 'next/headers'
 import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema, studentProfileSchema, pdoRegistrationSchema, studentInteractionSchema } from '@/lib/schemas'
@@ -71,6 +72,12 @@ export async function registerStudent(prevState: any, formData: FormData) {
     // HONEYPOT & SPAM CHECK (from schema)
     if (validation.data.website_url) {
         return { error: 'Spam detected' }
+    }
+
+    if (isDisposableEmail(email)) {
+        return { 
+            error: "Temporary or disposable email addresses are not accepted. Please use your official university or personal email." 
+        }
     }
 
     // RATE LIMIT (By IP)
@@ -216,6 +223,12 @@ export async function loginUniversity(formData: FormData) {
         return { error: "Please enter a valid email address." }
     }
 
+    if (isDisposableEmail(email)) {
+        return { 
+            error: "Temporary or disposable email addresses are not accepted. Please use your official university or personal email." 
+        }
+    }
+
     // 2. University Domain Check
     if (!(await isUniversityEmail(email))) {
         return { error: "Please use your official university email (e.g. name@university.edu). Personal emails are not accepted." }
@@ -325,6 +338,18 @@ export async function expressInterest(universityId: string, studentEmail?: strin
     // Verify Student Role
     if (user.role !== 'STUDENT') return { error: "Only students can express interest" }
 
+    const studentProfileCheck = await prisma.student.findFirst({
+        where: { userId: user.id },
+        select: { profileComplete: true }
+    })
+
+    if (!studentProfileCheck || !studentProfileCheck.profileComplete) {
+        return { 
+            error: "Complete your profile before expressing interest in universities.",
+            code: "PROFILE_INCOMPLETE"
+        }
+    }
+
     const sessionEmail = user.email
     const emailToUse = sessionEmail || studentEmail
     // const ip = headers().get('x-forwarded-for') || 'unknown'
@@ -430,6 +455,18 @@ export async function expressInterestBulk(universityId: string, programIds: stri
     if (user.role !== 'STUDENT') return { error: 'Only students can express interest' }
     if (!programIds.length) return { error: 'No programmes selected' }
     if (!universityId || typeof universityId !== 'string') return { error: 'Invalid university ID' }
+
+    const studentProfileCheck = await prisma.student.findFirst({
+        where: { userId: user.id },
+        select: { profileComplete: true }
+    })
+
+    if (!studentProfileCheck || !studentProfileCheck.profileComplete) {
+        return { 
+            error: "Complete your profile before expressing interest in universities.",
+            code: "PROFILE_INCOMPLETE"
+        }
+    }
 
     try {
         const student = await prisma.student.findFirst({
