@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { GraduationCap, MapPin, Search, Calendar, CheckCircle, LogOut, Clock, ExternalLink } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -12,8 +13,8 @@ import { AdvisoryForm } from '@/components/student/advisory-form'
 import { expressInterest } from '@/app/actions'
 import { NotificationsCenter } from '@/components/notifications-center'
 import { UniversityLogo } from '@/components/university/university-logo'
-import GroupSessionList from '@/components/student/GroupSessionCard'
-import { type StudentGroupSession } from '@/app/university/actions/group-sessions'
+import GroupSessionList, { DiscoverSessionCard } from '@/components/student/GroupSessionCard'
+import { type StudentGroupSession, type DiscoverableGroupSession } from '@/app/university/actions/group-sessions'
 
 // Types
 // Types
@@ -38,6 +39,7 @@ interface DashboardUIProps {
     advisoryStatus: any // Serialized AdvisoryRequest
     hasCv: boolean
     groupSessions: StudentGroupSession[]
+    discoverableSessions: DiscoverableGroupSession[]
 }
 
 export function DashboardUI({
@@ -49,10 +51,38 @@ export function DashboardUI({
     advisoryStatus,
     hasCv,
     groupSessions,
+    discoverableSessions,
 }: DashboardUIProps) {
     // Re-create Set for internal use if needed, or just use includes
     const interestedSet = new Set(interestedUniIds)
     const [activeTab, setActiveTab] = useState('overview')
+    const [loadingAction, setLoadingAction] = useState<string | null>(null)
+    const router = useRouter()
+
+    const handleAction = async (type: 'interest' | 'meeting' | 'question', programId: string, universityId: string, message?: string) => {
+        setLoadingAction(`${type}-${programId}`)
+        try {
+            const endpoint = type === 'interest' ? 'interest' : type === 'meeting' ? 'meeting-request' : 'question'
+            const res = await fetch(`/api/student/${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ programId, universityId, message })
+            })
+            
+            if (!res.ok) {
+                const data = await res.json()
+                throw new Error(data.error || 'Request failed')
+            }
+            
+            alert(type === 'interest' ? 'Interest sent successfully!' : type === 'meeting' ? 'Meeting request sent!' : 'Question sent successfully!')
+            router.refresh()
+        } catch (error: any) {
+            console.error(error)
+            alert(error.message || 'Something went wrong')
+        } finally {
+            setLoadingAction(null)
+        }
+    }
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -200,25 +230,47 @@ export function DashboardUI({
                                                     </div>
                                                 </div>
 
-                                                {/* Express Interest Button */}
+                                                {/* Actions */}
                                                 {isInterested ? (
                                                     <div className="flex gap-2">
                                                         <Link href={`/universities/${program.university.id}`} className="flex-1">
-                                                            <Button variant="outline" className="w-full">View Details</Button>
+                                                            <Button variant="outline" className="w-full text-xs">View Details</Button>
                                                         </Link>
-                                                        <Button disabled className="flex-1 bg-green-600 text-white hover:bg-green-700">Interest Sent</Button>
+                                                        <Button disabled className="flex-1 bg-green-600 text-white hover:bg-green-700 text-xs">Interest Sent</Button>
                                                     </div>
                                                 ) : (
-                                                    <form action={async () => {
-                                                        await expressInterest(program.university.id, student.user.email, program.id)
-                                                    }}>
-                                                        <div className="flex flex-col sm:flex-row gap-2">
-                                                            <Link href={`/universities/${program.university.id}`} className="flex-1">
-                                                                <Button variant="outline" type="button" className="w-full">View Details</Button>
-                                                            </Link>
-                                                            <Button type="submit" className="flex-1">Express Interest</Button>
+                                                    <div className="flex flex-col gap-2">
+                                                        <Button 
+                                                            onClick={() => handleAction('interest', program.id, program.university.id)} 
+                                                            disabled={loadingAction === `interest-${program.id}`}
+                                                            className="w-full text-xs"
+                                                        >
+                                                            {loadingAction === `interest-${program.id}` ? 'Sending...' : 'Express Interest'}
+                                                        </Button>
+                                                        <div className="flex gap-2">
+                                                            <Button 
+                                                                variant="outline" 
+                                                                onClick={() => handleAction('meeting', program.id, program.university.id)} 
+                                                                disabled={loadingAction === `meeting-${program.id}`}
+                                                                className="flex-1 text-xs px-2"
+                                                            >
+                                                                {loadingAction === `meeting-${program.id}` ? '...' : 'Request Meeting'}
+                                                            </Button>
+                                                            <Button 
+                                                                variant="outline" 
+                                                                onClick={() => {
+                                                                    const msg = window.prompt("What would you like to ask the university?")
+                                                                    if (msg && msg.trim()) {
+                                                                        handleAction('question', program.id, program.university.id, msg)
+                                                                    }
+                                                                }} 
+                                                                disabled={loadingAction === `question-${program.id}`}
+                                                                className="flex-1 text-xs px-2"
+                                                            >
+                                                                {loadingAction === `question-${program.id}` ? '...' : 'Ask Question'}
+                                                            </Button>
                                                         </div>
-                                                    </form>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
@@ -276,7 +328,28 @@ export function DashboardUI({
                         <p className="text-sm text-muted-foreground mb-6">
                             Universities invite matched students to small group sessions — meet admissions teams, ask questions live, and reserve your seat.
                         </p>
-                        <GroupSessionList seats={groupSessions} />
+
+                        {discoverableSessions && discoverableSessions.length > 0 && (
+                            <div className="mb-8">
+                                <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                    <Search className="h-5 w-5 text-gray-400" />
+                                    Discover Sessions
+                                </h3>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    {discoverableSessions.map(session => (
+                                        <DiscoverSessionCard key={session.id} session={session} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                <Calendar className="h-5 w-5 text-gray-400" />
+                                My Sessions
+                            </h3>
+                            <GroupSessionList seats={groupSessions} />
+                        </div>
                     </div>
                 </TabsContent>
 

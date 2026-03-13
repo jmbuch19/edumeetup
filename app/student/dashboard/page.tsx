@@ -3,7 +3,7 @@ import { FIELD_CATEGORIES } from '@/lib/constants'
 import { requireUser } from '@/lib/auth'
 import { DashboardUI } from '@/components/student/dashboard-ui'
 import { getStudentAdvisoryStatus } from '@/app/actions/advisory-actions'
-import { getStudentGroupSessions } from '@/app/university/actions/group-sessions'
+import { getStudentGroupSessions, getDiscoverableGroupSessions } from '@/app/university/actions/group-sessions'
 import { StudentAdvisor } from '@/components/chat/student-advisor'
 
 
@@ -61,7 +61,7 @@ export default async function StudentDashboard() {
         : undefined
 
     // Step 3: Run all independent queries in parallel (was sequential — now 2-4x faster)
-    const [matchedPrograms, recommendedUniversities, userInterests, myMeetings, advisoryStatus, groupSessionsResult] =
+    const [matchedPrograms, recommendedUniversities, userInterests, myMeetings, advisoryStatus, groupSessionsResult, discoverableResult] =
         await Promise.allSettled([
             prisma.program.findMany({
                 where: {
@@ -91,6 +91,7 @@ export default async function StudentDashboard() {
             }),
             getStudentAdvisoryStatus(),
             getStudentGroupSessions(),
+            getDiscoverableGroupSessions(),
         ])
 
     // Safely extract results — failed queries fall back to empty arrays
@@ -100,6 +101,7 @@ export default async function StudentDashboard() {
     const meetings = myMeetings.status === 'fulfilled' ? myMeetings.value : []
     const advisory = advisoryStatus.status === 'fulfilled' ? advisoryStatus.value : null
     const groupSessions = groupSessionsResult.status === 'fulfilled' ? (groupSessionsResult.value.sessions ?? []) : []
+    const discoverableSessions = discoverableResult.status === 'fulfilled' ? (discoverableResult.value.sessions ?? []) : []
 
     const interestedUniIds = interests.map(i => i.universityId)
 
@@ -114,6 +116,7 @@ export default async function StudentDashboard() {
                 advisoryStatus={JSON.parse(JSON.stringify(advisory))}
                 hasCv={!!student.cvFileName}
                 groupSessions={JSON.parse(JSON.stringify(groupSessions))}
+                discoverableSessions={JSON.parse(JSON.stringify(discoverableSessions))}
             />
             {/* Student-only AI advisor — bottom-left, teal, distinct from public AdmissionsChat */}
             <StudentAdvisor studentName={student.fullName} />

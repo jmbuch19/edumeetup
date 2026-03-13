@@ -186,3 +186,15 @@ export const studentProfileSchema = z.object({
     satScore: z.string().optional(),
     actScore: z.string().optional(),
 })
+
+// ─── Student Interaction Schemas ──────────────────────────────────────────────
+
+export const studentInteractionSchema = z.object({
+    universityId: z.string().min(1, 'University ID is required'),
+    programId: z.string().optional().nullable(),
+})
+
+export const studentQuestionSchema = studentInteractionSchema.extend({
+    message: z.string().min(1, 'Message is required').max(2000, 'Message is too long')
+})
+

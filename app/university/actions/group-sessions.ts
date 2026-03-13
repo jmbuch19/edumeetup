@@ -752,6 +752,95 @@ export type StudentGroupSession = {
     }
 }
 
+// ─── 9. getDiscoverableGroupSessions (Student Discovery) ──────────────────────
+
+export async function getDiscoverableGroupSessions(): Promise<{ sessions?: DiscoverableGroupSession[]; error?: string }> {
+    const session = await auth()
+    if (!session?.user) return { error: 'Unauthorized' }
+
+    const student = await prisma.student.findFirst({
+        where: { userId: session.user.id },
+        select: { id: true, fieldOfInterest: true, preferredDegree: true },
+    })
+    if (!student) return { error: 'Student profile not found' }
+
+    // Get the student's matched audience ids for universities
+    // Wait, matching is based on the university session targeting.
+    // We can do this in SQL via Prisma:
+    // 1. Get student's explicit interested programs
+    const interests = await prisma.interest.findMany({
+        where: { studentId: student.id },
+        select: { programId: true, program: { select: { fieldCategory: true } } },
+    })
+
+    const interestedProgramIds = interests.map(i => i.programId).filter(Boolean) as string[]
+    const interestedFields = interests.map(i => i.program?.fieldCategory).filter(Boolean) as string[]
+    if (student.fieldOfInterest) interestedFields.push(student.fieldOfInterest)
+
+    // Discoverable sessions: OPEN, FILLING, FULL and scheduled in the future
+    const discoverable = await prisma.groupSession.findMany({
+        where: {
+            status: { in: ['OPEN', 'FILLING', 'FULL'] },
+            scheduledAt: { gt: new Date() },
+            // Make sure University is verified
+            university: { verificationStatus: 'VERIFIED' },
+            // Has NO seat for this student (so haven't joined yet)
+            seats: { none: { studentId: student.id } },
+            // Smart Match: Matches program OR field OR no target
+            OR: [
+                { programId: { in: interestedProgramIds } }, // Tier 1
+                { targetField: { in: interestedFields } },   // Tier 2 & 3
+                { programId: null, targetField: null }       // Universal sessions
+            ]
+        },
+        include: {
+            university: { select: { institutionName: true, logo: true } },
+            program: { select: { programName: true } },
+            _count: { select: { seats: { where: { status: 'CONFIRMED' } } } },
+        },
+        orderBy: { scheduledAt: 'asc' },
+        take: 6, // Cap discovering at the top 6 soonest matches to prevent noise
+    })
+
+    // Sort by relevance (Tier 1 > Tier 2/3 > Universal)
+    const sorted = discoverable.sort((a, b) => {
+        const tierA = (a.programId && interestedProgramIds.includes(a.programId)) ? 1 : (a.targetField && interestedFields.includes(a.targetField)) ? 2 : 3;
+        const tierB = (b.programId && interestedProgramIds.includes(b.programId)) ? 1 : (b.targetField && interestedFields.includes(b.targetField)) ? 2 : 3;
+        if (tierA !== tierB) return tierA - tierB
+        return a.scheduledAt.getTime() - b.scheduledAt.getTime()
+    })
+
+    return {
+        sessions: sorted.map(s => ({
+            id: s.id,
+            title: s.title,
+            agenda: s.agenda,
+            scheduledAt: s.scheduledAt,
+            durationMinutes: s.durationMinutes,
+            capacity: s.capacity,
+            confirmedCount: s._count.seats,
+            status: s.status,
+            universityName: s.university.institutionName,
+            universityLogo: s.university.logo,
+            programName: s.program?.programName ?? null,
+        }))
+    }
+}
+
+export type DiscoverableGroupSession = {
+    id: string
+    title: string
+    agenda: string | null
+    scheduledAt: Date
+    durationMinutes: number
+    capacity: number
+    confirmedCount: number
+    status: string
+    universityName: string
+    universityLogo: string | null
+    programName: string | null
+}
+
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
 type AudiencePreview = {

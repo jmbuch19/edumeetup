@@ -10,7 +10,7 @@ import { sendMagicLink } from '@/lib/magic-link'
 import { logAudit } from '@/lib/audit'
 import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateLimiter, interestRateLimiter, inviteRateLimiter } from '@/lib/ratelimit'
 import { headers } from 'next/headers'
-import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema, studentProfileSchema, pdoRegistrationSchema } from '@/lib/schemas'
+import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema, studentProfileSchema, pdoRegistrationSchema, studentInteractionSchema } from '@/lib/schemas'
 import { createNotification } from '@/lib/notifications'
 import { notifyStudent, notifyUniversity } from '@/lib/notify'
 import { getIpFromHeaders, getIpGeoInfo } from '@/lib/getIpInfo'
@@ -310,6 +310,11 @@ export async function registerUniversity(formData: FormData) {
 
 export async function expressInterest(universityId: string, studentEmail?: string, programId?: string) {
     const user = await requireUser()
+    
+    const validation = studentInteractionSchema.safeParse({ universityId, programId })
+    if (!validation.success) {
+        return { error: "Invalid input provided." }
+    }
 
     // RATE LIMIT
     if (!interestRateLimiter.check(user.id)) {
@@ -411,6 +416,7 @@ export async function expressInterestBulk(universityId: string, programIds: stri
 
     if (user.role !== 'STUDENT') return { error: 'Only students can express interest' }
     if (!programIds.length) return { error: 'No programmes selected' }
+    if (!universityId || typeof universityId !== 'string') return { error: 'Invalid university ID' }
 
     try {
         const student = await prisma.student.findFirst({
@@ -540,6 +546,13 @@ function programFields(formData: FormData) {
 
 export async function createProgram(formData: FormData) {
     const user = await requireUser()
+    const rawData = Object.fromEntries(formData.entries())
+    
+    // Zod validation for base fields
+    const validation = createProgramSchema.safeParse(rawData)
+    if (!validation.success) {
+        return { error: "Invalid form fields. Check your input." }
+    }
 
     const fields = programFields(formData)
     if (!fields.programName) return { error: 'Program name is required' }
@@ -590,6 +603,12 @@ export async function updateProgram(programId: string, formData: FormData) {
         if (dbUser?.universityId) university = await prisma.university.findUnique({ where: { id: dbUser.universityId } })
     }
     if (!university || university.id !== existing.universityId) return { error: 'Unauthorized' }
+
+    const rawData = Object.fromEntries(formData.entries())
+    const validation = createProgramSchema.safeParse(rawData)
+    if (!validation.success) {
+        return { error: "Invalid form fields. Check your input." }
+    }
 
     const fields = programFields(formData)
     if (!fields.programName) return { error: 'Program name is required' }

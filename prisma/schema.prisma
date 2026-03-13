@@ -136,6 +136,7 @@ model Student {
   groupSeats         GroupSessionSeat[]
   interests          Interest[]
   meetings           Meeting[]
+  meetingRequests    MeetingRequest[]
   changeLogs         ProfileChangeLog[]
   user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   notifications      StudentNotification[]
@@ -259,6 +260,7 @@ model University {
   hostOutreach            HostRequestOutreach[]
   interests               Interest[]
   meetings                Meeting[]
+  meetingRequests         MeetingRequest[]
   programList             Program[]
   sponsoredContent        SponsoredContent[]
   user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -350,6 +352,7 @@ model Program {
   updatedAt       DateTime   @updatedAt
   interests       Interest[]
   meetings        Meeting[]
+  meetingRequests MeetingRequest[]
   groupSessions   GroupSession[]
   documents       UniversityDocument[]
   university      University @relation(fields: [universityId], references: [id], onDelete: Cascade)
@@ -618,6 +621,24 @@ model AvailabilitySlot {
 
   @@index([universityId])
   @@index([repId])
+}
+
+model MeetingRequest {
+  id              String      @id @default(cuid())
+  studentId       String
+  universityId    String
+  programId       String?
+  status          String      @default("PENDING") // PENDING, ACCEPTED, DECLINED
+  message         String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  student         Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  university      University  @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  program         Program?    @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  @@index([universityId])
+  @@index([studentId])
 }
 
 model Bookmark {

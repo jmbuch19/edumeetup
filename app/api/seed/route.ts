@@ -7,13 +7,15 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Not available' }, { status: 404 })
     }
 
-    // In development, still require ADMIN_SECRET as a basic access control
+    // In development, require ADMIN_SECRET as a basic access control
     const adminSecret = process.env.ADMIN_SECRET
-    if (adminSecret) {
-        const authHeader = request.headers.get('Authorization')
-        if (authHeader !== `Bearer ${adminSecret}`) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
+    if (!adminSecret) {
+        return NextResponse.json({ error: 'ADMIN_SECRET not configured' }, { status: 503 })
+    }
+
+    const authHeader = request.headers.get('Authorization')
+    if (authHeader !== `Bearer ${adminSecret}`) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
 
