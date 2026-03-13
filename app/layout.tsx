@@ -42,6 +42,8 @@ export const viewport: Viewport = {
 };
 
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { TimezoneSyncer } from "@/components/global/TimezoneSyncer";
 
 export default async function RootLayout({
   children,
@@ -49,6 +51,15 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
+
+  let sessionTimezone: string | undefined = undefined;
+  if (session?.user?.email) {
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { timezone: true }
+    });
+    if (user?.timezone) sessionTimezone = user.timezone;
+  }
 
   const banner = session ? (
     <div className="bg-amber-100 text-amber-900 text-center py-2 text-sm font-medium border-b border-amber-200">
@@ -80,6 +91,7 @@ export default async function RootLayout({
           <ClientOnlyWidgets />
           <BugReporter />
           <Toaster richColors position="top-center" />
+          <TimezoneSyncer sessionTimezone={sessionTimezone} />
         </ThemeProvider>
 
         {/* WhatsApp widget — public visitors only, hidden inside all dashboards */}

@@ -52,7 +52,7 @@ export async function GET(request: Request) {
                         student: {
                             select: {
                                 fullName: true,
-                                user: { select: { email: true, consentMarketing: true, consentWithdrawnAt: true } },
+                                user: { select: { email: true, consentMarketing: true, consentWithdrawnAt: true, timezone: true } },
                             },
                         },
                     },
@@ -61,14 +61,15 @@ export async function GET(request: Request) {
         })
 
         for (const session of sessions24h) {
-            const timeStr = new Date(session.scheduledAt).toLocaleString('en-IN', {
-                weekday: 'long', day: 'numeric', month: 'long',
-                hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata',
-            }) + ' IST'
-
             for (const seat of session.seats) {
                 // Respect marketing consent
                 if (!seat.student.user.consentMarketing || seat.student.user.consentWithdrawnAt) continue
+
+                const tz = seat.student.user.timezone || 'UTC'
+                const seatTimeStr = new Date(session.scheduledAt).toLocaleString('en-US', {
+                    weekday: 'long', day: 'numeric', month: 'long',
+                    hour: '2-digit', minute: '2-digit', timeZone: tz,
+                }) + ' ' + tz
 
                 const firstName = seat.student.fullName?.split(' ')[0] || 'there'
                 const isWaitlisted = seat.status === 'WAITLISTED'
@@ -79,7 +80,7 @@ export async function GET(request: Request) {
                         title: `📅 Session tomorrow: ${session.title}`,
                         message: isWaitlisted
                             ? `You're on the waitlist for tomorrow's session with ${session.university.institutionName}.`
-                            : `Your group session with ${session.university.institutionName} is tomorrow at ${timeStr}.`,
+                            : `Your group session with ${session.university.institutionName} is tomorrow at ${seatTimeStr}.`,
                         type: 'INFO',
                         actionUrl: '/student/dashboard',
                     },
@@ -94,7 +95,7 @@ export async function GET(request: Request) {
                         <strong>${session.university.institutionName}</strong> is <strong>tomorrow</strong>.</p>
                         <div class="info-box">
                             <div class="info-row"><span class="info-label">Session:</span> <span>${session.title}</span></div>
-                            <div class="info-row"><span class="info-label">When:</span> <span>${timeStr}</span></div>
+                            <div class="info-row"><span class="info-label">When:</span> <span>${seatTimeStr}</span></div>
                             <div class="info-row"><span class="info-label">Duration:</span> <span>${session.durationMinutes} minutes</span></div>
                             <div class="info-row"><span class="info-label">Your status:</span> <span>${isWaitlisted ? '⏳ Waitlisted' : '✅ Confirmed'}</span></div>
                         </div>
@@ -132,7 +133,7 @@ export async function GET(request: Request) {
                         student: {
                             select: {
                                 fullName: true,
-                                user: { select: { email: true, consentMarketing: true, consentWithdrawnAt: true } },
+                                user: { select: { email: true, consentMarketing: true, consentWithdrawnAt: true, timezone: true } },
                             },
                         },
                     },
@@ -141,12 +142,13 @@ export async function GET(request: Request) {
         })
 
         for (const session of sessions30m) {
-            const timeStr = new Date(session.scheduledAt).toLocaleString('en-IN', {
-                hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata',
-            }) + ' IST'
-
             for (const seat of session.seats) {
                 if (!seat.student.user.consentMarketing || seat.student.user.consentWithdrawnAt) continue
+
+                const tz = seat.student.user.timezone || 'UTC'
+                const seatTimeStr = new Date(session.scheduledAt).toLocaleString('en-US', {
+                    hour: '2-digit', minute: '2-digit', timeZone: tz,
+                }) + ' ' + tz
 
                 const firstName = seat.student.fullName?.split(' ')[0] || 'there'
 
@@ -155,8 +157,8 @@ export async function GET(request: Request) {
                         studentId: seat.studentId,
                         title: `⏰ Starting in 30 min: ${session.title}`,
                         message: session.joinUrl
-                            ? `Your session starts at ${timeStr}. Click to join now.`
-                            : `Your session starts at ${timeStr}. Join link will appear in your dashboard when the host starts.`,
+                            ? `Your session starts at ${seatTimeStr}. Click to join now.`
+                            : `Your session starts at ${seatTimeStr}. Join link will appear in your dashboard when the host starts.`,
                         type: 'INFO',
                         actionUrl: session.joinUrl ?? '/student/dashboard',
                     },
@@ -168,13 +170,13 @@ export async function GET(request: Request) {
                     html: generateEmailHtml('Starting in 30 Minutes!', `
                         <p>Hi ${firstName},</p>
                         <p>Your group info session with <strong>${session.university.institutionName}</strong>
-                        starts in <strong>30 minutes</strong> at ${timeStr}.</p>
+                        starts in <strong>30 minutes</strong> at ${seatTimeStr}.</p>
                         ${session.joinUrl
                             ? `<p style="text-align:center;margin-top:24px;">
                                 <a href="${session.joinUrl}" class="btn">Join the Session Now →</a>
                                </p>`
                             : `<p>Your join link will appear in your dashboard and will be emailed to you
-                               as soon as the host starts the session. Stay close!</p>
+                                as soon as the host starts the session. Stay close!</p>
                                <p style="text-align:center;margin-top:16px;">
                                 <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'}/student/dashboard" class="btn">Open Dashboard →</a>
                                </p>`

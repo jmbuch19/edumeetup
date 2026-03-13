@@ -30,6 +30,8 @@ export type AgentAction = {
   meetingDuration?: number
   meetingJoinUrl?: string
   meetingCode?: string
+  studentTimezone?: string
+  repTimezone?: string
   interestId?: string
   payload?: Record<string, unknown>
 }
@@ -243,6 +245,7 @@ export async function triggerMeetingReminders(): Promise<AgentAction[]> {
           meetingDuration: meeting.durationMinutes,
           meetingJoinUrl: meeting.joinUrl ?? undefined,
           meetingCode: meeting.meetingCode,
+          studentTimezone: meeting.studentTimezone,
         })
       }
     }
@@ -260,6 +263,7 @@ export async function triggerMeetingReminders(): Promise<AgentAction[]> {
         meetingDuration: meeting.durationMinutes,
         meetingJoinUrl: meeting.joinUrl ?? undefined,
         meetingCode: meeting.meetingCode,
+        repTimezone: meeting.repTimezone,
       })
     }
   }

@@ -50,7 +50,8 @@ export async function sendMeetingRequestEmail(
     date: Date,
     duration: number,
     meetingId: string,
-    note?: string
+    note?: string,
+    repTimezone: string = 'UTC'
 ) {
     const subject = `New Meeting Request from ${studentName}`
     const html = generateEmailHtml('New Meeting Request', `
@@ -58,7 +59,7 @@ export async function sendMeetingRequestEmail(
         <div class="info-box">
             <div class="info-row"><span class="info-label">Student:</span> ${studentName} (${studentCountry})</div>
             <div class="info-row"><span class="info-label">Purpose:</span> ${purpose}</div>
-            <div class="info-row"><span class="info-label">Date:</span> ${date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST</div>
+            <div class="info-row"><span class="info-label">Date:</span> ${date.toLocaleString('en-US', { timeZone: repTimezone })} ${repTimezone}</div>
             <div class="info-row"><span class="info-label">Duration:</span> ${duration} minutes</div>
             ${note ? `<div class="info-row"><span class="info-label">Note:</span> ${note}</div>` : ''}
         </div>
@@ -78,9 +79,10 @@ export async function sendMeetingConfirmedEmailToStudent(
     duration: number,
     joinUrl: string,
     meetingCode: string,
+    studentTimezone: string,
     agenda?: string
 ) {
-    const dateStr = date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+    const dateStr = date.toLocaleString('en-US', { timeZone: studentTimezone })
     const isRealUrl = joinUrl && joinUrl.startsWith('http')
 
     // Build Google Calendar add link
@@ -97,7 +99,7 @@ export async function sendMeetingConfirmedEmailToStudent(
         <div class="info-box">
             <div class="info-row"><span class="info-label">University:</span> ${universityName}</div>
             <div class="info-row"><span class="info-label">Rep:</span> ${repName}</div>
-            <div class="info-row"><span class="info-label">Date &amp; Time:</span> ${dateStr} IST</div>
+            <div class="info-row"><span class="info-label">Date &amp; Time:</span> ${dateStr} ${studentTimezone}</div>
             <div class="info-row"><span class="info-label">Duration:</span> ${duration} minutes</div>
             <div class="info-row"><span class="info-label">Meeting Code:</span> <strong>${meetingCode}</strong></div>
             ${isRealUrl ? `<div class="info-row"><span class="info-label">Join Link:</span> <a href="${joinUrl}">${joinUrl}</a></div>` : ''}
@@ -116,15 +118,16 @@ export async function sendMeetingConfirmedEmailToRep(
     studentName: string,
     date: Date,
     duration: number,
+    repTimezone: string,
     joinUrl?: string
 ) {
-    const dateStr = date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+    const dateStr = date.toLocaleString('en-US', { timeZone: repTimezone })
     const subject = `Meeting Scheduled: ${studentName} — ${dateStr}`
     const html = generateEmailHtml('Meeting Scheduled', `
         <p>Your meeting with <strong>${studentName}</strong> has been confirmed.</p>
         <div class="info-box">
             <div class="info-row"><span class="info-label">Student:</span> ${studentName}</div>
-            <div class="info-row"><span class="info-label">Date &amp; Time:</span> ${dateStr} IST</div>
+            <div class="info-row"><span class="info-label">Date &amp; Time:</span> ${dateStr} ${repTimezone}</div>
             <div class="info-row"><span class="info-label">Duration:</span> ${duration} minutes</div>
             ${joinUrl ? `<div class="info-row"><span class="info-label">Join Link:</span> <a href="${joinUrl}">${joinUrl}</a></div>` : ''}
         </div>
@@ -139,14 +142,15 @@ export async function sendMeetingCancelledEmail(
     recipientEmail: string,
     counterpartName: string,
     date: Date,
-    reason: string
+    reason: string,
+    recipientTimezone: string
 ) {
-    const dateStr = date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+    const dateStr = date.toLocaleString('en-US', { timeZone: recipientTimezone })
     const subject = `Meeting Cancelled: ${counterpartName}`
     const html = generateEmailHtml('Meeting Cancelled', `
         <p>Your meeting with <strong>${counterpartName}</strong> has been cancelled.</p>
         <div class="info-box">
-            <div class="info-row"><span class="info-label">Was scheduled:</span> ${dateStr} IST</div>
+            <div class="info-row"><span class="info-label">Was scheduled:</span> ${dateStr} ${recipientTimezone}</div>
             <div class="info-row"><span class="info-label">Reason:</span> ${reason || 'Not specified'}</div>
         </div>
         <p>If you'd like to reschedule, you can book a new meeting from the dashboard.</p>

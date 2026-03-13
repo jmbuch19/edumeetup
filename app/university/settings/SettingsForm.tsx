@@ -64,6 +64,7 @@ export interface UniversitySettings {
   quietHoursStart: number
   quietHoursEnd: number
   followUpThresholdHours?: number | null
+  notificationTimezone?: string | null
 }
 
 const CSS = `
@@ -729,6 +730,16 @@ export default function SettingsForm({ settings }: { settings: UniversitySetting
           <div className="sec" id="notifications">
             <SectionHead icon="◉" id="notifications" title="Notifications" desc="Configure your alert pipeline — what you hear about, when, and who gets notified." />
             <div className="sec-body">
+
+              {/* Notification Timezone Indicator */}
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Notification Timezone</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <input className="f" style={{ width: '250px' }} value={data.notificationTimezone || 'UTC'} disabled title="Auto-detected from your browser" />
+                  <span style={{ fontSize: 11, background: 'var(--border2)', color: 'var(--muted)', padding: '2px 9px', borderRadius: 100, fontWeight: 700 }}>AUTO-SYNCED</span>
+                </div>
+                <div className="sub">This timezone is used for all email notifications and agent alerts. It updates automatically when you travel.</div>
+              </div>
 
               {/* Pipeline alerts */}
               <div style={{ marginBottom: 28 }}>

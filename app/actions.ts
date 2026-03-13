@@ -1855,6 +1855,7 @@ export async function updateMeetingStatus(
                     (new Date(mtg.endTime).getTime() - new Date(mtg.startTime).getTime()) / 60000,
                     meetingLink || mtg.joinUrl || '',
                     mtg.id.slice(-6).toUpperCase(),
+                    mtg.studentTimezone,
                     mtg.agenda || ''
                 )
                 // Also notify the rep
@@ -1868,6 +1869,7 @@ export async function updateMeetingStatus(
                             studentName,
                             mtg.startTime,
                             (new Date(mtg.endTime).getTime() - new Date(mtg.startTime).getTime()) / 60000,
+                            mtg.repTimezone,
                             meetingLink || mtg.joinUrl || undefined
                         )
                     }
@@ -1892,7 +1894,8 @@ export async function updateMeetingStatus(
                     studentEmail,
                     institutionName,
                     mtg.startTime,
-                    rejectionReason || 'University updated status.'
+                    rejectionReason || 'University updated status.',
+                    mtg.studentTimezone
                 )
                 // In-app notification to student (generic)
                 await createNotification({

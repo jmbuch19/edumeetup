@@ -278,17 +278,17 @@ function Step2({ form, set }: any) {
                 </select>
             </div>
             <div className="fg">
+                <label className="lbl">Degree Level You're Targeting *</label>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {DegreeLevels.map(d => <RCard key={d.value} label={d.label} active={form.preferredDegree === d.value} onClick={() => set("preferredDegree", d.value)} />)}
+                </div>
+            </div>
+            <div className="fg">
                 <label className="lbl">Field of Interest</label>
                 <div className="cw">
                     {["Computer Science", "Engineering", "Business", "Data Science", "Health Sciences", "Social Sciences", "Arts & Humanities", "Law", "Architecture", "Others"].map(s => (
                         <Chip key={s} label={s} active={form.fieldOfInterest === s} onClick={() => set("fieldOfInterest", s)} />
                     ))}
-                </div>
-            </div>
-            <div className="fg">
-                <label className="lbl">Degree Level You're Targeting</label>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {DegreeLevels.map(d => <RCard key={d.value} label={d.label} active={form.preferredDegree === d.value} onClick={() => set("preferredDegree", d.value)} />)}
                 </div>
             </div>
         </div>
@@ -322,10 +322,13 @@ function Step3({ form, set, toggle }: any) {
 }
 
 function Step4({ form, set }: any) {
+    const isUndergrad = form.preferredDegree === "Associate" || form.preferredDegree === "Bachelor's"
+    const isGrad = form.preferredDegree === "Master's" || form.preferredDegree === "MBA" || form.preferredDegree === "PhD"
+
     return (
         <div>
             <div className="fg">
-                <label className="lbl">English Proficiency Tests</label>
+                <label className="lbl">English Proficiency Tests *</label>
                 <div className="cw">
                     {ENGLISH_TESTS.map(t => <Chip key={t} label={t} active={form.englishTestType === t} onClick={() => set("englishTestType", t)} />)}
                 </div>
@@ -336,51 +339,81 @@ function Step4({ form, set }: any) {
                     <input className="field" type="number" step="0.5" placeholder="e.g. 7.5 or 100" value={form.englishScore} onChange={e => set("englishScore", e.target.value)} />
                 </div>
             )}
-            <div className="g2">
-                <div className="fg">
-                    <label className="lbl">GRE Taken?</label>
-                    <div className="rg">
-                        <RCard label="Yes" active={form.greTaken === 'yes'} onClick={() => set("greTaken", 'yes')} />
-                        <RCard label="No" active={form.greTaken === 'no'} onClick={() => { set("greTaken", 'no'); set("greScore", "") }} />
+
+            {isGrad && (
+                <>
+                    <div className="g2">
+                        <div className="fg">
+                            <label className="lbl">GRE Taken?</label>
+                            <span className="sub" style={{ fontSize: 11, marginBottom: 8, marginTop: -4 }}>The GRE is for most graduate programs. <a href="https://www.ets.org/gre" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "underline" }}>Official Site</a></span>
+                            <div className="rg">
+                                <RCard label="Yes" active={form.greTaken === 'yes'} onClick={() => set("greTaken", 'yes')} />
+                                <RCard label="No" active={form.greTaken === 'no'} onClick={() => { set("greTaken", 'no'); set("greScore", "") }} />
+                            </div>
+                        </div>
+                        <div className="fg">
+                            <label className="lbl">GMAT Taken?</label>
+                            <span className="sub" style={{ fontSize: 11, marginBottom: 8, marginTop: -4 }}>The GMAT is primarily for business schools. <a href="https://www.mba.com/exams/gmat-exam" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "underline" }}>Official Site</a></span>
+                            <div className="rg">
+                                <RCard label="Yes" active={form.gmatTaken === 'yes'} onClick={() => set("gmatTaken", 'yes')} />
+                                <RCard label="No" active={form.gmatTaken === 'no'} onClick={() => { set("gmatTaken", 'no'); set("gmatScore", "") }} />
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div className="fg">
-                    <label className="lbl">GMAT Taken?</label>
-                    <div className="rg">
-                        <RCard label="Yes" active={form.gmatTaken === 'yes'} onClick={() => set("gmatTaken", 'yes')} />
-                        <RCard label="No" active={form.gmatTaken === 'no'} onClick={() => { set("gmatTaken", 'no'); set("gmatScore", "") }} />
+                    <div className="g2">
+                        {form.greTaken === 'yes' && (
+                            <div className="fg">
+                                <label className="lbl">GRE Score (out of 340)</label>
+                                <input className="field" type="number" min="260" max="340" placeholder="e.g. 320" value={form.greScore} onChange={e => set("greScore", e.target.value)} />
+                            </div>
+                        )}
+                        {form.gmatTaken === 'yes' && (
+                            <div className="fg">
+                                <label className="lbl">GMAT Score (out of 800)</label>
+                                <input className="field" type="number" min="200" max="800" placeholder="e.g. 680" value={form.gmatScore} onChange={e => set("gmatScore", e.target.value)} />
+                            </div>
+                        )}
                     </div>
-                </div>
-            </div>
-            <div className="g2">
-                {form.greTaken === 'yes' && (
-                    <div className="fg">
-                        <label className="lbl">GRE Score (out of 340)</label>
-                        <input className="field" type="number" min="260" max="340" placeholder="e.g. 320" value={form.greScore} onChange={e => set("greScore", e.target.value)} />
+                </>
+            )}
+
+            {isUndergrad && (
+                <>
+                    <div className="g2">
+                        <div className="fg">
+                            <label className="lbl">SAT Taken?</label>
+                            <span className="sub" style={{ fontSize: 11, marginBottom: 8, marginTop: -4 }}>Standardized test for college admissions. <a href="https://satsuite.collegeboard.org/sat" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "underline" }}>Official Site</a></span>
+                            <div className="rg">
+                                <RCard label="Yes" active={form.satTaken === 'yes'} onClick={() => set("satTaken", 'yes')} />
+                                <RCard label="No" active={form.satTaken === 'no'} onClick={() => { set("satTaken", 'no'); set("satScore", "") }} />
+                            </div>
+                        </div>
+                        <div className="fg">
+                            <label className="lbl">ACT Taken?</label>
+                            <span className="sub" style={{ fontSize: 11, marginBottom: 8, marginTop: -4 }}>Alternative to the SAT for college admissions. <a href="https://www.act.org/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "underline" }}>Official Site</a></span>
+                            <div className="rg">
+                                <RCard label="Yes" active={form.actTaken === 'yes'} onClick={() => set("actTaken", 'yes')} />
+                                <RCard label="No" active={form.actTaken === 'no'} onClick={() => { set("actTaken", 'no'); set("actScore", "") }} />
+                            </div>
+                        </div>
                     </div>
-                )}
-                {form.gmatTaken === 'yes' && (
-                    <div className="fg">
-                        <label className="lbl">GMAT Score (out of 800)</label>
-                        <input className="field" type="number" min="200" max="800" placeholder="e.g. 680" value={form.gmatScore} onChange={e => set("gmatScore", e.target.value)} />
+                    <div className="g2">
+                        {form.satTaken === 'yes' && (
+                            <div className="fg">
+                                <label className="lbl">SAT Score (400-1600)</label>
+                                <input className="field" type="number" min="400" max="1600" placeholder="e.g. 1350" value={form.satScore} onChange={e => set("satScore", e.target.value)} />
+                            </div>
+                        )}
+                        {form.actTaken === 'yes' && (
+                            <div className="fg">
+                                <label className="lbl">ACT Score (1-36)</label>
+                                <input className="field" type="number" min="1" max="36" placeholder="e.g. 29" value={form.actScore} onChange={e => set("actScore", e.target.value)} />
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>
-            <div className="g2">
-                <div className="fg">
-                    <label className="lbl">SAT Taken? (For UG)</label>
-                    <div className="rg">
-                        <RCard label="Yes" active={form.satTaken === 'yes'} onClick={() => set("satTaken", 'yes')} />
-                        <RCard label="No" active={form.satTaken === 'no'} onClick={() => { set("satTaken", 'no'); set("satScore", "") }} />
-                    </div>
-                </div>
-                {form.satTaken === 'yes' && (
-                    <div className="fg">
-                        <label className="lbl">SAT Score (400-1600)</label>
-                        <input className="field" type="number" min="400" max="1600" placeholder="e.g. 1350" value={form.satScore} onChange={e => set("satScore", e.target.value)} />
-                    </div>
-                )}
-            </div>
+                </>
+            )}
+
             <div className="fg">
                 <input type="text" name="website_url" className="hidden" aria-hidden="true" autoComplete="off" tabIndex={-1} value={form.website_url} onChange={e => set("website_url", e.target.value)} />
             </div>
@@ -429,6 +462,9 @@ export default function StudentRegisterForm({ initialCount }: { initialCount: nu
         if (step === 2) {
             if (!form.currentStatus) { toast.error("Current education status is required"); return false }
         }
+        if (step === 3) {
+            if (!form.preferredDegree) { toast.error("Degree level you're targeting is required"); return false }
+        }
         return true
     }
 
@@ -461,6 +497,7 @@ export default function StudentRegisterForm({ initialCount }: { initialCount: nu
         if (form.greTaken === 'yes') fd.append("greScore", form.greScore)
         if (form.gmatTaken === 'yes') fd.append("gmatScore", form.gmatScore)
         if (form.satTaken === 'yes') fd.append("satScore", form.satScore)
+        if (form.actTaken === 'yes') fd.append("actScore", form.actScore)
         
         if (form.website_url) fd.append("website_url", form.website_url)
 

@@ -134,12 +134,13 @@ export async function executeAction(action: AgentAction): Promise<void> {
 
         // ── T4: Meeting Reminder — Student ────────────────────────────────────
         case 'NOTIFY_MEETING_REMINDER_STUDENT': {
-            const { meetingId, studentId, studentEmail, studentName, meetingTitle, meetingStartTime, meetingDuration, meetingJoinUrl, meetingCode } = action
+            const { meetingId, studentId, studentEmail, studentName, meetingTitle, meetingStartTime, meetingDuration, meetingJoinUrl, meetingCode, studentTimezone } = action
             if (!meetingId || !studentEmail) return
 
             const name = studentName ?? studentEmail.split('@')[0]
+            const tz = studentTimezone || 'UTC'
             const timeStr = meetingStartTime
-                ? new Date(meetingStartTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST'
+                ? new Date(meetingStartTime).toLocaleString('en-US', { timeZone: tz }) + ' ' + tz
                 : 'See your dashboard'
             const duration = meetingDuration ?? 30
             const title = meetingTitle ?? 'Your Meeting'
@@ -175,11 +176,12 @@ export async function executeAction(action: AgentAction): Promise<void> {
 
         // ── T4: Meeting Reminder — University ─────────────────────────────────
         case 'NOTIFY_MEETING_REMINDER_UNIVERSITY': {
-            const { universityId, universityEmail, universityName, meetingTitle, meetingStartTime, meetingDuration, meetingJoinUrl, meetingCode } = action
+            const { universityId, universityEmail, universityName, meetingTitle, meetingStartTime, meetingDuration, meetingJoinUrl, meetingCode, repTimezone } = action
             if (!universityEmail) return
 
+            const tz = repTimezone || 'UTC'
             const timeStr = meetingStartTime
-                ? new Date(meetingStartTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST'
+                ? new Date(meetingStartTime).toLocaleString('en-US', { timeZone: tz }) + ' ' + tz
                 : 'See your dashboard'
             const duration = meetingDuration ?? 30
             const title = meetingTitle ?? 'Student Meeting'

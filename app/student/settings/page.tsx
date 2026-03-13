@@ -23,7 +23,7 @@ export default async function StudentSettingsPage() {
             id: true, email: true, name: true, createdAt: true,
             emailVerified: true, consentMarketing: true,
             consentAnalytics: true, consentWithdrawnAt: true,
-            deletionRequestedAt: true,
+            deletionRequestedAt: true, timezone: true,
         }
     })
     if (!userData) redirect('/')
@@ -74,10 +74,14 @@ export default async function StudentSettingsPage() {
                             </div>
                             <p className="text-xs text-amber-600">⚠️ Use your official name as it appears on your government-issued ID or passport.</p>
                         </form>
-                        <div className="pt-1 border-t border-gray-100 grid grid-cols-2 gap-4 text-xs text-muted-foreground">
+                        <div className="pt-1 border-t border-gray-100 grid grid-cols-2 md:grid-cols-3 gap-4 text-xs text-muted-foreground">
                             <div>
                                 <span className="block font-medium text-gray-700">Member since</span>
                                 {format(new Date(userData.createdAt), 'MMMM d, yyyy')}
+                            </div>
+                            <div>
+                                <span className="block font-medium text-gray-700">Notification Timezone</span>
+                                <Badge variant="secondary" className="text-[11px] mt-0.5" title="Auto-detected from your browser">{userData.timezone || 'UTC'}</Badge>
                             </div>
                             <div>
                                 <span className="block font-medium text-gray-700">Role</span>

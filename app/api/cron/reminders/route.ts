@@ -52,16 +52,18 @@ export async function GET(request: Request) {
 
         for (const meeting of meetings24h) {
             const title = meeting.title || `Meeting on ${new Date(meeting.startTime).toLocaleDateString()}`
-            const timeStr = new Date(meeting.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
             const duration = meeting.durationMinutes ?? Math.round((new Date(meeting.endTime).getTime() - new Date(meeting.startTime).getTime()) / 60000)
-            const emailBody = generateEmailHtml(
-                'Meeting Reminder — Tomorrow',
-                EmailTemplates.meetingReminder(title, timeStr + ' IST', duration, meeting.joinUrl || undefined, meeting.meetingCode || undefined)
-            )
 
             // Notify each participant
             for (const p of meeting.participants) {
                 if (p.user?.email) {
+                    const tz = p.participantType === 'STUDENT' ? (meeting.studentTimezone || 'UTC') : (meeting.repTimezone || 'UTC')
+                    const pTimeStr = new Date(meeting.startTime).toLocaleString('en-US', { timeZone: tz }) + ' ' + tz
+                    const emailBody = generateEmailHtml(
+                        'Meeting Reminder — Tomorrow',
+                        EmailTemplates.meetingReminder(title, pTimeStr, duration, meeting.joinUrl || undefined, meeting.meetingCode || undefined)
+                    )
+
                     await sendEmail({
                         to: p.user.email,
                         subject: `Reminder: "${title}" is tomorrow`,
@@ -94,15 +96,17 @@ export async function GET(request: Request) {
 
         for (const meeting of meetings1h) {
             const title = meeting.title || `Meeting on ${new Date(meeting.startTime).toLocaleDateString()}`
-            const timeStr = new Date(meeting.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
             const duration = meeting.durationMinutes ?? Math.round((new Date(meeting.endTime).getTime() - new Date(meeting.startTime).getTime()) / 60000)
-            const emailBody = generateEmailHtml(
-                'Starting in 1 Hour!',
-                EmailTemplates.meetingReminder(title, timeStr + ' IST', duration, meeting.joinUrl || undefined, meeting.meetingCode || undefined)
-            )
 
             for (const p of meeting.participants) {
                 if (p.user?.email) {
+                    const tz = p.participantType === 'STUDENT' ? (meeting.studentTimezone || 'UTC') : (meeting.repTimezone || 'UTC')
+                    const pTimeStr = new Date(meeting.startTime).toLocaleString('en-US', { timeZone: tz }) + ' ' + tz
+                    const emailBody = generateEmailHtml(
+                        'Starting in 1 Hour!',
+                        EmailTemplates.meetingReminder(title, pTimeStr, duration, meeting.joinUrl || undefined, meeting.meetingCode || undefined)
+                    )
+
                     await sendEmail({
                         to: p.user.email,
                         subject: `Starting soon: "${title}" in 1 hour`,

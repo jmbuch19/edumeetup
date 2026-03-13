@@ -116,7 +116,7 @@ export async function createMeetingRequest(data: BookingData) {
     // User.representedUniversity is the rep membership relation.
     const rep = await prisma.user.findUnique({
         where: { id: repId },
-        select: { id: true, isActive: true, role: true, representedUniversity: { select: { id: true } } },
+        select: { id: true, isActive: true, role: true, representedUniversity: { select: { id: true } }, timezone: true },
     })
     if (!rep) return { error: "Representative not found" }
     if (!rep.isActive) return { error: "Representative account is no longer active" }
@@ -200,6 +200,11 @@ export async function createMeetingRequest(data: BookingData) {
     const student = await prisma.student.findUnique({ where: { userId: session.user.id } })
     if (!student) return { error: "Student profile required" }
 
+    const studentUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { timezone: true },
+    })
+
     try {
         // ── SLOT SELECTION POLICY ───────────────────────────────────────────────────
         // Client submits slotId (the DB primary key of an AvailabilitySlot row).
@@ -244,8 +249,8 @@ export async function createMeetingRequest(data: BookingData) {
                     durationMinutes,
                     startTime: slotStart,           // from slot row
                     endTime: slotEnd,              // from slot row
-                    studentTimezone,                      // client-supplied, IANA-validated
-                    repTimezone: profile.timezone,    // canonical schedule timezone
+                    studentTimezone: studentUser?.timezone || studentTimezone, // prefer DB sync tz
+                    repTimezone: rep.timezone || profile.timezone, // prefer DB sync tz
                     status: 'PENDING',
                     videoProvider,
                     meetingCode: generateMeetingCode(),
@@ -279,7 +284,8 @@ export async function createMeetingRequest(data: BookingData) {
                 meeting.startTime,
                 durationMinutes,
                 meeting.id,
-                studentQuestions
+                studentQuestions,
+                profile.timezone
             )
         }
 

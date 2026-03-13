@@ -65,6 +65,11 @@ export default async function UniversitySettingsPage() {
       quietHoursStart: true,
       quietHoursEnd: true,
       followUpThresholdHours: true,
+      user: {
+        select: {
+          timezone: true
+        }
+      }
     },
   })
 
@@ -109,6 +114,7 @@ export default async function UniversitySettingsPage() {
         quietHoursStart:         university.quietHoursStart,
         quietHoursEnd:           university.quietHoursEnd,
         followUpThresholdHours:  university.followUpThresholdHours,
+        notificationTimezone:    university.user?.timezone || null,
       }}
     />
   )

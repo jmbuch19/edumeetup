@@ -2,7 +2,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
@@ -23,6 +22,7 @@ model User {
   consentWithdrawnAt    DateTime?
   deletionRequestedAt   DateTime?
   deletionScheduledFor  DateTime?
+  timezone              String                @default("Asia/Kolkata")
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
   universityId          String?
@@ -87,13 +87,13 @@ model VerificationToken {
 }
 
 model Student {
-  id                 String                @id @default(cuid())
-  userId             String                @unique
+  id                 String                      @id @default(cuid())
+  userId             String                      @unique
   phone              String?
   whatsappNumber     String?
   city               String?
   pincode            String?
-  country            String?               @default("India")
+  country            String?                     @default("India")
   ipAddress          String?
   ipCity             String?
   ipRegion           String?
@@ -102,8 +102,8 @@ model Student {
   ipLatitude         String?
   ipLongitude        String?
   ipIsp              String?
-  cityMismatch       Boolean               @default(false)
-  pincodeMismatch    Boolean               @default(false)
+  cityMismatch       Boolean                     @default(false)
+  pincodeMismatch    Boolean                     @default(false)
   fullName           String?
   gender             String?
   ageGroup           String?
@@ -119,17 +119,17 @@ model Student {
   satScore           String?
   actScore           String?
   preferredIntake    String?
-  profileComplete    Boolean               @default(false)
-  profileVersion     Int                   @default(1)
+  profileComplete    Boolean                     @default(false)
+  profileVersion     Int                         @default(1)
   cvUrl              String?
   cvFileName         String?
   cvUploadedAt       DateTime?
   cvSizeBytes        Int?
   notificationPrefs  Json?
-  lastSeenAt         DateTime?             // updated on each student login
-  advisorChatHistory Json?                 // persists last session messages for cross-day context
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
+  lastSeenAt         DateTime? // updated on each student login
+  advisorChatHistory Json? // persists last session messages for cross-day context
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
   advisoryRequests   AdvisoryRequest[]
   bookmarks          Bookmark[]
   eventRegistrations EventRegistration[]
@@ -138,7 +138,7 @@ model Student {
   meetings           Meeting[]
   meetingRequests    MeetingRequest[]
   changeLogs         ProfileChangeLog[]
-  user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
   notifications      StudentNotification[]
   proactiveMessages  ProactiveMessage[]
   dismissals         StudentDiscoveryDismissal[]
@@ -159,120 +159,120 @@ model ProfileChangeLog {
 }
 
 model University {
-  id                      String                   @id @default(cuid())
-  userId                  String                   @unique
-  institutionName         String
-  country                 String?
-  city                    String?
-  website                 String?
-  accreditationNo         String?
-  verificationStatus      String                   @default("PENDING")
-  verifiedAt              DateTime?
-  verifiedByAdmin         String?
-  verificationDocUrl      String?
-  docUploadDate           DateTime?                @default(now())
-  contactEmail            String?
-  logo                    String?
-  brandColor              String?                  @default("#2563eb")
-  about                   String?
-  foundedYear             Int?
-  campusSize              String?
-  totalStudents           Int?
-  internationalStudents   Int?
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  institutionName       String
+  country               String?
+  city                  String?
+  website               String?
+  accreditationNo       String?
+  verificationStatus    String    @default("PENDING")
+  verifiedAt            DateTime?
+  verifiedByAdmin       String?
+  verificationDocUrl    String?
+  docUploadDate         DateTime? @default(now())
+  contactEmail          String?
+  logo                  String?
+  brandColor            String?   @default("#2563eb")
+  about                 String?
+  foundedYear           Int?
+  campusSize            String?
+  totalStudents         Int?
+  internationalStudents Int?
   // ── Partner Profile Fields ─────────────────────────────────────────
-  timezone                String?   @default("UTC") // e.g. "Europe/London"
-  linkedin                String?                  // LinkedIn school page URL
-  universityType          String?                  // Public / Private / Research etc.
-  accreditation           String?                  // e.g. "AACSB, EQUIS, NAAC A+"
-  rankingQS               String?                  // QS World Ranking (String to allow ranges/labels)
-  rankingTHE              String?                  // Times Higher Education Ranking
-  programs                String[]   @default([])  // offered program tags (scalar — see Program relation below)
-  intakeMonths            String[]   @default([])  // e.g. ["September","January"]
-  indianStudentTarget     String?                  // e.g. "100–200"
-  wherebyApiKey           String?                  // university's own Whereby API key
+  timezone              String?   @default("UTC") // e.g. "Europe/London"
+  linkedin              String? // LinkedIn school page URL
+  universityType        String? // Public / Private / Research etc.
+  accreditation         String? // e.g. "AACSB, EQUIS, NAAC A+"
+  rankingQS             String? // QS World Ranking (String to allow ranges/labels)
+  rankingTHE            String? // Times Higher Education Ranking
+  programs              String[]  @default([]) // offered program tags (scalar — see Program relation below)
+  intakeMonths          String[]  @default([]) // e.g. ["September","January"]
+  indianStudentTarget   String? // e.g. "100–200"
+  wherebyApiKey         String? // university's own Whereby API key
 
   repName                 String?
   repDesignation          String?
   repEmail                String?
   contactPhone            String?
-  scholarshipsAvailable   Boolean                  @default(false)
+  scholarshipsAvailable   Boolean   @default(false)
   meetingLink             String?
-  certAuthority           Boolean                  @default(false)
-  certLegitimacy          Boolean                  @default(false)
-  certPurpose             Boolean                  @default(false)
-  certAccountability      Boolean                  @default(false)
+  certAuthority           Boolean   @default(false)
+  certLegitimacy          Boolean   @default(false)
+  certPurpose             Boolean   @default(false)
+  certAccountability      Boolean   @default(false)
   certTimestamp           DateTime?
   certIp                  String?
-  approvalMode            String                   @default("MANUAL")
-  defaultDuration         Int                      @default(15)
-  dailyCapPerRep          Int                      @default(10)
-  minLeadTimeHours        Int                      @default(24)
-  bufferMinutes           Int                      @default(10)
-  cancellationWindowHours Int                      @default(24)
-  isPublic                Boolean                  @default(true)
-  notifQuota              Int                      @default(3)    // weekly campaigns admin can set
-  notifPaused             Boolean                  @default(false) // admin kill switch
-  proactiveCooldownDays   Int                      @default(21)   // nudge cooldown per student
+  approvalMode            String    @default("MANUAL")
+  defaultDuration         Int       @default(15)
+  dailyCapPerRep          Int       @default(10)
+  minLeadTimeHours        Int       @default(24)
+  bufferMinutes           Int       @default(10)
+  cancellationWindowHours Int       @default(24)
+  isPublic                Boolean   @default(true)
+  notifQuota              Int       @default(3) // weekly campaigns admin can set
+  notifPaused             Boolean   @default(false) // admin kill switch
+  proactiveCooldownDays   Int       @default(21) // nudge cooldown per student
   // ── Parent-School Architecture ──────────────────────────────────────
-  parentId    String?      // null = standalone OR parent itself
-  groupSlug   String?      // e.g. "arizona-state-university"; set on parent, inherited by schools
-  isParent    Boolean      @default(false)  // true = has schools under it
+  parentId                String? // null = standalone OR parent itself
+  groupSlug               String? // e.g. "arizona-state-university"; set on parent, inherited by schools
+  isParent                Boolean   @default(false) // true = has schools under it
 
-  parent      University?  @relation("UniversitySchools", fields: [parentId], references: [id], onDelete: SetNull)
-  schools     University[] @relation("UniversitySchools")
+  parent  University?  @relation("UniversitySchools", fields: [parentId], references: [id], onDelete: SetNull)
+  schools University[] @relation("UniversitySchools")
 
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
   universityNameFromEmail String?
   countryFromEmail        String?
 
   // ── Pipeline Notifications ────────────────────────────────────────
-  notifyNewInterest       Boolean  @default(true)
-  notifyMeetingBooked     Boolean  @default(true)
-  notifyMeetingCancelled  Boolean  @default(true)
-  followUpThresholdHours  Int?     // null=off | 24 | 48 | 72
+  notifyNewInterest      Boolean @default(true)
+  notifyMeetingBooked    Boolean @default(true)
+  notifyMeetingCancelled Boolean @default(true)
+  followUpThresholdHours Int? // null=off | 24 | 48 | 72
 
   // ── Digest & Reporting ────────────────────────────────────────────
-  digestDaily             Boolean  @default(true)   // 9am IST daily
-  digestWeekly            Boolean  @default(true)   // Monday 9am IST
-  digestMonthly           Boolean  @default(true)   // 1st of month
+  digestDaily   Boolean @default(true) // 9am IST daily
+  digestWeekly  Boolean @default(true) // Monday 9am IST
+  digestMonthly Boolean @default(true) // 1st of month
 
   // ── Events & Fairs ────────────────────────────────────────────────
-  notifyFairOpportunities Boolean  @default(true)
-  notifyInterestSpikes    Boolean  @default(true)
+  notifyFairOpportunities Boolean @default(true)
+  notifyInterestSpikes    Boolean @default(true)
 
   // ── Escalation Controls ───────────────────────────────────────────
-  notifyTarget            String   @default("PRIMARY") // PRIMARY | ALL | CUSTOM
-  customNotifyEmails      String[] @default([])         // used when notifyTarget=CUSTOM
-  quietHoursEnabled       Boolean  @default(true)
-  quietHoursStart         Int      @default(22)         // 10pm IST (24h)
-  quietHoursEnd           Int      @default(7)          // 7am IST (24h)
+  notifyTarget       String   @default("PRIMARY") // PRIMARY | ALL | CUSTOM
+  customNotifyEmails String[] @default([]) // used when notifyTarget=CUSTOM
+  quietHoursEnabled  Boolean  @default(true)
+  quietHoursStart    Int      @default(22) // 10pm IST (24h)
+  quietHoursEnd      Int      @default(7) // 7am IST (24h)
 
   // ── Agent Metadata ────────────────────────────────────────────────
-  notificationPrefs       Json?    // UniversityNotificationPrefs (typed overlay)
-  responseRate            Float?   // cached 0-100, updated by agent hourly
+  notificationPrefs Json? // UniversityNotificationPrefs (typed overlay)
+  responseRate      Float? // cached 0-100, updated by agent hourly
 
-  availabilityProfiles    AvailabilityProfile[]
-  availabilitySlots       AvailabilitySlot[]
-  bookmarkedBy            Bookmark[]
-  events                  Event[]
-  groupSessions           GroupSession[]
-  hostOutreach            HostRequestOutreach[]
-  interests               Interest[]
-  meetings                Meeting[]
-  meetingRequests         MeetingRequest[]
-  programList             Program[]
-  sponsoredContent        SponsoredContent[]
-  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  documents               UniversityDocument[]
-  notifications           UniversityNotification[]
-  proctorRequests         ProctorRequest[]
-  proactiveMessages       ProactiveMessage[]
-  dismissals              StudentDiscoveryDismissal[]
-  fairAttendances         FairAttendance[]
-  fairInvitations         FairInvitation[]
-  reps                    User[]                   @relation("UniversityReps")
-  conversations           Conversation[]
+  availabilityProfiles AvailabilityProfile[]
+  availabilitySlots    AvailabilitySlot[]
+  bookmarkedBy         Bookmark[]
+  events               Event[]
+  groupSessions        GroupSession[]
+  hostOutreach         HostRequestOutreach[]
+  interests            Interest[]
+  meetings             Meeting[]
+  meetingRequests      MeetingRequest[]
+  programList          Program[]
+  sponsoredContent     SponsoredContent[]
+  user                 User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents            UniversityDocument[]
+  notifications        UniversityNotification[]
+  proctorRequests      ProctorRequest[]
+  proactiveMessages    ProactiveMessage[]
+  dismissals           StudentDiscoveryDismissal[]
+  fairAttendances      FairAttendance[]
+  fairInvitations      FairInvitation[]
+  reps                 User[]                      @relation("UniversityReps")
+  conversations        Conversation[]
 
   @@index([verificationStatus])
   @@index([country])
@@ -292,7 +292,7 @@ model UniversityDocument {
   programId    String?
   isFairReady  Boolean    @default(false)
   uploadedAt   DateTime   @default(now())
-  deletedAt    DateTime?  // soft delete — null = active, timestamp = deleted
+  deletedAt    DateTime? // soft delete — null = active, timestamp = deleted
   university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
   program      Program?   @relation(fields: [programId], references: [id], onDelete: SetNull)
 
@@ -302,60 +302,60 @@ model UniversityDocument {
 }
 
 model Program {
-  id              String     @id @default(cuid())
+  id              String   @id @default(cuid())
   universityId    String
   programName     String
   degreeLevel     String
   fieldCategory   String
   durationMonths  Int?
   tuitionFee      Float?
-  currency        String?    @default("USD")
-  status          String     @default("ACTIVE")
-  stemDesignated  Boolean    @default(false)
+  currency        String?  @default("USD")
+  status          String   @default("ACTIVE")
+  stemDesignated  Boolean  @default(false)
   englishTests    String[]
   minEnglishScore Float?
   intakes         String[]
   description     String?
 
   // ── Standardised Tests ──────────────────────────────────────────────────────
-  satRequired        String?   // "REQUIRED" | "RECOMMENDED" | "NOT_REQUIRED"
-  satMinScore        Int?
-  satMaxScore        Int?
-  actRequired        String?   // "REQUIRED" | "RECOMMENDED" | "NOT_REQUIRED"
-  actMinScore        Int?
-  actMaxScore        Int?
-  greRequired        String?   // "REQUIRED" | "RECOMMENDED" | "NOT_REQUIRED"
-  greMinScore        Int?
-  greMaxScore        Int?
-  gmatRequired       String?   // "REQUIRED" | "RECOMMENDED" | "NOT_REQUIRED"
-  gmatMinScore       Int?
-  gmatMaxScore       Int?
+  satRequired  String? // "REQUIRED" | "RECOMMENDED" | "NOT_REQUIRED"
+  satMinScore  Int?
+  satMaxScore  Int?
+  actRequired  String? // "REQUIRED" | "RECOMMENDED" | "NOT_REQUIRED"
+  actMinScore  Int?
+  actMaxScore  Int?
+  greRequired  String? // "REQUIRED" | "RECOMMENDED" | "NOT_REQUIRED"
+  greMinScore  Int?
+  greMaxScore  Int?
+  gmatRequired String? // "REQUIRED" | "RECOMMENDED" | "NOT_REQUIRED"
+  gmatMinScore Int?
+  gmatMaxScore Int?
 
   // ── Scholarships ────────────────────────────────────────────────────────────
-  scholarshipAvail   String?   // "YES" | "NO" | "DEPENDS"
+  scholarshipAvail   String? // "YES" | "NO" | "DEPENDS"
   scholarshipDetails String?
 
   // ── Application Requirements ────────────────────────────────────────────────
-  applicationFee     Float?
-  applicationFeeCur  String?   @default("USD")
-  appDeadlineType    String?   // "ROLLING" | "FIXED"
-  appDeadlineDate    DateTime?
-  workExpYears       Int?      // 0 = not required
-  minGpa             Float?    // out of 4.0
-  minPercentage      Float?    // e.g. 65.0
+  applicationFee    Float?
+  applicationFeeCur String?   @default("USD")
+  appDeadlineType   String? // "ROLLING" | "FIXED"
+  appDeadlineDate   DateTime?
+  workExpYears      Int? // 0 = not required
+  minGpa            Float? // out of 4.0
+  minPercentage     Float? // e.g. 65.0
 
   // ── Program Details ─────────────────────────────────────────────────────────
-  coopAvailable      Boolean   @default(false)
-  specialisations    String[]  @default([])
+  coopAvailable   Boolean  @default(false)
+  specialisations String[] @default([])
 
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
   interests       Interest[]
   meetings        Meeting[]
   meetingRequests MeetingRequest[]
   groupSessions   GroupSession[]
   documents       UniversityDocument[]
-  university      University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  university      University           @relation(fields: [universityId], references: [id], onDelete: Cascade)
 }
 
 model Interest {
@@ -532,7 +532,7 @@ model Meeting {
   agenda                 String?
   meetingType            String?
   joinUrl                String?
-  hostRoomUrl            String?               // Whereby host URL (university only)
+  hostRoomUrl            String? // Whereby host URL (university only)
   purpose                MeetingPurpose
   studentQuestions       String?
   uploadedDocUrl         String?
@@ -624,18 +624,18 @@ model AvailabilitySlot {
 }
 
 model MeetingRequest {
-  id              String      @id @default(cuid())
-  studentId       String
-  universityId    String
-  programId       String?
-  status          String      @default("PENDING") // PENDING, ACCEPTED, DECLINED
-  message         String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  
-  student         Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  university      University  @relation(fields: [universityId], references: [id], onDelete: Cascade)
-  program         Program?    @relation(fields: [programId], references: [id], onDelete: SetNull)
+  id           String   @id @default(cuid())
+  studentId    String
+  universityId String
+  programId    String?
+  status       String   @default("PENDING") // PENDING, ACCEPTED, DECLINED
+  message      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  program    Program?   @relation(fields: [programId], references: [id], onDelete: SetNull)
 
   @@index([universityId])
   @@index([studentId])
@@ -687,20 +687,20 @@ model EventRegistration {
 model GroupSession {
   id              String             @id @default(cuid())
   universityId    String
-  programId       String?            // optional: target a specific program
-  targetField     String?            // e.g. "Computer Science" — for smart matching
+  programId       String? // optional: target a specific program
+  targetField     String? // e.g. "Computer Science" — for smart matching
   title           String
   agenda          String?
   scheduledAt     DateTime
   durationMinutes Int                @default(45)
-  capacity        Int                @default(10)  // hard cap, max 10
+  capacity        Int                @default(10) // hard cap, max 10
   status          GroupSessionStatus @default(OPEN)
   joinUrl         String?
-  hostRoomUrl     String?            // Whereby host URL (university-only, has host controls)
+  hostRoomUrl     String? // Whereby host URL (university-only, has host controls)
   videoProvider   String?
-  recapUrl        String?            // post-session recording/recap upload
-  notifiedCount   Int                @default(0)   // how many students were notified
-  followUpDraftId String?            // auto-created when status = FULL
+  recapUrl        String? // post-session recording/recap upload
+  notifiedCount   Int                @default(0) // how many students were notified
+  followUpDraftId String? // auto-created when status = FULL
   reminder24hSent Boolean            @default(false) // day-before reminder sent
   reminder30mSent Boolean            @default(false) // 30-min reminder sent
   createdAt       DateTime           @default(now())
@@ -719,8 +719,8 @@ model GroupSessionSeat {
   id             String    @id @default(cuid())
   groupSessionId String
   studentId      String
-  status         String    @default("CONFIRMED")  // CONFIRMED | WAITLISTED | CANCELLED
-  waitlistPos    Int?      // queue position for waitlisted students; null if CONFIRMED
+  status         String    @default("CONFIRMED") // CONFIRMED | WAITLISTED | CANCELLED
+  waitlistPos    Int? // queue position for waitlisted students; null if CONFIRMED
   joinedAt       DateTime  @default(now())
   notifiedAt     DateTime? // when the student was notified of a seat opening
 
@@ -731,8 +731,6 @@ model GroupSessionSeat {
   @@index([groupSessionId, status])
   @@index([studentId])
 }
-
-
 
 model SystemLog {
   id        String   @id @default(cuid())
@@ -944,9 +942,9 @@ enum MeetingPurpose {
 enum GroupSessionStatus {
   DRAFT
   OPEN
-  FILLING      // >50% seats taken
+  FILLING // >50% seats taken
   FULL
-  LIVE         // happening now
+  LIVE // happening now
   COMPLETED
   CANCELLED
 }
@@ -960,32 +958,32 @@ enum ProctorRequestStatus {
 }
 
 model ProctorRequest {
-  id             String               @id @default(cuid())
-  universityId   String
-  university     University           @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  universityId String
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
 
   // Exam details
-  examType        String               // "midterm" | "final" | "multiple" | "other"
+  examType        String // "midterm" | "final" | "multiple" | "other"
   subjects        String
   examStartDate   DateTime
   examEndDate     DateTime
   studentCount    Int
-  durationMinutes Int                  // e.g. 120 or 180
+  durationMinutes Int // e.g. 120 or 180
   requirements    String?
   policyUrl       String?
 
   // Status machine
-  status         ProctorRequestStatus @default(PENDING)
-  adminNotes     String?              // internal notes by Jaydeep
-  fees           Float?               // decided later
-  confirmedAt    DateTime?
-  completedAt    DateTime?
+  status      ProctorRequestStatus @default(PENDING)
+  adminNotes  String? // internal notes by Jaydeep
+  fees        Float? // decided later
+  confirmedAt DateTime?
+  completedAt DateTime?
 
   // Agent reminder tracking
   reminderSentAt DateTime?
 
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([universityId])
   @@index([status])
@@ -1006,9 +1004,9 @@ model ProactiveMessage {
   repliedAt    DateTime?
   status       ProactiveMessageStatus @default(SENT)
 
-  rep          User?      @relation("RepMessages", fields: [repId], references: [id], onDelete: SetNull)
-  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  rep        User?      @relation("RepMessages", fields: [repId], references: [id], onDelete: SetNull)
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
 
   @@index([repId])
   @@index([studentId])
@@ -1037,7 +1035,7 @@ model RepPerformance {
   lastCalculatedAt       DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
-  rep                    User     @relation(fields: [repId], references: [id], onDelete: Cascade)
+  rep User @relation(fields: [repId], references: [id], onDelete: Cascade)
 }
 
 // ── Rep Badges ────────────────────────────────────────────────────────
@@ -1048,7 +1046,7 @@ model RepBadge {
   name      String
   earnedAt  DateTime     @default(now())
 
-  rep       User         @relation(fields: [repId], references: [id], onDelete: Cascade)
+  rep User @relation(fields: [repId], references: [id], onDelete: Cascade)
 
   @@index([repId])
   @@index([badgeType])
@@ -1063,13 +1061,13 @@ enum RepBadgeType {
 
 // ── Student Discovery Dismissals ──────────────────────────────────────
 model StudentDiscoveryDismissal {
-  id           String     @id @default(cuid())
+  id           String   @id @default(cuid())
   universityId String
   studentId    String
-  dismissedAt  DateTime   @default(now())
+  dismissedAt  DateTime @default(now())
 
-  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
-  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([universityId, studentId])
   @@index([universityId])
@@ -1095,10 +1093,10 @@ model FairEvent {
   capacity    Int?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
-  deletedAt   DateTime?       // soft-delete — null = active, timestamp = archived
+  deletedAt   DateTime? // soft-delete — null = active, timestamp = archived
 
-  rsvpDeadline        DateTime?
-  studentsNotifiedAt  DateTime?  // set when admin triggers LIVE + student notifications
+  rsvpDeadline       DateTime?
+  studentsNotifiedAt DateTime? // set when admin triggers LIVE + student notifications
 
   studentPasses FairStudentPass[]
   attendances   FairAttendance[]
@@ -1112,39 +1110,39 @@ model FairEvent {
 }
 
 model FairStudentPass {
-  id                 String    @id @default(cuid())
-  uuid               String    @unique @default(uuid())
-  fairEventId        String
-  fairEvent          FairEvent @relation(fields: [fairEventId], references: [id], onDelete: Cascade)
-  studentId          String?
-  student            Student?  @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  id          String    @id @default(cuid())
+  uuid        String    @unique @default(uuid())
+  fairEventId String
+  fairEvent   FairEvent @relation(fields: [fairEventId], references: [id], onDelete: Cascade)
+  studentId   String?
+  student     Student?  @relation(fields: [studentId], references: [id], onDelete: SetNull)
 
-  email              String
-  fullName           String
-  phone              String
+  email    String
+  fullName String
+  phone    String
 
   currentInstitution String
   currentCourse      String
-  yearOfPassing      Int?      @default(0)  // kept for legacy data
-  currentSemester    String?               // e.g. "6th Semester / 3rd Year"
-  englishExam        String?               // e.g. "IELTS 6.5", "Not attempted"
+  yearOfPassing      Int?    @default(0) // kept for legacy data
+  currentSemester    String? // e.g. "6th Semester / 3rd Year"
+  englishExam        String? // e.g. "IELTS 6.5", "Not attempted"
 
   fieldOfInterest    String?
   budgetRange        String?
   preferredCountries String?
 
-  whatsappConsent    Boolean   @default(false)
-  emailConsent       Boolean   @default(true)
-  marketingConsent   Boolean   @default(false)
-  consentTimestamp   DateTime  @default(now())
+  whatsappConsent  Boolean  @default(false)
+  emailConsent     Boolean  @default(true)
+  marketingConsent Boolean  @default(false)
+  consentTimestamp DateTime @default(now())
 
-  checkedIn          Boolean   @default(false)
-  checkedInAt        DateTime?
-  isPartialProfile   Boolean   @default(true)
-  parentToken        String?   @unique
+  checkedIn        Boolean   @default(false)
+  checkedInAt      DateTime?
+  isPartialProfile Boolean   @default(true)
+  parentToken      String?   @unique
 
-  attendances        FairAttendance[]
-  createdAt          DateTime  @default(now())
+  attendances FairAttendance[]
+  createdAt   DateTime         @default(now())
 
   @@unique([email, fairEventId])
   @@index([fairEventId])
@@ -1171,7 +1169,7 @@ model FairAttendance {
   followUpNote    String?
   followUpAt      DateTime?
 
-  messages        FairMessage[]
+  messages FairMessage[]
 
   @@unique([passId, universityId, fairEventId])
   @@index([universityId, fairEventId])
@@ -1188,8 +1186,8 @@ model FairMessage {
   senderId         String
   content          String
   // Split per-party: one party marking read must NOT clear it for the other
-  studentReadAt    DateTime?      // set when the student reads this message
-  universityReadAt DateTime?      // set when the university rep reads this message
+  studentReadAt    DateTime? // set when the student reads this message
+  universityReadAt DateTime? // set when the university rep reads this message
   createdAt        DateTime       @default(now())
 
   @@index([fairAttendanceId])
@@ -1208,8 +1206,8 @@ model FairQuestion {
   id          String    @id @default(cuid())
   fairEventId String
   fairEvent   FairEvent @relation(fields: [fairEventId], references: [id], onDelete: Cascade)
-  askerRole   String    // "STUDENT" | "UNIVERSITY"
-  askerId     String    // userId of asker
+  askerRole   String // "STUDENT" | "UNIVERSITY"
+  askerId     String // userId of asker
   question    String
   answer      String?
   answeredAt  DateTime?
@@ -1263,18 +1261,18 @@ model Conversation {
 }
 
 model DirectMessage {
-  id             String       @id @default(cuid())
-  conversationId String
-  senderId       String       // User.id
+  id               String       @id @default(cuid())
+  conversationId   String
+  senderId         String // User.id
   // ENFORCE UPPERCASE: only "STUDENT" or "UNIVERSITY" — never lowercase or other values
-  senderRole     String
-  content        String
+  senderRole       String
+  content          String
   // Split per-party: one party marking read must NOT clear it for the other
-  studentReadAt    DateTime?  // set when the student reads this message
-  universityReadAt DateTime?  // set when the university rep reads this message
-  createdAt      DateTime     @default(now())
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  studentReadAt    DateTime? // set when the student reads this message
+  universityReadAt DateTime? // set when the university rep reads this message
+  createdAt        DateTime     @default(now())
+  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender           User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
   @@index([senderId])
