@@ -64,7 +64,7 @@ export async function getBookingData(universityId: string) {
                 where: { isActive: true },
                 include: { repUser: { select: { id: true, name: true, image: true } } },
             },
-            programs: { select: { id: true, programName: true, degreeLevel: true } },
+            programList: { select: { id: true, programName: true, degreeLevel: true } },
         },
     })
     if (!university) return { error: "University not found" }

@@ -38,7 +38,7 @@ function calculateCompleteness(uni: {
     contactPhone: string | null
     scholarshipsAvailable: boolean
     foundedYear: number | null
-    programs: { description: string | null; programName: string }[]
+    programList: { description: string | null; programName: string }[]
 }) {
     const tasks = [
         {
@@ -65,7 +65,7 @@ function calculateCompleteness(uni: {
         },
         {
             id: 'programs', label: 'Add descriptions to all programmes',
-            done: uni.programs.length > 0 && uni.programs.every(p => (p.description?.length ?? 0) > 30),
+            done: uni.programList.length > 0 && uni.programList.every(p => (p.description?.length ?? 0) > 30),
             actionUrl: '/university/dashboard?tab=programs', actionLabel: 'Edit programmes',
         },
         {
@@ -94,8 +94,7 @@ export default async function UniversityDashboard() {
     try {
         uni = await prisma.university.findFirst({
             where: { user: { email: email! } },
-            include: {
-                programs: {
+            include: { programList: {
                     orderBy: { createdAt: 'desc' },
                     include: { _count: { select: { interests: true } } }
                 },
@@ -154,7 +153,7 @@ export default async function UniversityDashboard() {
     }
 
     // ── Wave 2: All independent queries fire simultaneously ──────────────────
-    const programFields = uni.programs.map((p: any) => p.fieldCategory).filter(Boolean)
+    const programFields = uni.programList.map((p: any) => p.fieldCategory).filter(Boolean)
     const uniqueFields = Array.from(new Set(programFields)) as string[]
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
@@ -335,7 +334,7 @@ export default async function UniversityDashboard() {
         ...recentMessages.map((m: any) => m.studentId),
         ...uni.interests.map((i: any) => i.studentId),
     ]
-    const actionCentreFields = [...new Set(uni.programs.map((p: any) => p.fieldCategory).filter(Boolean))] as string[]
+    const actionCentreFields = [...new Set(uni.programList.map((p: any) => p.fieldCategory).filter(Boolean))] as string[]
     const discoverableStudents = actionCentreFields.length > 0
         ? await prisma.student.findMany({
             where: {
@@ -383,11 +382,11 @@ export default async function UniversityDashboard() {
     ])
 
     const invitationByFairId = Object.fromEntries(fairInvitations.map((inv: any) => [inv.fairEventId, inv]))
-    const activePrograms = uni.programs.filter((p: any) => p.status === 'ACTIVE').map((p: any) => ({ id: p.id, programName: p.programName }))
+    const activePrograms = uni.programList.filter((p: any) => p.status === 'ACTIVE').map((p: any) => ({ id: p.id, programName: p.programName }))
 
     // Stats
     const stats = {
-        totalPrograms: uni.programs.length,
+        totalPrograms: uni.programList.length,
         totalInterests: uni.interests.length,
         totalMeetings: allMeetings.length,
         totalStudentsMatched: matchedStudents.length,
@@ -563,7 +562,7 @@ export default async function UniversityDashboard() {
                         repId={user.id}
                         completeness={{ score: completenessScore, tasks: completenessTasks }}
                         discoverableStudents={discoverableForUI}
-                        programNames={uni.programs.map((p: any) => p.programName)}
+                        programNames={uni.programList.map((p: any) => p.programName)}
 
                     />
 
@@ -601,7 +600,7 @@ export default async function UniversityDashboard() {
                             <CardContent>
                                 <InterestedStudentsTable
                                     interests={JSON.parse(JSON.stringify(recentInterests))}
-                                    programs={JSON.parse(JSON.stringify(uni.programs))}
+                                    programs={JSON.parse(JSON.stringify(uni.programList))}
                                     availabilitySlots={JSON.parse(JSON.stringify(availabilitySlots))}
                                     compact
                                 />
@@ -661,7 +660,7 @@ export default async function UniversityDashboard() {
                         <CardContent>
                             <InterestedStudentsTable
                                 interests={JSON.parse(JSON.stringify(uni.interests))}
-                                programs={JSON.parse(JSON.stringify(uni.programs))}
+                                programs={JSON.parse(JSON.stringify(uni.programList))}
                                 availabilitySlots={JSON.parse(JSON.stringify(availabilitySlots))}
                             />
                         </CardContent>
@@ -683,13 +682,13 @@ export default async function UniversityDashboard() {
                 <TabsContent value="group-sessions">
                     <GroupSessionsTab
                         sessions={JSON.parse(JSON.stringify(groupSessions))}
-                        programs={uni.programs.map((p: any) => ({ id: p.id, programName: p.programName, fieldCategory: p.fieldCategory }))}
+                        programs={uni.programList.map((p: any) => ({ id: p.id, programName: p.programName, fieldCategory: p.fieldCategory }))}
                     />
                 </TabsContent>
 
                 <TabsContent value="programs">
                     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                        <ProgramList programs={JSON.parse(JSON.stringify(uni.programs))} universityId={uni.id} />
+                        <ProgramList programs={JSON.parse(JSON.stringify(uni.programList))} universityId={uni.id} />
                     </div>
                 </TabsContent>
 
@@ -726,7 +725,7 @@ export default async function UniversityDashboard() {
                                             repsAttending: inv.repsAttending,
                                             programsShowcasing: inv.programsShowcasing,
                                         }}
-                                        programs={uni.programs.map((p: any) => ({
+                                        programs={uni.programList.map((p: any) => ({
                                             id: p.id,
                                             programName: p.programName,
                                             degreeLevel: p.degreeLevel,
@@ -869,3 +868,4 @@ export default async function UniversityDashboard() {
         </div>
     )
 }
+

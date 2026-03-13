@@ -78,7 +78,7 @@ export default async function StudentDashboard() {
             prisma.university.findMany({
                 where: { verificationStatus: 'VERIFIED' },
                 take: 3,
-                include: { programs: true }
+                include: { programList: true }
             }),
             prisma.interest.findMany({
                 where: { studentId: student.id },
@@ -120,3 +120,4 @@ export default async function StudentDashboard() {
         </>
     )
 }
+

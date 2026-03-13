@@ -899,8 +899,7 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
             } : {}),
             universityNameFromEmail: detectedUniversityName || null,
             countryFromEmail: detectedCountry || null,
-            programs: {
-                create: programs.map((p: ProgramData) => ({
+            programList: { create: programs.map((p: ProgramData) => ({
                     programName: p.programName,
                     degreeLevel: p.degreeLevel,
                     fieldCategory: p.fieldCategory,
@@ -2068,4 +2067,5 @@ export async function getLiveUniversitySuggestion() {
         return null
     }
 }
+
 

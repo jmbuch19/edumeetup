@@ -27,7 +27,7 @@ export default async function AdminUniversityDetailPage(props: Props) {
         where: { id: params.id },
         include: {
             user: { select: { email: true, createdAt: true, isActive: true } },
-            programs: { orderBy: { createdAt: 'desc' } },
+            programList: { orderBy: { createdAt: 'desc' } },
             schools: { select: { id: true, institutionName: true, verificationStatus: true } },
             parent: { select: { id: true, institutionName: true, groupSlug: true } },
         },
@@ -206,15 +206,15 @@ export default async function AdminUniversityDetailPage(props: Props) {
             </Card>
 
             {/* Programs */}
-            {uni.programs.length > 0 && (
+            {uni.programList.length > 0 && (
                 <Card>
                     <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-base">
-                            <GraduationCap className="h-4 w-4" /> Programs ({uni.programs.length})
+                            <GraduationCap className="h-4 w-4" /> Programs ({uni.programList.length})
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="divide-y divide-gray-50">
-                        {uni.programs.map((p) => (
+                        {uni.programList.map((p) => (
                             <div key={p.id} className="py-3 flex items-start justify-between gap-4">
                                 <div>
                                     <p className="font-medium text-gray-900 text-sm">{p.programName}</p>

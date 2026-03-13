@@ -90,8 +90,7 @@ export async function GET(request: NextRequest) {
                         contactEmail: 'admissions@harvard.edu',
                         verificationStatus: 'VERIFIED',
                         verifiedAt: new Date(),
-                        programs: {
-                            create: [
+                        programList: { create: [
                                 {
                                     programName: 'Computer Science',
                                     degreeLevel: "Master's",
@@ -125,8 +124,7 @@ export async function GET(request: NextRequest) {
                         verificationStatus: 'PENDING',
                         repName: 'Jane Smith',
                         repDesignation: 'Registrar',
-                        programs: {
-                            create: [
+                        programList: { create: [
                                 {
                                     programName: 'Data Science',
                                     degreeLevel: "Master's",
@@ -148,3 +146,4 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: message }, { status: 500 })
     }
 }
+

@@ -34,14 +34,13 @@ export default async function GroupPage(props: Props) {
         include: {
             schools: {
                 where: { verificationStatus: 'VERIFIED', isPublic: true },
-                include: {
-                    programs: {
+                include: { programList: {
                         select: { fieldCategory: true, programName: true, degreeLevel: true }
                     }
                 },
                 orderBy: { institutionName: 'asc' },
             },
-            programs: {
+            programList: {
                 select: { fieldCategory: true, programName: true, degreeLevel: true }
             }
         },
@@ -50,8 +49,8 @@ export default async function GroupPage(props: Props) {
     if (!parent) notFound()
 
     const totalPrograms =
-        parent.programs.length +
-        parent.schools.reduce((acc, s) => acc + s.programs.length, 0)
+        parent.programList.length +
+        parent.schools.reduce((acc, s) => acc + s.programList.length, 0)
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-4xl">

@@ -77,8 +77,7 @@ async function main() {
                     contactEmail: 'admissions@harvard.edu',
                     verificationStatus: 'VERIFIED',
                     verifiedAt: new Date(),
-                    programs: {
-                        create: [
+                    programList: { create: [
                             {
                                 programName: 'Computer Science',
                                 degreeLevel: "Master's",
@@ -104,3 +103,4 @@ main()
         await prisma.$disconnect()
         process.exit(1)
     })
+

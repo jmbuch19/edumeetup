@@ -40,13 +40,13 @@ export interface UniversitySettings {
   contactEmail?: string | null
   description?: string | null
   isPublic: boolean
-  country: string
+  country: string | null
   timezone?: string | null
   linkedin?: string | null
   universityType?: string | null
   accreditation?: string | null
-  rankingQS?: number | null
-  rankingTHE?: number | null
+  rankingQS?: string | null
+  rankingTHE?: string | null
   indianStudentTarget?: string | null
   programs: string[]
   intakeMonths: string[]
@@ -370,7 +370,7 @@ export default function SettingsForm({ settings }: { settings: UniversitySetting
             </Field>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
               <Field label="Country *">
-                <Sel name="country" value={data.country} onChange={e => set('country', e.target.value)}>
+                <Sel name="country" value={data.country || ''} onChange={e => set('country', e.target.value)}>
                   {COUNTRIES.map(c => <option key={c}>{c}</option>)}
                 </Sel>
               </Field>

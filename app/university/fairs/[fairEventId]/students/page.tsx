@@ -19,7 +19,7 @@ export default async function FairRegisteredStudentsPage(
 
     const university = await prisma.university.findUnique({
         where: { userId: user.id },
-        include: { programs: { select: { id: true, programName: true, degreeLevel: true } } },
+        include: { programList: { select: { id: true, programName: true, degreeLevel: true } } },
     })
     if (!university) redirect('/university/dashboard')
 

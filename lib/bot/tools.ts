@@ -68,7 +68,7 @@ export async function searchInternalUniversities(args: {
                 verificationStatus: 'VERIFIED',
                 isPublic: true,
                 ...(args.country ? { country: { contains: args.country, mode: 'insensitive' } } : {}),
-                programs: {
+                programList: {
                     some: {
                         status: 'ACTIVE',
                         ...(args.fieldOfStudy ? { fieldCategory: { contains: args.fieldOfStudy, mode: 'insensitive' } } : {}),
@@ -87,7 +87,7 @@ export async function searchInternalUniversities(args: {
                 scholarshipsAvailable: true,
                 about: true,
                 logo: true,
-                programs: {
+                programList: {
                     where: {
                         status: 'ACTIVE',
                         ...(args.fieldOfStudy ? { fieldCategory: { contains: args.fieldOfStudy, mode: 'insensitive' } } : {}),
@@ -129,7 +129,7 @@ export async function searchInternalUniversities(args: {
                 scholarships: u.scholarshipsAvailable,
                 about: u.about?.slice(0, 200),
                 logo: u.logo,
-                programs: u.programs,
+                programs: u.programList,
                 profileUrl: `/universities/${u.id}`,
                 bookMeetingUrl: `/universities/${u.id}`,
             }))

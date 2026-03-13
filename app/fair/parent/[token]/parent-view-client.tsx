@@ -57,7 +57,7 @@ function VisitCard({ visit }: { visit: VisitItem }) {
                     {visit.universityName}
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">
-                    {flag(visit.universityCountry)} {visit.universityCountry}
+                    {flag(visit.universityCountry || '')} {visit.universityCountry || 'Unknown'}
                     &nbsp;·&nbsp;Visited at {formatTime(visit.visitedAt)}
                 </p>
             </div>

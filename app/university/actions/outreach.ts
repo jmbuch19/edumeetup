@@ -179,10 +179,10 @@ export async function sendProactiveMessage(
 export async function getNudgeableStudents(universityId: string) {
     const uni = await prisma.university.findUnique({
         where: { id: universityId },
-        select: { country: true, programs: { select: { fieldCategory: true } } },
+        select: { country: true, programList: { select: { fieldCategory: true } } },
     })
 
-    const programFields = [...new Set(uni?.programs.map(p => p.fieldCategory) ?? [])]
+    const programFields = [...new Set(uni?.programList.map(p => p.fieldCategory) ?? [])]
 
     // Students who: have a complete profile, consent to marketing, haven't expressed
     // interest in this university yet, and have a matching field of interest
@@ -251,3 +251,4 @@ export async function getNudgeableStudents(universityId: string) {
             : false,
     }))
 }
+

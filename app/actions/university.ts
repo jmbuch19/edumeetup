@@ -41,7 +41,7 @@ export async function searchUniversities({
 
         // 3. Field Filter (Complex relation query)
         if (field && field !== 'All') {
-            where.programs = {
+            where.programList = {
                 some: {
                     fieldCategory: field
                 }
@@ -55,7 +55,7 @@ export async function searchUniversities({
                 where,
                 include: {
                     user: { select: { email: true } }, // Minimal user info
-                    programs: {
+                    programList: {
                         select: { fieldCategory: true, programName: true, degreeLevel: true } // Fetch fields for display badges
                     }
                 },
@@ -90,15 +90,14 @@ export async function getGroupedUniversities() {
                 include: {
                     schools: {
                         where: { verificationStatus: 'VERIFIED', isPublic: true },
-                        include: {
-                            programs: {
+                        include: { programList: {
                                 select: { id: true, programName: true, degreeLevel: true, fieldCategory: true },
                                 take: 5,
                             }
                         },
                         orderBy: { institutionName: 'asc' },
                     },
-                    programs: { select: { id: true } }, // just for count
+                    programList: { select: { id: true } }, // just for count
                 },
                 orderBy: { institutionName: 'asc' },
             }),
@@ -110,8 +109,7 @@ export async function getGroupedUniversities() {
                     verificationStatus: 'VERIFIED',
                     isPublic: true,
                 },
-                include: {
-                    programs: {
+                include: { programList: {
                         select: { fieldCategory: true, programName: true, degreeLevel: true }
                     }
                 },
@@ -125,3 +123,4 @@ export async function getGroupedUniversities() {
         return { parents: [], standalones: [] }
     }
 }
+

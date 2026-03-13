@@ -16,8 +16,7 @@ import Link from "next/link"
 export default async function AdminUniversitiesPage() {
     const universities = await prisma.university.findMany({
         orderBy: { verificationStatus: 'asc' }, // Pending first
-        include: {
-            programs: true,
+        include: { programList: true,
             user: true
         }
     })
@@ -79,7 +78,7 @@ export default async function AdminUniversitiesPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell>{uni.city}, {uni.country}</TableCell>
-                                    <TableCell>{uni.programs.length}</TableCell>
+                                    <TableCell>{uni.programList.length}</TableCell>
                                     <TableCell>
                                         <Badge variant={
                                             uni.verificationStatus === 'VERIFIED' ? 'default' :
@@ -107,3 +106,4 @@ export default async function AdminUniversitiesPage() {
         </div>
     )
 }
+

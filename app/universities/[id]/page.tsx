@@ -33,8 +33,7 @@ export default async function UniversityDetailPage({
       verificationStatus: 'VERIFIED',
       isPublic: true,
     },
-    include: {
-      programs: {
+    include: { programList: {
         where: { status: 'ACTIVE' },
         orderBy: { createdAt: 'desc' },
       },
@@ -178,7 +177,7 @@ export default async function UniversityDetailPage({
                 {uni.internationalStudents && (
                   <StatPill icon={Globe} value={uni.internationalStudents.toLocaleString()} label="International" />
                 )}
-                <StatPill icon={BookOpen} value={String(uni.programs.length)} label="Programmes" />
+                <StatPill icon={BookOpen} value={String(uni.programList.length)} label="Programmes" />
                 {uni.scholarshipsAvailable && (
                   <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1">
                     ✓ Scholarships available
@@ -282,7 +281,7 @@ export default async function UniversityDetailPage({
         )}
 
         {/* ── Programmes — multi-select via ProgramsSection ───────────────── */}
-        {uni.programs.length > 0 && (
+        {uni.programList.length > 0 && (
           <ProgramsSection
             programs={JSON.parse(JSON.stringify(uni.programs))}
             isLoggedIn={isLoggedIn}

@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
                     verificationStatus: 'VERIFIED',
                     isPublic: true,
                     ...(country ? { country: { contains: country, mode: 'insensitive' } } : {}),
-                    programs: {
+                    programList: {
                       some: {
                         status: 'ACTIVE',
                         ...(fieldOfStudy ? { fieldCategory: { contains: fieldOfStudy, mode: 'insensitive' } } : {}),
@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
                   select: {
                     id: true, institutionName: true, country: true, city: true,
                     scholarshipsAvailable: true, about: true,
-                    programs: {
+                    programList: {
                       where: {
                         status: 'ACTIVE',
                         ...(fieldOfStudy ? { fieldCategory: { contains: fieldOfStudy, mode: 'insensitive' } } : {}),
@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
                     scholarships: u.scholarshipsAvailable,
                     about: u.about?.slice(0, 150),
                     profileUrl: `/universities/${u.id}`,
-                    programs: u.programs,
+                    programs: u.programList,
                   }))
                 }
               } catch {

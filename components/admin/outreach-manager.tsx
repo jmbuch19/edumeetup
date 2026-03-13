@@ -14,7 +14,7 @@ type University = {
     id: string
     institutionName: string
     city: string | null
-    country: string
+    country: string | null
 }
 
 type Outreach = {

@@ -36,7 +36,7 @@ export async function UniversityRightSidebar() {
             contactPhone: true,
             scholarshipsAvailable: true,
             foundedYear: true,
-            programs: { select: { description: true, programName: true } },
+            programList: { select: { description: true, programName: true } },
             _count: { select: { interests: true } },
         },
     })
@@ -50,8 +50,8 @@ export async function UniversityRightSidebar() {
         { done: !!uni.website,                                       label: 'Add website' },
         { done: !!uni.repName && !!uni.repEmail,                     label: 'Rep name & email' },
         { done: !!uni.contactPhone,                                  label: 'Contact phone' },
-        { done: uni.programs.length > 0 &&
-                 uni.programs.every(p => (p.description?.length ?? 0) > 30), label: 'Programme descriptions' },
+        { done: uni.programList.length > 0 &&
+                 uni.programList.every(p => (p.description?.length ?? 0) > 30), label: 'Programme descriptions' },
         { done: uni.scholarshipsAvailable,                           label: 'Scholarship info' },
         { done: !!uni.foundedYear,                                   label: 'Founded year' },
     ]
@@ -173,3 +173,4 @@ export async function UniversityRightSidebar() {
         </aside>
     )
 }
+

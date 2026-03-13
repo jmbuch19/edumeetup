@@ -6,7 +6,7 @@ export type VisitItem = {
     id: string
     universityName: string
     universityLogo: string | null
-    universityCountry: string
+    universityCountry: string | null
     visitedAt: string     // ISO string
     brochureUrl: string | null
 }

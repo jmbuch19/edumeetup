@@ -27,7 +27,7 @@ async function getUniversityProfile(userId: string) {
             notifQuota: true,
             notifPaused: true,
             // Fetch the field categories of all programs this university offers
-            programs: {
+            programList: {
                 select: { fieldCategory: true },
                 distinct: ['fieldCategory']
             }
@@ -117,7 +117,7 @@ export async function getSegmentCount(segment: string, dayRange: number = 30) {
     if (!uni) return { error: 'University profile not found' }
 
     const since = new Date(Date.now() - dayRange * 24 * 60 * 60 * 1_000)
-    const fieldCategories = (uni.programs ?? []).map(p => p.fieldCategory as string)
+    const fieldCategories = (uni.programList ?? []).map(p => p.fieldCategory as string)
     const ids = await resolveSegment(uni.id, segment, since, fieldCategories)
     return { count: Math.min(ids.length, MAX_STUDENTS_PER_CAMPAIGN) }
 }
@@ -204,7 +204,7 @@ export async function sendUniversityNotification(formData: FormData) {
 
     // ── Collect target students ───────────────────────────────────────────────
     const since = new Date(Date.now() - dayRange * 24 * 60 * 60 * 1_000)
-    const fieldCategories = (uni.programs ?? []).map(p => p.fieldCategory as string)
+    const fieldCategories = (uni.programList ?? []).map(p => p.fieldCategory as string)
     const allStudentIds = await resolveSegment(uni.id, segment, since, fieldCategories)
 
     if (allStudentIds.length === 0) {

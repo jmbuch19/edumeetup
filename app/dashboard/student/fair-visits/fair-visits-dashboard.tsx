@@ -37,7 +37,7 @@ export type VisitData = {
     university: {
         id: string
         institutionName: string
-        country: string
+        country: string | null
         logo: string | null
         about: string | null
         brochureUrl: string | null
@@ -233,7 +233,7 @@ function UniversityCard({
                         {university.institutionName}
                     </h3>
                     <p className="text-sm text-gray-500 mt-0.5">
-                        {flag(university.country)} {university.country}
+                        {flag(university.country || '')} {university.country || 'Unknown'}
                     </p>
 
                     {/* Matched programs */}
@@ -473,7 +473,7 @@ export function FairVisitsDashboard({
 
     // ── Derived ────────────────────────────────────────────────────────────
     const allCountries = useMemo(
-        () => [...new Set(initialVisits.map((v) => v.university.country))].sort(),
+        () => [...new Set(initialVisits.map((v) => v.university.country || 'Unknown'))].sort(),
         [initialVisits],
     )
     const allFields = useMemo(
@@ -486,7 +486,7 @@ export function FairVisitsDashboard({
         [initialVisits],
     )
     const uniqueCountries = useMemo(
-        () => new Set(initialVisits.map((v) => v.university.country)).size,
+        () => new Set(initialVisits.map((v) => v.university.country || 'Unknown')).size,
         [initialVisits],
     )
 
@@ -496,7 +496,7 @@ export function FairVisitsDashboard({
         if (fieldFilter !== 'ALL') list = list.filter((v) => v.matchedPrograms.includes(fieldFilter))
 
         if (sort === 'recent') list.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-        else if (sort === 'country') list.sort((a, b) => a.university.country.localeCompare(b.university.country))
+        else if (sort === 'country') list.sort((a, b) => (a.university.country || 'Unknown').localeCompare(b.university.country || 'Unknown'))
         else if (sort === 'program-match') list.sort((a, b) => b.matchedPrograms.length - a.matchedPrograms.length)
 
         return list
@@ -506,7 +506,7 @@ export function FairVisitsDashboard({
     const byCountry = useMemo(() => {
         const map = new Map<string, VisitData[]>()
         for (const v of filtered) {
-            const c = v.university.country
+            const c = v.university.country || 'Unknown'
             if (!map.has(c)) map.set(c, [])
             map.get(c)!.push(v)
         }

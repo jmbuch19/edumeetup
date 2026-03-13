@@ -95,8 +95,7 @@ export async function GET(_req: NextRequest) {
     } else if (role === 'UNIVERSITY' || role === 'UNIVERSITY_REP') {
         const university = await prisma.university.findFirst({
             where: { userId },
-            include: {
-                programs: {
+            include: { programList: {
                     select: {
                         id: true, programName: true, degreeLevel: true, fieldCategory: true,
                         durationMonths: true, tuitionFee: true, currency: true, status: true,
@@ -149,3 +148,4 @@ export async function GET(_req: NextRequest) {
         }
     })
 }
+
