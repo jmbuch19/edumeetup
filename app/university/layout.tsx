@@ -6,6 +6,8 @@ import { UniversityNav } from '@/components/university/university-nav'
 import { UniversityRightSidebar } from '@/components/university/university-right-sidebar'
 import '@/app/dashboard-tokens.css'
 
+import { ClientDate } from '@/components/client-date'
+
 export default async function UniversityLayout({ children }: { children: React.ReactNode }) {
     const session = await auth()
     if (!session || (
@@ -39,7 +41,6 @@ export default async function UniversityLayout({ children }: { children: React.R
     const liveFair = await prisma.fairEvent.findFirst({ where: { status: 'LIVE' } }).catch(() => null)
 
     const pendingCount = uni?._count.interests ?? 0
-    const today = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
     return (
         <div className="flex h-screen overflow-hidden" style={{ background: 'var(--surface)', fontFamily: 'var(--font-body)' }}>
@@ -81,7 +82,7 @@ export default async function UniversityLayout({ children }: { children: React.R
                                 {uni?.institutionName ?? 'University Dashboard'}
                             </p>
                             <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                                {today}{pendingCount > 0 ? ` · ${pendingCount} new interests` : ''}
+                                <ClientDate pendingCount={pendingCount} />
                             </p>
                         </div>
                     </div>

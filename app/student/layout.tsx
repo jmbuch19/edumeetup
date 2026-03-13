@@ -6,6 +6,8 @@ import { StudentNav } from '@/components/student/student-nav'
 import { StudentRightSidebar } from '@/components/student/student-right-sidebar'
 import '@/app/dashboard-tokens.css'
 
+import { ClientGreeting } from '@/components/client-greeting'
+
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
     const session = await auth()
     if (!session || (session.user as any).role !== 'STUDENT') {
@@ -17,18 +19,6 @@ export default async function StudentLayout({ children }: { children: React.Reac
         select: { fullName: true, city: true },
     })
 
-    const today = new Date()
-    
-    // Ensure hours are calculated in IST (Asia/Kolkata), independent of server config
-    const formatter = new Intl.DateTimeFormat('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      hour: 'numeric',
-      hour12: false
-    })
-    const hours = parseInt(formatter.format(today), 10)
-    
-    const greeting = hours < 12 ? 'Good morning' : hours < 17 ? 'Good afternoon' : 'Good evening'
-    const dateStr = today.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', day: 'numeric', month: 'long' })
     const rawName = student?.fullName?.trim() || session.user.name?.trim() || 'there'
     const firstName = rawName.split(' ')[0]
 
@@ -60,14 +50,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
                             city={student?.city}
                             senderEmail={session.user.email}
                         />
-                        <div className="min-w-0">
-                            <p className="text-lg font-semibold truncate" style={{ fontFamily: 'var(--font-display)', color: 'var(--navy)' }}>
-                                {greeting}, {firstName} 👋
-                            </p>
-                            <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                                {dateStr}
-                            </p>
-                        </div>
+                        <ClientGreeting firstName={firstName} />
                     </div>
 
                     {/* Right — CTAs */}
