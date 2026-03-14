@@ -1,21 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { SignJWT, jwtVerify } from 'jose'
-import crypto from 'crypto'
-
-// In-memory OTP store — same store shared via module cache in the same serverless instance
-// For multi-instance production, replace with Upstash Redis
-const otpStore = new Map<string, { code: string; expires: number; userId: string; role: string }>()
-
-const secretBytes = new TextEncoder().encode(process.env.AUTH_SECRET || 'fallback-secret')
-
-async function signToken(payload: object, expiresIn: string) {
-    return new SignJWT(payload as Record<string, unknown>)
-        .setProtectedHeader({ alg: 'HS256' })
-        .setIssuedAt()
-        .setExpirationTime(expiresIn)
-        .sign(secretBytes)
-}
+import { jwtVerify } from 'jose'
+import { otpStore, signMobileJwt } from '@/lib/auth/mobile-otp-store'
 
 export async function POST(req: NextRequest) {
     try {
@@ -70,8 +56,8 @@ export async function POST(req: NextRequest) {
             type: 'mobile',
         }
 
-        const accessToken = await signToken(tokenPayload, '7d')
-        const refreshToken = await signToken({ ...tokenPayload, type: 'mobile-refresh' }, '30d')
+        const accessToken = await signMobileJwt(tokenPayload, '7d')
+        const refreshToken = await signMobileJwt({ ...tokenPayload, type: 'mobile-refresh' }, '30d')
 
         return NextResponse.json({
             accessToken,

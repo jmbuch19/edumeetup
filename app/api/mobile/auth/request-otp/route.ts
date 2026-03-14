@@ -3,53 +3,48 @@ import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
 import { SignJWT } from 'jose'
 import crypto from 'crypto'
-
-// In-memory OTP store: email → { code, expires }
-// In production, replace this with Redis (Upstash) for multi-instance support
-const otpStore = new Map<string, { code: string; expires: number; userId: string; role: string }>()
-
-const secret = new TextEncoder().encode(process.env.AUTH_SECRET || 'fallback-secret')
+import { otpStore } from '@/lib/auth/mobile-otp-store'
 
 export async function POST(req: NextRequest) {
-    try {
-        const { email, role } = await req.json()
+  try {
+    const { email, role } = await req.json()
 
-        if (!email || typeof email !== 'string') {
-            return NextResponse.json({ error: 'Email is required' }, { status: 400 })
-        }
+    if (!email || typeof email !== 'string') {
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
+    }
 
-        const normalizedEmail = email.trim().toLowerCase()
+    const normalizedEmail = email.trim().toLowerCase()
 
-        // Look up user in DB
-        const user = await prisma.user.findUnique({
-            where: { email: normalizedEmail },
-            select: { id: true, email: true, name: true, role: true, isActive: true, image: true },
-        })
+    // Look up user in DB
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true, email: true, name: true, role: true, isActive: true, image: true },
+    })
 
-        if (!user || !user.isActive) {
-            // Return a generic message even if user not found (prevent enumeration)
-            return NextResponse.json({ message: 'If this email is registered, a code has been sent.' })
-        }
+    if (!user || !user.isActive) {
+      // Return a generic message even if user not found (prevent enumeration)
+      return NextResponse.json({ message: 'If this email is registered, a code has been sent.' })
+    }
 
-        // Role check
-        const requestedRole = role === 'university' ? ['UNIVERSITY', 'UNIVERSITY_REP'] : ['STUDENT']
-        if (!requestedRole.includes(user.role)) {
-            return NextResponse.json({ error: 'Invalid role for this account' }, { status: 403 })
-        }
+    // Role check
+    const requestedRole = role === 'university' ? ['UNIVERSITY', 'UNIVERSITY_REP'] : ['STUDENT']
+    if (!requestedRole.includes(user.role)) {
+      return NextResponse.json({ error: 'Invalid role for this account' }, { status: 403 })
+    }
 
-        // Generate 6-digit OTP
-        const code = crypto.randomInt(100000, 999999).toString()
-        const expires = Date.now() + 10 * 60 * 1000 // 10 minutes
+    // Generate 6-digit OTP
+    const code = crypto.randomInt(100000, 999999).toString()
+    const expires = Date.now() + 10 * 60 * 1000 // 10 minutes
 
-        otpStore.set(normalizedEmail, { code, expires, userId: user.id, role: user.role })
+    otpStore.set(normalizedEmail, { code, expires, userId: user.id, role: user.role })
 
-        // Send OTP via email
-        const resend = new Resend(process.env.RESEND_API_KEY)
-        await resend.emails.send({
-            from: process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>',
-            to: normalizedEmail,
-            subject: 'EdUmeetup Mobile App — Your sign-in code',
-            html: `
+    // Send OTP via email
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>',
+      to: normalizedEmail,
+      subject: 'EdUmeetup Mobile App — Your sign-in code',
+      html: `
         <!DOCTYPE html>
         <html>
         <body style="font-family: -apple-system, sans-serif; max-width: 400px; margin: 40px auto; padding: 20px; color: #1a1a2e;">
@@ -65,15 +60,12 @@ export async function POST(req: NextRequest) {
         </body>
         </html>
       `,
-        })
+    })
 
-        return NextResponse.json({ message: 'Code sent to your email.' })
-    } catch (err) {
-        console.error('[mobile/auth/request-otp]', err)
-        return NextResponse.json({ error: 'Failed to send code' }, { status: 500 })
-    }
+    return NextResponse.json({ message: 'Code sent to your email.' })
+  } catch (err) {
+    console.error('[mobile/auth/request-otp]', err)
+    return NextResponse.json({ error: 'Failed to send code' }, { status: 500 })
+  }
 }
 
-// Also export the OTP store so the verify endpoint can import it
-// In prod, use Upstash Redis instead
-export { otpStore, secret }
