@@ -190,7 +190,6 @@ export async function POST(req: NextRequest) {
                 system: systemPrompt,
                 messages,
                 maxOutputTokens: 500, // cost guardrail
-                maxSteps: 2,          // allow tool call (step 1) → text reply (step 2)
                 tools: {
                     getUpcomingFairs: tool({
                         description: 'Get upcoming EdUmeetup campus fairs that a student can attend. Use this proactively when discussing fairs.',
