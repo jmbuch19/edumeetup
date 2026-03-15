@@ -1,34 +1,60 @@
 
-import { getAdminOverviewMetrics } from '../overview/actions'
+import { getAdminOverviewMetrics, getLatestBotHealth } from '../overview/actions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, Building2, Calendar, Clock, BookOpen, MapPin, ArrowRight, QrCode } from 'lucide-react'
+import { Users, Building2, Calendar, Clock, BookOpen, MapPin, ArrowRight, QrCode, Bot, ExternalLink, BotOff } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
+function formatTimeAgo(date: Date): string {
+    const mins = Math.floor((Date.now() - new Date(date).getTime()) / 60_000)
+    if (mins < 60) return `${mins} min ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs} hr ago`
+    return `${Math.floor(hrs / 24)} days ago`
+}
+
 const QUICK_LINKS = [
-    { href: '/admin/universities', label: 'Universities', icon: Building2, desc: 'Verify & manage institutions' },
-    { href: '/admin/users', label: 'Users', icon: Users, desc: 'Manage all platform users' },
-    { href: '/admin/fairs', label: 'Fair Events', icon: QrCode, desc: 'Create fairs & generate entrance QR' },
-    { href: '/admin/engagement', label: 'Engagement', icon: BookOpen, desc: 'Announcements & notifications' },
-    { href: '/admin/host-requests', label: 'Host Requests', icon: MapPin, desc: 'Campus fair requests' },
-    { href: '/admin/advisory', label: 'Advisory', icon: Clock, desc: 'Student advisory requests' },
-    { href: '/admin/overview', label: 'Full Overview', icon: Calendar, desc: 'Detailed platform stats' },
+    { href: '/admin/universities',  label: 'Universities',  icon: Building2, desc: 'Verify & manage institutions' },
+    { href: '/admin/users',         label: 'Users',         icon: Users,     desc: 'Manage all platform users' },
+    { href: '/admin/fairs',         label: 'Fair Events',   icon: QrCode,    desc: 'Create fairs & generate entrance QR' },
+    { href: '/admin/engagement',    label: 'Engagement',    icon: BookOpen,  desc: 'Announcements & notifications' },
+    { href: '/admin/host-requests', label: 'Host Requests', icon: MapPin,    desc: 'Campus fair requests' },
+    { href: '/admin/advisory',      label: 'Advisory',      icon: Clock,     desc: 'Student advisory requests' },
+    { href: '/admin/overview',      label: 'Full Overview', icon: Calendar,  desc: 'Detailed platform stats' },
+    { href: '/admin/bot-leads',     label: 'Bot Leads',     icon: Bot,    desc: 'Concierge conversations & lead scores' },
+    { href: '/admin/bot-misses',    label: 'Bot Misses',    icon: BotOff, desc: 'Unanswered questions — improve the bot' },
 ]
 
 export default async function AdminDashboard() {
 
-    const metrics = await getAdminOverviewMetrics()
+    const [metrics, botHealth] = await Promise.all([
+        getAdminOverviewMetrics(),
+        getLatestBotHealth(),
+    ])
     if (!metrics) return <div className="p-8 text-red-500">Failed to load metrics.</div>
 
     const STAT_CARDS = [
-        { label: 'Total Universities', value: metrics.totalUniversities, icon: Building2, color: 'text-blue-600', urgent: false },
-        { label: 'Total Students', value: metrics.totalStudents, icon: Users, color: 'text-green-600', urgent: false },
-        { label: 'Total Meetings', value: metrics.totalMeetings, icon: Calendar, color: 'text-purple-600', urgent: false },
-        { label: 'Pending Verifications', value: metrics.pendingVerifications, icon: Clock, color: 'text-amber-600', urgent: metrics.pendingVerifications > 0 },
-        { label: 'Pending Advisory', value: metrics.pendingAdvisory, icon: BookOpen, color: 'text-indigo-600', urgent: metrics.pendingAdvisory > 0 },
-        { label: 'Pending Host Requests', value: metrics.hostRequestsPending, icon: MapPin, color: 'text-rose-600', urgent: metrics.hostRequestsPending > 0 },
+        { label: 'Total Universities',    value: metrics.totalUniversities,   icon: Building2, color: 'text-blue-600',   urgent: false },
+        { label: 'Total Students',        value: metrics.totalStudents,        icon: Users,     color: 'text-green-600',  urgent: false },
+        { label: 'Total Meetings',        value: metrics.totalMeetings,        icon: Calendar,  color: 'text-purple-600', urgent: false },
+        { label: 'Pending Verifications', value: metrics.pendingVerifications, icon: Clock,     color: 'text-amber-600',  urgent: metrics.pendingVerifications > 0 },
+        { label: 'Pending Advisory',      value: metrics.pendingAdvisory,      icon: BookOpen,  color: 'text-indigo-600', urgent: metrics.pendingAdvisory > 0 },
+        { label: 'Pending Host Requests', value: metrics.hostRequestsPending,  icon: MapPin,    color: 'text-rose-600',   urgent: metrics.hostRequestsPending > 0 },
     ]
+
+    // Bot health derived state — computed here to keep JSX clean
+    const isBotStale = botHealth
+        ? Date.now() - new Date(botHealth.checkedAt).getTime() > 90 * 60_000
+        : false
+    const botCardClass = !botHealth ? ''
+        : botHealth.hasAlerts ? 'border-red-300 bg-red-50'
+        : isBotStale          ? 'border-amber-300 bg-amber-50'
+        :                       'border-green-200 bg-green-50'
+    const botIconClass = !botHealth ? ''
+        : botHealth.hasAlerts ? 'text-red-500'
+        : isBotStale          ? 'text-amber-500'
+        :                       'text-green-600'
 
     return (
         <div className="max-w-6xl mx-auto py-4 md:py-8 px-4 space-y-6">
@@ -51,6 +77,63 @@ export default async function AdminDashboard() {
                     </Card>
                 ))}
             </div>
+
+            {/* Bot Health Card */}
+            {botHealth && (
+                <Card className={botCardClass}>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                                <Bot className={`h-4 w-4 ${botIconClass}`} />
+                                Admissions Concierge — Bot Health
+                            </span>
+                            <span className="text-xs font-normal text-muted-foreground">
+                                Last check {formatTimeAgo(botHealth.checkedAt)}
+                            </span>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                            {[
+                                { label: 'Turns (last hr)',  value: botHealth.totalTurns,                             ok: true },
+                                { label: 'Empty Stream',     value: `${(botHealth.emptyRate * 100).toFixed(1)}%`,     ok: botHealth.emptyRate <= 0.2 },
+                                { label: 'Redis Failures',   value: botHealth.redisFailures,                          ok: botHealth.redisFailures === 0 },
+                                { label: 'Truncation Rate',  value: `${(botHealth.truncRate * 100).toFixed(1)}%`,     ok: botHealth.truncRate <= 0.15 },
+                            ].map(({ label, value, ok }) => (
+                                <div key={label} className="space-y-1">
+                                    <p className="text-xs text-muted-foreground">{label}</p>
+                                    <p className={`text-lg font-bold ${ok ? 'text-green-700' : 'text-red-600'}`}>
+                                        {value}
+                                        <span className="ml-1 text-sm">{ok ? '✅' : '⚠️'}</span>
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                        {isBotStale && (
+                            <p className="text-xs text-amber-600 font-medium mt-2">
+                                ⚠️ Health data is over 90 min old — cron may have failed. Check Netlify function logs.
+                            </p>
+                        )}
+                        <Link
+                            href="/admin/bot-leads"
+                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                        >
+                            View Bot Leads & Traces
+                            <ExternalLink className="h-3 w-3" />
+                        </Link>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* No health data yet */}
+            {!botHealth && (
+                <Card className="border-dashed">
+                    <CardContent className="py-4 flex items-center gap-3 text-muted-foreground text-sm">
+                        <Bot className="h-4 w-4 shrink-0" />
+                        Bot health data not available yet — hourly check runs at :15 past each hour.
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Quick Access */}
             <div>

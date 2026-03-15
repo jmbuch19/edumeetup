@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { Loader2, Send, Users, CalendarDays, Megaphone, ShieldAlert, CheckCircle2 } from 'lucide-react'
-import { sendUniversityNotification, getUniversityCampaignStats, getSegmentCount } from './actions'
+import { sendUniversityNotification, getUniversityCampaignStats, getSegmentCount, getCampaignHistory } from './actions'
 
 type Stats = {
     totalInterested: number
@@ -18,6 +18,18 @@ type Stats = {
     campaignsUsedThisWeek: number
     weeklyQuota: number
     notifPaused: boolean
+}
+
+type Campaign = {
+    id: string
+    title: string
+    segment: string
+    dayRange: number
+    withEmail: boolean
+    sentCount: number
+    emailedCount: number
+    skippedCount: number
+    createdAt: Date
 }
 
 export default function UniversityEngagementPage() {
@@ -28,9 +40,11 @@ export default function UniversityEngagementPage() {
     const [previewLoading, setPreviewLoading] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [sendEmailToo, setSendEmailToo] = useState(false)
+    const [history, setHistory] = useState<Campaign[]>([])
 
     useEffect(() => {
         loadStats()
+        loadHistory()
     }, [])
 
     useEffect(() => {
@@ -40,6 +54,11 @@ export default function UniversityEngagementPage() {
     async function loadStats() {
         const data = await getUniversityCampaignStats()
         setStats(data)
+    }
+
+    async function loadHistory() {
+        const data = await getCampaignHistory()
+        setHistory(data as Campaign[])
     }
 
     async function previewSegment() {
@@ -59,11 +78,13 @@ export default function UniversityEngagementPage() {
         if (res.error) {
             toast.error(res.error)
         } else if (res.success) {
-            const msg = res.wasCapped
-                ? `Sent to ${res.notifiedCount} students (capped at 500).${res.emailedCount ? ` ${res.emailedCount} emails sent.` : ''} Campaign ${res.campaignsUsedThisWeek}/${res.weeklyQuota} this week.`
-                : `✅ Sent to ${res.notifiedCount} students!${res.emailedCount ? ` ${res.emailedCount} emails sent.` : ''} Campaign ${res.campaignsUsedThisWeek}/${res.weeklyQuota} this week.`
+            const skippedNote = res.skippedCount > 0 ? ` ${res.skippedCount} skipped (weekly cap reached).` : ''
+            const cappedNote = res.wasCapped ? ` (capped at 500)` : ''
+            const emailNote = res.emailedCount ? ` ${res.emailedCount} emails sent.` : ''
+            const msg = `✅ Sent to ${res.notifiedCount} students${cappedNote}.${emailNote}${skippedNote} Campaign ${res.campaignsUsedThisWeek}/${res.weeklyQuota} this week.`
             toast.success(msg, { duration: 6000 })
             loadStats()
+            loadHistory()
             const form = document.getElementById('eng-form') as HTMLFormElement
             form?.reset()
         }
@@ -257,6 +278,62 @@ export default function UniversityEngagementPage() {
                     </form>
                 </CardContent>
             </Card>
+
+            {/* Campaign History */}
+            {history.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Campaign History</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b bg-slate-50 text-xs text-muted-foreground">
+                                        <th className="px-4 py-2 text-left font-medium">Date</th>
+                                        <th className="px-4 py-2 text-left font-medium">Title</th>
+                                        <th className="px-4 py-2 text-left font-medium">Segment</th>
+                                        <th className="px-4 py-2 text-right font-medium">Reached</th>
+                                        <th className="px-4 py-2 text-right font-medium">Skipped</th>
+                                        <th className="px-4 py-2 text-center font-medium">Channel</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {history.map((c) => (
+                                        <tr key={c.id} className="border-b last:border-0 hover:bg-slate-50/60 transition-colors">
+                                            <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">
+                                                {new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' })}
+                                            </td>
+                                            <td className="px-4 py-2.5 font-medium max-w-[200px] truncate" title={c.title}>{c.title}</td>
+                                            <td className="px-4 py-2.5">
+                                                <Badge variant="outline" className="text-xs font-normal capitalize">
+                                                    {c.segment} · {c.dayRange}d
+                                                </Badge>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-right font-semibold">{c.sentCount}</td>
+                                            <td className="px-4 py-2.5 text-right text-muted-foreground">
+                                                {c.skippedCount > 0 ? <span className="text-amber-600">{c.skippedCount}</span> : '—'}
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center">
+                                                {c.withEmail ? <span title="In-app + Email">🔔 📧</span> : <span title="In-app only">🔔</span>}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                {history.length === 20 && (
+                                    <tfoot>
+                                        <tr>
+                                            <td colSpan={6} className="px-4 py-2 text-xs text-center text-muted-foreground">
+                                                Showing last 20 campaigns
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                )}
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     )
 }

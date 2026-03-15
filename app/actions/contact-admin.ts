@@ -1,6 +1,8 @@
 'use server'
 
+import { auth } from '@/lib/auth'
 import { sendEmail, generateEmailHtml } from '@/lib/email'
+import { contactRateLimiter } from '@/lib/ratelimit'
 
 export interface ContactAdminPayload {
     subject: string
@@ -12,10 +14,20 @@ export interface ContactAdminPayload {
 }
 
 export async function sendContactAdminMessage(payload: ContactAdminPayload) {
+    // ── Auth guard — only logged-in users ────────────────────────────────────
+    const session = await auth()
+    if (!session?.user) return { error: 'You must be logged in to contact support.' }
+
+    // ── Rate limit — 3 messages per minute per sender email ──────────────────
+    if (!contactRateLimiter.check(payload.senderEmail)) {
+        return { error: '⏱ Too many messages. Please wait a minute before sending again.' }
+    }
+
     const { subject, message, senderName, senderEmail, senderOrg, portalType } = payload
 
     if (!message?.trim()) return { error: 'Message is required' }
     if (message.trim().length < 10) return { error: 'Message is too short' }
+    if (message.trim().length > 2000) return { error: 'Message must be under 2000 characters' }
 
     const timestamp = new Date().toLocaleString('en-IN', {
         timeZone: 'Asia/Kolkata',

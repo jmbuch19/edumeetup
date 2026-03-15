@@ -77,3 +77,40 @@ export async function getAdminOverviewMetrics() {
 export async function invalidateAdminMetricsCache() {
     await invalidateCache('admin:overview-metrics')
 }
+
+/**
+ * Returns the most recent BOT_HEALTH_CHECK log entry.
+ * Written by netlify/functions/bot-health-check.mts every hour at :15.
+ * Metadata shape: { totalCount, emptyCount, emptyRate, redisCount, groqCount, truncCount, truncRate }
+ */
+export async function getLatestBotHealth() {
+    const session = await auth()
+    if (!session || session.user?.role !== 'ADMIN') return null
+
+    try {
+        const log = await prisma.systemLog.findFirst({
+            where: { type: 'BOT_HEALTH_CHECK' },
+            orderBy: { createdAt: 'desc' },
+        })
+        if (!log) return null
+
+        const m = log.metadata as Record<string, number | boolean>
+        const emptyRate  = (m.emptyRate  as number) ?? 0
+        const redisCount = (m.redisCount as number) ?? 0
+        const groqCount  = (m.groqCount  as number) ?? 0
+        const truncRate  = (m.truncRate  as number) ?? 0
+
+        return {
+            checkedAt:    log.createdAt,
+            totalTurns:   (m.totalCount  as number) ?? 0,
+            emptyRate,                        // 0–1 fraction
+            redisFailures: redisCount,
+            groq429s:      groqCount,
+            truncRate,                        // 0–1 fraction
+            // Mirror the same thresholds used in bot-health-check.mts
+            hasAlerts: emptyRate > 0.20 || redisCount >= 1 || groqCount > 0 || truncRate > 0.15,
+        }
+    } catch {
+        return null
+    }
+}

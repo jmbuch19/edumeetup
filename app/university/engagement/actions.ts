@@ -2,7 +2,6 @@
 
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
-import { uniNotifRateLimiter } from '@/lib/ratelimit'
 import { sendMarketingEmail, generateEmailHtml, EmailTemplates } from '@/lib/email'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -26,7 +25,7 @@ async function getUniversityProfile(userId: string) {
             institutionName: true,
             notifQuota: true,
             notifPaused: true,
-            // Fetch the field categories of all programs this university offers
+            lastCampaignAt: true,
             programList: {
                 select: { fieldCategory: true },
                 distinct: ['fieldCategory']
@@ -131,38 +130,14 @@ export async function getUniversityCampaignStats() {
     const uni = await getUniversityProfile(session.user.id)
     if (!uni) return null
 
-    const [totalInterested, totalMeetings] = await Promise.all([
+    const [totalInterested, totalMeetings, campaignsUsedThisWeek] = await Promise.all([
         prisma.interest.count({ where: { universityId: uni.id } }),
         prisma.meeting.count({ where: { universityId: uni.id, studentId: { not: null } } }),
+        // Campaign count from the dedicated log table — fast, exact, no heuristics
+        prisma.notificationCampaign.count({
+            where: { universityId: uni.id, createdAt: { gte: startOfWeek() } }
+        }),
     ])
-
-    // Count this week's campaigns by counting distinct minute "buckets" of
-    // [University]-prefixed notifications sent to this university's students
-    const interestedIds = await prisma.interest.findMany({
-        where: { universityId: uni.id },
-        select: { studentId: true },
-        distinct: ['studentId']
-    })
-    const uniStudentIds = interestedIds.map(i => i.studentId)
-
-    let campaignsUsedThisWeek = 0
-    if (uniStudentIds.length > 0) {
-        const recentNotifs = await prisma.studentNotification.findMany({
-            where: {
-                studentId: { in: uniStudentIds },
-                title: { startsWith: '[University]' },
-                createdAt: { gte: startOfWeek() }
-            },
-            select: { createdAt: true }
-        })
-        const minuteBuckets = new Set(
-            recentNotifs.map(n => {
-                const d = new Date(n.createdAt)
-                return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}-${d.getMinutes()}`
-            })
-        )
-        campaignsUsedThisWeek = minuteBuckets.size
-    }
 
     return {
         totalInterested,
@@ -171,6 +146,58 @@ export async function getUniversityCampaignStats() {
         weeklyQuota: uni.notifQuota,
         notifPaused: uni.notifPaused,
     }
+}
+
+// ── Campaign history ─────────────────────────────────────────────────────────
+
+export async function getCampaignHistory() {
+    const session = await auth()
+    if (session?.user?.role !== 'UNIVERSITY') return []
+
+    const uni = await getUniversityProfile(session.user.id)
+    if (!uni) return []
+
+    return prisma.notificationCampaign.findMany({
+        where: { universityId: uni.id },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+    })
+}
+
+// ── Per-student dedup cap ─────────────────────────────────────────────────────
+
+/** Max university campaign notifications a single student can receive per 7 days */
+const PER_STUDENT_WEEKLY_CAP = 3
+
+/**
+ * Filters out students who have already received >= PER_STUDENT_WEEKLY_CAP
+ * UNIVERSITY_CAMPAIGN notifications in the last 7 days.
+ * Uses a single groupBy query for efficiency.
+ */
+async function applyPerStudentCap(studentIds: string[]): Promise<{
+    eligible: string[]
+    skippedCount: number
+}> {
+    if (studentIds.length === 0) return { eligible: [], skippedCount: 0 }
+
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1_000)
+
+    const recentCounts = await prisma.studentNotification.groupBy({
+        by: ['studentId'],
+        where: {
+            studentId: { in: studentIds },
+            type: 'UNIVERSITY_CAMPAIGN',
+            createdAt: { gte: since },
+        },
+        _count: { id: true },
+    })
+
+    const countMap = new Map<string, number>(
+        recentCounts.map(r => [r.studentId, r._count.id])
+    )
+
+    const eligible = studentIds.filter(id => (countMap.get(id) ?? 0) < PER_STUDENT_WEEKLY_CAP)
+    return { eligible, skippedCount: studentIds.length - eligible.length }
 }
 
 // ── Send campaign ─────────────────────────────────────────────────────────────
@@ -189,17 +216,23 @@ export async function sendUniversityNotification(formData: FormData) {
     if (title.length > 100) return { error: 'Title must be under 100 characters' }
     if (message.length > 1000) return { error: 'Message must be under 1000 characters' }
 
-    // ── Layer 1: 6-hour burst limiter (in-memory) ─────────────────────────────
     const uni = await getUniversityProfile(session.user.id)
     if (!uni) return { error: 'University profile not found' }
 
-    if (!uniNotifRateLimiter.check(uni.id)) {
-        return { error: '⏱ You can only send one campaign every 6 hours. Please wait before sending again.' }
-    }
-
-    // ── Layer 2: Admin kill switch ────────────────────────────────────────────
+    // ── Admin kill switch ─────────────────────────────────────────────────────
     if (uni.notifPaused) {
         return { error: 'Your notification access has been paused by the platform admin. Please contact support.' }
+    }
+
+    // ── Weekly campaign quota (DB-backed) ────────────────────────────────────
+    const campaignsThisWeek = await prisma.notificationCampaign.count({
+        where: { universityId: uni.id, createdAt: { gte: startOfWeek() } }
+    })
+
+    if (campaignsThisWeek >= uni.notifQuota) {
+        return {
+            error: `📊 Weekly limit reached (${uni.notifQuota} campaigns/week). Quota resets every Monday. Contact support to increase your limit.`
+        }
     }
 
     // ── Collect target students ───────────────────────────────────────────────
@@ -211,47 +244,38 @@ export async function sendUniversityNotification(formData: FormData) {
         return { error: 'No students found in this segment. Try a wider time range or a different segment.' }
     }
 
-    // ── Layer 3: Weekly campaign quota ────────────────────────────────────────
-    const weekNotifs = await prisma.studentNotification.findMany({
-        where: {
-            studentId: { in: allStudentIds },
-            title: { startsWith: '[University]' },
-            createdAt: { gte: startOfWeek() }
-        },
-        select: { createdAt: true }
-    })
-    const minuteBuckets = new Set(
-        weekNotifs.map(n => {
-            const d = new Date(n.createdAt)
-            return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}-${d.getMinutes()}`
-        })
-    )
-    const campaignsThisWeek = minuteBuckets.size
+    // ── Hard cap: 500 students max ────────────────────────────────────────────
+    const hardCapped = allStudentIds.slice(0, MAX_STUDENTS_PER_CAMPAIGN)
+    const wasCapped = allStudentIds.length > MAX_STUDENTS_PER_CAMPAIGN
 
-    if (campaignsThisWeek >= uni.notifQuota) {
-        return {
-            error: `📊 Weekly limit reached (${uni.notifQuota} campaigns/week). Quota resets every Monday. Contact support to increase your limit.`
-        }
+    // ── Per-student weekly cap: max 3 UNIVERSITY_CAMPAIGN per student/7 days ─
+    const { eligible: cappedIds, skippedCount } = await applyPerStudentCap(hardCapped)
+
+    if (cappedIds.length === 0) {
+        return { error: 'All students in this segment have already received the maximum number of university notifications this week. Try again next week.' }
     }
 
-    // ── Hard cap: 500 students max ────────────────────────────────────────────
-    const cappedIds = allStudentIds.slice(0, MAX_STUDENTS_PER_CAMPAIGN)
-    const wasCapped = allStudentIds.length > MAX_STUDENTS_PER_CAMPAIGN
-    const taggedTitle = `[University] ${title}`
+    // ── 6-hour burst limiter (DB-backed — survives cold starts & multi-node) ───
+    const BURST_WINDOW_MS = 6 * 60 * 60 * 1_000
+    if (uni.lastCampaignAt && Date.now() - uni.lastCampaignAt.getTime() < BURST_WINDOW_MS) {
+        const msLeft = BURST_WINDOW_MS - (Date.now() - uni.lastCampaignAt.getTime())
+        const hrsLeft = Math.ceil(msLeft / (60 * 60 * 1_000))
+        return { error: `⏱ You can only send one campaign every 6 hours. Try again in ~${hrsLeft} hr.` }
+    }
 
     // ── Bulk in-app notifications (single DB round trip) ─────────────────────
     await prisma.studentNotification.createMany({
         data: cappedIds.map(studentId => ({
             studentId,
-            title: taggedTitle,
+            title,
             message,
-            type: 'INFO',
+            type: 'UNIVERSITY_CAMPAIGN',
             actionUrl: `/universities/${uni.id}`,
         })),
         skipDuplicates: true,
     })
 
-    // ── Optional email (only to consented students) ───────────────────────────
+    // ── Optional email — parallel dispatch, never throws ─────────────────────
     let emailedCount = 0
     if (withEmail) {
         const students = await prisma.student.findMany({
@@ -259,23 +283,45 @@ export async function sendUniversityNotification(formData: FormData) {
             select: { user: { select: { email: true, consentMarketing: true } } }
         })
         const emailHtml = generateEmailHtml(title, EmailTemplates.announcement(title, message))
-        for (const s of students) {
-            if (s.user.consentMarketing) {
-                await sendMarketingEmail({
+        const results = await Promise.allSettled(
+            students
+                .filter(s => s.user.consentMarketing)
+                .map(s => sendMarketingEmail({
                     userEmail: s.user.email,
                     to: s.user.email,
                     subject: `[EdUmeetup] ${title}`,
-                    html: emailHtml
-                })
-                emailedCount++
-            }
-        }
+                    html: emailHtml,
+                }))
+        )
+        emailedCount = results.filter(r => r.status === 'fulfilled').length
     }
+
+    // ── Log campaign + stamp lastCampaignAt (single update) ───────────────────
+    await Promise.all([
+        prisma.notificationCampaign.create({
+            data: {
+                universityId: uni.id,
+                title,
+                message,
+                segment,
+                dayRange,
+                withEmail,
+                sentCount: cappedIds.length,
+                emailedCount,
+                skippedCount,
+            }
+        }),
+        prisma.university.update({
+            where: { id: uni.id },
+            data: { lastCampaignAt: new Date() },
+        }),
+    ])
 
     return {
         success: true,
         notifiedCount: cappedIds.length,
         emailedCount,
+        skippedCount,
         wasCapped,
         campaignsUsedThisWeek: campaignsThisWeek + 1,
         weeklyQuota: uni.notifQuota,

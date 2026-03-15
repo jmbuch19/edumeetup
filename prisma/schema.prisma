@@ -213,6 +213,7 @@ model University {
   isPublic                Boolean   @default(true)
   notifQuota              Int       @default(3) // weekly campaigns admin can set
   notifPaused             Boolean   @default(false) // admin kill switch
+  lastCampaignAt          DateTime? // DB-backed burst limiter — updated on every successful send
   feeWaived               Boolean   @default(false) // administrative payment bypass
   proactiveCooldownDays   Int       @default(21) // nudge cooldown per student
   // ── Parent-School Architecture ──────────────────────────────────────
@@ -275,6 +276,7 @@ model University {
   fairInvitations      FairInvitation[]
   reps                 User[]                      @relation("UniversityReps")
   conversations        Conversation[]
+  campaigns            NotificationCampaign[]
 
   @@index([verificationStatus])
   @@index([country])
@@ -781,6 +783,25 @@ model StudentNotification {
   @@index([studentId])
   @@index([dismissed])
 }
+
+model NotificationCampaign {
+  id           String     @id @default(cuid())
+  universityId String
+  title        String
+  message      String
+  segment      String
+  dayRange     Int
+  withEmail    Boolean    @default(false)
+  sentCount    Int
+  emailedCount Int        @default(0)
+  skippedCount Int        @default(0)
+  createdAt    DateTime   @default(now())
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@index([universityId])
+  @@index([createdAt])
+}
+
 
 model UniversityNotification {
   id           String     @id @default(cuid())
