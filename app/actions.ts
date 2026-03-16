@@ -249,14 +249,11 @@ export async function loginUniversity(formData: FormData) {
         })
         return { success: true, message: "Magic link sent! Check your inbox." }
     } catch (error) {
+        // Always rethrow NEXT_REDIRECT — Next.js needs it
+        if (error instanceof Error && error.message === 'NEXT_REDIRECT') throw error
         if (error instanceof Error && error.message.includes('RateLimited')) {
             return { error: "Too many attempts. Please try again later." }
         }
-        // Auth.js throws normally for redirects, but with redirect:false it might not?
-        // Actually with redirect:false it returns a result object or throws?
-        // In Server Actions, `signIn` throws on success redirect. 
-        // But with redirect:false? 
-        // Let's safe guard.
         console.error('[loginUniversity] signIn error:', error)
         return { error: "Something went wrong. Please try again or contact support." }
     }
@@ -370,11 +367,14 @@ export async function expressInterest(universityId: string, studentEmail?: strin
 
         if (!university) return { error: "University not found" }
 
+        // Normalise — undefined and null are the same in our data model
+        const normalisedProgramId = programId ?? null
+
         const existingInterest = await prisma.interest.findFirst({
             where: {
                 studentId: student.id,
                 universityId: universityId,
-                programId: programId || null
+                programId: normalisedProgramId
             }
         })
 
@@ -386,7 +386,7 @@ export async function expressInterest(universityId: string, studentEmail?: strin
             data: {
                 studentId: student.id,
                 universityId: universityId,
-                programId: programId || null,
+                programId: normalisedProgramId,
                 status: 'INTERESTED',
                 studentMessage: programId
                     ? `I am interested in a specific program.`
@@ -2139,5 +2139,4 @@ export async function getLiveUniversitySuggestion() {
         return null
     }
 }
-
 

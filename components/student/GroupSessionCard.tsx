@@ -1,279 +1,390 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Video, Clock, CalendarDays, Users, Loader2, ExternalLink } from 'lucide-react'
-import { joinGroupSession, leaveGroupSession, type StudentGroupSession, type DiscoverableGroupSession } from '@/app/university/actions/group-sessions'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { toast } from 'sonner'
+import { Calendar, Clock, Video, Users, GraduationCap, ExternalLink } from 'lucide-react'
+import { joinGroupSession, leaveGroupSession } from '@/app/university/group-sessions/actions'
+import { type StudentGroupSession, type DiscoverableGroupSession } from '@/app/university/actions/group-sessions'
 import { useRouter } from 'next/navigation'
 
-// ─── Seat fill bar ───────────────────────────────────────────────────────────
+// ── Shared helper ─────────────────────────────────────────────────────────────
+function formatSessionDate(date: Date | string): string {
+    return new Date(date).toLocaleDateString('en-IN', {
+        weekday: 'short', day: 'numeric', month: 'short',
+        hour: '2-digit', minute: '2-digit'
+    })
+}
 
-export function SeatBar({ confirmed, capacity, muted = false }: { confirmed: number; capacity: number; muted?: boolean }) {
-    const pct = Math.round((confirmed / capacity) * 100)
-    const color = pct >= 100 ? (muted ? 'bg-gray-400' : 'bg-red-500') : pct >= 70 ? 'bg-amber-500' : 'bg-green-500'
-    const remaining = capacity - confirmed
-
+function SeatBar({ confirmed, capacity }: { confirmed: number; capacity: number }) {
+    const pct = Math.min((confirmed / capacity) * 100, 100)
+    const color = confirmed >= capacity ? 'bg-orange-500'
+        : confirmed > capacity / 2 ? 'bg-blue-500'
+        : 'bg-green-500'
     return (
-        <div className="mt-2 text-left w-full">
-            <div className="flex justify-between text-xs mb-1">
-                <span className="text-gray-500">{confirmed}/{capacity} seats taken</span>
-                <span className={remaining <= 3 && remaining > 0 && !muted ? 'text-red-600 font-semibold' : 'text-gray-500'}>
-                    {remaining > 0 ? `${remaining} remaining${remaining <= 3 && !muted ? ' — almost full!' : ''}` : 'Full'}
-                </span>
+        <div className="space-y-1">
+            <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{confirmed} / {capacity} seats taken</span>
+                {confirmed >= capacity
+                    ? <span className="text-orange-600 font-medium">Full</span>
+                    : <span className="text-green-600">{capacity - confirmed} left</span>
+                }
             </div>
-            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full transition-all ${color}`}
+                    style={{ width: `${pct}%` }} />
             </div>
         </div>
     )
 }
 
-// ─── Waitlist message ────────────────────────────────────────────────────────
-
-function WaitlistBanner({ pos }: { pos: number }) {
-    return (
-        <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm">
-            <p className="font-semibold text-amber-900">🔥 This session filled up fast!</p>
-            <p className="text-amber-700 mt-0.5">
-                You&apos;re #{pos} in line — the university will be notified and may open another slot.
-                We&apos;ve saved your spot.
-            </p>
-        </div>
-    )
-}
-
-// ─── Individual session card ─────────────────────────────────────────────────
-
-export function GroupSessionCard({ seat }: { seat: StudentGroupSession }) {
+// ── Discover Session Card (For the horizontal list) ──────────────────────────
+export function DiscoverSessionCard({ session }: { session: DiscoverableGroupSession }) {
+    const [joinOpen, setJoinOpen] = useState(false)
+    const [isPending, startTransition] = useTransition()
+    const [result, setResult] = useState<{
+        status?: string
+        waitlistPos?: number | null
+    } | null>(null)
     const router = useRouter()
-    const [loading, setLoading] = useState(false)
-    const s = seat.session
 
-    const isConfirmed = seat.seatStatus === 'CONFIRMED'
-    const isWaitlisted = seat.seatStatus === 'WAITLISTED'
-    const isUpcoming = new Date(s.scheduledAt) > new Date()
-    const isLive = s.status === 'LIVE'
-    const isCompleted = s.status === 'COMPLETED'
-
-    const handleLeave = async () => {
-        if (!confirm('Are you sure you want to give up your seat?')) return
-        setLoading(true)
-        const res = await leaveGroupSession(s.id)
-        setLoading(false)
-        if (res.error) alert(res.error)
-        else router.refresh()
+    function handleJoin() {
+        startTransition(async () => {
+            const res = await joinGroupSession(session.id)
+            if (res.error) {
+                toast.error(res.error)
+                setJoinOpen(false)
+            } else {
+                setResult({
+                    status: res.status,
+                    waitlistPos: res.waitlistPos
+                })
+                router.refresh()
+            }
+        })
     }
 
+    const isFull = session.confirmedCount >= session.capacity
+    const remaining = session.capacity - session.confirmedCount
+
     return (
-        <Card className={`overflow-hidden border-l-4 transition-shadow hover:shadow-md ${
-            isLive ? 'border-l-green-500 shadow-green-100/50 shadow-md' :
-            isConfirmed ? 'border-l-primary/60' :
-            'border-l-amber-400'
-        }`}>
-            <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-start gap-3">
-                        {s.universityLogo ? (
-                            <img src={s.universityLogo} alt={s.universityName} className="h-10 w-10 rounded-lg object-contain border border-gray-100" />
-                        ) : (
-                            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                                <Users className="h-5 w-5 text-primary" />
-                            </div>
+        <>
+            <Card className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4 space-y-3">
+                    {/* Row 1: University + session title */}
+                    <div>
+                        <p className="text-xs text-muted-foreground font-medium">
+                            {session.universityName}
+                        </p>
+                        <h3 className="font-semibold text-gray-900 mt-0.5">
+                            {session.title}
+                        </h3>
+                        {session.programName && (
+                            <p className="text-xs text-blue-600 mt-0.5 flex items-center gap-1">
+                                <GraduationCap className="h-3 w-3" />
+                                {session.programName}
+                            </p>
                         )}
-                        <div>
-                            <p className="font-bold text-gray-900 text-sm">{s.universityName}</p>
-                            <p className="text-base font-semibold text-gray-800 mt-0.5">{s.title}</p>
-                            {s.programName && <p className="text-xs text-primary mt-0.5">{s.programName}</p>}
-                        </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${
-                            isLive ? 'bg-green-100 text-green-800 border-green-200 animate-pulse' :
-                            isConfirmed ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                            'bg-amber-100 text-amber-800 border-amber-200'
-                        }`}>
-                            {isLive ? '🟢 Live Now' : isConfirmed ? 'Confirmed' : `Waitlist #${seat.waitlistPos}`}
+
+                    {/* Row 2: Date + duration */}
+                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                            <Calendar className="h-3.5 w-3.5" />
+                            {formatSessionDate(session.scheduledAt)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5" />
+                            {session.durationMinutes} mins
                         </span>
                     </div>
-                </div>
-            </CardHeader>
 
-            <CardContent className="space-y-3">
-                {/* Date/time/duration */}
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                        <CalendarDays className="h-3.5 w-3.5" />
-                        {new Date(s.scheduledAt).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" />
-                        {s.durationMinutes} min
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5" />
-                        Group session
-                    </span>
-                </div>
-
-                {s.agenda && (
-                    <p className="text-xs text-gray-600 bg-gray-50 rounded-lg p-2">{s.agenda}</p>
-                )}
-
-                {/* Seat bar — confirmed or waitlisted */}
-                {(isConfirmed || isWaitlisted) && (
-                    <SeatBar confirmed={s.confirmedCount} capacity={s.capacity} />
-                )}
-
-                {/* Waitlist emotional message */}
-                {isWaitlisted && seat.waitlistPos && (
-                    <WaitlistBanner pos={seat.waitlistPos} />
-                )}
-
-                {/* Recap link */}
-                {isCompleted && s.recapUrl && (
-                    <a href={s.recapUrl} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs text-purple-700 font-medium hover:underline">
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        View Session Recap
-                    </a>
-                )}
-
-                {/* Actions */}
-                <div className="flex flex-wrap gap-2 pt-1">
-                    {isLive && s.joinUrl && (
-                        <a href={s.joinUrl} target="_blank" rel="noopener noreferrer">
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white gap-1.5">
-                                <Video className="h-3.5 w-3.5" />
-                                Join Now
-                            </Button>
-                        </a>
+                    {/* Row 3: Agenda */}
+                    {session.agenda && (
+                        <p className="text-xs text-gray-600 line-clamp-2">
+                            {session.agenda}
+                        </p>
                     )}
-                    {isConfirmed && isUpcoming && !isLive && (
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-600 border-red-200 hover:bg-red-50"
-                            disabled={loading}
-                            onClick={handleLeave}
-                        >
-                            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Give Up Seat'}
-                        </Button>
+
+                    {/* Row 4: Seat bar */}
+                    <SeatBar
+                        confirmed={session.confirmedCount}
+                        capacity={session.capacity}
+                    />
+
+                    {/* Row 5: CTA */}
+                    <Button
+                        className="w-full"
+                        size="sm"
+                        variant={isFull ? 'outline' : 'default'}
+                        onClick={() => setJoinOpen(true)}
+                    >
+                        {isFull
+                            ? '⏳ Join Waitlist'
+                            : `Reserve My Seat (${remaining} left)`
+                        }
+                    </Button>
+                </CardContent>
+            </Card>
+
+            {/* Join confirmation modal */}
+            <Dialog open={joinOpen} onOpenChange={open => {
+                if (!open) {
+                    setJoinOpen(false)
+                    setResult(null)
+                }
+            }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {result
+                                ? result.status === 'CONFIRMED'
+                                    ? '🎉 Seat Confirmed!'
+                                    : `⏳ You're on the Waitlist`
+                                : isFull
+                                    ? 'Join Waitlist'
+                                    : 'Reserve Your Seat'
+                            }
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    {/* Pre-join confirmation */}
+                    {!result && (
+                        <div className="space-y-3">
+                            <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+                                <p className="font-medium">{session.title}</p>
+                                <p className="text-muted-foreground">
+                                    {session.universityName}
+                                </p>
+                                <p className="text-muted-foreground flex items-center gap-1">
+                                    <Calendar className="h-3.5 w-3.5" />
+                                    {formatSessionDate(session.scheduledAt)}
+                                </p>
+                                {isFull && (
+                                    <p className="text-amber-700 bg-amber-50 border border-amber-100 rounded px-3 py-2 text-xs">
+                                        This session is full. You'll be added to the waitlist and notified if a seat opens.
+                                    </p>
+                                )}
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setJoinOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button onClick={handleJoin} disabled={isPending}>
+                                    {isPending
+                                        ? 'Reserving...'
+                                        : isFull
+                                            ? 'Join Waitlist'
+                                            : 'Confirm My Seat →'
+                                    }
+                                </Button>
+                            </DialogFooter>
+                        </div>
                     )}
-                </div>
-            </CardContent>
-        </Card>
+
+                    {/* Post-join result */}
+                    {result && (
+                        <div className="space-y-4 text-center py-2">
+                            {result.status === 'CONFIRMED' ? (
+                                <>
+                                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto text-3xl">
+                                        🎉
+                                    </div>
+                                    <p className="text-sm text-gray-600">
+                                        Your seat is confirmed for{' '}
+                                        <strong>
+                                            {formatSessionDate(session.scheduledAt)}
+                                        </strong>.
+                                        You'll receive a reminder before the session.
+                                    </p>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto text-3xl">
+                                        ⏳
+                                    </div>
+                                    <p className="text-sm text-gray-600">
+                                        You're <strong>#{result.waitlistPos}</strong> on the waitlist. We'll notify you the moment a seat becomes available.
+                                    </p>
+                                </>
+                            )}
+                            <DialogFooter>
+                                <Button className="w-full" onClick={() => {
+                                    setJoinOpen(false)
+                                    setResult(null)
+                                }}>
+                                    Done
+                                </Button>
+                            </DialogFooter>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+        </>
     )
 }
 
-// ─── Grid view (for dashboard section) ───────────────────────────────────────
+// ── My Sessions List (The main default export) ───────────────────────────────
+export default function GroupSessionList({
+    seats
+}: { seats: StudentGroupSession[] }) {
+    const [confirmLeave, setConfirmLeave] = useState<string | null>(null)
+    const [isPending, startTransition] = useTransition()
+    const router = useRouter()
 
-export default function GroupSessionList({ seats }: { seats: StudentGroupSession[] }) {
+    function handleLeave(seatId: string, sessionId: string) {
+        startTransition(async () => {
+            const res = await leaveGroupSession(sessionId)
+            if (res.error) toast.error(res.error)
+            else {
+                toast.success('You have left the session.')
+                setConfirmLeave(null)
+                router.refresh()
+            }
+        })
+    }
+
     if (seats.length === 0) {
         return (
-            <div className="text-center py-12 text-gray-400">
-                <Users className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                <p className="text-sm">No group sessions yet. When a university invites you, it&apos;ll appear here.</p>
+            <div className="text-center py-10 border-2 border-dashed rounded-xl">
+                <Users className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
+                <p className="font-medium text-gray-600">No group sessions yet</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                    Sessions matching your interests will appear below
+                </p>
             </div>
         )
     }
 
-    const upcoming = seats.filter(s => !['COMPLETED', 'CANCELLED'].includes(s.session.status))
-    const past = seats.filter(s => ['COMPLETED', 'CANCELLED'].includes(s.session.status))
-
     return (
-        <div className="space-y-6">
-            {upcoming.length > 0 && (
-                <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Upcoming & Active</h3>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        {upcoming.map(seat => <GroupSessionCard key={seat.seatId} seat={seat} />)}
-                    </div>
-                </div>
-            )}
-            {past.length > 0 && (
-                <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Past Sessions</h3>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        {past.map(seat => <GroupSessionCard key={seat.seatId} seat={seat} />)}
-                    </div>
-                </div>
-            )}
-        </div>
-    )
-}
+        <div className="space-y-3">
+            {seats.map(({ seatId, seatStatus, waitlistPos, session }) => (
+                <Card key={seatId} className={`
+                    ${seatStatus === 'CONFIRMED'
+                        ? 'border-green-200 bg-green-50/30'
+                        : 'border-amber-200 bg-amber-50/30'}
+                `}>
+                    <CardContent className="p-4 space-y-3">
 
-// ─── Individual discover session card ────────────────────────────────────────
-
-export function DiscoverSessionCard({ session }: { session: DiscoverableGroupSession }) {
-    const router = useRouter()
-    const [loading, setLoading] = useState(false)
-    const isFull = session.status === 'FULL'
-
-    const handleJoin = async () => {
-        setLoading(true)
-        const res = await joinGroupSession(session.id)
-        setLoading(false)
-        if (res.error) alert(res.error)
-        else router.refresh()
-    }
-
-    return (
-        <Card className={`overflow-hidden border-l-4 transition-shadow hover:shadow-md ${isFull ? 'border-l-gray-300' : 'border-l-blue-400'}`}>
-            <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-start gap-3">
-                        {session.universityLogo ? (
-                            <img src={session.universityLogo} alt={session.universityName} className="h-10 w-10 rounded-lg object-contain border border-gray-100" />
-                        ) : (
-                            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                                <Users className="h-5 w-5 text-primary" />
+                        {/* Row 1: University + status badge */}
+                        <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                                <p className="text-xs text-muted-foreground font-medium">
+                                    {session.universityName}
+                                </p>
+                                <h3 className="font-semibold text-gray-900 mt-0.5">
+                                    {session.title}
+                                </h3>
+                                {session.programName && (
+                                    <p className="text-xs text-blue-600 mt-0.5 flex items-center gap-1">
+                                        <GraduationCap className="h-3 w-3" />
+                                        {session.programName}
+                                    </p>
+                                )}
                             </div>
-                        )}
-                        <div>
-                            <p className="font-bold text-gray-900 text-sm">{session.universityName}</p>
-                            <p className="text-base font-semibold text-gray-800 mt-0.5">{session.title}</p>
-                            {session.programName && <p className="text-xs text-primary mt-0.5">{session.programName}</p>}
+                            <div className="flex flex-col items-end gap-1.5">
+                                {seatStatus === 'CONFIRMED' ? (
+                                    <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
+                                        ✅ Confirmed
+                                    </Badge>
+                                ) : (
+                                    <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">
+                                        ⏳ Waitlist #{waitlistPos}
+                                    </Badge>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${isFull ? 'bg-gray-100 text-gray-600 border-gray-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                            {isFull ? 'Sold Out · Join Waitlist' : 'Open · Join Session'}
-                        </span>
-                    </div>
-                </div>
-            </CardHeader>
 
-            <CardContent className="space-y-3">
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                        <CalendarDays className="h-3.5 w-3.5" />
-                        {new Date(session.scheduledAt).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" />
-                        {session.durationMinutes} min
-                    </span>
-                </div>
+                        {/* Row 2: Date + duration */}
+                        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                                <Calendar className="h-3.5 w-3.5" />
+                                {formatSessionDate(session.scheduledAt)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                {session.durationMinutes} mins
+                            </span>
+                        </div>
 
-                {session.agenda && (
-                    <p className="text-xs text-gray-600 bg-gray-50 rounded-lg p-2">{session.agenda}</p>
-                )}
+                        {/* Row 3: Agenda */}
+                        {session.agenda && (
+                            <p className="text-xs text-gray-600 line-clamp-2">
+                                {session.agenda}
+                            </p>
+                        )}
 
-                <SeatBar confirmed={session.confirmedCount} capacity={session.capacity} muted={isFull} />
+                        {/* Row 4: Seat bar */}
+                        <SeatBar
+                            confirmed={session.confirmedCount}
+                            capacity={session.capacity}
+                        />
 
-                <div className="pt-2">
-                    <Button
-                        size="sm"
-                        className={`w-full gap-2 ${isFull ? 'bg-gray-800 hover:bg-gray-900 text-white' : 'bg-primary hover:bg-primary/90 text-white'}`}
-                        disabled={loading}
-                        onClick={handleJoin}
-                    >
-                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                        {isFull ? 'Join Waitlist' : 'Reserve My Seat'}
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
+                        {/* Row 5: Actions */}
+                        <div className="flex gap-2 pt-1">
+                            {/* Join link — only for confirmed + session is LIVE */}
+                            {seatStatus === 'CONFIRMED' && session.joinUrl && (
+                                <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700" asChild>
+                                    <a href={session.joinUrl} target="_blank" rel="noopener noreferrer">
+                                        <Video className="h-3.5 w-3.5" /> Join Session
+                                        <ExternalLink className="h-3 w-3 ml-1" />
+                                    </a>
+                                </Button>
+                            )}
+
+                            {/* Recap link */}
+                            {session.recapUrl && (
+                                <Button size="sm" variant="outline" className="gap-1.5" asChild>
+                                    <a href={session.recapUrl} target="_blank" rel="noopener noreferrer">
+                                        🎬 Watch Recap
+                                    </a>
+                                </Button>
+                            )}
+
+                            {/* Leave session */}
+                            {session.status !== 'COMPLETED' && session.status !== 'CANCELLED' && (
+                                <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50 ml-auto text-xs" onClick={() => setConfirmLeave(seatId)}>
+                                    Leave
+                                </Button>
+                            )}
+                        </div>
+
+                        {/* Waitlist encouragement */}
+                        {seatStatus === 'WAITLISTED' && (
+                            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                                🎯 You're #{waitlistPos} on the waitlist. We'll notify you instantly if a seat opens up.
+                            </p>
+                        )}
+                    </CardContent>
+                </Card>
+            ))}
+
+            {/* Leave confirmation dialog */}
+            <Dialog open={!!confirmLeave} onOpenChange={open => !open && setConfirmLeave(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Leave this session?</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-muted-foreground">
+                        If you're confirmed, your seat will be given to the
+                        next student on the waitlist.
+                    </p>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setConfirmLeave(null)}>Cancel</Button>
+                        <Button variant="destructive" disabled={isPending} onClick={() => {
+                            const seat = seats.find(s => s.seatId === confirmLeave)
+                            if (seat && confirmLeave) {
+                                handleLeave(confirmLeave, seat.session.id)
+                            }
+                        }}>
+                            {isPending ? 'Leaving...' : 'Yes, Leave Session'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
     )
 }

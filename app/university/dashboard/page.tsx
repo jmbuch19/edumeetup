@@ -279,37 +279,23 @@ export default async function UniversityDashboard() {
         fairModeResult.status === 'fulfilled' ? fairModeResult.value : [null, null, null, []]
     const fairInvitations = fairInvitationsResult.status === 'fulfilled' ? fairInvitationsResult.value : []
 
-    // ── Group sessions (separate fetch for clean typing) ────────────────────
-    const groupSessionsRaw = await prisma.groupSession.findMany({
+    // ── Group sessions (with full relation data) ────────────────────
+    const groupSessions = await prisma.groupSession.findMany({
         where: { universityId: uni.id },
+        orderBy: { scheduledAt: 'desc' },
         include: {
-            program: { select: { programName: true } },
-            seats: { select: { status: true, waitlistPos: true } },
-        },
-        orderBy: { scheduledAt: 'asc' },
-    }).catch(() => [])
-
-    const groupSessions = groupSessionsRaw.map((s: any) => ({
-        id: s.id,
-        title: s.title,
-        agenda: s.agenda,
-        programName: s.program?.programName ?? null,
-        targetField: s.targetField,
-        scheduledAt: s.scheduledAt,
-        durationMinutes: s.durationMinutes,
-        capacity: s.capacity,
-        status: s.status,
-        joinUrl: s.joinUrl,
-        recapUrl: s.recapUrl,
-        notifiedCount: s.notifiedCount,
-        followUpDraftId: s.followUpDraftId,
-        confirmedCount: s.seats.filter((seat: any) => seat.status === 'CONFIRMED').length,
-        waitlistedCount: s.seats.filter((seat: any) => seat.status === 'WAITLISTED').length,
-    }))
-
-    const hasActiveGroupSessions = groupSessions.some(
-        (s: any) => !['COMPLETED', 'CANCELLED'].includes(s.status)
-    )
+            seats: {
+                include: {
+                    student: {
+                        select: {
+                            fullName: true,
+                            user: { select: { email: true } }
+                        }
+                    }
+                }
+            }
+        }
+    })
 
     // ── Post-processing (unchanged) ──────────────────────────────────────────
     const serialisedHistory = outreachHistory.filter((r: any) => r.student !== null).map((r: any) => ({
@@ -518,10 +504,16 @@ export default async function UniversityDashboard() {
                         <TabsTrigger value="overview">Overview</TabsTrigger>
                         <TabsTrigger value="interests">Student Interests</TabsTrigger>
                         <TabsTrigger value="meetings">Meetings</TabsTrigger>
-                        <TabsTrigger value="group-sessions" className="relative">
+                        <TabsTrigger value="group-sessions">
                             Group Sessions
-                            {hasActiveGroupSessions && (
-                                <span className="absolute -top-1 -right-1 h-2 w-2 bg-blue-500 rounded-full" />
+                            {groupSessions.filter(s =>
+                                ['OPEN','FILLING','FULL'].includes(s.status)
+                            ).length > 0 && (
+                                <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-medium px-1.5 py-0.5 min-w-[1.25rem]">
+                                    {groupSessions.filter(s =>
+                                        ['OPEN','FILLING','FULL'].includes(s.status)
+                                    ).length}
+                                </span>
                             )}
                         </TabsTrigger>
                         <TabsTrigger value="programs">Programs</TabsTrigger>
@@ -681,8 +673,8 @@ export default async function UniversityDashboard() {
 
                 <TabsContent value="group-sessions">
                     <GroupSessionsTab
-                        sessions={JSON.parse(JSON.stringify(groupSessions))}
-                        programs={uni.programList.map((p: any) => ({ id: p.id, programName: p.programName, fieldCategory: p.fieldCategory }))}
+                        universityId={uni.id}
+                        sessions={groupSessions}
                     />
                 </TabsContent>
 

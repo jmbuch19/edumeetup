@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { UniversityLogo } from '@/components/university/university-logo'
 import Link from 'next/link'
 import ExpressInterestButton from '@/components/university/express-interest-button'
-import { ProgramsSection } from '@/components/university/ProgramsSection'
+import { ProgramsCollapsible } from '@/components/university/ProgramsCollapsible'
 
 export const dynamic = 'force-dynamic'
 
@@ -280,10 +280,10 @@ export default async function UniversityDetailPage({
           </Card>
         )}
 
-        {/* ── Programmes — multi-select via ProgramsSection ───────────────── */}
+        {/* ── Programmes — multi-select via ProgramsCollapsible ───────────────── */}
         {uni.programList.length > 0 && (
-          <ProgramsSection
-            programs={JSON.parse(JSON.stringify(uni.programs))}
+          <ProgramsCollapsible
+            programs={JSON.parse(JSON.stringify(uni.programList))}
             isLoggedIn={isLoggedIn}
             universityId={id}
           />

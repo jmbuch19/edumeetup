@@ -6,6 +6,7 @@ import { GraduationCap, MapPin, Search, Calendar, CheckCircle, LogOut, Clock, Ex
 import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StudentMeetingsTable } from '@/components/student/student-meetings-table'
 import { AdvisoryBanner } from '@/components/student/advisory-banner'
@@ -121,8 +122,12 @@ export function DashboardUI({
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="group-sessions" className="relative">
                         Group Sessions
-                        {groupSessions.filter(s => !['COMPLETED', 'CANCELLED'].includes(s.session.status)).length > 0 && (
-                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full border-2 border-white" />
+                        {groupSessions.length > 0 && (
+                            <span className="ml-1.5 inline-flex items-center justify-center
+                                rounded-full bg-blue-600 text-white text-[11px]
+                                font-medium px-1.5 py-0.5 min-w-[1.25rem]">
+                                {groupSessions.length}
+                            </span>
                         )}
                     </TabsTrigger>
                     <TabsTrigger value="advisory" className="relative">
@@ -322,35 +327,43 @@ export function DashboardUI({
                 </TabsContent>
 
                 {/* ── Group Sessions tab ── */}
-                <TabsContent value="group-sessions" className="space-y-4">
+                <TabsContent value="group-sessions" className="space-y-6">
+
+                    {/* My Sessions — confirmed + waitlisted */}
                     <div>
-                        <h2 className="text-2xl font-serif text-indigo-900 mb-1">Group Info Sessions</h2>
-                        <p className="text-sm text-muted-foreground mb-6">
-                            Universities invite matched students to small group sessions — meet admissions teams, ask questions live, and reserve your seat.
-                        </p>
-
-                        {discoverableSessions && discoverableSessions.length > 0 && (
-                            <div className="mb-8">
-                                <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                                    <Search className="h-5 w-5 text-gray-400" />
-                                    Discover Sessions
-                                </h3>
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    {discoverableSessions.map(session => (
-                                        <DiscoverSessionCard key={session.id} session={session} />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <div>
-                            <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                                <Calendar className="h-5 w-5 text-gray-400" />
-                                My Sessions
-                            </h3>
-                            <GroupSessionList seats={groupSessions} />
-                        </div>
+                        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            My Sessions
+                            {groupSessions.length > 0 && (
+                                <Badge variant="secondary">{groupSessions.length}</Badge>
+                            )}
+                        </h3>
+                        <GroupSessionList seats={groupSessions} />
                     </div>
+
+                    {/* Discover — matching sessions not yet joined */}
+                    {discoverableSessions.length > 0 && (
+                        <div>
+                            <h3 className="font-semibold text-gray-900 mb-1
+                                flex items-center gap-2">
+                                Discover Sessions
+                                <Badge variant="outline" className="text-xs font-normal">
+                                    Matched to your interests
+                                </Badge>
+                            </h3>
+                            <p className="text-xs text-muted-foreground mb-3">
+                                Universities hosting sessions that match your profile
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {discoverableSessions.map(session => (
+                                    <DiscoverSessionCard
+                                        key={session.id}
+                                        session={session}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                 </TabsContent>
 
                 <TabsContent value="advisory">

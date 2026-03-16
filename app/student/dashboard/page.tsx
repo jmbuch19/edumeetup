@@ -58,7 +58,7 @@ export default async function StudentDashboard() {
     const interest = student.fieldOfInterest
     const fieldFilter = interest && (FIELD_CATEGORIES as readonly string[]).includes(interest)
         ? { equals: interest }
-        : { in: [] as string[] }
+        : undefined
 
     // Step 3: Run all independent queries in parallel (was sequential — now 2-4x faster)
     const [matchedPrograms, recommendedUniversities, userInterests, myMeetings, advisoryStatus, groupSessionsResult, discoverableResult] =
@@ -66,7 +66,7 @@ export default async function StudentDashboard() {
             prisma.program.findMany({
                 where: {
                     AND: [
-                        { fieldCategory: fieldFilter },
+                        ...(fieldFilter ? [{ fieldCategory: fieldFilter }] : []),
                         { degreeLevel: { equals: student.preferredDegree || undefined } },
                         { status: 'ACTIVE' },
                         { university: { verificationStatus: 'VERIFIED' } }
