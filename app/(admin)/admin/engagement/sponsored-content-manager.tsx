@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
-import { createSponsoredContent, deleteSponsoredContent, getSponsoredContent } from "./actions"
-import { Loader2, Trash2, ExternalLink } from "lucide-react"
+import { getSponsoredContent, createSponsoredContent, deleteSponsoredContent } from "./actions"
+import { Loader2, Trash2, ExternalLink, Download } from "lucide-react"
 
 type SponsoredContent = {
     id: string
@@ -16,6 +16,7 @@ type SponsoredContent = {
     partnerName: string
     imageUrl: string
     targetUrl: string
+    sponsorType: string
     placement: string
     isActive: boolean
     status: string
@@ -103,6 +104,39 @@ export function SponsoredContentManager() {
             toast.success("Deleted successfully")
             loadItems()
         }
+    }
+
+    function handleExportCSV() {
+        if (items.length === 0) {
+            toast.error("No campaigns to export")
+            return
+        }
+
+        const headers = ["ID", "Title", "Partner", "Type", "Placement", "Status", "Impressions", "Clicks", "Click Through Rate"]
+        
+        const rows = items.map(item => {
+            const ctr = item.impressions > 0 ? ((item.clicks / item.impressions) * 100).toFixed(2) + "%" : "0%"
+            return [
+                item.id,
+                `"${item.title.replace(/"/g, '""')}"`,
+                `"${item.partnerName.replace(/"/g, '""')}"`,
+                item.sponsorType,
+                item.placement,
+                item.status,
+                item.impressions,
+                item.clicks,
+                ctr
+            ].join(",")
+        })
+
+        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n")
+        const encodedUri = encodeURI(csvContent)
+        const link = document.createElement("a")
+        link.setAttribute("href", encodedUri)
+        link.setAttribute("download", `sponsored_content_report_${new Date().toISOString().split('T')[0]}.csv`)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
     }
 
     return (
@@ -222,7 +256,13 @@ export function SponsoredContentManager() {
             </div>
 
             <div className="space-y-4">
-                <h3 className="text-lg font-medium">All Campaigns</h3>
+                <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">All Campaigns</h3>
+                    <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Export CSV
+                    </Button>
+                </div>
                 {isLoading ? (
                     <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading...</div>
                 ) : items.length === 0 ? (

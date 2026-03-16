@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { User, School, ArrowRight, Shield, GraduationCap, CalendarDays, MapPin, Building2, ChevronRight } from "lucide-react";
@@ -22,6 +22,19 @@ type HeroSlide = {
 
 export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
     const [activeTab, setActiveTab] = useState<'student' | 'university'>('student');
+    const hasTrackedRef = useRef(false);
+
+    useEffect(() => {
+        if (slides.length > 0 && !hasTrackedRef.current) {
+            hasTrackedRef.current = true;
+            // Fire and forget impression tracking
+            fetch('/api/sponsor/impression', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: slides.map(s => s.id) })
+            }).catch(console.error);
+        }
+    }, [slides]);
 
     const scrollToHowItWorks = (tab: 'student' | 'university') => {
         setActiveTab(tab);
@@ -62,7 +75,7 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
                                                 <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight drop-shadow-lg">{slide.title}</h2>
                                                 <p className="text-lg md:text-2xl text-white/95 font-medium drop-shadow-md">{slide.partnerName}</p>
                                                 <Button asChild size="lg" className="mt-6 bg-white text-black hover:bg-white/90 border-0 h-12 px-8 text-base">
-                                                    <Link href={slide.targetUrl}>
+                                                    <Link href={`/api/sponsor/click?id=${slide.id}`}>
                                                         {slide.sponsorType === 'UNIVERSITY' ? 'Explore Programs' : 'Learn More'}
                                                     </Link>
                                                 </Button>
