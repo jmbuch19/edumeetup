@@ -9,20 +9,23 @@ datasource db {
 }
 
 model User {
-  id                    String                @id @default(cuid())
-  name                  String?
-  email                 String                @unique
-  emailVerified         DateTime?
-  password              String?
-  image                 String?
-  role                  UserRole              @default(STUDENT)
-  isActive              Boolean               @default(true)
-  consentMarketing      Boolean               @default(true)
-  consentAnalytics      Boolean               @default(true)
-  consentWithdrawnAt    DateTime?
-  deletionRequestedAt   DateTime?
-  deletionScheduledFor  DateTime?
-  timezone              String                @default("Asia/Kolkata")
+  id                   String    @id @default(cuid())
+  name                 String?
+  email                String    @unique
+  emailVerified        DateTime?
+  password             String?
+  image                String?
+  role                 UserRole  @default(STUDENT)
+  isActive             Boolean   @default(true)
+  consentMarketing     Boolean   @default(true)
+  consentAnalytics     Boolean   @default(true)
+  consentWithdrawnAt   DateTime?
+  deletionRequestedAt  DateTime?
+  deletionScheduledFor DateTime?
+  timezone             String    @default("Asia/Kolkata")
+  npsSurveyCompleted   Boolean   @default(false)
+  npsSurveyDismissedAt DateTime?
+
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
   universityId          String?
@@ -47,6 +50,7 @@ model User {
   repPerformance        RepPerformance?
   repBadges             RepBadge[]
   directMessagesSent    DirectMessage[]
+  NpsSurveyResponse     NpsSurveyResponse?
 
   @@index([role])
   @@index([isActive])
@@ -802,7 +806,6 @@ model NotificationCampaign {
   @@index([createdAt])
 }
 
-
 model UniversityNotification {
   id           String     @id @default(cuid())
   universityId String
@@ -1295,8 +1298,24 @@ model DirectMessage {
   universityReadAt DateTime? // set when the university rep reads this message
   createdAt        DateTime     @default(now())
   conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender           User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  User             User?        @relation(fields: [userId], references: [id])
+  userId           String?
 
   @@index([conversationId])
   @@index([senderId])
+}
+
+// ── NPS / User Feedback ──────────────────────────────────────────────
+
+model NpsSurveyResponse {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score        Int // 0-10
+  feedback     String?  @db.Text
+  role         String // Student, Admin, Support, etc
+  allowContact Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([score])
 }

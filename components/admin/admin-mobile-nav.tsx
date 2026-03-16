@@ -6,7 +6,7 @@ import { signOut } from 'next-auth/react'
 import {
     Menu, X, LayoutDashboard, Users, School,
     Ticket, Globe, Megaphone, CalendarDays,
-    FileBarChart2, Sparkles, LogOut
+    FileBarChart2, Sparkles, LogOut, MessageSquare
 } from 'lucide-react'
 
 const navItems = [
@@ -20,6 +20,7 @@ const navItems = [
     { href: '/admin/host-requests', label: 'Host Requests', Icon: Globe },
     { href: '/admin/engagement?tab=sponsored', label: 'Sponsored Content', Icon: Sparkles },
     { href: '/admin/reports', label: 'Reports', Icon: FileBarChart2 },
+    { href: '/admin/surveys', label: 'Survey Feedback', Icon: MessageSquare },
 ]
 
 export function AdminMobileNav({ adminEmail }: { adminEmail?: string | null }) {

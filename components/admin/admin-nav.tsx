@@ -35,6 +35,7 @@ const NAV_SECTIONS = [
             { href: '/admin/reports', label: 'Reports', icon: <FileBarChart2 className="h-4 w-4" /> },
             { href: '/admin/bot-leads', label: 'Bot Leads', icon: <MessageSquare className="h-4 w-4" /> },
             { href: '/admin/engagement?tab=sponsored', label: 'Sponsored Content', icon: <Sparkles className="h-4 w-4" /> },
+            { href: '/admin/surveys', label: 'Survey Feedback', icon: <MessageSquare className="h-4 w-4" /> },
         ]
     },
 ]

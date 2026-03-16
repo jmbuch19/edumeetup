@@ -44,6 +44,7 @@ export const viewport: Viewport = {
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TimezoneSyncer } from "@/components/global/TimezoneSyncer";
+import { NpsSurveyWrapper } from "@/components/NpsSurveyWrapper";
 
 export default async function RootLayout({
   children,
@@ -92,6 +93,7 @@ export default async function RootLayout({
           <BugReporter />
           <Toaster richColors position="top-center" />
           <TimezoneSyncer sessionTimezone={sessionTimezone} />
+          <NpsSurveyWrapper />
         </ThemeProvider>
 
         {/* WhatsApp widget — public visitors only, hidden inside all dashboards */}
