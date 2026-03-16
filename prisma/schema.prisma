@@ -51,6 +51,7 @@ model User {
   repBadges             RepBadge[]
   directMessagesSent    DirectMessage[]       @relation("SentMessages")
   NpsSurveyResponse     NpsSurveyResponse?
+  alumni                Alumni?
 
   @@index([role])
   @@index([isActive])
@@ -149,6 +150,7 @@ model Student {
   dismissals         StudentDiscoveryDismissal[]
   fairPasses         FairStudentPass[]
   conversations      Conversation[]
+  alumConnectRequests AlumConnectRequest[]
 }
 
 model ProfileChangeLog {
@@ -281,6 +283,8 @@ model University {
   reps                 User[]                      @relation("UniversityReps")
   conversations        Conversation[]
   campaigns            NotificationCampaign[]
+  alumni               Alumni[]
+  alumniInvitations    AlumniInvitation[]
 
   @@index([verificationStatus])
   @@index([country])
@@ -890,6 +894,7 @@ enum UserRole {
   UNIVERSITY
   UNIVERSITY_REP
   ADMIN
+  ALUMNI
 }
 
 enum FieldCategory {
@@ -1318,4 +1323,135 @@ model NpsSurveyResponse {
   createdAt    DateTime @default(now())
 
   @@index([score])
+}
+
+// ── IAES Alumni Bridge ────────────────────────────────────────────────────────
+
+model Alumni {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // ── Google Form: Core Identity ─────────────────────────────────────────────
+  // Full Name + Email come from User.name / User.email
+  whatsapp          String? // "Whatsapp / Contact"
+  yearWentToUSA     Int? // "Year You Went to the USA"
+
+  // ── Google Form: US Experience ─────────────────────────────────────────────
+  usUniversityName  String // "University Name in the USA"
+  usUniversityId    String? // FK → University if it's an EdUmeetup partner
+  usProgram         String // "Degree Program / Major"
+  usDegreeLevel     String? // BACHELORS | MASTERS | PHD (inferred from program)
+  usCity            String? // optional — shown on alumni card
+
+  // ── Google Form: "Current Status" ─────────────────────────────────────────
+  alumniStatus      AlumniStatus @default(STUDENT_CURRENTLY)
+
+  // ── Google Form: "Would you be open to helping?" (multi-select) ────────────
+  availableFor      String[]     @default([])
+  // Values: "EMAIL_WHATSAPP" | "VIDEO_CALL" | "RECORD_VIDEO" | "WRITTEN_TIPS" | "NOT_NOW"
+
+  // ── Google Form: "What topics could you speak or write about?" ─────────────
+  helpTopics        String[]     @default([])
+  // Values: "CHOOSING_UNIVERSITY" | "FIRST_SEMESTER" | "INTERNSHIPS_JOBS" | "LIFE_IN_US" | "OTHER"
+
+  // ── Google Form: "Any Message for Future Students?" ────────────────────────
+  inspirationMessage String?     @db.Text
+
+  // ── Google Form: LinkedIn ──────────────────────────────────────────────────
+  linkedinUrl       String?
+
+  // ── Platform fields (beyond the Google Form) ──────────────────────────────
+  profilePhotoUrl   String? // uploaded post-registration
+  weeklyCapacity    Int? // max connections/sessions per week the alumni can handle
+  availabilityNote  String? // free-text, e.g. "Weekends IST only"
+
+  // ── Consent & Privacy ─────────────────────────────────────────────────────
+  consentDataSharing Boolean  @default(false) // master switch — must be true to appear in discovery
+  showWhatsapp       Boolean  @default(false)
+  showLinkedin       Boolean  @default(true)
+  showUsCity         Boolean  @default(true)
+  consentSignedAt    DateTime?
+
+  // ── Admin Review (self-activation model) ──────────────────────────────────
+  // Profile is LIVE immediately on registration. Admin reviews async.
+  isVerified        Boolean  @default(true) // self-activated — shown in discovery right away
+  adminReviewStatus String   @default("PENDING_REVIEW")
+  // "PENDING_REVIEW" | "APPROVED" | "SUSPENDED"
+  adminReviewedAt   DateTime?
+  adminReviewNote   String? // admin's internal note (reason for suspension, etc.)
+
+  // ── Relations ──────────────────────────────────────────────────────────────
+  connectRequests   AlumConnectRequest[]
+  alumniInvitations AlumniInvitation[]
+  universityPartner University?          @relation(fields: [usUniversityId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([usUniversityId])
+  @@index([alumniStatus])
+  @@index([isVerified])
+  @@index([adminReviewStatus])
+  @@index([consentDataSharing])
+}
+
+enum AlumniStatus {
+  STUDENT_CURRENTLY // "Student" — currently enrolled in US university
+  OPT_CPT // "Working (OPT/CPT)"
+  H1B_OTHER // "H1B/Other Work Visa"
+  FURTHER_STUDIES // "Pursuing Further Studies" (e.g. PhD after MS)
+  OTHER
+}
+
+model AlumConnectRequest {
+  id           String            @id @default(cuid())
+  studentId    String
+  alumniId     String
+  type         AlumConnectType   @default(EMAIL)
+  message      String            @db.Text
+  status       AlumConnectStatus @default(PENDING)
+  alumResponse String?           @db.Text
+  respondedAt  DateTime?
+  createdAt    DateTime          @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  alumni  Alumni  @relation(fields: [alumniId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([alumniId])
+  @@index([status])
+}
+
+enum AlumConnectType {
+  EMAIL // student wants alumni to email them back
+  MEETING // student would like a video call
+  LINKEDIN // just wants to connect on LinkedIn
+}
+
+enum AlumConnectStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+model AlumniInvitation {
+  id             String   @id @default(cuid())
+  universityId   String
+  email          String
+  token          String   @unique @default(uuid())
+  status         String   @default("PENDING") // PENDING | REGISTERED | EXPIRED
+  invitedByRepId String?
+  message        String?
+  expiresAt      DateTime
+  alumniId       String? // set when the invitee registers
+  createdAt      DateTime @default(now())
+
+  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  alumni     Alumni?    @relation(fields: [alumniId], references: [id], onDelete: SetNull)
+
+  @@index([universityId])
+  @@index([token])
+  @@index([alumniId])
 }

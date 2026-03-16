@@ -26,6 +26,7 @@ const NAV_SECTIONS = [
             { href: '/admin/host-requests', label: 'Host Requests', icon: <Globe className="h-4 w-4" /> },
             { href: '/admin/fairs', label: 'Fair Events', icon: <QrCode className="h-4 w-4" /> },
             { href: '/admin/engagement', label: 'Engagement', icon: <Megaphone className="h-4 w-4" /> },
+            { href: '/admin/alumni', label: 'Alumni Bridge', icon: <GraduationCap className="h-4 w-4" style={{ color: '#D97706' }} /> },
         ]
     },
     {

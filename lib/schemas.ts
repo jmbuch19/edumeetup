@@ -198,3 +198,62 @@ export const studentQuestionSchema = studentInteractionSchema.extend({
     message: z.string().min(1, 'Message is required').max(2000, 'Message is too long')
 })
 
+// ─── Alumni Schemas ────────────────────────────────────────────────────────────
+
+export const ALUMNI_AVAILABLE_FOR_OPTIONS = [
+    { value: 'EMAIL_WHATSAPP',  label: 'Yes, I can answer queries over email/WhatsApp' },
+    { value: 'VIDEO_CALL',      label: "I'd be happy to do a short video call or webinar" },
+    { value: 'RECORD_VIDEO',    label: 'I can record a short video/message about my experience' },
+    { value: 'WRITTEN_TIPS',    label: 'I can share written tips/stories' },
+    { value: 'NOT_NOW',         label: 'Not at this time' },
+] as const
+
+export const ALUMNI_HELP_TOPIC_OPTIONS = [
+    { value: 'CHOOSING_UNIVERSITY', label: 'Choosing the right university/program' },
+    { value: 'FIRST_SEMESTER',      label: 'First-semester experience' },
+    { value: 'INTERNSHIPS_JOBS',    label: 'Internships & job search' },
+    { value: 'LIFE_IN_US',          label: 'Life in the US (housing, culture, budgeting, etc.)' },
+    { value: 'OTHER',               label: 'Other' },
+] as const
+
+export const ALUMNI_STATUS_OPTIONS = [
+    { value: 'STUDENT_CURRENTLY', label: 'Student (currently enrolled)' },
+    { value: 'OPT_CPT',          label: 'Working (OPT/CPT)' },
+    { value: 'H1B_OTHER',        label: 'H1B/Other Work Visa' },
+    { value: 'FURTHER_STUDIES',  label: 'Pursuing Further Studies (e.g. PhD)' },
+    { value: 'OTHER',            label: 'Other' },
+] as const
+
+export const registerAlumniSchema = z.object({
+    // Step 1
+    whatsapp:       z.string().optional(),
+    yearWentToUSA:  z.coerce.number().int().min(1990).max(new Date().getFullYear()).optional(),
+    // Step 2
+    usUniversityName: z.string().min(2, 'University name is required'),
+    usProgram:        z.string().min(2, 'Degree program is required'),
+    usDegreeLevel:    z.string().optional(),
+    usCity:           z.string().optional(),
+    alumniStatus:     z.enum(['STUDENT_CURRENTLY', 'OPT_CPT', 'H1B_OTHER', 'FURTHER_STUDIES', 'OTHER']),
+    // Step 3
+    availableFor:     z.array(z.string()).min(1, 'Please select at least one option'),
+    helpTopics:       z.array(z.string()).default([]),
+    weeklyCapacity:   z.coerce.number().int().min(1).max(20).optional(),
+    availabilityNote: z.string().optional(),
+    // Step 4
+    linkedinUrl:        z.string().url('Please enter a valid LinkedIn URL').optional().or(z.literal('')),
+    inspirationMessage: z.string().max(1000, 'Message is too long').optional(),
+    // Step 5 — Consent
+    consentDataSharing: z.boolean().refine(v => v === true, 'You must consent to data sharing to appear in the directory'),
+    showWhatsapp:       z.boolean().default(false),
+    showLinkedin:       z.boolean().default(true),
+    showUsCity:         z.boolean().default(true),
+    // Optional invite token
+    inviteToken:        z.string().optional(),
+})
+
+export const alumniConnectRequestSchema = z.object({
+    alumniId: z.string().min(1),
+    type:     z.enum(['EMAIL', 'MEETING', 'LINKEDIN']),
+    message:  z.string().min(10, 'Please write at least 10 characters').max(1000, 'Message is too long'),
+})
+

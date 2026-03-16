@@ -174,17 +174,25 @@ export default function LoginPage() {
                         Google
                     </Button>
 
-                    {/* Registration prompt — shown when user has no account */}
-                    <div className="mt-6 pt-4 border-t border-border text-center space-y-1">
+                    {/* Registration prompts */}
+                    <div className="mt-6 pt-4 border-t border-border text-center space-y-2">
                         <p className="text-xs text-muted-foreground">
                             New to EdUmeetup, or no email arriving?
                         </p>
                         <a
                             href="/student/register"
-                            className="text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                            className="text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline block"
                         >
                             Create your account here →
                         </a>
+                        <div className="pt-1 border-t border-border/50">
+                            <a
+                                href="/alumni-register"
+                                className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 hover:underline font-medium"
+                            >
+                                🎓 IAES Alumni? Join the Alumni Bridge →
+                            </a>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

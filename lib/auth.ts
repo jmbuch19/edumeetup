@@ -400,6 +400,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             const role = (params as any)?.token?.role
             if (role === 'ADMIN') return `${baseUrl}/admin/dashboard`
             if (role === 'UNIVERSITY' || role === 'UNIVERSITY_REP') return `${baseUrl}/university/dashboard`
+            if (role === 'ALUMNI') return `${baseUrl}/alumni/dashboard`
             return `${baseUrl}/student/dashboard`
         },
     },
@@ -419,7 +420,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 })
             }
 
-            // Provision a Student profile row on first login
+            // Provision a Student profile row on first login (NOT for ALUMNI — their profile is created by the /alumni-register form)
             if (isNewUser && dbUser.role === 'STUDENT') {
                 await prisma.student.upsert({
                     where: { userId: dbUser.id },

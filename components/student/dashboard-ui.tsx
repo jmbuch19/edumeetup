@@ -16,6 +16,7 @@ import { NotificationsCenter } from '@/components/notifications-center'
 import { UniversityLogo } from '@/components/university/university-logo'
 import GroupSessionList, { DiscoverSessionCard } from '@/components/student/GroupSessionCard'
 import { type StudentGroupSession, type DiscoverableGroupSession } from '@/app/university/actions/group-sessions'
+import AlumniBridgeSection from '@/components/alumni/AlumniBridgeSection'
 
 // Types
 // Types
@@ -138,6 +139,12 @@ export function DashboardUI({
                         {advisoryStatus && advisoryStatus.status === 'COMPLETED' && (
                             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></span>
                         )}
+                    </TabsTrigger>
+                    <TabsTrigger value="alumni" className="relative">
+                        <span className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                            Alumni Bridge 🌉
+                        </span>
                     </TabsTrigger>
                 </TabsList>
 
@@ -482,6 +489,11 @@ export function DashboardUI({
                             <AdvisoryForm onClose={() => setActiveTab('overview')} />
                         </div>
                     )}
+                </TabsContent>
+
+                {/* ── Alumni Bridge tab ── */}
+                <TabsContent value="alumni">
+                    <AlumniBridgeSection />
                 </TabsContent>
             </Tabs>
 
