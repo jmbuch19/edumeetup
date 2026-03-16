@@ -251,10 +251,57 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
                 </div>
             </section>
 
+            {/* ── Alumni Bridge Banner ───────────────────────────────────── */}
+            <section className="w-full bg-[#0B1340] py-14 px-4 overflow-hidden relative">
+                {/* subtle glow */}
+                <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full bg-[#C9A84C]/10 blur-3xl" />
+                </div>
+                <div className="relative container max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-8 md:gap-16">
+                    {/* Left: copy */}
+                    <div className="flex-1 text-center md:text-left">
+                        <div className="inline-flex items-center gap-2 bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-full px-3 py-1 mb-4">
+                            <GraduationCap className="h-3.5 w-3.5 text-[#C9A84C]" />
+                            <span className="text-[#C9A84C] text-xs font-semibold tracking-wide">IAES Alumni Bridge</span>
+                        </div>
+                        <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight mb-3">
+                            Are you an IAES Alumnus<br className="hidden md:block" />{" "}
+                            <span className="text-[#C9A84C]">studying or working in the USA?</span>
+                        </h2>
+                        <p className="text-blue-200 text-base leading-relaxed max-w-xl">
+                            Your journey from Ahmedabad to a US university is exactly what the next
+                            student needs to hear. Join the Alumni Bridge — share your story, inspire
+                            futures, and be a pro-bono mentor on your own terms.
+                        </p>
+                        <div className="flex flex-wrap items-center gap-4 mt-6 justify-center md:justify-start">
+                            <Link href="/alumni-register"
+                                className="inline-flex items-center gap-2 bg-[#C9A84C] hover:bg-[#B8973B] text-[#0B1340] font-bold px-7 py-3 rounded-full transition-colors shadow-lg shadow-[#C9A84C]/20 text-sm">
+                                Join as Alumni Mentor <ArrowRight className="h-4 w-4" />
+                            </Link>
+                            <span className="text-blue-300 text-xs opacity-60">🔒 You control who contacts you</span>
+                        </div>
+                    </div>
+                    {/* Right: 3 value quick-chips */}
+                    <div className="flex flex-col gap-3 shrink-0 w-full md:w-64">
+                        {[
+                            { emoji: "📍", text: "3-minute setup, no paperwork" },
+                            { emoji: "💛", text: "Give back on your own schedule" },
+                            { emoji: "🎓", text: "Help future IAES students succeed" },
+                        ].map(v => (
+                            <div key={v.text} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                                <span className="text-lg">{v.emoji}</span>
+                                <span className="text-sm text-blue-100 leading-snug">{v.text}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
             {/* Hero Features Accordion */}
             <section className="w-full pb-12 md:pb-24 overflow-hidden">
                 <HeroFeatures />
             </section>
+
 
             <HowItWorks activeTab={activeTab} onTabChange={setActiveTab} />
 
