@@ -10,7 +10,7 @@ import { FairOutreachList } from '@/components/university/FairOutreachList'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardStats } from "@/components/university/DashboardStats"
-import { School, Download, BookOpen, Clock, QrCode, Zap, FileText, ChevronRight } from 'lucide-react'
+import { School, Download, BookOpen, Clock, QrCode, Zap, FileText, ChevronRight, GraduationCap, MapPin, Mail, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { DegreeLevels } from '@/lib/constants'
@@ -25,6 +25,7 @@ import { ActionCentre } from '@/components/university/action-centre'
 import { FairReportCard } from '@/components/university/fair-report-card'
 import { CampusFairInviteCard } from '@/components/university/CampusFairInviteCard'
 import { GroupSessionsTab } from '@/components/university/GroupSessionsTab'
+import { UniAlumniTab } from '@/components/university/UniAlumniTab'
 
 export const dynamic = 'force-dynamic'
 
@@ -537,6 +538,12 @@ export default async function UniversityDashboard() {
                                 <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full animate-pulse" />
                             )}
                         </TabsTrigger>
+                        <TabsTrigger value="alumni" className="relative">
+                            <span className="flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                                Our Alumni
+                            </span>
+                        </TabsTrigger>
                         {fairHistoryWithDetails.length > 0 && (
                             <TabsTrigger value="fair-leads" className="relative">
                                 Fair Leads
@@ -771,6 +778,11 @@ export default async function UniversityDashboard() {
                         history={serialisedHistory}
                         universityName={uni.institutionName}
                     />
+                </TabsContent>
+
+                {/* ── Alumni Bridge Tab ── */}
+                <TabsContent value="alumni" className="space-y-6">
+                    <UniAlumniTab universityId={uni.id} universityName={uni.institutionName} />
                 </TabsContent>
 
                 {/* ── Addition 3: Fair Leads History Tab ── */}
