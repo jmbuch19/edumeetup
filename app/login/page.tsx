@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, Mail, AlertCircle, ShieldCheck, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import { login } from '@/app/actions'
-import { login } from '@/app/actions'
 import { COMMON_TYPO_DOMAINS } from '@/lib/schemas'
 import { signIn } from 'next-auth/react'
 
