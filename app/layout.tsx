@@ -29,6 +29,11 @@ const plusJakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "EdUmeetup",
   description: "Connect universities and students seamlessly.",
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
   manifest: "/manifest.json",
 };
 
