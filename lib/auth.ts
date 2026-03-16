@@ -232,6 +232,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            allowDangerousEmailAccountLinking: true, // Allows user to migrate from Magic Link to Google seamlessly
         }),
         // ⚠️ DEV ONLY — passwordless email login, disabled in production
         ...(process.env.NODE_ENV === 'development' ? [
@@ -259,6 +260,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // 1. Rate Limiter
             if (isRateLimited(email)) {
                 return `/auth/error?error=RateLimited`
+            }
+
+            // Google Auth Handler (Auto-provision as Student if they don't exist)
+            if (user?.id && !user.role) {
+                // If they logged in with Google and it's their very first time, PrismaAdapter 
+                // just created them as a basic User but missed our custom defaults (like Role).
+                // We'll enforce STUDENT role here for all new Google sign-ups.
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: { role: 'STUDENT', emailVerified: new Date() }
+                })
+                user.role = 'STUDENT'
             }
 
             // 2. Database Checks
