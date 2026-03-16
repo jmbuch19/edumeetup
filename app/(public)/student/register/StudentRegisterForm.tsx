@@ -240,6 +240,20 @@ function Step1({ form, set }: any) {
                 <label className="lbl">Email Address *</label>
                 <input className="field" type="email" placeholder="john@example.com" value={form.email} onChange={e => set("email", e.target.value)} />
             </div>
+            <div className="fg">
+                <label className="lbl">Confirm Email Address *</label>
+                <input 
+                    className="field" 
+                    type="email" 
+                    placeholder="john@example.com" 
+                    value={form.confirmEmail} 
+                    onChange={e => set("confirmEmail", e.target.value)} 
+                    onPaste={(e) => {
+                        e.preventDefault();
+                        toast.error("Please type your email to confirm");
+                    }} 
+                />
+            </div>
             <div className="g2">
                 <div className="fg">
                     <label className="lbl">Mobile Number *</label>
@@ -431,7 +445,7 @@ export default function StudentRegisterForm({ initialCount }: { initialCount: nu
     const scrollRef = useRef<HTMLDivElement>(null)
 
     const [form, setForm] = useState({
-        fullName: "", email: "", gender: "", ageGroup: "", phone: "", whatsappNumber: "", city: "", pincode: "",
+        fullName: "", email: "", confirmEmail: "", gender: "", ageGroup: "", phone: "", whatsappNumber: "", city: "", pincode: "",
         currentStatus: "", fieldOfInterest: "", preferredDegree: "",
         countries: [] as string[], intake: "", budgetRange: "",
         englishTestType: "", englishScore: "",
@@ -453,6 +467,7 @@ export default function StudentRegisterForm({ initialCount }: { initialCount: nu
         if (step === 1) {
             if (!form.fullName || form.fullName.length < 2) { toast.error("Full name is required"); return false }
             if (!form.email || !form.email.includes('@')) { toast.error("Valid email is required"); return false }
+            if (form.email !== form.confirmEmail) { toast.error("Email addresses do not match"); return false }
             if (COMMON_TYPO_DOMAINS[form.email.split('@')[1] ?? '']) { toast.error("There appears to be a typo in your email domain"); return false }
             if (!form.gender) { toast.error("Gender is required"); return false }
             if (!form.ageGroup) { toast.error("Age group is required"); return false }
