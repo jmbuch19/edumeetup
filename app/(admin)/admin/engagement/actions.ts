@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { sendMarketingEmail, generateEmailHtml, EmailTemplates } from "@/lib/email"
+import { invalidateCache } from "@/lib/cache"
 
 const ALLOWED_ANNOUNCEMENT_TYPES = ['GENERAL', 'NEW_UNIVERSITY', 'CHECK_IN', 'PHYSICAL_FAIR', 'SPONSOR_ONBOARD'] as const
 
@@ -167,8 +168,8 @@ export async function createSponsoredContent(formData: FormData) {
     const status = (formData.get("status") as string) || "DRAFT"
     const startDateRaw = (formData.get("startDate") as string | null)?.trim()
     const endDateRaw = (formData.get("endDate") as string | null)?.trim()
-    // Use 1 minute ago as default so content is immediately past the `startDate ≤ now` filter
-    const startDate = startDateRaw ? new Date(startDateRaw) : new Date(Date.now() - 60_000)
+    // Use 5 minutes ago as default so content is immediately past the `startDate ≤ now` filter in case of minor server clock skew
+    const startDate = startDateRaw ? new Date(startDateRaw) : new Date(Date.now() - 5 * 60 * 1000)
     const endDate = endDateRaw ? new Date(endDateRaw) : null
 
     if (!title || !imageUrl || !targetUrl) return { error: "Missing fields" }
@@ -190,12 +191,13 @@ export async function createSponsoredContent(formData: FormData) {
                 isActive: status === "ACTIVE",
             }
         })
+        await invalidateCache('homepage:hero-slides')
         revalidatePath("/admin/engagement")
         revalidatePath("/") // bust homepage hero cache
         return { success: true }
-    } catch (error) {
+    } catch (error: any) {
         console.error("[createSponsoredContent]", error)
-        return { error: "Failed to create sponsored content" }
+        return { error: "Failed to create sponsored content: " + (error?.message || String(error)) }
     }
 }
 
@@ -214,6 +216,7 @@ export async function deleteSponsoredContent(id: string) {
 
     try {
         await prisma.sponsoredContent.delete({ where: { id } })
+        await invalidateCache('homepage:hero-slides')
         revalidatePath("/admin/engagement")
         revalidatePath("/") // bust homepage hero cache
         return { success: true }
