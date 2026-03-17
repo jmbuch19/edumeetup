@@ -1,5 +1,5 @@
 // app/api/student-chat/route.ts
-// Student Advisor — Claude Sonnet 4 (premium, authenticated students only)
+// Student Advisor — Claude 3.5 Sonnet (premium, authenticated students only)
 
 // - Hard auth: must be a logged-in STUDENT (not just any session)
 // - Profile fetched server-side by session.user.id — no cross-student leakage
@@ -186,7 +186,7 @@ export async function POST(req: NextRequest) {
             // ── 6. Stream — Claude Sonnet 4, 500 token cap ────────────────────────
 
             const result = streamText({
-                model: anthropic('claude-sonnet-4-20250514'),
+                model: anthropic('claude-3-5-sonnet-20241022'),
                 system: systemPrompt,
                 messages,
                 maxOutputTokens: 500, // cost guardrail
@@ -208,9 +208,9 @@ export async function POST(req: NextRequest) {
         } catch (error) {
             console.error('[/api/student-chat] error:', error)
             Sentry.captureException(error)
-            return new Response(
-                "I'm having a moment of trouble. Please try again in a few seconds! 😊",
-                { status: 200, headers: { 'Content-Type': 'text/plain' } }
+            return NextResponse.json(
+                { error: 'advisor_error', message: "I'm having trouble connecting right now. Please try again in a few seconds!" },
+                { status: 500 }
             )
         }
     })
