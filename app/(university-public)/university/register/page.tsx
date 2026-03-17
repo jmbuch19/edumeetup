@@ -46,6 +46,7 @@ export default function UniversityRegisterPage() {
     const [formData, setFormData] = useState({
         institutionName: '',
         email: '',
+        confirmEmail: '',
         country: '',
         city: '',
         website: '',
@@ -204,6 +205,10 @@ export default function UniversityRegisterPage() {
     }
 
     const handleNext = () => {
+        if (formData.email !== formData.confirmEmail) {
+            toast.error('Email addresses do not match.')
+            return
+        }
         if (!isEmailValid) {
             toast.error('Please use a valid official university email before proceeding.')
             return
@@ -361,6 +366,24 @@ export default function UniversityRegisterPage() {
                                             Must be an official university email from USA, UK, Canada, Australia, NZ, Germany, UAE, India, Singapore, or EU (e.g. @harvard.edu, @ox.ac.uk, @iitb.ac.in)
                                         </p>
                                     )}
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Confirm Official Institutional Email *
+                                    </label>
+                                    <Input
+                                        name="confirmEmail"
+                                        value={formData.confirmEmail}
+                                        onChange={handleInputChange}
+                                        onPaste={(e) => {
+                                            e.preventDefault();
+                                            toast.error("Please type your email to confirm");
+                                        }}
+                                        type="email"
+                                        placeholder="admissions@university.edu"
+                                        required
+                                    />
                                 </div>
 
                                 <div>
