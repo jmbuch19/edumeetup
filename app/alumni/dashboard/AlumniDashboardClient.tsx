@@ -8,13 +8,23 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { GraduationCap, Mail, Video, Linkedin, Users, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { GraduationCap, Mail, Video, Linkedin, Users, CheckCircle, XCircle, Clock, Edit3 } from 'lucide-react'
 
 const STATUS_BADGE: Record<string, { label: string; class: string }> = {
-    STUDENT_CURRENTLY: { label: '📚 Studying',       class: 'bg-blue-100 text-blue-700' },
+    STUDENT_CURRENTLY: { label: '📚 Studying (Current)',       class: 'bg-blue-100 text-blue-700' },
     OPT_CPT:           { label: '✈️ OPT/CPT',        class: 'bg-purple-100 text-purple-700' },
-    H1B_OTHER:         { label: '💼 Working (H1B)',  class: 'bg-green-100 text-green-700' },
+    H1B_PENDING:       { label: '⏳ H1B Pending',    class: 'bg-orange-100 text-orange-700' },
+    H1B_APPROVED:      { label: '💼 Working (H1B)',  class: 'bg-green-100 text-green-700' },
+    GREEN_CARD:        { label: '🗽 Green Card',     class: 'bg-teal-100 text-teal-700' },
+    EMPLOYED_USA:      { label: '🇺🇸 Employed (USA)', class: 'bg-cyan-100 text-cyan-700' },
+    PR_OTHER_COUNTRY:  { label: '🌍 PR (Other)',     class: 'bg-pink-100 text-pink-700' },
     FURTHER_STUDIES:   { label: '🎓 Further Studies', class: 'bg-indigo-100 text-indigo-700' },
+    RETURNED_HOME:     { label: '🏠 Returned Home',  class: 'bg-stone-100 text-stone-700' },
     OTHER:             { label: '⭐ Alumni',           class: 'bg-amber-100 text-amber-700' },
 }
 
@@ -101,9 +111,54 @@ function ConnectRequestCard({ request, onRefresh }: {
 
 export default function AlumniDashboardClient({ alumni }: { alumni: any }) {
     const [refreshKey, setRefreshKey] = useState(0)
+    const [editOpen, setEditOpen] = useState(false)
+    const [isPendingEdit, startEditTransition] = useTransition()
+    
+    // Edit Form State
+    const [editForm, setEditForm] = useState({
+        alumniStatus: alumni.alumniStatus || 'STUDENT_CURRENTLY',
+        usDegreeLevel: alumni.usDegreeLevel || '',
+        usCity: alumni.usCity || '',
+        currentEmployer: alumni.currentEmployer || '',
+        jobTitle: alumni.jobTitle || '',
+        movedToCountry: alumni.movedToCountry || '',
+        linkedinUrl: alumni.linkedinUrl || '',
+        availabilityNote: alumni.availabilityNote || '',
+        weeklyCapacity: alumni.weeklyCapacity?.toString() || '3',
+        isAvailable: (alumni.weeklyCapacity || 0) > 0,
+    })
+
+    const handleEditSave = () => {
+        startEditTransition(async () => {
+            const formData = {
+                alumniStatus: editForm.alumniStatus,
+                usDegreeLevel: editForm.usDegreeLevel || undefined,
+                usCity: editForm.usCity || undefined,
+                currentEmployer: editForm.currentEmployer || undefined,
+                jobTitle: editForm.jobTitle || undefined,
+                movedToCountry: editForm.alumniStatus === 'PR_OTHER_COUNTRY' ? editForm.movedToCountry : null,
+                linkedinUrl: editForm.linkedinUrl || undefined,
+                availabilityNote: editForm.availabilityNote || undefined,
+                weeklyCapacity: editForm.isAvailable ? parseInt(editForm.weeklyCapacity) || 3 : 0,
+            }
+            const res = await updateAlumniProfile(formData)
+            if ('error' in res) {
+                toast.error(res.error)
+            } else {
+                toast.success('Profile updated successfully!')
+                setEditOpen(false)
+                setRefreshKey(k => k + 1)
+            }
+        })
+    }
+
     const pending = alumni.connectRequests?.filter((r: any) => r.status === 'PENDING') ?? []
     const past = alumni.connectRequests?.filter((r: any) => r.status !== 'PENDING') ?? []
     const status = STATUS_BADGE[alumni.alumniStatus] ?? { label: 'Alumni', class: 'bg-amber-100 text-amber-700' }
+
+    // Calc days ago
+    const lastUpdateDate = alumni.lastStatusUpdate ? new Date(alumni.lastStatusUpdate) : new Date(alumni.createdAt)
+    const daysAgo = Math.floor((Date.now() - lastUpdateDate.getTime()) / (1000 * 60 * 60 * 24))
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-amber-50/40 via-white to-orange-50/30">
@@ -126,7 +181,7 @@ export default function AlumniDashboardClient({ alumni }: { alumni: any }) {
                             {status.label}
                         </span>
                     </div>
-                    <div className="ml-auto text-right">
+                    <div className="ml-auto text-right flex flex-col items-end gap-3">
                         {alumni.adminReviewStatus === 'PENDING_REVIEW' && (
                             <div className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-3 py-1">
                                 <Clock className="w-3 h-3" /> Under Review
@@ -142,6 +197,15 @@ export default function AlumniDashboardClient({ alumni }: { alumni: any }) {
                                 <XCircle className="w-3 h-3" /> Suspended — contact IAES
                             </div>
                         )}
+                        
+                        <div className="flex flex-col items-end gap-1">
+                            <Button onClick={() => setEditOpen(true)} className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-sm border-0 h-9">
+                                <Edit3 className="w-4 h-4 mr-2" /> Update My Status
+                            </Button>
+                            <span className="text-[10px] text-gray-400 font-medium">
+                                Last updated {daysAgo === 0 ? 'today' : `${daysAgo} day${daysAgo === 1 ? '' : 's'} ago`}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -200,6 +264,105 @@ export default function AlumniDashboardClient({ alumni }: { alumni: any }) {
                         )}
                     </TabsContent>
                 </Tabs>
+
+                <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                    <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle>Update Your Information</DialogTitle>
+                            <DialogDescription>
+                                Keep your profile current so students can see your real journey and milestones.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="grid gap-4 py-4">
+                            <div className="space-y-2">
+                                <Label>Current Status</Label>
+                                <Select value={editForm.alumniStatus} onValueChange={v => setEditForm(f => ({ ...f, alumniStatus: v }))}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select your current status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.entries(STATUS_BADGE).map(([key, item]) => (
+                                            <SelectItem key={key} value={key}>{item.label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Degree Level</Label>
+                                    <Select value={editForm.usDegreeLevel} onValueChange={v => setEditForm(f => ({ ...f, usDegreeLevel: v }))}>
+                                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                                        <SelectContent>
+                                            {['BACHELORS', 'MASTERS', 'PHD', 'CERTIFICATE'].map(l => (
+                                                <SelectItem key={l} value={l}>{l}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Current City</Label>
+                                    <Input value={editForm.usCity} onChange={e => setEditForm(f => ({ ...f, usCity: e.target.value }))} placeholder="e.g. New York, NY" />
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Current Employer (Optional)</Label>
+                                    <Input value={editForm.currentEmployer} onChange={e => setEditForm(f => ({ ...f, currentEmployer: e.target.value }))} placeholder="Company Name" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Job Title (Optional)</Label>
+                                    <Input value={editForm.jobTitle} onChange={e => setEditForm(f => ({ ...f, jobTitle: e.target.value }))} placeholder="e.g. Software Engineer" />
+                                </div>
+                            </div>
+
+                            {editForm.alumniStatus === 'PR_OTHER_COUNTRY' && (
+                                <div className="space-y-2">
+                                    <Label>Moved to Country</Label>
+                                    <Input value={editForm.movedToCountry} onChange={e => setEditForm(f => ({ ...f, movedToCountry: e.target.value }))} placeholder="e.g. Canada" />
+                                </div>
+                            )}
+
+                            <div className="space-y-2">
+                                <Label>LinkedIn URL</Label>
+                                <Input value={editForm.linkedinUrl} onChange={e => setEditForm(f => ({ ...f, linkedinUrl: e.target.value }))} placeholder="https://linkedin.com/in/..." />
+                            </div>
+
+                            <div className="border-t pt-4 mt-2">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label className="text-base">Available to Help Students?</Label>
+                                        <p className="text-xs text-gray-500">Toggle off if you are currently too busy to mentor.</p>
+                                    </div>
+                                    <Switch checked={editForm.isAvailable} onChange={(e) => setEditForm(f => ({ ...f, isAvailable: e.target.checked }))} />
+                                </div>
+                            </div>
+
+                            {editForm.isAvailable && (
+                                <div className="grid grid-cols-[1fr_2fr] gap-4 pt-2">
+                                    <div className="space-y-2">
+                                        <Label>Weekly Capacity</Label>
+                                        <Input type="number" min="1" max="10" value={editForm.weeklyCapacity} onChange={e => setEditForm(f => ({ ...f, weeklyCapacity: e.target.value }))} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Availability Note (Optional)</Label>
+                                        <Input value={editForm.availabilityNote} onChange={e => setEditForm(f => ({ ...f, availabilityNote: e.target.value }))} placeholder="e.g. Weekends IST only" />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+                            <Button onClick={handleEditSave} disabled={isPendingEdit} className="bg-amber-600 hover:bg-amber-700 text-white">
+                                Save Profile
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
             </div>
         </div>
     )

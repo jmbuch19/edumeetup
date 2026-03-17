@@ -1,12 +1,19 @@
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import Link from 'next/link'
 import { GraduationCap, BookOpen, MapPin, Mail, ExternalLink, Users, UserCheck, Clock } from 'lucide-react'
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
     STUDENT_CURRENTLY: { label: 'Currently Studying', color: 'bg-blue-100 text-blue-700' },
     OPT_CPT:           { label: 'OPT/CPT',            color: 'bg-purple-100 text-purple-700' },
+    H1B_PENDING:       { label: 'H1B Pending',        color: 'bg-yellow-100 text-yellow-700' },
+    H1B_APPROVED:      { label: 'Working (H1B)',       color: 'bg-green-100 text-green-700' },
     H1B_OTHER:         { label: 'Working (H1B)',       color: 'bg-green-100 text-green-700' },
+    GREEN_CARD:        { label: 'Permanent Resident',  color: 'bg-emerald-100 text-emerald-700' },
+    PR_OTHER_COUNTRY:  { label: 'PR Abroad',           color: 'bg-teal-100 text-teal-700' },
+    EMPLOYED_USA:      { label: 'Employed in USA',     color: 'bg-green-100 text-green-700' },
     FURTHER_STUDIES:   { label: 'Further Studies',     color: 'bg-indigo-100 text-indigo-700' },
+    RETURNED_HOME:     { label: 'Returned Home',       color: 'bg-slate-100 text-slate-600' },
     OTHER:             { label: 'Alumni',              color: 'bg-gray-100 text-gray-600' },
 }
 
@@ -16,32 +23,39 @@ interface Props {
 }
 
 export async function UniAlumniTab({ universityId, universityName }: Props) {
-    // Alumni who listed this university (case-insensitive partial match on uni name)
-    const alumni = await prisma.alumni.findMany({
+    const ALUMNI_TAB_SELECT = {
+        id: true,
+        usUniversityName: true,
+        usProgram: true,
+        alumniStatus: true,
+        yearWentToUSA: true,
+        usCity: true,
+        helpTopics: true,
+        availableFor: true,
+        inspirationMessage: true,
+        weeklyCapacity: true,
+        showLinkedin: true,
+        linkedinUrl: true,
+        adminReviewStatus: true,
+        user: { select: { name: true } },
+    } satisfies Prisma.AlumniSelect;
+
+    type AlumniTabItem = Prisma.AlumniGetPayload<{ select: typeof ALUMNI_TAB_SELECT }>;
+
+    const alumniData = await prisma.alumni.findMany({
         where: {
             isVerified: true,
             adminReviewStatus: { not: 'SUSPENDED' },
-            usUniversityName: { contains: universityName.split(' ')[0], mode: 'insensitive' },
+            OR: [
+                { usUniversityId: universityId },
+                { usUniversityName: { contains: universityName, mode: 'insensitive' } }
+            ]
         },
-        select: {
-            id: true,
-            usUniversityName: true,
-            usProgram: true,
-            alumniStatus: true,
-            yearWentToUSA: true,
-            usCity: true,
-            helpTopics: true,
-            availableFor: true,
-            inspirationMessage: true,
-            weeklyCapacity: true,
-            showLinkedin: true,
-            linkedinUrl: true,
-            adminReviewStatus: true,
-            user: { select: { name: true, email: true } },
-        },
-        orderBy: { createdAt: 'desc' },
+        select: ALUMNI_TAB_SELECT,
         take: 50,
     }).catch(() => [])
+
+    const alumni = alumniData as AlumniTabItem[]
 
     // Pending invitations this university sent
     const pendingInvites = await prisma.alumniInvitation.count({
@@ -65,6 +79,7 @@ export async function UniAlumniTab({ universityId, universityName }: Props) {
                         IAES graduates who listed your university on the Alumni Bridge
                     </p>
                 </div>
+                {/* TODO: Change this to a university-specific invite flow once the UI is built */}
                 <Link href="/alumni-register/hero"
                     className="inline-flex items-center gap-2 text-xs font-medium text-amber-600 hover:text-amber-700 border border-amber-200 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-full transition-colors">
                     <Mail className="h-3.5 w-3.5" />
@@ -99,6 +114,7 @@ export async function UniAlumniTab({ universityId, universityName }: Props) {
                         IAES graduates who attended {universityName} haven't joined yet.
                         Share the Alumni Bridge link with your IAES alumni community to invite them.
                     </p>
+                    {/* TODO: Change this to a university-specific invite flow once the UI is built */}
                     <Link href="/alumni-register/hero"
                         className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold px-6 py-2.5 rounded-full transition-colors text-sm shadow-sm">
                         Share Alumni Bridge Invitation
@@ -113,7 +129,7 @@ export async function UniAlumniTab({ universityId, universityName }: Props) {
                     <div className="divide-y divide-slate-50">
                         {alumni.map(a => {
                             const status = STATUS_LABEL[a.alumniStatus] ?? { label: 'Alumni', color: 'bg-gray-100 text-gray-600' }
-                            const initials = (a.user.name ?? 'A').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+                            const initials = (a.user?.name ?? 'A').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
                             const isAvailable = a.weeklyCapacity && a.weeklyCapacity > 0
 
                             return (
@@ -127,7 +143,7 @@ export async function UniAlumniTab({ universityId, universityName }: Props) {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-start justify-between gap-2 flex-wrap">
                                             <div>
-                                                <p className="font-semibold text-slate-900 text-sm">{a.user.name}</p>
+                                                <p className="font-semibold text-slate-900 text-sm">{a.user?.name ?? 'Alumni'}</p>
                                                 <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-500 flex-wrap">
                                                     <BookOpen className="h-3 w-3 flex-shrink-0" />
                                                     <span className="truncate">{a.usProgram}</span>
@@ -180,10 +196,9 @@ export async function UniAlumniTab({ universityId, universityName }: Props) {
                                                 <ExternalLink className="h-4 w-4" />
                                             </a>
                                         )}
-                                        <a href={`mailto:${a.user.email}`}
-                                            className="text-slate-400 hover:text-slate-600 transition-colors">
-                                            <Mail className="h-4 w-4" />
-                                        </a>
+                                        <span className="text-[10px] text-slate-400 italic">
+                                            Connect via Alumni Bridge
+                                        </span>
                                     </div>
                                 </div>
                             )

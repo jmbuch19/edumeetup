@@ -1,10 +1,11 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
-type AlumniStatus = 'STUDENT_CURRENTLY' | 'OPT_CPT' | 'H1B_OTHER' | 'FURTHER_STUDIES' | 'OTHER'
+type AlumniStatus = 'STUDENT_CURRENTLY' | 'OPT_CPT' | 'H1B_PENDING' | 'H1B_APPROVED' | 'GREEN_CARD' | 'PR_OTHER_COUNTRY' | 'EMPLOYED_USA' | 'FURTHER_STUDIES' | 'RETURNED_HOME' | 'OTHER'
 
 // ── Auth helpers ────────────────────────────────────────────────────────────
 
@@ -114,6 +115,9 @@ export async function updateAlumniProfile(data: {
     whatsapp?: string
     usCity?: string
     alumniStatus?: AlumniStatus
+    currentEmployer?: string
+    jobTitle?: string
+    movedToCountry?: string | null
     availableFor?: string[]
     helpTopics?: string[]
     weeklyCapacity?: number
@@ -127,15 +131,101 @@ export async function updateAlumniProfile(data: {
     const user = await getAuthUser()
     if (!user?.id) return { error: 'Unauthorized' }
 
-    const alumni = await prisma.alumni.findUnique({ where: { userId: user.id }, select: { id: true } })
-    if (!alumni) return { error: 'Alumni profile not found' }
+    const currentAlumni = await prisma.alumni.findUnique({ where: { userId: user.id } })
+    if (!currentAlumni) return { error: 'Alumni profile not found' }
+
+    // ── Changes Logging & Notifications ───────────────────────────────────────
+    
+    // Track which fields changed to create logs
+    const changedFields: Array<{ field: string, old: string, new: string }> = []
+    
+    const checkChange = (field: string, oldV: any, newV: any) => {
+        if (newV !== undefined && oldV !== newV) {
+            changedFields.push({ field, old: String(oldV || ''), new: String(newV || '') })
+        }
+    }
+    
+    checkChange('alumniStatus', currentAlumni.alumniStatus, data.alumniStatus)
+    checkChange('usCity', currentAlumni.usCity, data.usCity)
+    checkChange('currentEmployer', currentAlumni.currentEmployer, data.currentEmployer)
+    checkChange('jobTitle', currentAlumni.jobTitle, data.jobTitle)
+    checkChange('movedToCountry', currentAlumni.movedToCountry, data.movedToCountry)
+    checkChange('linkedinUrl', currentAlumni.linkedinUrl, data.linkedinUrl)
+    
+    // Save to changelog
+    if (changedFields.length > 0) {
+        await prisma.alumniChangeLog.createMany({
+            data: changedFields.map(c => ({
+                alumniId: currentAlumni.id,
+                changedField: c.field,
+                oldValue: c.old,
+                newValue: c.new,
+            }))
+        })
+    }
+
+    // Milestone notifications for Students
+    if (data.alumniStatus && data.alumniStatus !== currentAlumni.alumniStatus) {
+        const MILESTONES: Partial<Record<AlumniStatus, string>> = {
+            OPT_CPT:          "just got OPT/CPT approved",
+            H1B_PENDING:      "has applied for H1B",
+            H1B_APPROVED:     "got H1B approved — dream job secured",
+            GREEN_CARD:       "became a US Permanent Resident",
+            PR_OTHER_COUNTRY: "got PR and started a new chapter abroad",
+            FURTHER_STUDIES:  "is continuing their journey with a new degree",
+            EMPLOYED_USA:     "is now working in the USA",
+        }
+        
+        const milestoneMsg = MILESTONES[data.alumniStatus]
+        if (milestoneMsg) {
+            // Find all students who sent an accepted connect request to this alumni
+            const connectedStudents = await prisma.alumConnectRequest.findMany({
+                where: { alumniId: currentAlumni.id, status: 'ACCEPTED' },
+                select: { studentId: true }
+            })
+            
+            // Find students who shortlisted alumni's university
+            const interestedStudents = await prisma.interest.findMany({
+                where: { universityId: currentAlumni.usUniversityId ?? undefined },
+                select: { studentId: true },
+                distinct: ['studentId'],
+                take: 50,
+            })
+            
+            const allStudentIds = [
+                ...new Set([
+                    ...connectedStudents.map(s => s.studentId),
+                    ...interestedStudents.map(s => s.studentId),
+                ])
+            ]
+            
+            if (allStudentIds.length > 0) {
+                await prisma.studentNotification.createMany({
+                    data: allStudentIds.map(studentId => ({
+                        studentId,
+                        title: `🎉 ${user.name ?? 'An alumni'} ${milestoneMsg}!`,
+                        message: `Their journey from ${currentAlumni.usUniversityName} continues to inspire. Let it motivate yours.`,
+                        type: 'ALUMNI_MILESTONE',
+                        actionUrl: '/student/dashboard?tab=alumni',
+                    })),
+                    skipDuplicates: true,
+                })
+            }
+        }
+    }
+
+    // ── Actual Update ────────────────────────────────────────────────────────
 
     await prisma.alumni.update({
-        where: { id: alumni.id },
+        where: { id: currentAlumni.id },
         data: {
+            lastStatusUpdate: new Date(),
             ...(data.whatsapp !== undefined && { whatsapp: data.whatsapp }),
             ...(data.usCity !== undefined && { usCity: data.usCity }),
             ...(data.alumniStatus !== undefined && { alumniStatus: data.alumniStatus }),
+            ...(data.currentEmployer !== undefined && { currentEmployer: data.currentEmployer }),
+            ...(data.jobTitle !== undefined && { jobTitle: data.jobTitle }),
+            ...(data.movedToCountry !== undefined && { movedToCountry: data.movedToCountry }),
             ...(data.availableFor !== undefined && { availableFor: data.availableFor }),
             ...(data.helpTopics !== undefined && { helpTopics: data.helpTopics }),
             ...(data.weeklyCapacity !== undefined && { weeklyCapacity: data.weeklyCapacity }),
@@ -167,7 +257,7 @@ export async function listVerifiedAlumni(filters?: {
     const take = 12
     const skip = (page - 1) * take
 
-    const where: Record<string, unknown> = {
+    const where: Prisma.AlumniWhereInput = {
         isVerified: true,
         consentDataSharing: true,
         adminReviewStatus: { not: 'SUSPENDED' },
@@ -179,48 +269,55 @@ export async function listVerifiedAlumni(filters?: {
         where.helpTopics = { has: filters.helpTopic }
     }
     if (filters?.alumniStatus) {
-        where.alumniStatus = filters.alumniStatus
+        where.alumniStatus = filters.alumniStatus as AlumniStatus
     }
     if (filters?.availableFor) {
         where.availableFor = { has: filters.availableFor }
     }
 
-    const [alumni, total] = await Promise.all([
+    const ALUMNI_SELECT = {
+        id: true,
+        usUniversityName: true,
+        usUniversityId: true,
+        usProgram: true,
+        usDegreeLevel: true,
+        usCity: true,
+        alumniStatus: true,
+        availableFor: true,
+        helpTopics: true,
+        inspirationMessage: true,
+        linkedinUrl: true,
+        weeklyCapacity: true,
+        availabilityNote: true,
+        showWhatsapp: true,
+        showLinkedin: true,
+        showUsCity: true,
+        whatsapp: true,
+        yearWentToUSA: true,
+        profilePhotoUrl: true,
+        currentEmployer: true,
+        jobTitle: true,
+        movedToCountry: true,
+        user: { select: { name: true, image: true } },
+        universityPartner: { select: { id: true, logo: true, institutionName: true } },
+        _count: { select: { connectRequests: { where: { status: 'PENDING' } } } }
+    } satisfies Prisma.AlumniSelect;
+
+    type AlumniItem = Prisma.AlumniGetPayload<{ select: typeof ALUMNI_SELECT }>
+
+    const [alumniData, total] = await Promise.all([
         prisma.alumni.findMany({
-            where: where as any,
-            select: {
-                id: true,
-                usUniversityName: true,
-                usUniversityId: true,
-                usProgram: true,
-                usDegreeLevel: true,
-                usCity: true,
-                alumniStatus: true,
-                availableFor: true,
-                helpTopics: true,
-                inspirationMessage: true,
-                linkedinUrl: true,
-                weeklyCapacity: true,
-                availabilityNote: true,
-                showWhatsapp: true,
-                showLinkedin: true,
-                showUsCity: true,
-                whatsapp: true,
-                yearWentToUSA: true,
-                profilePhotoUrl: true,
-                createdAt: true,
-                user: { select: { name: true, image: true } },
-                universityPartner: { select: { id: true, logo: true, institutionName: true } },
-                _count: { select: { connectRequests: { where: { status: 'PENDING' } } } }
-            },
-            orderBy: { createdAt: 'desc' },
+            where,
+            select: ALUMNI_SELECT,
             skip,
             take,
         }),
-        prisma.alumni.count({ where: where as any })
+        prisma.alumni.count({ where })
     ])
 
-    const result = alumni.map(a => ({
+    const alumni = alumniData as AlumniItem[]
+
+    const result = alumni.map((a: AlumniItem) => ({
         ...a,
         isAtCapacity: a.weeklyCapacity != null && a._count.connectRequests >= a.weeklyCapacity,
         whatsapp: a.showWhatsapp ? a.whatsapp : null,
@@ -503,7 +600,6 @@ export async function adminGetPendingAlumni() {
     return prisma.alumni.findMany({
         where: { adminReviewStatus: 'PENDING_REVIEW' },
         include: { user: { select: { name: true, email: true, image: true } } },
-        orderBy: { createdAt: 'asc' },
     })
 }
 
@@ -520,12 +616,11 @@ export async function adminGetAllAlumni(filters?: { status?: string; search?: st
         ]
     }
     return prisma.alumni.findMany({
-        where: where as any,
+        where: where as Prisma.AlumniWhereInput,
         include: {
             user: { select: { name: true, email: true, image: true } },
             _count: { select: { connectRequests: true } }
         },
-        orderBy: { createdAt: 'desc' },
         take: 100,
     })
 }

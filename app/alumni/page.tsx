@@ -24,16 +24,21 @@ async function getPublicAlumniSample() {
             user: { select: { name: true } }
         },
         take: 6,
-        orderBy: { createdAt: 'desc' },
     })
 }
 
 const STATUS_LABEL: Record<string, { label: string; emoji: string }> = {
     STUDENT_CURRENTLY: { label: 'Currently Studying', emoji: '📚' },
     OPT_CPT:           { label: 'On OPT/CPT',         emoji: '✈️' },
-    H1B_OTHER:         { label: 'Working (H1B)',       emoji: '💼' },
-    FURTHER_STUDIES:   { label: 'Further Studies',     emoji: '🎓' },
-    OTHER:             { label: 'Alumni',              emoji: '⭐' },
+    H1B_PENDING:       { label: 'H1B Pending',        emoji: '⏳' },
+    H1B_APPROVED:      { label: 'Working (H1B)',      emoji: '💼' },
+    H1B_OTHER:         { label: 'Working (H1B)',      emoji: '💼' },
+    GREEN_CARD:        { label: 'Permanent Resident', emoji: '🌟' },
+    PR_OTHER_COUNTRY:  { label: 'PR Abroad',          emoji: '🌍' },
+    EMPLOYED_USA:      { label: 'Employed in USA',    emoji: '🏢' },
+    FURTHER_STUDIES:   { label: 'Further Studies',    emoji: '🎓' },
+    RETURNED_HOME:     { label: 'Returned Home',      emoji: '🏠' },
+    OTHER:             { label: 'Alumni',             emoji: '⭐' },
 }
 
 const TOPIC_LABEL: Record<string, string> = {
@@ -48,7 +53,7 @@ export default async function PublicAlumniPage() {
 
     // Authenticated students → send to their dashboard's Alumni Bridge tab
     if (session?.user?.id && session.user.role === 'STUDENT') {
-        redirect('/student/dashboard#alumni')
+        redirect('/student/dashboard?tab=alumni')
     }
     if (session?.user?.id && session.user.role === 'ALUMNI') {
         redirect('/alumni/dashboard')
@@ -91,7 +96,7 @@ export default async function PublicAlumniPage() {
             <section className="relative px-4 pb-0 max-w-6xl mx-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {alumni.map((a, i) => {
-                        const initials = (a.user.name ?? 'A').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+                        const initials = (a.user?.name ?? 'A').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
                         const status = STATUS_LABEL[a.alumniStatus] ?? { label: 'Alumni', emoji: '⭐' }
                         // First 2 cards slightly visible, rest more blurred
                         const blurLevel = i < 2 ? 'blur-[3px]' : 'blur-[6px]'
@@ -106,7 +111,7 @@ export default async function PublicAlumniPage() {
                                                 {initials}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="font-semibold text-gray-900 text-sm">{a.user.name}</p>
+                                                <p className="font-semibold text-gray-900 text-sm">{a.user?.name ?? 'Alumni'}</p>
                                                 <p className="text-xs text-gray-400 truncate">{a.usProgram}</p>
                                             </div>
                                         </div>
@@ -159,7 +164,7 @@ export default async function PublicAlumniPage() {
                             see which topics they cover, and send a connect request — all in one place.
                         </p>
                         <Link href="/student/register"
-                            className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold px-7 py-3 rounded-full transition-all shadow-lg shadow-amber-500/20 text-sm w-full justify-center">
+                            className="inline-flex items-center gap-2 bg-[#C9A84C] hover:bg-[#B8973B] text-[#0B1340] font-bold px-7 py-3 rounded-full transition-colors shadow-lg shadow-[#C9A84C]/20 text-sm w-full justify-center">
                             Create Free Account <ArrowRight className="w-4 h-4" />
                         </Link>
                         <p className="text-xs text-gray-400 mt-3">

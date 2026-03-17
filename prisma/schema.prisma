@@ -1343,6 +1343,9 @@ model Alumni {
   usProgram         String // "Degree Program / Major"
   usDegreeLevel     String? // BACHELORS | MASTERS | PHD (inferred from program)
   usCity            String? // optional — shown on alumni card
+  currentEmployer   String? // company name (optional)
+  jobTitle          String? // role (optional)
+  movedToCountry    String? // if PR in Canada/Australia/EU etc.
 
   // ── Google Form: "Current Status" ─────────────────────────────────────────
   alumniStatus      AlumniStatus @default(STUDENT_CURRENTLY)
@@ -1373,6 +1376,10 @@ model Alumni {
   showUsCity         Boolean  @default(true)
   consentSignedAt    DateTime?
 
+  // ── Cron & Engagement Tracking ────────────────────────────────────────────
+  lastProfileNudgeAt DateTime? // cron tracks when last email sent
+  lastStatusUpdate   DateTime? // when alumni last edited their profile
+
   // ── Admin Review (self-activation model) ──────────────────────────────────
   // Profile is LIVE immediately on registration. Admin reviews async.
   isVerified        Boolean  @default(true) // self-activated — shown in discovery right away
@@ -1384,10 +1391,8 @@ model Alumni {
   // ── Relations ──────────────────────────────────────────────────────────────
   connectRequests   AlumConnectRequest[]
   alumniInvitations AlumniInvitation[]
+  changeLogs        AlumniChangeLog[]
   universityPartner University?          @relation(fields: [usUniversityId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@index([usUniversityId])
   @@index([alumniStatus])
@@ -1397,11 +1402,30 @@ model Alumni {
 }
 
 enum AlumniStatus {
-  STUDENT_CURRENTLY // "Student" — currently enrolled in US university
-  OPT_CPT // "Working (OPT/CPT)"
-  H1B_OTHER // "H1B/Other Work Visa"
-  FURTHER_STUDIES // "Pursuing Further Studies" (e.g. PhD after MS)
+  STUDENT_CURRENTLY // currently enrolled
+  OPT_CPT // on OPT or CPT
+  H1B_PENDING // H1B applied, waiting
+  H1B_APPROVED // H1B active — working
+  GREEN_CARD // permanent resident USA
+  PR_OTHER_COUNTRY // PR in Canada/Australia/EU
+  EMPLOYED_USA // working, stable visa
+  FURTHER_STUDIES // new degree (MS→PhD etc.)
+  RETURNED_HOME // back in home country
   OTHER
+}
+
+model AlumniChangeLog {
+  id           String   @id @default(cuid())
+  alumniId     String
+  changedField String // "alumniStatus" | "usDegreeLevel" | "usCity" etc.
+  oldValue     String
+  newValue     String
+  changedAt    DateTime @default(now())
+
+  alumni Alumni @relation(fields: [alumniId], references: [id], onDelete: Cascade)
+
+  @@index([alumniId])
+  @@index([changedAt])
 }
 
 model AlumConnectRequest {
