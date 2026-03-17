@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { adminApproveAlumni, adminSuspendAlumni } from '@/app/actions/alumni'
+import { adminApproveAlumni, adminSuspendAlumni, adminNudgeAlumni } from '@/app/actions/alumni'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea'
 import {
     GraduationCap, CheckCircle, Ban, Clock, Users, Search,
-    Mail, Linkedin, ExternalLink
+    Mail, Linkedin, ExternalLink, Bell
 } from 'lucide-react'
 
 const STATUS_BADGE: Record<string, { label: string; class: string }> = {
@@ -43,6 +43,14 @@ function AlumniRow({ alum, onAction }: { alum: any; onAction: () => void }) {
             const res = await adminSuspendAlumni(alum.id, suspendReason)
             if ('error' in res) toast.error(res.error)
             else { toast.success('Alumni suspended'); setSuspendOpen(false); onAction() }
+        })
+    }
+
+    const handleNudge = () => {
+        startTransition(async () => {
+            const res = await adminNudgeAlumni(alum.id)
+            if ('error' in res) toast.error(res.error)
+            else { toast.success('Nudge email sent!'); onAction() }
         })
     }
 
@@ -79,7 +87,15 @@ function AlumniRow({ alum, onAction }: { alum: any; onAction: () => void }) {
                         </a>
                     )}
                 </div>
-                <div className="flex gap-1.5">
+                <div className="flex flex-wrap gap-1.5 justify-end">
+                    <Button size="sm" variant="outline" onClick={() => window.open(`mailto:${alum.user?.email}`)}
+                        className="h-7 text-xs border-blue-200 text-blue-600 hover:bg-blue-50">
+                        <Mail className="w-3 h-3 mr-1" /> Email
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleNudge} disabled={isPending}
+                        className="h-7 text-xs border-amber-200 text-amber-600 hover:bg-amber-50">
+                        <Bell className="w-3 h-3 mr-1" /> Nudge
+                    </Button>
                     {alum.adminReviewStatus !== 'APPROVED' && (
                         <Button size="sm" onClick={handleApprove} disabled={isPending}
                             className="h-7 text-xs bg-green-500 hover:bg-green-600 text-white border-0">
@@ -128,10 +144,12 @@ export default function AdminAlumniClient({ pending, all, stats }: {
     stats: { total: number; pendingReview: number; approved: number; suspended: number; connectRequests: number } | null
 }) {
     const [search, setSearch] = useState('')
+    const [statusFilter, setStatusFilter] = useState('ALL')
     const [refreshKey, setRefreshKey] = useState(0)
     const onAction = () => setRefreshKey(k => k + 1)
 
     const filtered = all.filter(a => {
+        if (statusFilter !== 'ALL' && a.alumniStatus !== statusFilter) return false
         if (!search) return true
         const q = search.toLowerCase()
         return a.user?.name?.toLowerCase().includes(q) ||
@@ -195,9 +213,21 @@ export default function AdminAlumniClient({ pending, all, stats }: {
                 </TabsContent>
 
                 <TabsContent value="all">
-                    <div className="relative mb-4">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input className="pl-9" placeholder="Search by name, email, or university..." value={search} onChange={e => setSearch(e.target.value)} />
+                    <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Input className="pl-9" placeholder="Search by name, email, or university..." value={search} onChange={e => setSearch(e.target.value)} />
+                        </div>
+                        <select 
+                            className="h-9 rounded-md border border-gray-200 px-3 text-sm bg-white min-w-[150px]"
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                        >
+                            <option value="ALL">All Statuses</option>
+                            {Object.entries(STATUS_BADGE).map(([key, val]) => (
+                                <option key={key} value={key}>{val.label}</option>
+                            ))}
+                        </select>
                     </div>
                     {filtered.length === 0 ? (
                         <p className="text-sm text-gray-400 text-center py-8">No alumni found</p>

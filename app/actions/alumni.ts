@@ -446,6 +446,44 @@ export async function adminSuspendAlumni(alumniId: string, reason: string) {
     return { success: true }
 }
 
+export async function adminNudgeAlumni(alumniId: string) {
+    const user = await getAuthUser()
+    if (!user?.id || user.role !== 'ADMIN') return { error: 'Unauthorized' }
+
+    const alumni = await prisma.alumni.findUnique({
+        where: { id: alumniId },
+        include: { user: true }
+    })
+    if (!alumni || !alumni.user?.email) return { error: 'Alumni not found or has no email' }
+
+    try {
+        const { Resend } = await import('resend')
+        const resend = new Resend(process.env.RESEND_API_KEY)
+        const dashboardUrl = `${process.env.NEXTAUTH_URL || 'https://edumeetup.com'}/login`
+        
+        await resend.emails.send({
+            from: process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>',
+            to: alumni.user.email,
+            subject: `Action Required: Please complete your EdUmeetup Alumni Profile`,
+            html: `<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#374151}.container{max-width:600px;margin:0 auto;padding:40px 20px}.logo{font-size:24px;font-weight:bold;margin-bottom:20px}.logo span{color:#3333CC}.btn{display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#D97706,#F59E0B);color:white;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px;margin:24px 0}.footer{margin-top:40px;padding-top:20px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280}</style>
+</head><body><div class="container">
+<div class="logo">Ed<span>U</span>meetup</div>
+<h2>Hi ${alumni.user.name || 'there'},</h2>
+<p>We've noticed you registered as an Alumni on EdUmeetup, but there might be some missing details or we are waiting for you to complete your profile.</p>
+<p>Current students heading to the USA are eager to connect with alumni like you for guidance! Please take a moment to log in, complete any necessary information, and ensure your profile is ready so we can verify and approve your account.</p>
+<a href="${dashboardUrl}" class="btn" target="_blank">Log In to EdUmeetup</a>
+<div class="footer"><p>&copy; ${new Date().getFullYear()} IAES (Indo American Education Society). EdUmeetup is an initiative by IAES.</p></div>
+</div></body></html>`
+        })
+    } catch (e) {
+        console.error('[AdminNudge] Email send failed:', e)
+        return { error: 'Failed to send nudge email' }
+    }
+
+    return { success: true }
+}
+
 export async function adminGetAlumniStats() {
     const user = await getAuthUser()
     if (!user?.id || user.role !== 'ADMIN') return null
