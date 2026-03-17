@@ -16,6 +16,7 @@ import * as Sentry from '@sentry/nextjs'
 import { tool } from 'ai'
 import { z } from 'zod'
 import { getUpcomingFairs } from '@/lib/bot/tools'
+import { ANTHROPIC_ADVISOR_MODEL } from '@/lib/ai-config'
 
 export const maxDuration = 30
 
@@ -186,7 +187,7 @@ export async function POST(req: NextRequest) {
             // ── 6. Stream — Claude Sonnet 4, 500 token cap ────────────────────────
 
             const result = streamText({
-                model: anthropic('claude-3-5-sonnet-20241022'),
+                model: anthropic(ANTHROPIC_ADVISOR_MODEL),
                 system: systemPrompt,
                 messages,
                 maxOutputTokens: 500, // cost guardrail
