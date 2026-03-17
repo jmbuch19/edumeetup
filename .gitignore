@@ -60,3 +60,6 @@ public/worker-*.js
 
 # Non-npm lockfiles (this project uses npm only)
 deno.lock
+
+# Embedded repositories
+edumeetup-mobile/
