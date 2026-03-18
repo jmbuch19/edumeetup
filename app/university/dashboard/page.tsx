@@ -26,6 +26,7 @@ import { FairReportCard } from '@/components/university/fair-report-card'
 import { CampusFairInviteCard } from '@/components/university/CampusFairInviteCard'
 import { GroupSessionsTab } from '@/components/university/GroupSessionsTab'
 import { UniAlumniTab } from '@/components/university/UniAlumniTab'
+import { CircuitInviteCard } from '@/components/university/CircuitInviteCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -171,6 +172,7 @@ export default async function UniversityDashboard() {
         actionCentreResult,
         fairModeResult,
         fairInvitationsResult,
+        fairCircuitsResult,
     ] = await Promise.allSettled([
         // 1. Matched students
         uniqueFields.length > 0
@@ -259,11 +261,19 @@ export default async function UniversityDashboard() {
             }),
         ]),
 
-        // 11. Fair invitations
+        // 11. Fair invitations & Circuits
         prisma.fairInvitation.findMany({
             where: { universityId: uni.id },
             include: { fairEvent: true },
         }),
+        prisma.fairCircuit.findMany({
+            where: { status: { in: ['PUBLISHED', 'ONGOING'] } },
+            include: {
+                events: true,
+                foreignReps: { where: { universityId: uni.id } }
+            },
+            orderBy: { startDate: 'asc' }
+        })
     ])
 
     // ── Extract results with safe defaults ───────────────────────────────────
@@ -279,6 +289,7 @@ export default async function UniversityDashboard() {
     const [liveFair, upcomingFair, recentlyEndedFair, fairHistoryGroups] =
         fairModeResult.status === 'fulfilled' ? fairModeResult.value : [null, null, null, []]
     const fairInvitations = fairInvitationsResult.status === 'fulfilled' ? fairInvitationsResult.value : []
+    const fairCircuits = fairCircuitsResult.status === 'fulfilled' ? fairCircuitsResult.value : []
 
     // ── Group sessions (with full relation data) ────────────────────
     const groupSessions = await prisma.groupSession.findMany({
@@ -694,14 +705,24 @@ export default async function UniversityDashboard() {
                 <TabsContent value="fairs">
                     <div className="space-y-6">
                         <div>
-                            <h2 className="text-2xl font-bold tracking-tight">Campus Fair Opportunities</h2>
-                            <p className="text-slate-500">Invitations to participate in upcoming campus fairs.</p>
+                            <h2 className="text-2xl font-bold tracking-tight">Geographic Circuits & Fairs</h2>
+                            <p className="text-slate-500">Discover multi-city tours and standalone campus fairs.</p>
                         </div>
+
+                        {/* ── Geographic Circuits ── */}
+                        {fairCircuits.length > 0 && (
+                            <div className="space-y-3">
+                                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Featured Circuits</h3>
+                                {fairCircuits.map((circuit: any) => (
+                                    <CircuitInviteCard key={circuit.id} circuit={circuit} />
+                                ))}
+                            </div>
+                        )}
 
                         {/* ── FairInvitation cards (RSVP flow) ── */}
                         {fairInvitations.length > 0 && (
                             <div className="space-y-3">
-                                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Fair Invitations</h3>
+                                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Standalone Fair Invitations</h3>
                                 {fairInvitations.map((inv) => (
                                     <CampusFairInviteCard
                                         key={inv.id}

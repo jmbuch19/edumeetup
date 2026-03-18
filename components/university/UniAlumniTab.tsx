@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import Link from 'next/link'
 import { GraduationCap, BookOpen, MapPin, Mail, ExternalLink, Users, UserCheck, Clock } from 'lucide-react'
+import { AlumniInviteModal } from '@/components/alumni/AlumniInviteModal'
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
     STUDENT_CURRENTLY: { label: 'Currently Studying', color: 'bg-blue-100 text-blue-700' },
@@ -79,12 +80,10 @@ export async function UniAlumniTab({ universityId, universityName }: Props) {
                         IAES graduates who listed your university on the Alumni Bridge
                     </p>
                 </div>
-                {/* TODO: Change this to a university-specific invite flow once the UI is built */}
-                <Link href="/alumni-register/hero"
-                    className="inline-flex items-center gap-2 text-xs font-medium text-amber-600 hover:text-amber-700 border border-amber-200 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-full transition-colors">
-                    <Mail className="h-3.5 w-3.5" />
-                    Invite More Alumni
-                </Link>
+                <AlumniInviteModal 
+                    universityId={universityId} 
+                    universityName={universityName} 
+                />
             </div>
 
             {/* Stats row */}
@@ -114,11 +113,15 @@ export async function UniAlumniTab({ universityId, universityName }: Props) {
                         IAES graduates who attended {universityName} haven't joined yet.
                         Share the Alumni Bridge link with your IAES alumni community to invite them.
                     </p>
-                    {/* TODO: Change this to a university-specific invite flow once the UI is built */}
-                    <Link href="/alumni-register/hero"
-                        className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold px-6 py-2.5 rounded-full transition-colors text-sm shadow-sm">
-                        Share Alumni Bridge Invitation
-                    </Link>
+                    <AlumniInviteModal 
+                        universityId={universityId} 
+                        universityName={universityName}
+                        trigger={
+                            <button className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold px-6 py-2.5 rounded-full transition-colors text-sm shadow-sm">
+                                Share Alumni Bridge Invitation
+                            </button>
+                        }
+                    />
                 </div>
             ) : (
                 <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">

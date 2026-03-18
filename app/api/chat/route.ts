@@ -209,24 +209,29 @@ export async function POST(req: NextRequest) {
             }
           }),
 
-          getUpcomingFairs: tool({
-            description: 'Get upcoming EdUmeetup campus fairs. Call this when user asks about events, fairs, or wants to meet universities in person.',
+          getUpcomingCircuits: tool({
+            description: 'Get upcoming EdUmeetup Geographic Circuits. Call this when a university representative asks about upcoming tours, fairs, or wants to travel to India. Pitch the value of joining an entire multi-city circuit.',
             inputSchema: z.object({}),
             execute: async () => {
               try {
-                const fairs = await prisma.fairEvent.findMany({
-                  where: { status: { in: ['UPCOMING', 'LIVE'] }, startDate: { gte: new Date() } },
-                  select: {
-                    name: true, city: true, country: true, venue: true,
-                    startDate: true, isHybrid: true, status: true, slug: true,
-                  },
+                const circuits = await prisma.fairCircuit.findMany({
+                  where: { status: { in: ['PUBLISHED', 'ONGOING'] }, startDate: { gte: new Date() } },
+                  include: { events: true },
                   orderBy: { startDate: 'asc' },
-                  take: 4,
+                  take: 3,
                 })
-                if (fairs.length === 0) return { found: false, message: 'No upcoming fairs right now. Encourage user to register and check back soon.' }
-                return { found: true, fairs: fairs.map(f => ({ ...f, url: `/fairs/${f.slug}` })) }
+                if (circuits.length === 0) return { found: false, message: 'No upcoming circuits right now. Encourage the rep to register their interest for the next season.' }
+                return { 
+                  found: true, 
+                  circuits: circuits.map(c => ({
+                    name: c.name,
+                    dates: `${c.startDate.toISOString().split('T')[0]} to ${c.endDate.toISOString().split('T')[0]}`,
+                    citiesIncluded: c.events.map(e => e.city).join(', '),
+                    estimatedStudents: c.events.length * 150 // heuristic
+                  }))
+                }
               } catch {
-                return { found: false, message: 'Fair data temporarily unavailable.' }
+                return { found: false, message: 'Circuit data temporarily unavailable.' }
               }
             }
           }),

@@ -52,6 +52,7 @@ model User {
   directMessagesSent    DirectMessage[]       @relation("SentMessages")
   NpsSurveyResponse     NpsSurveyResponse?
   alumni                Alumni?
+  circuitRegistrations  CircuitRegistration[] @relation("RepCircuits")
 
   @@index([role])
   @@index([isActive])
@@ -285,6 +286,7 @@ model University {
   campaigns            NotificationCampaign[]
   alumni               Alumni[]
   alumniInvitations    AlumniInvitation[]
+  circuitRegistrations CircuitRegistration[]
 
   @@index([verificationStatus])
   @@index([country])
@@ -487,6 +489,9 @@ model HostRequest {
   createdAt              DateTime              @default(now())
   updatedAt              DateTime              @updatedAt
   outreach               HostRequestOutreach[]
+
+  venueId                String?
+  venue                  FairVenue?            @relation(fields: [venueId], references: [id], onDelete: SetNull)
 }
 
 model HostRequestOutreach {
@@ -1106,6 +1111,80 @@ model StudentDiscoveryDismissal {
   @@index([studentId])
 }
 
+// ── Fair Circuits (Tour Management) ───────────────────────────────────
+
+model FairCircuit {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  status      FairCircuitStatus @default(DRAFT)
+  publishedAt DateTime?
+  noticeDays  Int?
+
+  venues      FairVenue[]
+  events      FairEvent[]
+  foreignReps CircuitRegistration[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([status])
+  @@index([startDate])
+}
+
+enum FairCircuitStatus {
+  DRAFT
+  PUBLISHED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+model FairVenue {
+  id              String      @id @default(cuid())
+  institutionName String
+  city            String
+  circuitId       String
+  tier            String      @default("TIER2") // "TIER1" | "TIER2" | "SPECIAL"
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+
+  circuit         FairCircuit  @relation(fields: [circuitId], references: [id], onDelete: Cascade)
+  hostRequests    HostRequest[]
+
+  @@index([circuitId])
+  @@index([city])
+}
+
+enum CircuitRegStatus {
+  REGISTERED
+  PENDING_APPROVAL
+  CONFIRMED
+  CANCELLED
+}
+
+model CircuitRegistration {
+  id           String   @id @default(cuid())
+  circuitId    String
+  universityId String
+  repId        String?
+  status       CircuitRegStatus @default(REGISTERED)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  circuit      FairCircuit @relation(fields: [circuitId], references: [id], onDelete: Cascade)
+  university   University  @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  rep          User?       @relation("RepCircuits", fields: [repId], references: [id], onDelete: SetNull)
+
+  @@unique([circuitId, universityId])
+  @@index([circuitId])
+  @@index([universityId])
+}
+
 // ── Fair Mode ─────────────────────────────────────────────────────────
 
 model FairEvent {
@@ -1130,6 +1209,9 @@ model FairEvent {
   rsvpDeadline       DateTime?
   studentsNotifiedAt DateTime? // set when admin triggers LIVE + student notifications
 
+  circuitId   String?
+  circuit     FairCircuit?    @relation(fields: [circuitId], references: [id], onDelete: SetNull)
+
   studentPasses FairStudentPass[]
   attendances   FairAttendance[]
   questions     FairQuestion[]
@@ -1139,6 +1221,7 @@ model FairEvent {
   @@index([startDate])
   @@index([city])
   @@index([slug])
+  @@index([circuitId])
 }
 
 model FairStudentPass {

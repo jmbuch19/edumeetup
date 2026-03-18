@@ -24,7 +24,7 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
     }
 
     const {
-        institutionName, institutionType, city, state, websiteUrl,
+        institutionName, institutionType, venueId, state, websiteUrl,
         contactName, contactDesignation, contactEmail, contactPhone,
         preferredDateStart, preferredDateEnd, expectedStudentCount,
         preferredCountries, fieldsOfStudy, additionalRequirements
@@ -49,14 +49,25 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
         const sequence = (count + 1).toString().padStart(3, '0')
         const referenceNumber = `HCF-${year}-${sequence}`
 
+        // Validate and Fetch Venue
+        const fairVenue = await prisma.fairVenue.findUnique({
+            where: { id: venueId },
+            include: { circuit: true }
+        })
+        
+        if (!fairVenue) {
+             return { success: false, message: "Selected geographic venue is no longer active." }
+        }
+
         // Create Record
         const newRequest = await prisma.hostRequest.create({
             data: {
                 referenceNumber,
+                venueId,
                 institutionName,
                 institutionType,
-                city,
-                state,
+                city: fairVenue.city,
+                state: state || "N/A",
                 websiteUrl,
                 contactName,
                 contactDesignation,
@@ -101,7 +112,7 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
             subject: `[ACTION REQUIRED] New Host Request: ${institutionName}`,
             html: generateEmailHtml(
                 "New Host Request",
-                EmailTemplates.hostRequestAlert(referenceNumber, institutionName, city)
+                EmailTemplates.hostRequestAlert(referenceNumber, institutionName, fairVenue.city)
             )
         })
 

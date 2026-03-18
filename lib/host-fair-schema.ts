@@ -10,8 +10,9 @@ export const hostRequestSchema = z.object({
     // Institution Info
     institutionName: z.string().min(3, "Institution Name must be at least 3 characters"),
     institutionType: z.enum(["UNIVERSITY", "COLLEGE", "SCHOOL", "OTHER"] as const),
-    city: z.string().min(2, "City is required"),
-    state: z.string().min(2, "State is required"),
+    venueId: z.string().min(1, "Please select an approved cluster"),
+    city: z.string().optional(),
+    state: z.string().optional(),
     websiteUrl: z.string().url("Please enter a valid URL (e.g., https://university.edu.in)"),
 
     // Contact Info

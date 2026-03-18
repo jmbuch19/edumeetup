@@ -272,10 +272,10 @@ export function HowItWorks({ activeTab: propActiveTab, onTabChange }: HowItWorks
                             </ul>
                         </div>
 
-                        <div className={styles.comparisonDivider}>
-                            <div className={styles.vsLine}></div>
-                            <div className={styles.vsBadge}>VS</div>
-                            <div className={styles.vsLine}></div>
+                        <div className="comparisonDivider">
+                            <div className="vsLine"></div>
+                            <div className="vsBadge">VS</div>
+                            <div className="vsLine"></div>
                         </div>
 
                         <div className={cn(styles.comparisonCol, styles.colNew)}>
@@ -288,6 +288,32 @@ export function HowItWorks({ activeTab: propActiveTab, onTabChange }: HowItWorks
                                 <li>You own the student relationship directly</li>
                                 <li>Full pipeline dashboard from interest to enrolment</li>
                             </ul>
+                        </div>
+                    </div>
+
+                    {/* Circuit CTA Card inside University Tab */}
+                    <div className="mt-8 relative bg-indigo-900 overflow-hidden rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl border border-indigo-800">
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500 rounded-full blur-[80px] opacity-30 -translate-y-1/2 translate-x-1/2"></div>
+                        
+                        <div className="relative z-10 text-center md:text-left text-white max-w-xl">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-800/80 border border-indigo-700/50 text-indigo-200 text-xs font-semibold uppercase tracking-wider mb-4">
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
+                                </span>
+                                New Booking Feature
+                            </div>
+                            <h3 className="text-2xl md:text-3xl font-bold mb-2">Join an India Circuit Tour</h3>
+                            <p className="text-indigo-200">
+                                Meet 500+ serious students across 4 major cities in one curated trip. We handle the logistics, venues, and student pre-screening.
+                            </p>
+                        </div>
+                        <div className="relative z-10 shrink-0">
+                            <Link href="/services#campus-fair" 
+                                className="inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold text-indigo-900 bg-white rounded-xl shadow-lg hover:bg-indigo-50 hover:scale-105 transition-all w-full md:w-auto">
+                                View Upcoming Circuits →
+                            </Link>
                         </div>
                     </div>
 

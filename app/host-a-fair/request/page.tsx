@@ -3,7 +3,15 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
-export default function HostFairRequestPage() {
+import { prisma } from "@/lib/prisma"
+
+export default async function HostFairRequestPage() {
+    const activeVenues = await prisma.fairVenue.findMany({
+        where: { isActive: true },
+        include: { circuit: true },
+        orderBy: [{ circuit: { startDate: 'asc' } }, { city: 'asc' }]
+    })
+
     return (
         <div className="min-h-screen bg-slate-50 py-12 px-4">
             <div className="container mx-auto max-w-4xl">
@@ -20,7 +28,7 @@ export default function HostFairRequestPage() {
                     </p>
                 </div>
 
-                <HostFairRequestForm />
+                <HostFairRequestForm venues={activeVenues} />
             </div>
         </div>
     )

@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils"
 const PREFERRED_COUNTRIES = ["USA", "UK", "Canada", "Australia", "New Zealand", "Europe (General)", "Ireland", "Germany", "France"]
 const FIELDS_OF_STUDY = ["Engineering", "Business & Management", "Computer Science", "Data Science", "Health Sciences", "Arts & Humanities", "Law", "Social Sciences"]
 
-export function HostFairRequestForm() {
+export function HostFairRequestForm({ venues = [] }: { venues?: any[] }) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [successRef, setSuccessRef] = useState<string | null>(null)
 
@@ -128,16 +128,42 @@ export function HostFairRequestForm() {
                     {errors.institutionType && <p className="text-sm text-red-500">{errors.institutionType.message}</p>}
                 </div>
 
-                <div className="space-y-2">
-                    <Label htmlFor="city">City <span className="text-red-500">*</span></Label>
-                    <Input id="city" {...register("city")} placeholder="e.g. Mumbai" />
-                    {errors.city && <p className="text-sm text-red-500">{errors.city.message}</p>}
-                </div>
+                <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="venueId">Region / Pre-Approved Cluster <span className="text-red-500">*</span></Label>
+                    <Select onValueChange={(val) => setValue("venueId", val as any, { shouldValidate: true })}>
+                        <SelectTrigger className={cn(watch("venueId") === "OUT_OF_NETWORK" && "border-amber-400 bg-amber-50")}>
+                            <SelectValue placeholder="Select your approved campus cluster" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                            {venues.map(v => (
+                                <SelectItem key={v.id} value={v.id}>
+                                    {v.city} ({v.circuit?.name || 'Local Circuit'})
+                                </SelectItem>
+                            ))}
+                            <SelectItem value="OUT_OF_NETWORK" className="text-amber-600 font-medium">
+                                My city is not listed here
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                    
+                    {errors.venueId && watch("venueId") !== "OUT_OF_NETWORK" && (
+                        <p className="text-sm text-red-500">{errors.venueId.message}</p>
+                    )}
 
-                <div className="space-y-2">
-                    <Label htmlFor="state">State <span className="text-red-500">*</span></Label>
-                    <Input id="state" {...register("state")} placeholder="e.g. Maharashtra" />
-                    {errors.state && <p className="text-sm text-red-500">{errors.state.message}</p>}
+                    {watch("venueId") === "OUT_OF_NETWORK" && (
+                        <div className="mt-3 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 animate-in fade-in slide-in-from-top-2">
+                            <h4 className="font-semibold text-sm mb-1 flex items-center gap-2">
+                                📍 Out of Network Request
+                            </h4>
+                            <p className="text-sm leading-relaxed">
+                                EdUmeetup currently operates within specific regional circuits to maximize foreign university engagement.
+                                If your institution is outside these pre-approved clusters, please pause this form and email us directly at
+                                <a href="mailto:partnerships@edumeetup.com" className="font-semibold underline ml-1 hover:text-amber-900 transition-colors">
+                                    partnerships@edumeetup.com
+                                </a> to request a special outreach visit.
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
@@ -301,12 +327,19 @@ export function HostFairRequestForm() {
             </div>
 
             <div className="pt-6">
-                <Button type="submit" size="lg" className="w-full text-lg h-14" disabled={isSubmitting}>
+                <Button 
+                    type="submit" 
+                    size="lg" 
+                    className="w-full text-lg h-14" 
+                    disabled={isSubmitting || watch("venueId") === "OUT_OF_NETWORK"}
+                >
                     {isSubmitting ? (
                         <>
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                             Submitting Request...
                         </>
+                    ) : watch("venueId") === "OUT_OF_NETWORK" ? (
+                        "Email us to request an Out of Network visit"
                     ) : (
                         "Submit Host Request"
                     )}

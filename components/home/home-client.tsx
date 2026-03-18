@@ -199,19 +199,30 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
                                 </div>
                             </Link>
 
-                            <Link href="/proctor" className="col-span-2 mx-auto w-full">
-                                <div className="relative bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-blue-100 flex items-center gap-4 hover:scale-105 transition-transform cursor-pointer">
+                            <Link href="/proctor" className="col-span-1 mx-auto w-full">
+                                <div className="relative bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-blue-100 flex flex-col items-center text-center gap-2 hover:scale-105 transition-transform cursor-pointer h-full justify-center">
                                     <div className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0"
                                         style={{ background: 'linear-gradient(135deg, #3333CC, #1e3a5f)' }}>
                                         <Shield className="h-5 w-5 text-white" />
                                     </div>
                                     <div>
-                                        <p className="font-bold text-slate-800 text-sm">Exam Proctoring in India</p>
-                                        <p className="text-xs text-slate-500">IAES approved centre · Ahmedabad</p>
+                                        <p className="font-bold text-slate-800 text-[13px] leading-tight">Exam Proctoring</p>
+                                        <p className="text-[11px] text-slate-500 mt-0.5">Ahmedabad Centre</p>
                                     </div>
-                                    <ArrowRight className="h-4 w-4 text-blue-600 ml-auto" />
-                                    <span className="absolute top-2 right-2 text-[9px] font-bold text-white bg-primary rounded-full px-1.5 py-0.5 uppercase tracking-wide leading-none">
-                                        New
+                                </div>
+                            </Link>
+
+                            <Link href="/student/dashboard?tab=fairs" className="col-span-1 mx-auto w-full">
+                                <div className="relative bg-teal-50/80 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-teal-200 flex flex-col items-center text-center gap-2 hover:scale-105 transition-transform cursor-pointer h-full justify-center">
+                                    <div className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0 bg-teal-600">
+                                        <MapPin className="h-5 w-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-teal-900 text-[13px] leading-tight">Attend a Fair</p>
+                                        <p className="text-[11px] text-teal-700 mt-0.5" suppressHydrationWarning>Western India Circuit</p>
+                                    </div>
+                                    <span className="absolute top-2 right-2 text-[9px] font-bold text-white bg-amber-500 rounded-full px-1.5 py-0.5 uppercase tracking-wide leading-none">
+                                        Live
                                     </span>
                                 </div>
                             </Link>
