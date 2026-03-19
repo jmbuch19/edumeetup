@@ -105,6 +105,18 @@ export async function rejectHostRequest(requestId: string, reason?: string) {
             replyTo: process.env.SUPPORT_EMAIL
         })
 
+        // Log to Audit
+        const isNominationRejection = request.isNomination
+        await prisma.auditLog.create({
+            data: {
+                action: isNominationRejection ? "VENUE_NOMINATION_REJECTED" : "HOST_REQUEST_REJECTED",
+                entityType: "HostRequest",
+                entityId: request.id,
+                actorId: session.user.id,
+                metadata: JSON.stringify({ referenceNumber: request.referenceNumber, reason })
+            }
+        })
+
         revalidatePath('/admin/host-requests')
         revalidatePath(`/admin/host-requests/${requestId}`)
 
