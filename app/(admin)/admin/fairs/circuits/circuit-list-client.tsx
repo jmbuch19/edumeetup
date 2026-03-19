@@ -16,7 +16,7 @@ export function CircuitListClient({ initialCircuits }: { initialCircuits: any[] 
     const handleStatusUpdate = async (id: string, newStatus: string) => {
         try {
             const result = await updateCircuitStatus(id, newStatus as any)
-            setCircuits(circuits.map(c => c.id === id ? { ...c, ...result } : c))
+            setCircuits(circuits.map(c => c.id === id ? { ...c, ...result.circuit } : c))
             toast.success(`Circuit status updated to ${newStatus}`)
             if (result.warning) toast.warning(result.warning)
         } catch (error) {

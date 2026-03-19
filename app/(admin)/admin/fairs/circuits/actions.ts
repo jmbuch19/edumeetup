@@ -39,7 +39,8 @@ export async function updateCircuitStatus(circuitId: string, status: 'DRAFT' | '
         const circuit = await prisma.fairCircuit.findUnique({ where: { id: circuitId } })
         if (circuit) {
             data.publishedAt = new Date()
-            data.noticeDays = Math.max(0, Math.floor((circuit.startDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+            const noticeDays = Math.floor((circuit.startDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+            data.noticeDays = Math.max(0, noticeDays)
         }
     }
 
@@ -50,11 +51,20 @@ export async function updateCircuitStatus(circuitId: string, status: 'DRAFT' | '
 
     revalidatePath('/admin/fairs/circuits')
     revalidatePath('/host-a-fair/request')
-    
-    let warning: string | undefined
-    if (status === 'PUBLISHED' && data.noticeDays !== undefined && data.noticeDays < 60) {
-        warning = `Circuit published with only ${data.noticeDays} days notice (recommended 60+).`
+
+    if (status === 'PUBLISHED') {
+        const circuit = await prisma.fairCircuit.findUnique({ where: { id: circuitId } })
+        if (circuit) {
+            const noticeDays = Math.floor((circuit.startDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+            return {
+                circuit: updated,
+                warning: noticeDays < 60
+                    ? `Only ${noticeDays} days notice — recommended minimum is 60 days`
+                    : null,
+                latePublish: noticeDays < 0
+            }
+        }
     }
     
-    return { ...updated, warning }
+    return { circuit: updated }
 }
