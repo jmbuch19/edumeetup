@@ -15,9 +15,10 @@ export function CircuitListClient({ initialCircuits }: { initialCircuits: any[] 
 
     const handleStatusUpdate = async (id: string, newStatus: string) => {
         try {
-            const updated = await updateCircuitStatus(id, newStatus as any)
-            setCircuits(circuits.map(c => c.id === id ? { ...c, ...updated } : c))
+            const result = await updateCircuitStatus(id, newStatus as any)
+            setCircuits(circuits.map(c => c.id === id ? { ...c, ...result } : c))
             toast.success(`Circuit status updated to ${newStatus}`)
+            if (result.warning) toast.warning(result.warning)
         } catch (error) {
             toast.error("Failed to update status")
         }
@@ -125,6 +126,9 @@ export function CircuitListClient({ initialCircuits }: { initialCircuits: any[] 
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => handleStatusUpdate(circuit.id, 'PUBLISHED')} disabled={circuit.status === 'PUBLISHED'}>
                                                 Publish to Public
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleStatusUpdate(circuit.id, 'ONGOING')} disabled={circuit.status === 'ONGOING'}>
+                                                Mark as Ongoing
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => handleStatusUpdate(circuit.id, 'COMPLETED')} disabled={circuit.status === 'COMPLETED'}>
                                                 Mark Completed

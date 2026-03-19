@@ -419,12 +419,15 @@ export const EmailTemplates = {
         <p>Best regards,<br/>The EdUmeetup Team</p>
     `,
 
-    hostRequestAlert: (refNumber: string, institution: string, city: string) => `
+    hostRequestAlert: (refNumber: string, institution: string, city: string, contactName: string, contactEmail: string, contactPhone: string) => `
         <p>A new campus fair request has been submitted and requires review.</p>
         <div class="info-box">
             <div class="info-row"><span class="info-label">Institution:</span> ${institution}</div>
             <div class="info-row"><span class="info-label">Location:</span> ${city}</div>
             <div class="info-row"><span class="info-label">Reference:</span> ${refNumber}</div>
+            <div class="info-row"><span class="info-label">Contact:</span> ${contactName}</div>
+            <div class="info-row"><span class="info-label">Email:</span> <a href="mailto:${contactEmail}">${contactEmail}</a></div>
+            <div class="info-row"><span class="info-label">Phone:</span> ${contactPhone}</div>
         </div>
         <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'}/admin/host-requests" class="btn">Review Request →</a></p>
     `,

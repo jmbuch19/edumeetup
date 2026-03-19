@@ -81,7 +81,7 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
                 institutionName,
                 institutionType,
                 city: actualCity,
-                state: state || "N/A",
+                state: state || null,
                 websiteUrl,
                 contactName,
                 contactDesignation,
@@ -119,28 +119,34 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
         })
 
         // Send Alert Email to Admin
-        const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL
-        if (!ADMIN_EMAIL) throw new Error('ADMIN_NOTIFICATION_EMAIL not configured')
+        try {
+            const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL
+            if (ADMIN_EMAIL) {
+                let subjectType = `New Host Request: ${institutionName}`;
+                let titleType = "New Host Request";
 
-        let subjectType = `New Host Request: ${institutionName}`;
-        let titleType = "New Host Request";
+                if (proposedCircuitId) {
+                    const circuit = await prisma.fairCircuit.findUnique({ where: { id: proposedCircuitId } });
+                    if (circuit) {
+                         subjectType = `New venue nomination: ${institutionName}, ${actualCity} — Circuit: ${circuit.name}`;
+                         titleType = "New Venue Nomination";
+                    }
+                }
 
-        if (proposedCircuitId) {
-            const circuit = await prisma.fairCircuit.findUnique({ where: { id: proposedCircuitId } });
-            if (circuit) {
-                 subjectType = `New venue nomination: ${institutionName}, ${actualCity} — Circuit: ${circuit.name}`;
-                 titleType = "New Venue Nomination";
+                await sendEmail({
+                    to: ADMIN_EMAIL,
+                    subject: `[ACTION REQUIRED] ${subjectType}`,
+                    html: generateEmailHtml(
+                        titleType,
+                        EmailTemplates.hostRequestAlert(referenceNumber, institutionName, actualCity, contactName, contactEmail, contactPhone)
+                    )
+                })
+            } else {
+                console.warn('ADMIN_NOTIFICATION_EMAIL not configured');
             }
+        } catch (adminEmailError) {
+            console.error("Failed to send admin alert email (non-fatal):", adminEmailError)
         }
-
-        await sendEmail({
-            to: ADMIN_EMAIL,
-            subject: `[ACTION REQUIRED] ${subjectType}`,
-            html: generateEmailHtml(
-                titleType,
-                EmailTemplates.hostRequestAlert(referenceNumber, institutionName, actualCity)
-            )
-        })
 
         revalidatePath('/admin/host-requests')
 

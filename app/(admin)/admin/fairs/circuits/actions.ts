@@ -26,13 +26,13 @@ export async function listFairCircuits() {
     return circuits
 }
 
-export async function updateCircuitStatus(circuitId: string, status: 'DRAFT' | 'PUBLISHED' | 'COMPLETED' | 'CANCELLED') {
+export async function updateCircuitStatus(circuitId: string, status: 'DRAFT' | 'PUBLISHED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED') {
     const session = await auth()
     if (!session || session.user?.role !== 'ADMIN') {
         throw new Error('Unauthorized')
     }
 
-    const data: any = { status }
+    const data: { status: typeof status, publishedAt?: Date, noticeDays?: number } = { status }
     
     // Auto-calculate notice period and publish date when publishing
     if (status === 'PUBLISHED') {
@@ -51,5 +51,10 @@ export async function updateCircuitStatus(circuitId: string, status: 'DRAFT' | '
     revalidatePath('/admin/fairs/circuits')
     revalidatePath('/host-a-fair/request')
     
-    return updated
+    let warning: string | undefined
+    if (status === 'PUBLISHED' && data.noticeDays !== undefined && data.noticeDays < 60) {
+        warning = `Circuit published with only ${data.noticeDays} days notice (recommended 60+).`
+    }
+    
+    return { ...updated, warning }
 }

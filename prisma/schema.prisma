@@ -473,7 +473,7 @@ model HostRequest {
   institutionName        String
   institutionType        String
   city                   String
-  state                  String
+  state                  String?
   websiteUrl             String
   contactName            String
   contactDesignation     String
