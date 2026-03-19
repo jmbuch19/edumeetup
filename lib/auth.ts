@@ -262,17 +262,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 return `/auth/error?error=RateLimited`
             }
 
-            // Google Auth Handler (Auto-provision as Student if they don't exist)
-            if (user?.id && !user.role) {
-                // If they logged in with Google and it's their very first time, PrismaAdapter 
-                // just created them as a basic User but missed our custom defaults (like Role).
-                // We'll enforce STUDENT role here for all new Google sign-ups.
-                await prisma.user.update({
-                    where: { id: user.id },
-                    data: { role: 'STUDENT', emailVerified: new Date() }
-                })
-                user.role = 'STUDENT'
-            }
+            // Note: We no longer try to update user.role here for new Google users.
+            // NextAuth fires the `signIn` callback BEFORE creating the user in the DB.
+            // PrismaAdapter handles the default 'STUDENT' role during creation automatically.
 
             // 2. Database Checks
             try {
