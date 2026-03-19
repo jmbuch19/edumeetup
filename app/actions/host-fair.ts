@@ -138,7 +138,7 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
                     subject: `[ACTION REQUIRED] ${subjectType}`,
                     html: generateEmailHtml(
                         titleType,
-                        EmailTemplates.hostRequestAlert(referenceNumber, institutionName, actualCity, contactName, contactEmail, contactPhone)
+                        EmailTemplates.hostRequestAlert(referenceNumber, institutionName, actualCity, contactName, contactEmail, contactPhone, isNomination)
                     )
                 })
             } else {

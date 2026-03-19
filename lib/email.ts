@@ -419,9 +419,10 @@ export const EmailTemplates = {
         <p>Best regards,<br/>The EdUmeetup Team</p>
     `,
 
-    hostRequestAlert: (refNumber: string, institution: string, city: string, contactName: string, contactEmail: string, contactPhone: string) => `
+    hostRequestAlert: (refNumber: string, institution: string, city: string, contactName: string, contactEmail: string, contactPhone: string, isNomination: boolean) => `
         <p>A new campus fair request has been submitted and requires review.</p>
         <div class="info-box">
+            <div class="info-row"><span class="info-label">Type:</span> ${isNomination ? '<span style="color:#d97706;font-weight:600;">Venue Nomination (Out of Network)</span>' : '<span style="color:#16a34a;font-weight:600;">Standard Request</span>'}</div>
             <div class="info-row"><span class="info-label">Institution:</span> ${institution}</div>
             <div class="info-row"><span class="info-label">Location:</span> ${city}</div>
             <div class="info-row"><span class="info-label">Reference:</span> ${refNumber}</div>
