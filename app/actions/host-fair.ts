@@ -35,24 +35,8 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
         // Generate Reference Number: HCF-YYYY-XXX
         const year = new Date().getFullYear()
 
-        // Count existing requests for this year to generate sequence
-        // Note: This is not strictly atomic but sufficient for MVP low volume. 
-        // For high volume, would need a sequence table or atomic increment.
-        const count = await prisma.hostRequest.count({
-            where: {
-                createdAt: {
-                    gte: new Date(`${year}-01-01`),
-                    lt: new Date(`${year + 1}-01-01`)
-                }
-            }
-        })
-
-        const sequence = (count + 1).toString().padStart(3, '0')
-        const referenceNumber = `HCF-${year}-${sequence}`
-
         let actualCity = "N/A";
         let finalVenueId: string | null = venueId;
-
         let isNomination = false;
 
         // Validate and Fetch Venue
@@ -71,31 +55,63 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
             actualCity = validated.data.city || "Out of Network City";
         }
 
-        // Create Record
-        const newRequest = await prisma.hostRequest.create({
-            data: {
-                referenceNumber,
-                venueId: finalVenueId,
-                proposedCircuitId,
-                isNomination,
-                institutionName,
-                institutionType,
-                city: actualCity,
-                state: state || null,
-                websiteUrl,
-                contactName,
-                contactDesignation,
-                contactEmail,
-                contactPhone,
-                preferredDateStart,
-                preferredDateEnd,
-                expectedStudentCount,
-                preferredCountries, // Prisma handles JSON automatically
-                fieldsOfStudy,      // Prisma handles JSON automatically
-                additionalRequirements,
-                status: "SUBMITTED"
+        let newRequest: any = null;
+        let referenceNumber = "";
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        while (retryCount < maxRetries) {
+            try {
+                // Count existing requests for this year to generate sequence
+                const count = await prisma.hostRequest.count({
+                    where: {
+                        createdAt: {
+                            gte: new Date(`${year}-01-01`),
+                            lt: new Date(`${year + 1}-01-01`)
+                        }
+                    }
+                })
+
+                const sequence = (count + 1 + retryCount).toString().padStart(3, '0')
+                referenceNumber = `HCF-${year}-${sequence}`
+                
+                // Create Record
+                newRequest = await prisma.hostRequest.create({
+                    data: {
+                        referenceNumber,
+                        venueId: finalVenueId,
+                        proposedCircuitId,
+                        isNomination,
+                        institutionName,
+                        institutionType,
+                        city: actualCity,
+                        state: state || null,
+                        websiteUrl,
+                        contactName,
+                        contactDesignation,
+                        contactEmail,
+                        contactPhone,
+                        preferredDateStart,
+                        preferredDateEnd,
+                        expectedStudentCount,
+                        preferredCountries, // Prisma handles JSON automatically
+                        fieldsOfStudy,      // Prisma handles JSON automatically
+                        additionalRequirements,
+                        status: "SUBMITTED"
+                    }
+                })
+                break; // Break loop if creation succeeds
+            } catch (error: any) {
+                if (error.code === 'P2002') {
+                    retryCount++;
+                    if (retryCount >= maxRetries) {
+                        throw new Error("Server is exceedingly busy. Please try submitting again.");
+                    }
+                } else {
+                    throw error;
+                }
             }
-        })
+        }
 
         // Log Audit (Using generic SYSTEM actor since public form has no user ID)
         await prisma.auditLog.create({
