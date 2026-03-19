@@ -72,7 +72,7 @@ export function CircuitListClient({ initialCircuits }: { initialCircuits: any[] 
                                         </div>
                                         <div className="flex items-center gap-1.5">
                                             <Flag className="h-4 w-4 text-slate-400" />
-                                            <span>{circuit.fairs?.length || 0} Confirmed Fairs</span>
+                                            <span>{circuit.events?.length || 0} Confirmed Fairs</span>
                                         </div>
                                     </div>
                                     
@@ -98,7 +98,7 @@ export function CircuitListClient({ initialCircuits }: { initialCircuits: any[] 
                                         <span className="text-sm font-medium text-slate-500 flex items-center gap-1.5">
                                             <Users className="h-4 w-4" /> US Reps
                                         </span>
-                                        <span className="font-bold text-slate-900">{circuit.registrations?.length || 0}</span>
+                                        <span className="font-bold text-slate-900">{circuit.foreignReps?.length || 0}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm font-medium text-slate-500 flex items-center gap-1.5">

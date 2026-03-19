@@ -20,7 +20,9 @@ type HeroSlide = {
     //... other fields if needed for display
 }
 
-export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
+import { FairCircuitsSection } from "@/components/home/fair-circuits-section";
+
+export function HomeClient({ slides = [], circuits = [] }: { slides?: HeroSlide[], circuits?: any[] }) {
     const [activeTab, setActiveTab] = useState<'student' | 'university'>('student');
     const hasTrackedRef = useRef(false);
 
@@ -262,6 +264,16 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
                 </div>
             </section>
 
+            {/* Hero Features Accordion */}
+            <section className="w-full py-12 md:py-24 overflow-hidden">
+                <HeroFeatures />
+            </section>
+
+            <HowItWorks activeTab={activeTab} onTabChange={setActiveTab} />
+
+            {/* Fair Circuits Information */}
+            <FairCircuitsSection circuits={circuits} />
+
             {/* ── Alumni Bridge Banner ───────────────────────────────────── */}
             <section className="w-full bg-[#0B1340] py-14 px-4 overflow-hidden relative">
                 {/* subtle glow */}
@@ -307,14 +319,6 @@ export function HomeClient({ slides = [] }: { slides?: HeroSlide[] }) {
                     </div>
                 </div>
             </section>
-
-            {/* Hero Features Accordion */}
-            <section className="w-full pb-12 md:pb-24 overflow-hidden">
-                <HeroFeatures />
-            </section>
-
-
-            <HowItWorks activeTab={activeTab} onTabChange={setActiveTab} />
 
             {/* Context-Aware Sticky Bar */}
             {

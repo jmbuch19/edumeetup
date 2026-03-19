@@ -30,8 +30,27 @@ async function getHeroSlides() {
   )
 }
 
+async function getPublishedCircuits() {
+  const now = new Date()
+  return withCache('homepage:circuits', 60, () =>
+    prisma.fairCircuit.findMany({
+      where: {
+        status: { in: ['PUBLISHED', 'ONGOING'] },
+        endDate: { gte: now }
+      },
+      orderBy: { startDate: 'asc' },
+      include: {
+        venues: true,
+        events: true
+      },
+      take: 6
+    })
+  )
+}
+
 export default async function Home() {
   // Graceful fallback: if DB is down or cold-starting, show default hero
   const slides = await getHeroSlides().catch(() => [])
-  return <HomeClient slides={slides} />
+  const circuits = await getPublishedCircuits().catch(() => [])
+  return <HomeClient slides={slides} circuits={circuits} />
 }

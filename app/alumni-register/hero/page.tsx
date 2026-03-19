@@ -1,6 +1,6 @@
-// Alumni Hero — public page, no nav/footer
 // Route: /alumni-register/hero
 // Seen by anyone (unauthenticated or non-ALUMNI) before the form
+import Link from "next/link";
 
 export default function AlumniHeroPage() {
     return (
@@ -76,18 +76,18 @@ export default function AlumniHeroPage() {
                     </div>
 
                     {/* Primary CTA */}
-                    <a
+                    <Link
                         href="/alumni-register/form"
-                        className="inline-block bg-[#C9A84C] hover:bg-[#B8973B] active:bg-[#A8873B] text-[#0B1340] font-bold text-lg px-10 py-4 rounded-full transition-colors shadow-lg shadow-[#C9A84C]/20 mb-4"
+                        className="relative z-50 inline-block bg-[#C9A84C] hover:bg-[#B8973B] active:bg-[#A8873B] text-[#0B1340] font-bold text-lg px-10 py-4 rounded-full transition-colors shadow-lg shadow-[#C9A84C]/20 mb-4"
                     >
                         Join as an Alumni Mentor →
-                    </a>
+                    </Link>
 
-                    <p className="text-xs text-blue-300 opacity-60">
+                    <p className="text-xs text-blue-300 opacity-60 relative z-50">
                         Already registered?{" "}
-                        <a href="/alumni/dashboard" className="underline hover:opacity-100 transition-opacity">
+                        <Link href="/alumni/dashboard" className="underline hover:opacity-100 transition-opacity">
                             Go to your dashboard
-                        </a>
+                        </Link>
                     </p>
                 </div>
             </section>
