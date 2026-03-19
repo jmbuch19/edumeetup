@@ -117,11 +117,23 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
         // Send Alert Email to Admin
         const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL
         if (!ADMIN_EMAIL) throw new Error('ADMIN_NOTIFICATION_EMAIL not configured')
+
+        let subjectType = `New Host Request: ${institutionName}`;
+        let titleType = "New Host Request";
+
+        if (proposedCircuitId) {
+            const circuit = await prisma.fairCircuit.findUnique({ where: { id: proposedCircuitId } });
+            if (circuit) {
+                 subjectType = `New venue nomination: ${institutionName}, ${actualCity} — Circuit: ${circuit.name}`;
+                 titleType = "New Venue Nomination";
+            }
+        }
+
         await sendEmail({
             to: ADMIN_EMAIL,
-            subject: `[ACTION REQUIRED] New Host Request: ${institutionName}`,
+            subject: `[ACTION REQUIRED] ${subjectType}`,
             html: generateEmailHtml(
-                "New Host Request",
+                titleType,
                 EmailTemplates.hostRequestAlert(referenceNumber, institutionName, actualCity)
             )
         })
