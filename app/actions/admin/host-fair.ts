@@ -45,14 +45,30 @@ export async function approveHostRequest(requestId: string) {
             }
         })
 
+        const isNominationApproval = existingRequest.isNomination
+
         // Send Approval Email
+        const emailTitle = isNominationApproval ? "Venue Nomination Accepted" : "Request Approved"
+        const emailSubject = isNominationApproval ? `Nomination Accepted: ${request.referenceNumber}` : `Request Approved: ${request.referenceNumber}`
+
         await sendEmail({
             to: request.contactEmail,
-            subject: `Request Approved: ${request.referenceNumber}`,
+            subject: emailSubject,
             html: generateEmailHtml(
-                "Request Approved",
+                emailTitle,
                 EmailTemplates.hostRequestApproved(request.referenceNumber, request.contactName)
             )
+        })
+
+        // Log to Audit
+        await prisma.auditLog.create({
+            data: {
+                action: isNominationApproval ? "VENUE_NOMINATION_APPROVED" : "HOST_REQUEST_APPROVED",
+                entityType: "HostRequest",
+                entityId: request.id,
+                actorId: session.user.id,
+                metadata: JSON.stringify({ referenceNumber: request.referenceNumber })
+            }
         })
 
         revalidatePath('/admin/host-requests')
