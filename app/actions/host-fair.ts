@@ -53,6 +53,8 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
         let actualCity = "N/A";
         let finalVenueId: string | null = venueId;
 
+        let isNomination = false;
+
         // Validate and Fetch Venue
         if (venueId !== "OUT_OF_NETWORK") {
             const fairVenue = await prisma.fairVenue.findUnique({
@@ -65,6 +67,7 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
             actualCity = fairVenue.city;
         } else {
             finalVenueId = null;
+            isNomination = true;
             actualCity = validated.data.city || "Out of Network City";
         }
 
@@ -74,6 +77,7 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
                 referenceNumber,
                 venueId: finalVenueId,
                 proposedCircuitId,
+                isNomination,
                 institutionName,
                 institutionType,
                 city: actualCity,

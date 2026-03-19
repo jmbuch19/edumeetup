@@ -496,6 +496,7 @@ model HostRequest {
   // ── Venue Nomination (For Out-of-Network) ─────────────────────────
   proposedCircuitId      String?
   proposedCircuit        FairCircuit?          @relation("ProposedCircuitRequest", fields: [proposedCircuitId], references: [id], onDelete: SetNull)
+  isNomination           Boolean               @default(false)
 }
 
 model HostRequestOutreach {

@@ -32,8 +32,8 @@ export default async function HostRequestsPage(props: { searchParams: Promise<{ 
     }).catch(() => [])
 
 
-    const inNetworkRequests = requests.filter(r => r.venueId !== null)
-    const nominations = requests.filter(r => r.venueId === null)
+    const inNetworkRequests = requests.filter(r => r.isNomination === false)
+    const nominations = requests.filter(r => r.isNomination === true)
 
     return (
         <div className="space-y-6">
