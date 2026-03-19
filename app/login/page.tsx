@@ -10,8 +10,13 @@ import { toast } from 'sonner'
 import { login } from '@/app/actions'
 import { COMMON_TYPO_DOMAINS } from '@/lib/schemas'
 import { signIn } from 'next-auth/react'
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
-export default function LoginPage() {
+function LoginContent() {
+    const searchParams = useSearchParams()
+    const callbackUrl = searchParams.get('callbackUrl') || ''
+
     const [isLoading, setIsLoading] = useState(false)
     const [emailError, setEmailError] = useState<string | null>(null)
     const [trustDevice, setTrustDevice] = useState(true)
@@ -65,6 +70,7 @@ export default function LoginPage() {
                 </CardHeader>
                 <CardContent>
                     <form action={handleLogin} className="space-y-4">
+                        <input type="hidden" name="callbackUrl" value={callbackUrl} />
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
                             <Input
@@ -150,7 +156,7 @@ export default function LoginPage() {
                         variant="outline" 
                         type="button" 
                         className="w-full bg-white text-slate-800 border-slate-200 hover:bg-slate-50 hover:text-slate-900 shadow-sm transition-all" 
-                        onClick={() => signIn('google', { callbackUrl: '/student/dashboard' })}
+                        onClick={() => signIn('google', { callbackUrl: callbackUrl || '/student/dashboard' })}
                     >
                         <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                             <path
@@ -197,6 +203,14 @@ export default function LoginPage() {
                 </CardContent>
             </Card>
         </div>
+    )
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense>
+            <LoginContent />
+        </Suspense>
     )
 }
 

@@ -845,10 +845,17 @@ export async function login(formData: FormData) {
             return { error: 'Your account has been suspended.' }
         }
 
+        const callbackUrl = formData.get('callbackUrl') as string
+
         // Determine Redirection based on Role
         let redirectTo = '/student/dashboard'
         if (user.role === 'UNIVERSITY') redirectTo = '/university/dashboard'
         if (user.role === 'ADMIN') redirectTo = '/admin/dashboard'
+        if (user.role === 'ALUMNI') redirectTo = '/alumni/dashboard'
+
+        if (callbackUrl) {
+            redirectTo = callbackUrl
+        }
 
         // Send magic link directly (bypasses Auth.js signIn which silently fails in Netlify serverless)
         await sendMagicLink(email, redirectTo)
