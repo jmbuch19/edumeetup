@@ -18,11 +18,14 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
+import type { FairVenue, FairCircuit } from "@prisma/client"
 
 const PREFERRED_COUNTRIES = ["USA", "UK", "Canada", "Australia", "New Zealand", "Europe (General)", "Ireland", "Germany", "France"]
 const FIELDS_OF_STUDY = ["Engineering", "Business & Management", "Computer Science", "Data Science", "Health Sciences", "Arts & Humanities", "Law", "Social Sciences"]
 
-export function HostFairRequestForm({ venues = [] }: { venues?: any[] }) {
+export type VenueWithCircuit = FairVenue & { circuit: FairCircuit | null }
+
+export function HostFairRequestForm({ venues = [] }: { venues?: VenueWithCircuit[] }) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [successRef, setSuccessRef] = useState<string | null>(null)
 
@@ -135,9 +138,11 @@ export function HostFairRequestForm({ venues = [] }: { venues?: any[] }) {
                             <SelectValue placeholder="Select your approved campus cluster" />
                         </SelectTrigger>
                         <SelectContent className="max-h-60">
-                            {venues.map(v => (
+                            {[...venues]
+                                .sort((a, b) => a.institutionName.localeCompare(b.institutionName))
+                                .map(v => (
                                 <SelectItem key={v.id} value={v.id}>
-                                    {v.city} ({v.circuit?.name || 'Local Circuit'})
+                                    {v.institutionName} — {v.city}
                                 </SelectItem>
                             ))}
                             <SelectItem value="OUT_OF_NETWORK" className="text-amber-600 font-medium">
@@ -213,7 +218,6 @@ export function HostFairRequestForm({ venues = [] }: { venues?: any[] }) {
                 <div className="space-y-2">
                     <Label htmlFor="contactEmail">Official Email <span className="text-red-500">*</span></Label>
                     <Input id="contactEmail" {...register("contactEmail")} placeholder="name@university.edu.in" />
-                    <p className="text-xs text-slate-500">Please verify this email via OTP later.</p>
                     {errors.contactEmail && <p className="text-sm text-red-500">{errors.contactEmail.message}</p>}
                 </div>
 
@@ -250,7 +254,11 @@ export function HostFairRequestForm({ venues = [] }: { venues?: any[] }) {
                                 mode="single"
                                 selected={preferredDateStart}
                                 onSelect={(date) => setValue("preferredDateStart", date as Date, { shouldValidate: true })}
-                                disabled={(date) => date < new Date()}
+                                disabled={(date) => {
+                                    const minDate = new Date();
+                                    minDate.setDate(minDate.getDate() + 60);
+                                    return date < minDate;
+                                }}
                                 initialFocus
                             />
                         </PopoverContent>
@@ -278,7 +286,11 @@ export function HostFairRequestForm({ venues = [] }: { venues?: any[] }) {
                                 mode="single"
                                 selected={preferredDateEnd}
                                 onSelect={(date) => setValue("preferredDateEnd", date as Date, { shouldValidate: true })}
-                                disabled={(date) => date < (preferredDateStart || new Date())}
+                                disabled={(date) => {
+                                    const minDate = new Date();
+                                    minDate.setDate(minDate.getDate() + 60);
+                                    return date < (preferredDateStart || minDate);
+                                }}
                                 initialFocus
                             />
                         </PopoverContent>
@@ -309,7 +321,7 @@ export function HostFairRequestForm({ venues = [] }: { venues?: any[] }) {
                             <div key={country} className="flex items-center space-x-2">
                                 <Checkbox
                                     id={`country-${country}`}
-                                    onChange={(e) => handleCheckboxChange("preferredCountries", country, e.target.checked)}
+                                    onCheckedChange={(checked) => handleCheckboxChange("preferredCountries", country, checked === true)}
                                 />
                                 <Label htmlFor={`country-${country}`} className="font-normal cursor-pointer">{country}</Label>
                             </div>
@@ -325,7 +337,7 @@ export function HostFairRequestForm({ venues = [] }: { venues?: any[] }) {
                             <div key={field} className="flex items-center space-x-2">
                                 <Checkbox
                                     id={`field-${field}`}
-                                    onChange={(e) => handleCheckboxChange("fieldsOfStudy", field, e.target.checked)}
+                                    onCheckedChange={(checked) => handleCheckboxChange("fieldsOfStudy", field, checked === true)}
                                 />
                                 <Label htmlFor={`field-${field}`} className="font-normal cursor-pointer">{field}</Label>
                             </div>
