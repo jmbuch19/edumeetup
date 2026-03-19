@@ -1,5 +1,5 @@
 import { schedule } from '@netlify/functions'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, UserRole } from '@prisma/client'
 import { sendEmail, generateEmailHtml } from '../../lib/email'
 
 const prisma = new PrismaClient()
@@ -25,7 +25,7 @@ export const handler = schedule('0 9 * * 1', async () => {
   for (const reg of missingReps) {
      // Find university admins to email
      const admins = await prisma.user.findMany({
-       where: { universityId: reg.universityId, role: { in: ['UNIVERSITY_ADMIN'] } }
+       where: { universityId: reg.universityId, role: UserRole.UNIVERSITY_ADMIN }
      })
 
      for (const admin of admins) {
