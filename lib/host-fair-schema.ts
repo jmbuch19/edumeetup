@@ -46,6 +46,12 @@ export const hostRequestSchema = z.object({
 }).refine((data) => data.preferredDateEnd >= data.preferredDateStart, {
     message: "End date must be after start date",
     path: ["preferredDateEnd"],
+}).refine((data) => {
+    if (data.venueId === "OUT_OF_NETWORK") return !!data.city && data.city.trim().length > 1;
+    return true;
+}, {
+    message: "Please specify your city",
+    path: ["city"],
 });
 
 export type HostRequestFormValues = z.infer<typeof hostRequestSchema>;

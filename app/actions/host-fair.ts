@@ -49,24 +49,32 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
         const sequence = (count + 1).toString().padStart(3, '0')
         const referenceNumber = `HCF-${year}-${sequence}`
 
+        let actualCity = "N/A";
+        let finalVenueId: string | null = venueId;
+
         // Validate and Fetch Venue
-        const fairVenue = await prisma.fairVenue.findUnique({
-            where: { id: venueId },
-            include: { circuit: true }
-        })
-        
-        if (!fairVenue) {
-             return { success: false, message: "Selected geographic venue is no longer active." }
+        if (venueId !== "OUT_OF_NETWORK") {
+            const fairVenue = await prisma.fairVenue.findUnique({
+                where: { id: venueId },
+                include: { circuit: true }
+            })
+            if (!fairVenue) {
+                 return { success: false, message: "Selected geographic venue is no longer active." }
+            }
+            actualCity = fairVenue.city;
+        } else {
+            finalVenueId = null;
+            actualCity = validated.data.city || "Out of Network City";
         }
 
         // Create Record
         const newRequest = await prisma.hostRequest.create({
             data: {
                 referenceNumber,
-                venueId,
+                venueId: finalVenueId,
                 institutionName,
                 institutionType,
-                city: fairVenue.city,
+                city: actualCity,
                 state: state || "N/A",
                 websiteUrl,
                 contactName,
@@ -112,7 +120,7 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
             subject: `[ACTION REQUIRED] New Host Request: ${institutionName}`,
             html: generateEmailHtml(
                 "New Host Request",
-                EmailTemplates.hostRequestAlert(referenceNumber, institutionName, fairVenue.city)
+                EmailTemplates.hostRequestAlert(referenceNumber, institutionName, actualCity)
             )
         })
 

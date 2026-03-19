@@ -7,7 +7,7 @@ import { hostRequestSchema, HostRequestFormValues } from "@/lib/host-fair-schema
 import { submitHostRequest } from "@/app/actions/host-fair"
 import { toast } from "sonner"
 import { format } from "date-fns"
-import { CalendarIcon, Loader2, CheckCircle2 } from "lucide-react"
+import { CalendarIcon, Loader2, CheckCircle2, MapPin } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -151,17 +151,20 @@ export function HostFairRequestForm({ venues = [] }: { venues?: any[] }) {
                     )}
 
                     {watch("venueId") === "OUT_OF_NETWORK" && (
-                        <div className="mt-3 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 animate-in fade-in slide-in-from-top-2">
-                            <h4 className="font-semibold text-sm mb-1 flex items-center gap-2">
-                                📍 Out of Network Request
-                            </h4>
-                            <p className="text-sm leading-relaxed">
-                                EdUmeetup currently operates within specific regional circuits to maximize foreign university engagement.
-                                If your institution is outside these pre-approved clusters, please pause this form and email us directly at
-                                <a href="mailto:partnerships@edumeetup.com" className="font-semibold underline ml-1 hover:text-amber-900 transition-colors">
-                                    partnerships@edumeetup.com
-                                </a> to request a special outreach visit.
-                            </p>
+                        <div className="mt-4 p-5 bg-teal-50 border border-teal-200 rounded-xl animate-in fade-in slide-in-from-top-2 space-y-4">
+                            <div>
+                                <h4 className="font-semibold text-teal-900 flex items-center gap-2">
+                                    <MapPin className="h-4 w-4" /> Custom Location Request
+                                </h4>
+                                <p className="text-sm text-teal-800 mt-1 leading-relaxed">
+                                    We operate in specific regional circuits to maximize engagement, but we are always expanding. Tell us your city, and we'll work with you to arrange a custom visit or add you to our upcoming circuit rollout.
+                                </p>
+                            </div>
+                            <div className="space-y-2 relative z-10 bg-white p-3 rounded-lg border border-teal-100">
+                                <Label htmlFor="city" className="text-teal-900">Your City / Region <span className="text-red-500">*</span></Label>
+                                <Input id="city" {...register("city")} placeholder="e.g. Pune, Gujarat, etc." className="border-teal-200 focus-visible:ring-teal-500" />
+                                {errors.city && <p className="text-sm text-red-500">{errors.city.message}</p>}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -330,16 +333,14 @@ export function HostFairRequestForm({ venues = [] }: { venues?: any[] }) {
                 <Button 
                     type="submit" 
                     size="lg" 
-                    className="w-full text-lg h-14" 
-                    disabled={isSubmitting || watch("venueId") === "OUT_OF_NETWORK"}
+                    className="w-full text-lg h-14 bg-primary hover:bg-primary/90" 
+                    disabled={isSubmitting}
                 >
                     {isSubmitting ? (
                         <>
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                             Submitting Request...
                         </>
-                    ) : watch("venueId") === "OUT_OF_NETWORK" ? (
-                        "Email us to request an Out of Network visit"
                     ) : (
                         "Submit Host Request"
                     )}
