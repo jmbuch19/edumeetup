@@ -30,9 +30,9 @@ export const metadata: Metadata = {
   title: "EdUmeetup",
   description: "Connect universities and students seamlessly.",
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon.ico',
-    apple: '/favicon.ico',
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
   },
   manifest: "/manifest.json",
 };
