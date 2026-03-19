@@ -23,14 +23,23 @@ export function CircuitInviteCard({ circuit }: { circuit: any }) {
     const cities = Array.from(new Set((circuit.events || []).map((e: any) => e.city).filter(Boolean))) as string[]
     const aggregatedStudents = (circuit.events || []).reduce((acc: number, e: any) => acc + (e.expectedStudentCount || 100), 0) // rough proxy
 
-    async function handleJoin() {
-        if (isFrictionWindow && !confirm("This circuit starts in less than 90 days. Late registrations require administrative approval and may incur rushing fees. Do you still wish to submit a request?")) {
+    async function handleJoin(bypassOverlapCheck = false) {
+        if (!bypassOverlapCheck && isFrictionWindow && !confirm("This circuit starts in less than 90 days. Late registrations require administrative approval and may incur rushing fees. Do you still wish to submit a request?")) {
             return
         }
 
         setIsRegistering(true)
         try {
-            const res = await registerForCircuit(circuit.id)
+            const res = await registerForCircuit(circuit.id, bypassOverlapCheck)
+            
+            if (res.isOverlap && !bypassOverlapCheck) {
+                setIsRegistering(false) // Release lock so modal doesn't freeze under spinner
+                if (window.confirm(res.message)) {
+                    await handleJoin(true)
+                }
+                return;
+            }
+
             if (res.success) {
                 setRegistered(true)
                 toast.success(isFrictionWindow ? "Late registration request submitted to Admin." : "Successfully joined the circuit.")
@@ -127,7 +136,7 @@ export function CircuitInviteCard({ circuit }: { circuit: any }) {
             <CardFooter className="pt-0">
                 <Button 
                     size="sm" 
-                    onClick={handleJoin} 
+                    onClick={() => handleJoin()} 
                     disabled={isRegistering}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white w-full sm:w-auto"
                 >
