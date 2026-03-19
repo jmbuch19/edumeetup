@@ -25,7 +25,7 @@ export const handler = schedule('0 9 * * 1', async () => {
   for (const reg of missingReps) {
      // Find university admins to email
      const admins = await prisma.user.findMany({
-       where: { universityId: reg.universityId, role: UserRole.UNIVERSITY_ADMIN }
+       where: { universityId: reg.universityId, role: UserRole.UNIVERSITY }
      })
 
      for (const admin of admins) {
