@@ -27,7 +27,8 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
         institutionName, institutionType, venueId, state, websiteUrl,
         contactName, contactDesignation, contactEmail, contactPhone,
         preferredDateStart, preferredDateEnd, expectedStudentCount,
-        preferredCountries, fieldsOfStudy, additionalRequirements
+        preferredCountries, fieldsOfStudy, additionalRequirements,
+        proposedCircuitId
     } = validated.data
 
     try {
@@ -72,6 +73,7 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
             data: {
                 referenceNumber,
                 venueId: finalVenueId,
+                proposedCircuitId,
                 institutionName,
                 institutionType,
                 city: actualCity,

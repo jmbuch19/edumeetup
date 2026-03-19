@@ -492,6 +492,10 @@ model HostRequest {
 
   venueId                String?
   venue                  FairVenue?            @relation(fields: [venueId], references: [id], onDelete: SetNull)
+
+  // ── Venue Nomination (For Out-of-Network) ─────────────────────────
+  proposedCircuitId      String?
+  proposedCircuit        FairCircuit?          @relation("ProposedCircuitRequest", fields: [proposedCircuitId], references: [id], onDelete: SetNull)
 }
 
 model HostRequestOutreach {
@@ -1127,6 +1131,7 @@ model FairCircuit {
   venues      FairVenue[]
   events      FairEvent[]
   foreignReps CircuitRegistration[]
+  proposedHostRequests HostRequest[] @relation("ProposedCircuitRequest")
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

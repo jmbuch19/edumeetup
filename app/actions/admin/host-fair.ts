@@ -14,9 +14,35 @@ export async function approveHostRequest(requestId: string) {
     }
 
     try {
+        const existingRequest = await prisma.hostRequest.findUnique({ where: { id: requestId } })
+        if (!existingRequest) return { success: false, message: "Request not found" }
+
+        let finalVenueId = existingRequest.venueId
+
+        // If this is a Venue Nomination (OUT_OF_NETWORK)
+        if (!finalVenueId) {
+            if (!existingRequest.proposedCircuitId) {
+                 return { success: false, message: "Cannot approve nomination without an assigned circuit." }
+            }
+            // Create the new Venue and instantly publish it
+            const newVenue = await prisma.fairVenue.create({
+                data: {
+                    institutionName: existingRequest.institutionName,
+                    city: existingRequest.city,
+                    circuitId: existingRequest.proposedCircuitId,
+                     isActive: true,
+                     tier: "TIER2" // Default tier
+                }
+            })
+            finalVenueId = newVenue.id
+        }
+
         const request = await prisma.hostRequest.update({
             where: { id: requestId },
-            data: { status: 'APPROVED' }
+            data: { 
+                status: 'APPROVED', 
+                venueId: finalVenueId 
+            }
         })
 
         // Send Approval Email

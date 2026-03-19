@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Eye } from "lucide-react"
 import Link from "next/link"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     Table,
     TableBody,
@@ -31,13 +32,22 @@ export default async function HostRequestsPage(props: { searchParams: Promise<{ 
     }).catch(() => [])
 
 
+    const inNetworkRequests = requests.filter(r => r.venueId !== null)
+    const nominations = requests.filter(r => r.venueId === null)
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900">Host Campus Fair Requests</h1>
             </div>
 
-            <div className="border rounded-lg bg-white shadow-sm overflow-hidden">
+            <Tabs defaultValue="in-network" className="w-full space-y-4">
+                <TabsList className="grid w-full grid-cols-2 max-w-md">
+                    <TabsTrigger value="in-network">Host Requests ({inNetworkRequests.length})</TabsTrigger>
+                    <TabsTrigger value="nominations">Venue Nominations ({nominations.length})</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="in-network" className="border rounded-lg bg-white shadow-sm overflow-hidden">
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-slate-50">
@@ -51,14 +61,14 @@ export default async function HostRequestsPage(props: { searchParams: Promise<{ 
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {requests.length === 0 ? (
+                        {inNetworkRequests.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={7} className="h-32 text-center text-slate-500">
-                                    No requests found. Share the link to get started!
+                                    No requests found.
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            requests.map((req) => (
+                            inNetworkRequests.map((req) => (
                                 <TableRow key={req.id} className="hover:bg-slate-50 transition-colors">
                                     <TableCell className="font-mono font-medium text-slate-700">{req.referenceNumber}</TableCell>
                                     <TableCell>
@@ -83,7 +93,56 @@ export default async function HostRequestsPage(props: { searchParams: Promise<{ 
                         )}
                     </TableBody>
                 </Table>
-            </div>
+                </TabsContent>
+
+                <TabsContent value="nominations" className="border rounded-lg bg-white shadow-sm overflow-hidden">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-slate-50">
+                                <TableHead>Reference</TableHead>
+                                <TableHead>Institution</TableHead>
+                                <TableHead>City (Nominated)</TableHead>
+                                <TableHead>Event Date</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Submitted</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {nominations.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="h-32 text-center text-slate-500">
+                                        No pending nominations.
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                nominations.map((req) => (
+                                    <TableRow key={req.id} className="hover:bg-slate-50 transition-colors">
+                                        <TableCell className="font-mono font-medium text-slate-700">{req.referenceNumber}</TableCell>
+                                        <TableCell>
+                                            <div className="font-medium text-slate-900">{req.institutionName}</div>
+                                            <div className="text-xs text-slate-500 capitalize">{req.institutionType.toLowerCase()}</div>
+                                        </TableCell>
+                                        <TableCell className="text-slate-600 font-medium">{req.city}, {req.state}</TableCell>
+                                        <TableCell className="text-slate-600">{format(req.preferredDateStart, 'MMM d, yyyy')}</TableCell>
+                                        <TableCell>
+                                            <StatusBadge status={req.status} />
+                                        </TableCell>
+                                        <TableCell className="text-slate-500 text-sm">{format(req.createdAt, 'MMM d, yyyy')}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Link href={`/admin/host-requests/${req.id}`}>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-primary">
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                            </Link>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </TabsContent>
+            </Tabs>
         </div>
     )
 }

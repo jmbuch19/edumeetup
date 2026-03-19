@@ -160,10 +160,26 @@ export function HostFairRequestForm({ venues = [] }: { venues?: any[] }) {
                                     We operate in specific regional circuits to maximize engagement, but we are always expanding. Tell us your city, and we'll work with you to arrange a custom visit or add you to our upcoming circuit rollout.
                                 </p>
                             </div>
-                            <div className="space-y-2 relative z-10 bg-white p-3 rounded-lg border border-teal-100">
-                                <Label htmlFor="city" className="text-teal-900">Your City / Region <span className="text-red-500">*</span></Label>
-                                <Input id="city" {...register("city")} placeholder="e.g. Pune, Gujarat, etc." className="border-teal-200 focus-visible:ring-teal-500" />
-                                {errors.city && <p className="text-sm text-red-500">{errors.city.message}</p>}
+                            <div className="grid md:grid-cols-2 gap-4 relative z-10">
+                                <div className="space-y-2 bg-white p-3 rounded-lg border border-teal-100">
+                                    <Label htmlFor="city" className="text-teal-900">Your City / Region <span className="text-red-500">*</span></Label>
+                                    <Input id="city" {...register("city")} placeholder="e.g. Pune, Gujarat, etc." className="border-teal-200 focus-visible:ring-teal-500" />
+                                    {errors.city && <p className="text-sm text-red-500">{errors.city.message}</p>}
+                                </div>
+                                <div className="space-y-2 bg-white p-3 rounded-lg border border-teal-100">
+                                    <Label htmlFor="proposedCircuitId" className="text-teal-900">Proposed Circuit <span className="text-red-500">*</span></Label>
+                                    <Select onValueChange={(val) => setValue("proposedCircuitId", val as any, { shouldValidate: true })}>
+                                        <SelectTrigger className="border-teal-200 focus-visible:ring-teal-500">
+                                            <SelectValue placeholder="Suggest a Region/Circuit" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Array.from(new Map(venues.filter((v: any) => v.circuit).map((v: any) => [v.circuit.id, v.circuit])).values()).map((c: any) => (
+                                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.proposedCircuitId && <p className="text-sm text-red-500">{errors.proposedCircuitId.message}</p>}
+                                </div>
                             </div>
                         </div>
                     )}

@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
-import { approveHostRequest } from "@/app/actions/admin/host-fair"
+import { approveHostRequest, rejectHostRequest } from "@/app/actions/admin/host-fair"
 import { toast } from "sonner"
-import { CheckCircle2, Loader2 } from "lucide-react"
+import { CheckCircle2, Loader2, XCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export function HostRequestActions({ requestId, status }: { requestId: string, status: string }) {
@@ -19,6 +19,19 @@ export function HostRequestActions({ requestId, status }: { requestId: string, s
                 // router.refresh() // handled by revalidatePath in action
             } else {
                 toast.error(result.message || "Failed to approve")
+            }
+        })
+    }
+
+    const handleReject = () => {
+        const reason = window.prompt("Reason for rejection? (Optional, included in email to institution)")
+        if (reason === null) return; // cancelled
+        startTransition(async () => {
+            const result = await rejectHostRequest(requestId, reason)
+            if (result.success) {
+                toast.success("Request Rejected")
+            } else {
+                toast.error(result.message || "Failed to reject")
             }
         })
     }
@@ -38,7 +51,15 @@ export function HostRequestActions({ requestId, status }: { requestId: string, s
                 Approve Request
             </Button>
 
-            {/* Future: Add 'Reject' or 'Request Changes' buttons */}
+            <Button
+                onClick={handleReject}
+                variant="outline"
+                className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                disabled={isPending}
+            >
+                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
+                Reject Request
+            </Button>
         </div>
     )
 }

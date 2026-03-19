@@ -11,6 +11,7 @@ export const hostRequestSchema = z.object({
     institutionName: z.string().min(3, "Institution Name must be at least 3 characters"),
     institutionType: z.enum(["UNIVERSITY", "COLLEGE", "SCHOOL", "OTHER"] as const),
     venueId: z.string().min(1, "Please select an approved cluster"),
+    proposedCircuitId: z.string().optional(),
     city: z.string().optional(),
     state: z.string().optional(),
     websiteUrl: z.string().url("Please enter a valid URL (e.g., https://university.edu.in)"),
@@ -52,6 +53,12 @@ export const hostRequestSchema = z.object({
 }, {
     message: "Please specify your city",
     path: ["city"],
+}).refine((data) => {
+    if (data.venueId === "OUT_OF_NETWORK") return !!data.proposedCircuitId;
+    return true;
+}, {
+    message: "Please select the circuit you believe you fit in",
+    path: ["proposedCircuitId"],
 });
 
 export type HostRequestFormValues = z.infer<typeof hostRequestSchema>;
