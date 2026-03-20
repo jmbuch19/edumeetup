@@ -201,7 +201,7 @@ export async function GET(request: Request) {
         })
 
     } catch (error: any) {
-        console.error('[Session Reminders Cron] Failed:', error)
+        console.error('[Session Reminders Cron] Failed:')
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 }

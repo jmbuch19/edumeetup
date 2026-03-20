@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     try {
         url = await uploadToR2(buffer, r2Key, file.type)
     } catch (err) {
-        console.error('[Logo Upload] R2 upload failed:', err)
+        console.error('[Logo Upload] R2 upload failed:')
         return NextResponse.json({ error: 'Upload failed. Check R2 config.' }, { status: 500 })
     }
 

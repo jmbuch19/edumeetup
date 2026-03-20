@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
             },
         })
     } catch (err) {
-        console.error('[mobile/auth/verify-otp]', err)
+        console.error('[mobile/auth/verify-otp]')
         return NextResponse.json({ error: 'Verification failed' }, { status: 500 })
     }
 }

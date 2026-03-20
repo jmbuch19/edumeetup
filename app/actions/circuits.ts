@@ -69,7 +69,7 @@ export async function registerForCircuit(circuitId: string, bypassOverlapCheck: 
 
         return { success: true, registration, status }
     } catch (error: any) {
-        console.error("Failed to register for circuit:", error)
+        console.error("Failed to register for circuit:")
         return { success: false, message: error.message || "Failed to register" }
     }
 }
@@ -85,6 +85,9 @@ export async function assignRepToCircuit(registrationId: string, repId: string) 
         })
 
         if (!registration) throw new Error("Registration not found")
+        if (registration.status !== 'CONFIRMED') {
+            throw new Error("Payment Required: Circuit registration must be confirmed before assigning representatives to the War Room.")
+        }
         const thisCircuit = registration.circuit
 
         const conflict = await prisma.circuitRegistration.findFirst({
@@ -115,7 +118,7 @@ export async function assignRepToCircuit(registrationId: string, repId: string) 
 
         return { success: true }
     } catch (error: any) {
-        console.error("Failed to assign rep:", error)
+        console.error("Failed to assign rep:")
         return { success: false, message: error.message || "Failed to assign rep" }
     }
 }

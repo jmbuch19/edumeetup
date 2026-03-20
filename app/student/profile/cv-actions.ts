@@ -39,7 +39,7 @@ export async function deleteStudentCV(
 
         return { ok: true }
     } catch (err) {
-        console.error('[deleteStudentCV]', err)
+        console.error('[deleteStudentCV]')
         return { ok: false, error: 'Failed to remove CV. Please try again.' }
     }
 }

@@ -74,7 +74,7 @@ export async function setUniversityGrouping(args: SetGroupingArgs) {
         revalidatePath(`/admin/universities/${universityId}`)
         return { success: true }
     } catch (error) {
-        console.error('[setUniversityGrouping] error:', error)
+        console.error('[setUniversityGrouping] error:')
         return { error: 'Failed to update grouping. Please try again.' }
     }
 }
@@ -102,7 +102,7 @@ export async function linkSchoolToParent(schoolId: string, parentId: string) {
         revalidatePath(`/admin/universities/${schoolId}`)
         return { success: true }
     } catch (error) {
-        console.error('[linkSchoolToParent] error:', error)
+        console.error('[linkSchoolToParent] error:')
         return { error: 'Failed to link school.' }
     }
 }

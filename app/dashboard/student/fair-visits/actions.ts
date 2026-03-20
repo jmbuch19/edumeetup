@@ -27,7 +27,7 @@ export async function sendFairMessage(
 
         return { success: true, messageId: msg.id }
     } catch (error) {
-        console.error('[sendFairMessage] Error:', error)
+        console.error('[sendFairMessage] Error:')
         return { success: false, error: 'Failed to send message' }
     }
 }
@@ -49,7 +49,7 @@ export async function saveToShortlist(
         })
         return { success: true }
     } catch (error) {
-        console.error('[saveToShortlist] Error:', error)
+        console.error('[saveToShortlist] Error:')
         return { success: false, error: 'Failed to save shortlist' }
     }
 }

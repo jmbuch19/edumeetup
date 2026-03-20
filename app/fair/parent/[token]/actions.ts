@@ -75,7 +75,7 @@ export async function getParentViewData(
             })),
         }
     } catch (error) {
-        console.error('[getParentViewData] Error:', error)
+        console.error('[getParentViewData] Error:')
         return null
     }
 }

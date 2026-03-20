@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from "sonner"
 import { updateCircuitStatus } from './actions'
 
-export function CircuitListClient({ initialCircuits }: { initialCircuits: any[] }) {
+export function CircuitListClient({ initialCircuits, currentPage = 1, totalPages = 1 }: { initialCircuits: any[], currentPage?: number, totalPages?: number }) {
     const [circuits, setCircuits] = useState(initialCircuits)
 
     const handleStatusUpdate = async (id: string, newStatus: string) => {
@@ -150,6 +150,28 @@ export function CircuitListClient({ initialCircuits }: { initialCircuits: any[] 
                 <div className="text-center py-12 bg-slate-50 border border-slate-100 rounded-2xl">
                     <h3 className="text-lg font-semibold text-slate-900">No Circuits Found</h3>
                     <p className="text-slate-500 mt-1">Has the database seed script been run?</p>
+                </div>
+            )}
+
+            {circuits.length > 0 && totalPages > 1 && (
+                <div className="flex justify-center gap-2 pt-4">
+                    <Button
+                        variant="outline"
+                        disabled={currentPage <= 1}
+                        onClick={() => window.location.href = `?page=${currentPage - 1}`}
+                    >
+                        Previous
+                    </Button>
+                    <div className="flex items-center px-4 text-sm font-medium text-slate-600">
+                        Page {currentPage} of {totalPages}
+                    </div>
+                    <Button
+                        variant="outline"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => window.location.href = `?page=${currentPage + 1}`}
+                    >
+                        Next
+                    </Button>
                 </div>
             )}
         </div>

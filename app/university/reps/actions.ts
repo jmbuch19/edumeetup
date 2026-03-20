@@ -73,7 +73,7 @@ export async function createRep(formData: FormData) {
         return { success: true }
     } catch (e: any) {
         if (e.code === 'P2002') return { error: 'Email already exists' }
-        console.error(e)
+        console.error('[ERROR] Details redacted due to security policy')
         return { error: 'Failed to create rep' }
     }
 }

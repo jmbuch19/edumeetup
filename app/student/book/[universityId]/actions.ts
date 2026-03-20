@@ -321,7 +321,7 @@ export async function createMeetingRequest(data: BookingData) {
         if (error?.message === 'SLOT_TAKEN') return { error: "This slot was just taken. Please choose another time." }
         if (error?.message === 'NO_SLOT') return { error: "No available slot found. Please select a different slot." }
         if (error?.message === 'SLOT_MISMATCH') return { error: "Invalid slot selection. Please refresh and try again." }
-        console.error("[Meeting Booking]", error)
+        console.error("[Meeting Booking]")
         return { error: "Failed to book meeting. Please try again." }
     }
 }

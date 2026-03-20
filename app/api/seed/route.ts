@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({ message: 'Database seeded successfully' })
     } catch (error) {
-        console.error('Seeding failed:', error)
+        console.error('Seeding failed:')
         const message = error instanceof Error ? error.message : 'Unknown error'
         return NextResponse.json({ error: message }, { status: 500 })
     }

@@ -209,7 +209,7 @@ export async function registerStudent(prevState: any, formData: FormData) {
         return { success: true, email, message: "Account created! Check your email to login." }
 
     } catch (error) {
-        console.error('Registration failed:', error)
+        console.error('Registration failed:')
         return { error: 'Registration failed' }
     }
 }
@@ -254,7 +254,7 @@ export async function loginUniversity(formData: FormData) {
         if (error instanceof Error && error.message.includes('RateLimited')) {
             return { error: "Too many attempts. Please try again later." }
         }
-        console.error('[loginUniversity] signIn error:', error)
+        console.error('[loginUniversity] signIn error:')
         return { error: "Something went wrong. Please try again or contact support." }
     }
 }
@@ -314,7 +314,7 @@ export async function registerUniversity(formData: FormData) {
         return { success: true, message: "Registered. Please check your email to login." }
 
     } catch (error) {
-        console.error('Registration failed:', error)
+        console.error('Registration failed:')
         return { error: 'Registration failed' }
     }
 }
@@ -444,7 +444,7 @@ export async function expressInterest(universityId: string, studentEmail?: strin
         revalidatePath(`/universities/${universityId}`)
         return { success: true }
     } catch (error) {
-        console.error("Failed to express interest:", error)
+        console.error("Failed to express interest:")
         return { error: "Failed to express interest" }
     }
 }
@@ -528,7 +528,7 @@ export async function expressInterestBulk(universityId: string, programIds: stri
         revalidatePath(`/universities/${universityId}`)
         return { success: true, count: created, skipped }
     } catch (error) {
-        console.error('Failed to bulk express interest:', error)
+        console.error('Failed to bulk express interest:')
         return { error: 'Failed to express interest' }
     }
 }
@@ -632,7 +632,7 @@ export async function createProgram(formData: FormData) {
         revalidatePath('/university/dashboard')
         return { success: true }
     } catch (error) {
-        console.error('Failed to create program:', error)
+        console.error('Failed to create program:')
         return { error: 'Failed to create program' }
     }
 }
@@ -671,7 +671,7 @@ export async function updateProgram(programId: string, formData: FormData) {
         revalidatePath('/university/dashboard')
         return { success: true }
     } catch (error) {
-        console.error('Failed to update program:', error)
+        console.error('Failed to update program:')
         return { error: 'Failed to update program' }
     }
 }
@@ -807,7 +807,7 @@ export async function verifyUniversity(formData: FormData) {
 
         revalidatePath('/admin/dashboard')
     } catch (error) {
-        console.error("Failed to verify university:", error)
+        console.error("Failed to verify university:")
         return { error: "Failed to verify" }
     }
 }
@@ -866,7 +866,7 @@ export async function login(formData: FormData) {
         if (error instanceof AuthError) {
             return { error: "Authentication failed" }
         }
-        console.error('Login error:', error)
+        console.error('Login error:')
         return { error: 'Failed to login' }
     }
 }
@@ -1046,7 +1046,7 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
         }
 
     } catch (error) {
-        console.error('Registration failed:', error)
+        console.error('Registration failed:')
         return { error: 'Registration failed: ' + (error as Error).message }
     }
 
@@ -1090,7 +1090,7 @@ export async function deleteProgram(programId: string) {
         revalidatePath('/university/dashboard')
         return { success: true }
     } catch (error) {
-        console.error("Failed to delete program:", error)
+        console.error("Failed to delete program:")
         return { error: "Failed to delete program" }
     }
 }
@@ -1129,7 +1129,7 @@ export async function updateUniversityProfile(formData: FormData) {
         revalidatePath('/university/dashboard')
         return { success: true }
     } catch (error) {
-        console.error("Failed to update profile:", error)
+        console.error("Failed to update profile:")
         return { error: "Failed to update profile" }
     }
 }
@@ -1182,7 +1182,7 @@ export async function submitPublicInquiry(prevState: any, formData: FormData) {
 
         return { success: true }
     } catch (error) {
-        console.error("Failed to submit inquiry:", error)
+        console.error("Failed to submit inquiry:")
         return { error: "Failed to submit inquiry" }
     }
 }
@@ -1266,7 +1266,7 @@ export async function submitPdoRegistration(prevState: any, formData: FormData) 
 
         return { success: true }
     } catch (error) {
-        console.error("Failed to submit PDO registration:", error)
+        console.error("Failed to submit PDO registration:")
         return { error: "Failed to submit registration. Please try again." }
     }
 }
@@ -1354,7 +1354,7 @@ export async function createSupportTicket(formData: FormData) {
 
         return { success: true, ticketId: ticket.id }
     } catch (error) {
-        console.error("Failed to create ticket:", error)
+        console.error("Failed to create ticket:")
         return { error: "Failed to create ticket" }
     }
 }
@@ -1455,7 +1455,7 @@ export async function createMeeting(formData: FormData) {
         revalidatePath('/university/dashboard')
         return { success: true }
     } catch (error) {
-        console.error("Failed to create meeting:", error)
+        console.error("Failed to create meeting:")
         return { error: "Failed to create meeting" }
     }
 }
@@ -1507,7 +1507,7 @@ export async function updateRSVP(formData: FormData) {
         return { success: true }
 
     } catch (error) {
-        console.error("Failed to update RSVP:", error)
+        console.error("Failed to update RSVP:")
         return { error: "Failed to update RSVP" }
     }
 }
@@ -1604,7 +1604,7 @@ export async function updateStudentProfile(formData: FormData) {
         revalidatePath('/student/dashboard')
         return { success: true, version: nextVersion, changedCount: Object.keys(changedFields).length }
     } catch (error) {
-        console.error("Failed to update profile:", error)
+        console.error("Failed to update profile:")
         return { error: "Failed to update profile" }
     }
 }
@@ -1668,7 +1668,7 @@ export async function cancelMeeting(meetingId: string) {
         return { success: true }
 
     } catch (error) {
-        console.error("Failed to cancel meeting:", error)
+        console.error("Failed to cancel meeting:")
         return { error: "Failed to cancel meeting" }
     }
 }
@@ -1734,7 +1734,7 @@ export async function updateMeeting(meetingId: string, formData: FormData) {
         revalidatePath('/university/dashboard')
         return { success: true }
     } catch (error) {
-        console.error("Failed to update meeting:", error)
+        console.error("Failed to update meeting:")
         return { error: "Failed to update meeting" }
     }
 }
@@ -1975,7 +1975,7 @@ export async function updateMeetingStatus(
         revalidatePath('/university/meetings')
         return { success: true }
     } catch (e: any) {
-        console.error(e)
+        console.error('[ERROR] Details redacted due to security policy')
         return { error: e.message || 'Failed to update status' }
     }
 }
@@ -2110,7 +2110,7 @@ export async function cancelMeetingByStudent(meetingId: string, reason: string) 
         revalidatePath('/university/meetings')
         return { success: true }
     } catch (error) {
-        console.error('Failed to cancel meeting by student:', error)
+        console.error('Failed to cancel meeting by student:')
         return { error: 'Failed to cancel meeting' }
     }
 }
@@ -2142,7 +2142,7 @@ export async function getLiveUniversitySuggestion() {
             universityId: slot.universityId
         }
     } catch (error) {
-        console.error("Error fetching live suggestion:", error)
+        console.error("Error fetching live suggestion:")
         return null
     }
 }

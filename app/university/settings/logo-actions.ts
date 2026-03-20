@@ -44,7 +44,7 @@ export async function updateUniversityLogo(
         revalidatePath('/university/dashboard')
         return { ok: true }
     } catch (err) {
-        console.error('[updateUniversityLogo]', err)
+        console.error('[updateUniversityLogo]')
         return { ok: false, error: 'Failed to save logo. Please try again.' }
     }
 }
@@ -70,7 +70,7 @@ export async function removeUniversityLogo(): Promise<{ ok: true } | { ok: false
         revalidatePath('/university/dashboard')
         return { ok: true }
     } catch (err) {
-        console.error('[removeUniversityLogo]', err)
+        console.error('[removeUniversityLogo]')
         return { ok: false, error: 'Failed to remove logo. Please try again.' }
     }
 }

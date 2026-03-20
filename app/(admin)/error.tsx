@@ -13,7 +13,7 @@ export default function AdminError({
     reset: () => void
 }) {
     useEffect(() => {
-        console.error('[Admin Error Boundary]', error)
+        console.error('[Admin Error Boundary]')
     }, [error])
 
     return (

@@ -41,7 +41,7 @@ export default async function AdminUsersPage(
         },
         orderBy: { createdAt: 'desc' },
     }).catch((err: unknown) => {
-        console.error('[AdminUsersPage] prisma.findMany failed:', err)
+        console.error('[AdminUsersPage] prisma.findMany failed:')
         return []
     })
 

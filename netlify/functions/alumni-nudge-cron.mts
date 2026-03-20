@@ -1,11 +1,25 @@
-import { schedule } from '@netlify/functions'
+import type { Config } from '@netlify/functions'
 import { PrismaClient } from '@prisma/client'
 import { sendEmail, generateEmailHtml } from '../../lib/email'
 
 const prisma = new PrismaClient()
 
-// Schedule: "0 9 1 */2 *" — 9am on the 1st of every 2nd month (~60 days)
-export const handler = schedule('0 9 1 */2 *', async () => {
+export default async function handler(request: Request) {
+    // MUST be first — before prisma queries, before anything
+    const incomingSecret = request.headers.get('x-cron-secret')
+    if (process.env.CRON_SECRET && incomingSecret !== process.env.CRON_SECRET) {
+        return new Response('Unauthorized', { status: 401 })
+    }
+
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
+    const recentRun = await prisma.systemLog.findFirst({
+        where: { type: 'ALUMNI_NUDGE_CRON', createdAt: { gte: twoHoursAgo } }
+    })
+    if (recentRun) {
+        console.log('[AlumniNudgeCron] Skipped due to idempotency lock.')
+        return new Response('Already ran recently', { status: 200 })
+    }
+
     console.log('[AlumniNudgeCron] Starting scheduled run...')
     
     // 60 days ago
@@ -67,7 +81,7 @@ export const handler = schedule('0 9 1 */2 *', async () => {
         })
 
         console.log('[AlumniNudgeCron] Run completed successfully.')
-        return { statusCode: 200 }
+        return new Response('OK', { status: 200 })
         
     } catch (error) {
         console.error('[AlumniNudgeCron] Error during run:', error)
@@ -77,12 +91,14 @@ export const handler = schedule('0 9 1 */2 *', async () => {
                 level: 'ERROR',
                 type: 'ALUMNI_NUDGE_CRON',
                 message: 'Failed to run alumni nudge cron',
-                metadata: { error: String(error) }
+                metadata: { error: '[REDACTED ERROR LOG]' }
             }
         })
         
-        return { statusCode: 500 }
+        return new Response('Internal Server Error', { status: 500 })
     } finally {
         await prisma.$disconnect()
     }
-})
+}
+
+export const config: Config = { schedule: '0 9 1 */2 *' }

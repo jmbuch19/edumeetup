@@ -44,6 +44,7 @@ export const hostRequestSchema = z.object({
     preferredCountries: z.array(z.string()).min(1, "Select at least one preferred country"),
     fieldsOfStudy: z.array(z.string()).min(1, "Select at least one field of study"),
     additionalRequirements: z.string().optional(),
+    _honeypot: z.string().optional(),
 }).refine((data) => data.preferredDateEnd >= data.preferredDateStart, {
     message: "End date must be after start date",
     path: ["preferredDateEnd"],

@@ -10,7 +10,7 @@ export default function UniversityError({
     reset: () => void
 }) {
     useEffect(() => {
-        console.error('[University Error Boundary]', error)
+        console.error('[University Error Boundary]')
     }, [error])
 
     return (

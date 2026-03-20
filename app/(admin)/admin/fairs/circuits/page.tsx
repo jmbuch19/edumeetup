@@ -5,11 +5,15 @@ import { CircuitListClient } from './circuit-list-client'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdminCircuitsPage() {
+export default async function AdminCircuitsPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
     const session = await auth()
     if (!session || session.user?.role !== 'ADMIN') redirect('/login')
 
-    const circuits = await listFairCircuits()
+    const searchParams = await props.searchParams;
+    const pageStr = searchParams?.page
+    const page = typeof pageStr === 'string' ? Number(pageStr) : 1
+
+    const { circuits, totalPages } = await listFairCircuits(page)
 
     return (
         <div className="max-w-6xl mx-auto py-4 md:py-8 px-4 space-y-6">
@@ -21,7 +25,7 @@ export default async function AdminCircuitsPage() {
                     </p>
                 </div>
             </div>
-            <CircuitListClient initialCircuits={circuits} />
+            <CircuitListClient initialCircuits={circuits} currentPage={page} totalPages={totalPages} />
         </div>
     )
 }

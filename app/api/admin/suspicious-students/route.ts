@@ -82,7 +82,7 @@ export async function GET() {
 
         return NextResponse.json({ count: formatted.length, students: formatted });
     } catch (error) {
-        console.error("Failed to fetch suspicious students:", error);
+        console.error("Failed to fetch suspicious students:");
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

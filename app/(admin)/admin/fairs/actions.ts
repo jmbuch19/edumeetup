@@ -96,7 +96,7 @@ export async function createFairEvent(formData: {
         triggerFairCreatedNotifications(event.id).catch(console.error)
         return { ok: true, id: event.id }
     } catch (err) {
-        console.error('[createFairEvent]', err)
+        console.error('[createFairEvent]')
         return { ok: false, error: 'Failed to create fair event. Please try again.' }
     }
 }
@@ -114,7 +114,7 @@ export async function deleteFairEvent(
         revalidatePath('/admin/fairs')
         return { ok: true }
     } catch (err) {
-        console.error('[deleteFairEvent]', err)
+        console.error('[deleteFairEvent]')
         return { ok: false, error: 'Failed to archive fair event.' }
     }
 }
@@ -218,7 +218,7 @@ export async function createFairQuestion(
         revalidatePath(`/admin/fairs/${fairEventId}`)
         return { ok: true }
     } catch (err) {
-        console.error('[createFairQuestion]', err)
+        console.error('[createFairQuestion]')
         return { ok: false, error: 'Failed to submit question. Please try again.' }
     }
 }
@@ -241,7 +241,7 @@ export async function answerFairQuestion(
         revalidatePath('/admin/fairs')
         return { ok: true }
     } catch (err) {
-        console.error('[answerFairQuestion]', err)
+        console.error('[answerFairQuestion]')
         return { ok: false, error: 'Failed to save answer. Please try again.' }
     }
 }
@@ -352,7 +352,7 @@ export async function exportAllRegistrationsCSV(
         const csv = [header.join(','), ...rows].join('\n')
         return { csv }
     } catch (error) {
-        console.error('[exportAllRegistrationsCSV]', error)
+        console.error('[exportAllRegistrationsCSV]')
         return { error: 'Failed to generate CSV' }
     }
 }

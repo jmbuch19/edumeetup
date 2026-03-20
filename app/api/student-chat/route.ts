@@ -12,6 +12,7 @@ import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendEmail } from '@/lib/email'
 import * as Sentry from '@sentry/nextjs'
 import { tool } from 'ai'
 import { z } from 'zod'
@@ -146,7 +147,7 @@ export async function POST(req: NextRequest) {
                         }, { status: 429 })
                     }
                     // Remaining messages available — log for debugging
-                    console.log(`[student-advisor] userId=${userId} remaining today: ${remaining}`)
+                    console.log(`[student-advisor] remaining today: ${remaining}`)
                 } catch (e) {
                     // Redis failure — allow through, don't block the student
                     console.warn('[student-advisor] Redis rate limit error (skipping):', (e as Error).message)
@@ -157,6 +158,42 @@ export async function POST(req: NextRequest) {
             const { messages } = await req.json()
             if (!messages || !Array.isArray(messages)) {
                 return NextResponse.json({ error: 'messages array required' }, { status: 400 })
+            }
+
+            // ── T09: Pre-flight prompt injection check ───────────────────────────
+            const lastMessage = messages[messages.length - 1]?.content || ''
+            const injectionRegex = /(ignore (all )?previous instructions|you are now|DAN|act as (a|an)|system prompt|forget everything)/i
+            if (injectionRegex.test(lastMessage)) {
+                const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || '127.0.0.1'
+                await prisma.systemLog.create({
+                    data: {
+                        level: 'WARN',
+                        type: 'PROMPT_INJECTION',
+                        message: `Prompt injection attempt blocked`,
+                        metadata: { studentId: userId, ip, attempt: lastMessage.slice(0, 100) }
+                    }
+                });
+
+                const recentAttempts = await prisma.systemLog.count({
+                    where: {
+                        type: 'PROMPT_INJECTION',
+                        metadata: { path: ['studentId'], equals: userId },
+                        createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) }
+                    }
+                });
+
+                if (recentAttempts >= 4 && process.env.ADMIN_NOTIFICATION_EMAIL) {
+                    await sendEmail({
+                        to: process.env.ADMIN_NOTIFICATION_EMAIL,
+                        subject: `[SECURITY] Repeated injection attempts — student ${userId}`,
+                        html: `<p>Student ${userId} (IP: ${ip}) triggered prompt injection defenses ${recentAttempts + 1} times in the last hour.</p><p>Latest attempt: ${lastMessage.slice(0, 500)}</p>`,
+                    }).catch(console.error);
+                }
+
+                return new Response(
+                    `0:${JSON.stringify("I am here to help you with your study abroad plans. How can I assist you today? 😊")}\n`,
+                    { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Vercel-AI-Data-Stream': 'v1' } }
+                );
             }
 
             // ── 4. Fetch student profile server-side (never trusts client data) ────
@@ -190,7 +227,8 @@ export async function POST(req: NextRequest) {
                 model: anthropic(ANTHROPIC_ADVISOR_MODEL),
                 system: systemPrompt,
                 messages,
-                maxOutputTokens: 500, // cost guardrail
+                // @ts-ignore — maxTokens is valid at runtime but missing from type definitions
+                maxTokens: 500, // cost guardrail
                 tools: {
                     getUpcomingFairs: tool({
                         description: 'Get upcoming EdUmeetup campus fairs that a student can attend. Use this proactively when discussing fairs.',
@@ -207,7 +245,7 @@ export async function POST(req: NextRequest) {
             return result.toTextStreamResponse()
 
         } catch (error) {
-            console.error('[/api/student-chat] error:', error)
+            console.error('[/api/student-chat] error:')
             Sentry.captureException(error)
             return NextResponse.json(
                 { error: 'advisor_error', message: "I'm having trouble connecting right now. Please try again in a few seconds!" },

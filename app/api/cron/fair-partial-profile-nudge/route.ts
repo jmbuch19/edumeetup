@@ -77,14 +77,14 @@ export async function GET(request: Request) {
                     })
                     nudgesSent++
                 } catch (err) {
-                    console.error(`[fair-partial-profile-nudge] Failed for pass id=${pass.id}:`, err)
+                    console.error(`[fair-partial-profile-nudge] Failed for pass id=${pass.id}:`)
                 }
             }
         }
 
         return NextResponse.json({ success: true, nudgesSent })
     } catch (error) {
-        console.error('[fair-partial-profile-nudge] Error:', error)
+        console.error('[fair-partial-profile-nudge] Error:')
         return NextResponse.json({ error: 'Internal error' }, { status: 500 })
     }
 }

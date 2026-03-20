@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
             if (r2Keys.length > 0) {
                 await deleteR2Objects(r2Keys).catch(err =>
-                    console.error(`[process-deletions] R2 delete failed for user ${user.id}:`, err)
+                    console.error(`[process-deletions] R2 delete failed for user ${user.id}:`)
                 )
             }
 
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
 
             deletedCount++
         } catch (err) {
-            console.error(`[process-deletions] Failed to delete user ${user.id}:`, err)
+            console.error(`[process-deletions] Failed to delete user ${user.id}:`)
             errors.push(user.id)
         }
     }

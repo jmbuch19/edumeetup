@@ -98,7 +98,7 @@ export async function sendNotification(formData: FormData) {
 
         return { success: true }
     } catch (error) {
-        console.error("[sendNotification]", error)
+        console.error("[sendNotification]")
         return { error: "Failed to send notification" }
     }
 }

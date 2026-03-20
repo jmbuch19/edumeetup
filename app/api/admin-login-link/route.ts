@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     })
     const loginUrl = `${baseUrl}/auth/confirm?url=${encodeURIComponent(`${baseUrl}/api/auth/callback/email?${params.toString()}`)}`
 
-    console.log(`[ADMIN-LOGIN-LINK] Generated for ${adminEmail}: ${loginUrl}`)
+    console.log(`[ADMIN-LOGIN-LINK] Generated for ${adminEmail}`)
 
     return NextResponse.json({
         url: loginUrl,

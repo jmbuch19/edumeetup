@@ -1,10 +1,24 @@
-import { schedule } from '@netlify/functions'
+import type { Config } from '@netlify/functions'
 import { PrismaClient } from '@prisma/client'
 import { sendEmail, generateEmailHtml } from '../../lib/email'
 
 const prisma = new PrismaClient()
 
-export const handler = schedule('0 0 * * *', async () => {
+export default async function handler(request: Request) {
+  // MUST be first — before prisma queries, before anything
+  const incomingSecret = request.headers.get('x-cron-secret')
+  if (process.env.CRON_SECRET && incomingSecret !== process.env.CRON_SECRET) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
+  const recentRun = await prisma.systemLog.findFirst({
+    where: { type: 'CIRCUIT_STATE_MACHINE', createdAt: { gte: twoHoursAgo }, message: 'State machine run complete' }
+  })
+  if (recentRun) {
+    return new Response('Already ran recently', { status: 200 })
+  }
+
   const now = new Date()
 
   // PUBLISHED → ONGOING
@@ -103,5 +117,7 @@ export const handler = schedule('0 0 * * *', async () => {
     }
   })
   
-  return { statusCode: 200 }
-})
+  return new Response('OK', { status: 200 })
+}
+
+export const config: Config = { schedule: '0 0 * * *' }

@@ -3,7 +3,7 @@ import type { JWT as DefaultJWT } from "next-auth/jwt"
 
 // Define the role union locally — Prisma's UserRole enum doesn't include ADMIN
 // (role is stored as a plain String in the DB for the admin account).
-export type AppRole = "ADMIN" | "UNIVERSITY" | "UNIVERSITY_REP" | "STUDENT" | "ALUMNI"
+export type AppRole = "ADMIN" | "UNIVERSITY" | "UNIVERSITY_REP" | "STUDENT" | "ALUMNI" | "EVENT_PLANNER"
 
 declare module "next-auth" {
     interface Session {
@@ -33,5 +33,6 @@ declare module "next-auth/jwt" {
         id?: string
         role?: AppRole
         lastRefreshed?: number
+        sessionVersion?: number
     }
 }

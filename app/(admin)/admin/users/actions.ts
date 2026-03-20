@@ -89,7 +89,7 @@ export async function updateUserEmail(formData: FormData) {
             }
         })
     } catch (e) {
-        console.error('[AUDIT] auditLog.create failed (email update):', e)
+        console.error('[AUDIT] auditLog.create failed (email update):')
     }
 
     revalidatePath(`/admin/users/${userId}`)
@@ -174,7 +174,7 @@ export async function sendSegmentNudge(formData: FormData) {
             data: { action: 'ADMIN_SEGMENT_NUDGE_SENT', entityType: 'CAMPAIGN', entityId: filter, actorId: admin.id }
         })
     } catch (e) {
-        console.error('[AUDIT] auditLog.create failed (nudge):', e)
+        console.error('[AUDIT] auditLog.create failed (nudge):')
     }
 
     return { success: true, notified, emailed, failed }
@@ -276,7 +276,7 @@ export async function nudgeFairWalkins(message: string, ctaUrl: string) {
             },
         })
     } catch (e) {
-        console.error('[FAIR_WALKIN_NUDGE] systemLog.create failed:', e)
+        console.error('[FAIR_WALKIN_NUDGE] systemLog.create failed:')
     }
 
     return { success: true, notified: 0, emailed, failed }

@@ -50,7 +50,7 @@ export async function deleteUniversityDocument(
 
         return { ok: true }
     } catch (err) {
-        console.error('[deleteUniversityDocument]', err)
+        console.error('[deleteUniversityDocument]')
         return { ok: false, error: 'Failed to delete document. Please try again.' }
     }
 }
@@ -99,7 +99,7 @@ export async function replaceUniversityDocument(
 
         return { ok: true }
     } catch (err) {
-        console.error('[replaceUniversityDocument]', err)
+        console.error('[replaceUniversityDocument]')
         return { ok: false, error: 'Failed to replace document. Please try again.' }
     }
 }

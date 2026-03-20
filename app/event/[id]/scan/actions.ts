@@ -234,7 +234,7 @@ export async function processQRScan(
             },
         }
     } catch (error) {
-        console.error('[processQRScan] Error:', error)
+        console.error('[processQRScan] Error:')
         return { error: 'Failed to process scan. Please try again.' }
     }
 }
@@ -251,7 +251,7 @@ export async function updateRepNotes(
         })
         return { ok: true }
     } catch (err) {
-        console.error('[updateRepNotes]', err)
+        console.error('[updateRepNotes]')
         return { ok: false }
     }
 }

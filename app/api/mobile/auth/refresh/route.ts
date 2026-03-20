@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ accessToken: newAccessToken })
     } catch (err) {
-        console.error('[mobile/auth/refresh]', err)
+        console.error('[mobile/auth/refresh]')
         return NextResponse.json({ error: 'Invalid or expired refresh token' }, { status: 401 })
     }
 }

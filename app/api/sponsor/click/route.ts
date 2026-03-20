@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
         // Redirect user to the target
         return NextResponse.redirect(item.targetUrl)
     } catch (error) {
-        console.error("[SponsoredContent Click Tracking]", error)
+        console.error("[SponsoredContent Click Tracking]")
         return NextResponse.redirect(new URL('/', req.url))
     }
 }

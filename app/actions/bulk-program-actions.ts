@@ -153,7 +153,7 @@ export async function bulkCreatePrograms(
         return { success: true, count: createdCount, skipped: skippedCount }
 
     } catch (error) {
-        console.error('Bulk create error:', error)
+        console.error('Bulk create error:')
         return { error: 'Failed to import programs' }
     }
 }

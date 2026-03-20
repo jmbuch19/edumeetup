@@ -64,7 +64,7 @@ export async function GET(request: Request) {
                     })
                     sent++
                 } catch (err) {
-                    console.error(`[fair-reminder-24h] Failed to send to pass id=${pass.id}:`, err)
+                    console.error(`[fair-reminder-24h] Failed to send to pass id=${pass.id}:`)
                     errors.push(pass.id)
                 }
             }
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
             ...(errors.length > 0 ? { errors } : {}),
         })
     } catch (error) {
-        console.error('[fair-reminder-24h] Error:', error)
+        console.error('[fair-reminder-24h] Error:')
         return NextResponse.json({ error: 'Internal error' }, { status: 500 })
     }
 }

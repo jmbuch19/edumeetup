@@ -327,7 +327,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 // Primary lookup: by ID (the happy path)
                 let dbUser = await prisma.user.findUnique({
                     where: { id: token.sub },
-                    select: { id: true, role: true, isActive: true }
+                    select: { id: true, role: true, isActive: true, sessionVersion: true }
                 })
 
                 // Fallback: sub doesn't match any ID — try by email (handles re-provisioned accounts)
@@ -335,7 +335,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     console.warn(`[AUTH jwt] sub=${token.sub} not in DB — trying email fallback`)
                     dbUser = await prisma.user.findFirst({
                         where: { email: token.email as string },
-                        select: { id: true, role: true, isActive: true }
+                        select: { id: true, role: true, isActive: true, sessionVersion: true }
                     })
                     if (dbUser) {
                         // Patch token.sub so future lookups use the real DB id
@@ -345,6 +345,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 }
 
                 if (dbUser) {
+                    // T02 Programmatic Invalidation: Mismatch destroys session
+                    if (token.sessionVersion !== undefined && token.sessionVersion !== dbUser.sessionVersion) {
+                        console.warn(`[AUTH jwt] sessionVersion mismatch for sub=${token.sub} — invalidating session`)
+                        return null
+                    }
+                    token.sessionVersion = dbUser.sessionVersion
                     token.role = dbUser.role as any
                     token.lastRefreshed = Date.now()
                     console.log(`[AUTH jwt] Stamped role=${token.role} for sub=${token.sub}`)
@@ -391,14 +397,50 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // Role-aware fallback — avoids UX flash when middleware hasn't corrected yet
             const role = (params as any)?.token?.role
             if (role === 'ADMIN') return `${baseUrl}/admin/dashboard`
+            if (role === 'EVENT_PLANNER') return `${baseUrl}/planner/dashboard`
             if (role === 'UNIVERSITY' || role === 'UNIVERSITY_REP') return `${baseUrl}/university/dashboard`
             if (role === 'ALUMNI') return `${baseUrl}/alumni/dashboard`
             return `${baseUrl}/student/dashboard`
         },
     },
     events: {
-        async signIn({ user, isNewUser }) {
+        async signIn({ user, isNewUser, account }) {
             if (!user.email || !user.id) return
+
+            // T01: Magic link consumed - log IP and send notification
+            if (account?.provider === 'email') {
+                try {
+                    const { headers } = await import('next/headers');
+                    const headersList = headers();
+                    const ip = (headersList as any).get('x-forwarded-for') || (headersList as any).get('x-real-ip') || 'unknown';
+                    
+                    await prisma.systemLog.create({
+                        data: {
+                            level: 'INFO',
+                            type: 'MAGIC_LINK_CONSUMED',
+                            message: `Magic link consumed by ${user.email}`,
+                            metadata: { email: user.email, userId: user.id, ip, consumedAt: new Date().toISOString() }
+                        }
+                    });
+
+                    if (process.env.RESEND_API_KEY) {
+                        const resend = new Resend(process.env.RESEND_API_KEY);
+                        await resend.emails.send({
+                            from: process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>',
+                            to: user.email,
+                            subject: "New login detected on EdUmeetup",
+                            html: `
+                                <p>We detected a new sign-in to your EdUmeetup account.</p>
+                                <p><strong>Time:</strong> ${new Date().toUTCString()}</p>
+                                <p><strong>IP Address:</strong> ${ip}</p>
+                                <p><i>Not you? <a href="mailto:support@iaesgujarat.org">Contact support</a> immediately to secure your account.</i></p>
+                            `
+                        });
+                    }
+                } catch (e) {
+                    console.error("[AUTH signIn event] Error in magic link consumption tracking:", e);
+                }
+            }
 
             // Single DB fetch — used for both emailVerified update and new-user setup
             const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
@@ -444,10 +486,11 @@ export async function requireUser() {
     return session.user
 }
 
-export async function requireRole(role: "ADMIN" | "UNIVERSITY" | "STUDENT") {
+export async function requireRole(role: "ADMIN" | "UNIVERSITY" | "STUDENT" | "EVENT_PLANNER") {
     const user = await requireUser()
     if (user.role !== role) {
         if (user.role === 'ADMIN') redirect('/admin/dashboard')
+        if (user.role === 'EVENT_PLANNER') redirect('/planner/dashboard')
         if (user.role === 'STUDENT') redirect('/student/dashboard')
         if (user.role === 'UNIVERSITY' || user.role === 'UNIVERSITY_REP') redirect('/university/dashboard')
         redirect('/login')

@@ -77,7 +77,10 @@ function AlumniRow({ alum, onAction }: { alum: any; onAction: () => void }) {
                         )}
                     </div>
                     <p className="text-xs text-gray-500 truncate">{alum.usProgram} · {alum.usUniversityName}</p>
-                    <p className="text-xs text-gray-400">{alum.user?.email}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-xs text-gray-400">{alum.user?.email}</p>
+                        <Badge variant="outline" className="text-[9px] h-4 px-1.5 py-0 border-gray-200 text-gray-400 font-medium">Admin only</Badge>
+                    </div>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-gray-400">
                     <span>{alum._count?.connectRequests ?? 0} requests</span>

@@ -143,7 +143,7 @@ export async function saveAvailabilityProfile(rawData: AvailabilityProfileData) 
         revalidatePath('/university/availability')
         return { success: true }
     } catch (error) {
-        console.error("Failed to save availability:", error)
+        console.error("Failed to save availability:")
         return { error: "Failed to save availability" }
     }
 }
@@ -202,7 +202,7 @@ export async function saveAllAvailabilityProfiles(rawProfiles: AvailabilityProfi
         revalidatePath('/university/availability')
         return { success: true }
     } catch (error) {
-        console.error("Failed to save availability profiles:", error)
+        console.error("Failed to save availability profiles:")
         return { error: "Failed to save availability" }
     }
 }

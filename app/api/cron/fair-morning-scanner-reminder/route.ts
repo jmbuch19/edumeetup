@@ -87,13 +87,13 @@ export async function GET(request: Request) {
                 })
                 remindersSent++
             } catch (err) {
-                console.error(`[fair-morning-scanner-reminder] Failed for university=${uni.id}:`, err)
+                console.error(`[fair-morning-scanner-reminder] Failed for university=${uni.id}:`)
             }
         }
 
         return NextResponse.json({ success: true, liveFairs: liveFairs.length, remindersSent })
     } catch (error) {
-        console.error('[fair-morning-scanner-reminder] Error:', error)
+        console.error('[fair-morning-scanner-reminder] Error:')
         return NextResponse.json({ error: 'Internal error' }, { status: 500 })
     }
 }

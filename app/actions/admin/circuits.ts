@@ -30,7 +30,7 @@ export async function sendCircuitWelcomeEmails(circuitId: string) {
         
         return { success: true, message: "Welcome emails dispatched successfully." }
     } catch (error: any) {
-        console.error("Failed to send welcome emails:", error)
+        console.error("Failed to send welcome emails:")
         return { success: false, error: error.message || "Failed to process" }
     }
 }

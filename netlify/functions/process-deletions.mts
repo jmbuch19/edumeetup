@@ -23,6 +23,13 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     const now = new Date()
+    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000)
+    const recentRun = await prisma.systemLog.findFirst({
+        where: { type: 'PROCESS_DELETIONS_CRON', createdAt: { gte: twoHoursAgo } }
+    })
+    if (recentRun) {
+        return new Response(JSON.stringify({ message: 'Already ran recently' }), { status: 200 })
+    }
 
     const usersToDelete = await prisma.user.findMany({
         where: {
@@ -132,6 +139,15 @@ export default async function handler(req: Request): Promise<Response> {
         walkInsPurged: walkInsDeleted,
         ...(errors.length > 0 ? { errors } : {}),
     }
+
+    await prisma.systemLog.create({
+        data: {
+            level: 'INFO',
+            type: 'PROCESS_DELETIONS_CRON',
+            message: 'Process deletions cron run complete',
+            metadata: JSON.stringify(result)
+        }
+    })
 
     console.log('[process-deletions] Done:', result)
     return new Response(JSON.stringify(result), { status: 200 })

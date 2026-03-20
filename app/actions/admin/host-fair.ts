@@ -76,7 +76,7 @@ export async function approveHostRequest(requestId: string) {
 
         return { success: true }
     } catch (error) {
-        console.error("Failed to approve request:", error)
+        console.error("Failed to approve request:")
         return { success: false, message: "Failed to approve request" }
     }
 }
@@ -122,7 +122,7 @@ export async function rejectHostRequest(requestId: string, reason?: string) {
 
         return { success: true }
     } catch (error) {
-        console.error("Failed to reject request:", error)
+        console.error("Failed to reject request:")
         return { success: false, message: "Failed to reject request" }
     }
 }

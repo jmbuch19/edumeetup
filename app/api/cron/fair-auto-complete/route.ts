@@ -36,7 +36,7 @@ export async function GET(request: Request) {
             checkedAt: now.toISOString(),
         })
     } catch (error) {
-        console.error('[fair-auto-complete] Error:', error)
+        console.error('[fair-auto-complete] Error:')
         return NextResponse.json({ error: 'Internal error' }, { status: 500 })
     }
 }

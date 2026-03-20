@@ -56,7 +56,7 @@ export async function updateFollowUpStatus(
         if (error instanceof Error && (error.message === 'Unauthorized' || error.message === 'Forbidden')) {
             return { success: false, error: error.message }
         }
-        console.error('[updateFollowUpStatus] Error:', error)
+        console.error('[updateFollowUpStatus] Error:')
         return { success: false, error: 'Failed to update status' }
     }
 }
@@ -132,7 +132,7 @@ export async function sendBulkFollowUp(
         if (error instanceof Error && (error.message === 'Unauthorized' || error.message === 'Forbidden')) {
             return { sent: 0, skipped: 0, error: error.message }
         }
-        console.error('[sendBulkFollowUp] Error:', error)
+        console.error('[sendBulkFollowUp] Error:')
         return { sent: 0, skipped: 0, error: 'Failed to send bulk follow-up emails' }
     }
 }
@@ -181,7 +181,7 @@ export async function exportLeadsCSV(
         if (error instanceof Error && (error.message === 'Unauthorized' || error.message === 'Forbidden')) {
             return { error: error.message }
         }
-        console.error('[exportLeadsCSV] Error:', error)
+        console.error('[exportLeadsCSV] Error:')
         return { error: 'Failed to generate CSV' }
     }
 }
@@ -245,7 +245,7 @@ export async function requestMeetingsWithLeads(
         if (error instanceof Error && (error.message === 'Unauthorized' || error.message === 'Forbidden')) {
             return { created: 0, error: error.message }
         }
-        console.error('[requestMeetingsWithLeads] Error:', error)
+        console.error('[requestMeetingsWithLeads] Error:')
         return { created: 0, error: 'Failed to create meetings' }
     }
 }
@@ -301,7 +301,7 @@ export async function exportAllPassesCSV(
         const csv = [header.join(','), ...rows].join('\n')
         return { csv }
     } catch (error) {
-        console.error('[exportAllPassesCSV]', error)
+        console.error('[exportAllPassesCSV]')
         return { error: 'Failed to generate CSV' }
     }
 }

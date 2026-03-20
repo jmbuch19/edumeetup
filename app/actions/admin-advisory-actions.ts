@@ -14,7 +14,7 @@ export async function updateAdvisoryStatus(requestId: string, status: AdvisorySt
         revalidatePath(`/admin/advisory/${requestId}`)
         return { success: true }
     } catch (error) {
-        console.error(error)
+        console.error('[ERROR] Details redacted due to security policy')
         return { success: false, error: "Failed to update status" }
     }
 }
@@ -26,7 +26,7 @@ export async function updateAdvisoryNotes(requestId: string, internalNotes: stri
         revalidatePath(`/admin/advisory/${requestId}`)
         return { success: true }
     } catch (error) {
-        console.error(error)
+        console.error('[ERROR] Details redacted due to security policy')
         return { success: false, error: "Failed to update notes" }
     }
 }
@@ -41,7 +41,7 @@ export async function assignAdviser(requestId: string, adviserId: string) {
         revalidatePath('/admin/advisory')
         return { success: true }
     } catch (error) {
-        console.error(error)
+        console.error('[ERROR] Details redacted due to security policy')
         return { success: false, error: "Failed to assign adviser" }
     }
 }
@@ -147,7 +147,7 @@ export async function scheduleAdvisorySession(
         })
 
         if (error) {
-            console.error('[SCHEDULE ADVISORY] Email error:', error)
+            console.error('[SCHEDULE ADVISORY] Email error:')
             return { success: false, error: `Session saved but email failed: ${(error as any).message}` }
         }
 
@@ -156,7 +156,7 @@ export async function scheduleAdvisorySession(
         revalidatePath('/student/advisory')
         return { success: true }
     } catch (error) {
-        console.error('[SCHEDULE ADVISORY]', error)
+        console.error('[SCHEDULE ADVISORY]')
         return { success: false, error: (error as Error).message }
     }
 }

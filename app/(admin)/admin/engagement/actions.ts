@@ -122,7 +122,7 @@ export async function createAnnouncement(formData: FormData) {
         revalidatePath("/admin/engagement")
         return { success: true, emailedCount, notifiedCount }
     } catch (error) {
-        console.error("[createAnnouncement]", error)
+        console.error("[createAnnouncement]")
         return { error: "Failed to create announcement" }
     }
 }
@@ -196,7 +196,7 @@ export async function createSponsoredContent(formData: FormData) {
         revalidatePath("/") // bust homepage hero cache
         return { success: true }
     } catch (error: any) {
-        console.error("[createSponsoredContent]", error)
+        console.error("[createSponsoredContent]")
         return { error: "Failed to create sponsored content: " + (error?.message || String(error)) }
     }
 }

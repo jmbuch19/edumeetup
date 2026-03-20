@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true })
     } catch (error) {
-        console.error("[SponsoredContent Impression Tracking]", error)
+        console.error("[SponsoredContent Impression Tracking]")
         return NextResponse.json({ success: false, error: "Failed to track impressions" }, { status: 500 })
     }
 }

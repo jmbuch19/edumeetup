@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     try {
         cvUrl = await uploadToR2(buffer, r2Key, 'application/pdf')
     } catch (err) {
-        console.error('[CV Upload] R2 upload failed:', err)
+        console.error('[CV Upload] R2 upload failed:')
         return NextResponse.json({ error: 'File upload failed. Please try again.' }, { status: 500 })
     }
 

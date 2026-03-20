@@ -49,7 +49,7 @@ export async function submitNpsSurvey(formData: z.infer<typeof surveySchema>) {
     if (error instanceof z.ZodError) {
       return { error: "Invalid survey data provided." }
     }
-    console.error("[submitNpsSurvey] Error:", error)
+    console.error("[submitNpsSurvey] Error:")
     return { error: "Failed to submit survey." }
   }
 }
@@ -68,7 +68,7 @@ export async function dismissNpsSurvey() {
 
     return { success: true }
   } catch (error) {
-    console.error("[dismissNpsSurvey] Error:", error)
+    console.error("[dismissNpsSurvey] Error:")
     return { error: "Failed to dismiss." }
   }
 }

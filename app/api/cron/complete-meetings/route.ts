@@ -63,7 +63,7 @@ export async function GET(request: Request) {
 
         return NextResponse.json({ success: true, completed: completedCount })
     } catch (error: any) {
-        console.error('Cron job failed:', error)
+        console.error('Cron job failed:')
         return NextResponse.json({ error: 'Internal server error — check Netlify function logs' }, { status: 500 })
     }
 }

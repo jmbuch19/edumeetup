@@ -13,6 +13,7 @@ import { Redis } from '@upstash/redis'
 import { groq } from '@/lib/ai'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendEmail } from '@/lib/email'
 import { buildSystemPrompt } from '@/lib/bot/system-prompt'
 import { BOT_VERSION } from '@/lib/bot/registry'
 import { getQuotaStatus, consumeMessage } from '@/lib/bot/quota'
@@ -39,6 +40,12 @@ function getRatelimit(): Ratelimit | null {
 
 
 export async function POST(req: NextRequest) {
+  // ── Helper to mock AI streams for immediate blocks ──
+  const mockTextStream = (text: string) => new Response(
+    `0:${JSON.stringify(text)}\n`, 
+    { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Vercel-AI-Data-Stream': 'v1' } }
+  );
+
   // ── Observability: one traceId per turn, timings in ms from request start ──
   const traceId = randomUUID()
   const t0 = Date.now()
@@ -62,23 +69,49 @@ export async function POST(req: NextRequest) {
         || req.headers.get('x-real-ip')
         || '127.0.0.1'
 
+      // ── T09: Pre-flight prompt injection check ───────────────────────────
+      const lastMessage = messages[messages.length - 1]?.content || ''
+      const injectionRegex = /(ignore (all )?previous instructions|you are now|DAN|act as (a|an)|system prompt|forget everything)/i
+      if (injectionRegex.test(lastMessage)) {
+        await prisma.systemLog.create({
+          data: {
+            level: 'WARN',
+            type: 'PROMPT_INJECTION',
+            message: `Prompt injection attempt blocked`,
+            metadata: { studentId: studentId ?? 'anon', ip, attempt: lastMessage.slice(0, 100) }
+          }
+        });
+
+        const recentAttempts = await prisma.systemLog.count({
+          where: {
+            type: 'PROMPT_INJECTION',
+            metadata: { path: ['studentId'], equals: studentId ?? 'anon' },
+            createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) }
+          }
+        });
+
+        if (recentAttempts >= 4 && process.env.ADMIN_NOTIFICATION_EMAIL) {
+          await sendEmail({
+            to: process.env.ADMIN_NOTIFICATION_EMAIL,
+            subject: `[SECURITY] Repeated injection attempts — ${studentId ?? 'anon'}`,
+            html: `<p>User ${studentId ?? 'anon'} (IP: ${ip}) triggered prompt injection defenses ${recentAttempts + 1} times in the last hour.</p><p>Latest attempt: ${lastMessage.slice(0, 500)}</p>`,
+          }).catch(console.error);
+        }
+
+        return mockTextStream("I am here to help you with university admissions. How can I assist you with your study plans today? 😊");
+      }
+
       const rl = getRatelimit()
       if (rl) {
         try {
           const { success, limit, remaining, reset } = await rl.limit(ip)
           if (!success) {
             const retryAfterSec = Math.ceil((reset - Date.now()) / 1000)
-            return NextResponse.json(
-              { reply: `You've sent a lot of messages! 😊 Please wait ${Math.ceil(retryAfterSec / 60)} minute(s) and try again.` },
-              {
-                status: 200,
-                headers: {
-                  'X-RateLimit-Limit': String(limit),
-                  'X-RateLimit-Remaining': String(remaining),
-                  'Retry-After': String(retryAfterSec),
-                }
-              }
-            )
+            const response = mockTextStream(`You've sent a lot of messages! 😊 Please wait ${Math.ceil(retryAfterSec / 60)} minute(s) and try again.`);
+            response.headers.set('X-RateLimit-Limit', String(limit));
+            response.headers.set('X-RateLimit-Remaining', String(remaining));
+            response.headers.set('Retry-After', String(retryAfterSec));
+            return response;
           }
         } catch (e) {
           // Redis auth/network failure — skip rate limiting, keep bot alive
@@ -105,7 +138,12 @@ export async function POST(req: NextRequest) {
       timings.quota = Date.now() - t0
 
       if (!quota.allowed) {
-        return NextResponse.json({ quota: quota })
+        if (quota.reason === 'anon_limit') {
+            return mockTextStream(`You've reached your trial limit. Please register to continue chatting about your study plans!`);
+        } else if (quota.reason === 'anon_cooldown' || quota.reason === 'registered_limit') {
+            return mockTextStream(`You've sent a lot of messages today. Please chat with me again tomorrow! 😊`);
+        }
+        return mockTextStream(`Your message limit has been reached. Please try again later.`);
       }
 
 
@@ -138,7 +176,7 @@ export async function POST(req: NextRequest) {
 
         system: systemPrompt,
         messages,
-        maxOutputTokens: 2048,   // allow rich, detailed answers (ai@6 renamed from maxTokens)
+        maxOutputTokens: 500,
         stopWhen: stepCountIs(2), // max 1 tool call
         tools: {
 
@@ -299,7 +337,7 @@ export async function POST(req: NextRequest) {
       return response
 
     } catch (error) {
-      console.error('[/api/chat] error:', error)
+      console.error('[/api/chat] error:')
       Sentry.captureException(error, { extra: { traceId } })
       return new Response(
         "I'm having a moment of trouble. Please try again — I'm here to help! 😊",

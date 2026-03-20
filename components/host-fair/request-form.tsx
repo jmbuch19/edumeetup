@@ -357,6 +357,16 @@ export function HostFairRequestForm({ venues = [] }: { venues?: VenueWithCircuit
                 </div>
             </div>
 
+            {/* T11: Fake Honeypot Input */}
+            <input 
+                type="text" 
+                {...register("_honeypot")} 
+                className="hidden" 
+                tabIndex={-1} 
+                autoComplete="off" 
+                aria-hidden="true" 
+            />
+
             <div className="pt-6">
                 <Button 
                     type="submit" 

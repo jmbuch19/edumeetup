@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
         const buffer = Buffer.from(await file.arrayBuffer())
         fileUrl = await uploadToR2(buffer, r2Key, file.type)
     } catch (err) {
-        console.error('R2 upload failed:', err)
+        console.error('R2 upload failed:')
         return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 })
     }
 

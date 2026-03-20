@@ -130,7 +130,7 @@ export async function GET(request: Request) {
         })
 
     } catch (error: any) {
-        console.error('[Reminders Cron] Failed:', error)
+        console.error('[Reminders Cron] Failed:')
         return NextResponse.json({ error: 'Internal server error — check Netlify function logs' }, { status: 500 })
     }
 }

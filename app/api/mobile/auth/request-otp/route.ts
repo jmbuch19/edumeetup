@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ message: 'Code sent to your email.' })
   } catch (err) {
-    console.error('[mobile/auth/request-otp]', err)
+    console.error('[mobile/auth/request-otp]')
     return NextResponse.json({ error: 'Failed to send code' }, { status: 500 })
   }
 }

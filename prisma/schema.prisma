@@ -25,6 +25,7 @@ model User {
   timezone             String    @default("Asia/Kolkata")
   npsSurveyCompleted   Boolean   @default(false)
   npsSurveyDismissedAt DateTime?
+  sessionVersion       Int       @default(1)
 
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
@@ -287,6 +288,7 @@ model University {
   alumni               Alumni[]
   alumniInvitations    AlumniInvitation[]
   circuitRegistrations CircuitRegistration[]
+  payments             Payment[]                   @relation("UniversityPayments")
 
   @@index([verificationStatus])
   @@index([country])
@@ -486,6 +488,8 @@ model HostRequest {
   fieldsOfStudy          Json
   additionalRequirements String?
   status                 String                @default("SUBMITTED")
+
+  @@index([contactEmail])
   createdAt              DateTime              @default(now())
   updatedAt              DateTime              @updatedAt
   outreach               HostRequestOutreach[]
@@ -905,6 +909,7 @@ enum UserRole {
   UNIVERSITY_REP
   ADMIN
   ALUMNI
+  EVENT_PLANNER
 }
 
 enum FieldCategory {
@@ -1133,6 +1138,7 @@ model FairCircuit {
   events      FairEvent[]
   foreignReps CircuitRegistration[]
   proposedHostRequests HostRequest[] @relation("ProposedCircuitRequest")
+  documents   CircuitDocument[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -1185,10 +1191,52 @@ model CircuitRegistration {
   circuit      FairCircuit @relation(fields: [circuitId], references: [id], onDelete: Cascade)
   university   University  @relation(fields: [universityId], references: [id], onDelete: Cascade)
   rep          User?       @relation("RepCircuits", fields: [repId], references: [id], onDelete: SetNull)
+  payments     Payment[]   
 
   @@unique([circuitId, universityId])
   @@index([circuitId])
   @@index([universityId])
+}
+
+model Payment {
+  id                 String   @id @default(cuid())
+  razorpayOrderId    String   @unique
+  razorpayPaymentId  String?  @unique
+  amountRequested    Int
+  amountCaptured     Int?
+  currency           String   @default("INR")
+  status             String   @default("CREATED") // CREATED, PAID, FAILED
+
+  universityId       String
+  circuitRegId       String?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  university         University @relation("UniversityPayments", fields: [universityId], references: [id], onDelete: Cascade)
+  circuitReg         CircuitRegistration? @relation(fields: [circuitRegId], references: [id], onDelete: SetNull)
+
+  @@index([universityId])
+  @@index([circuitRegId])
+}
+
+model CircuitDocument {
+  id           String      @id @default(cuid())
+  circuitId    String
+  displayName  String
+  category     String
+  fileName     String
+  fileUrl      String
+  mimeType     String      @default("application/pdf")
+  sizeBytes    Int
+  isPublic     Boolean     @default(false)
+  uploadedAt   DateTime    @default(now())
+  deletedAt    DateTime? 
+  
+  circuit      FairCircuit @relation(fields: [circuitId], references: [id], onDelete: Cascade)
+
+  @@index([circuitId])
+  @@index([deletedAt])
 }
 
 // ── Fair Mode ─────────────────────────────────────────────────────────
@@ -1464,6 +1512,8 @@ model Alumni {
   showLinkedin       Boolean  @default(true)
   showUsCity         Boolean  @default(true)
   consentSignedAt    DateTime?
+
+  blockedStudents    String[] @default([])
 
   // ── Cron & Engagement Tracking ────────────────────────────────────────────
   lastProfileNudgeAt DateTime? // cron tracks when last email sent

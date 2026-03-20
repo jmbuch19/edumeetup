@@ -101,7 +101,7 @@ export async function respondToOutreach(outreachId: string, status: 'INTERESTED'
         revalidatePath('/university/fairs')
         return { success: true }
     } catch (error) {
-        console.error("Failed to respond to outreach:", error)
+        console.error("Failed to respond to outreach:")
         return { error: "Failed to submit response" }
     }
 }
@@ -132,6 +132,18 @@ export async function confirmFairParticipation(
         if (!fair) return { ok: false, error: 'Fair event not found.' }
         if (fair.rsvpDeadline && new Date() > fair.rsvpDeadline) {
             return { ok: false, error: 'RSVP deadline has passed for this fair.' }
+        }
+
+        // T12: FOH War Room Payment Gate
+        if (fair.circuitId) {
+            const circuitReg = await prisma.circuitRegistration.findUnique({
+                where: {
+                    circuitId_universityId: { circuitId: fair.circuitId as string, universityId: uni.id }
+                }
+            });
+            if (!circuitReg || circuitReg.status !== 'CONFIRMED') {
+                return { ok: false, error: 'Payment Required: Your parent circuit registration must be confirmed to access the Fair War Room.' }
+            }
         }
 
         // 3. Upsert FairInvitation
@@ -179,7 +191,7 @@ export async function confirmFairParticipation(
         revalidatePath('/university/dashboard')
         return { ok: true }
     } catch (err) {
-        console.error('[confirmFairParticipation]', err)
+        console.error('[confirmFairParticipation]')
         return { ok: false, error: 'Failed to confirm participation. Please try again.' }
     }
 }
@@ -218,7 +230,7 @@ export async function declineFairInvitation(
         revalidatePath('/university/dashboard')
         return { ok: true }
     } catch (err) {
-        console.error('[declineFairInvitation]', err)
+        console.error('[declineFairInvitation]')
         return { ok: false, error: 'Failed to record your response. Please try again.' }
     }
 }

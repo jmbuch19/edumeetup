@@ -28,7 +28,7 @@ export function SelectStatus({ requestId, currentStatus }: SelectStatusProps) {
                 alert("Failed to update status")
             }
         } catch (error) {
-            console.error(error)
+            console.error('[ERROR] Details redacted due to security policy')
             setStatus(currentStatus)
         } finally {
             setLoading(false)

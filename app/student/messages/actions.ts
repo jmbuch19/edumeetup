@@ -86,7 +86,7 @@ export async function sendSupportMessage(prevState: any, formData: FormData) {
         }
 
     } catch (error) {
-        console.error('[sendSupportMessage] failed:', error)
+        console.error('[sendSupportMessage] failed:')
         return { error: 'Failed to send message. Please try again.' }
     }
 }

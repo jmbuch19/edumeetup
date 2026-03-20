@@ -1,5 +1,14 @@
 import { getToken } from "next-auth/jwt"
 import { NextResponse, type NextRequest } from "next/server"
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
+
+// Initialize Edge-compatible un-cached Redis Limiter
+const edgeChatLimiter = new Ratelimit({
+    redis: Redis.fromEnv(),
+    limiter: Ratelimit.slidingWindow(20, '10 s'), // 20 requests per 10 seconds per IP
+    ephemeralCache: new Map(),
+})
 
 // ─── GOLDEN RULE ──────────────────────────────────────────────────────────────
 // This middleware handles NAVIGATION UX only — route gating and role-based redirects.
@@ -12,9 +21,25 @@ export default async function middleware(req: NextRequest) {
     const { nextUrl } = req
 
     // ── STEP 1: ALL /api/ routes bypass this middleware completely ──────────
-    // Auth callbacks MUST reach the full route handler with PrismaAdapter.
-    // API security is enforced server-side in each route handler.
+    // Except /api/chat which requires edge ratelimits before Node initializes.
     if (nextUrl.pathname.startsWith('/api/')) {
+        const isProtectedApi = nextUrl.pathname === '/api/chat' || 
+                               nextUrl.pathname === '/api/student-chat' || 
+                               nextUrl.pathname === '/api/auth/signin/email'
+
+        if (isProtectedApi) {
+            try {
+                const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1'
+                const { success } = await edgeChatLimiter.limit(`mw_chat_${ip}`)
+                if (!success) {
+                    console.log(`[middleware] Edge ratelimit blocked IP: ${ip}`)
+                    return new NextResponse('Too Many Requests (Edge Block)', { status: 429 })
+                }
+            } catch (e) {
+                // If Redis is unreachable, fail open so students aren't blocked
+                console.warn('[middleware] Edge Ratelimit error:', (e as Error).message)
+            }
+        }
         return NextResponse.next()
     }
 
@@ -125,5 +150,10 @@ export default async function middleware(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)",],
+    matcher: [
+        "/((?!_next/static|_next/image|favicon.ico|api).*)",
+        "/api/chat",
+        "/api/student-chat",
+        "/api/auth/signin/email"
+    ],
 }

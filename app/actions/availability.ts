@@ -30,7 +30,7 @@ export async function setAvailability(slots: { startTime: Date, endTime: Date }[
         revalidatePath('/university/dashboard')
         return { success: true }
     } catch (error) {
-        console.error("Error setting availability:", error)
+        console.error("Error setting availability:")
         return { error: "Failed to set availability" }
     }
 }

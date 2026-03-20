@@ -4,26 +4,37 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
-export async function listFairCircuits() {
+export async function listFairCircuits(page: number = 1, pageSize: number = 20) {
     const session = await auth()
     if (!session || session.user?.role !== 'ADMIN') {
         throw new Error('Unauthorized')
     }
 
-    const circuits = await prisma.fairCircuit.findMany({
-        orderBy: { startDate: 'asc' },
-        include: {
-            venues: true,
-            events: true,
-            foreignReps: {
-                include: {
-                    university: { select: { institutionName: true, logo: true } }
+    const skip = (page - 1) * pageSize
+
+    const [circuits, total] = await Promise.all([
+        prisma.fairCircuit.findMany({
+            orderBy: { startDate: 'asc' },
+            skip,
+            take: pageSize,
+            include: {
+                venues: true,
+                events: true,
+                foreignReps: {
+                    include: {
+                        university: { select: { institutionName: true, logo: true } }
+                    }
                 }
             }
-        }
-    })
+        }),
+        prisma.fairCircuit.count()
+    ])
 
-    return circuits
+    return { 
+        circuits, 
+        total, 
+        totalPages: Math.ceil(total / pageSize) 
+    }
 }
 
 export async function updateCircuitStatus(circuitId: string, status: 'DRAFT' | 'PUBLISHED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED') {

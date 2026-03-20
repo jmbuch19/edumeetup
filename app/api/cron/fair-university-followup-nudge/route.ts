@@ -79,13 +79,13 @@ export async function GET(request: Request) {
                 })
                 nudgesSent++
             } catch (err) {
-                console.error(`[fair-university-followup-nudge] Failed for university=${group.universityId}:`, err)
+                console.error(`[fair-university-followup-nudge] Failed for university=${group.universityId}:`)
             }
         }
 
         return NextResponse.json({ success: true, nudgesSent })
     } catch (error) {
-        console.error('[fair-university-followup-nudge] Error:', error)
+        console.error('[fair-university-followup-nudge] Error:')
         return NextResponse.json({ error: 'Internal error' }, { status: 500 })
     }
 }

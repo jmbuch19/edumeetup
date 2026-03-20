@@ -89,7 +89,7 @@ export async function respondToOutreach(outreachId: string, status: RespondOptio
         return { success: true }
 
     } catch (error) {
-        console.error("Failed to respond to outreach:", error)
+        console.error("Failed to respond to outreach:")
         return { success: false, message: "Internal server error" }
     }
 }

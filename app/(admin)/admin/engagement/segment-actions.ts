@@ -226,7 +226,7 @@ export async function emailSegment(
             })
             sent++
         } catch (e) {
-            console.error(`[emailSegment] failed for ${student.email}:`, e)
+            console.error(`[emailSegment] failed for ${student.email}:`)
             failed++
         }
     }

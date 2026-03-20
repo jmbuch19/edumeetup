@@ -107,7 +107,7 @@ export async function createOutreach(requestId: string, universityIds: string[])
         return { success: true, count }
 
     } catch (error) {
-        console.error("Failed to create outreach:", error)
+        console.error("Failed to create outreach:")
         return { success: false, message: "Failed to create outreach" }
     }
 }

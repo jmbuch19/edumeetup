@@ -122,7 +122,7 @@ export async function createFairPass(
 
         return { pass }
     } catch (error) {
-        console.error('[createFairPass] Error:', error)
+        console.error('[createFairPass] Error:')
         return { error: 'Failed to create pass. Please try again.' }
     }
 }

@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
         })
 
     } catch (error) {
-        console.error("[setup-admin] Failed:", error)
+        console.error("[setup-admin] Failed:")
         return NextResponse.json({ error: "Failed to create admin" }, { status: 500 })
     }
 }

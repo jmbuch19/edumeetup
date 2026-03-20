@@ -58,7 +58,7 @@ export async function createAdvisoryRequest(data: AdvisoryRequestData) {
         revalidatePath('/student/dashboard')
         return { success: true }
     } catch (error) {
-        console.error("Advisory Request Error:", error)
+        console.error("Advisory Request Error:")
         return { success: false, error: "Failed to submit request." }
     }
 }

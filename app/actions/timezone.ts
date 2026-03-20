@@ -57,7 +57,7 @@ export async function syncUserTimezone(detectedTimezone: string) {
 
         return { success: true }
     } catch (e) {
-        console.error("Failed to sync timezone:", e)
+        console.error("Failed to sync timezone:")
         return { success: false }
     }
 }

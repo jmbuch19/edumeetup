@@ -18,7 +18,7 @@ export default async function AdminLayout({
     try {
         session = await auth()
     } catch (e) {
-        console.error('[AdminLayout] auth() failed:', e)
+        console.error('[AdminLayout] auth() failed:')
     }
 
     // ── Session check — render interstitial instead of redirect() ─────────────
@@ -61,7 +61,7 @@ export default async function AdminLayout({
                 prisma.university.count({ where: { verificationStatus: 'PENDING' } }),
             ])
     } catch (e) {
-        console.error('[AdminLayout] stats fetch failed:', e)
+        console.error('[AdminLayout] stats fetch failed:')
     }
 
     return (

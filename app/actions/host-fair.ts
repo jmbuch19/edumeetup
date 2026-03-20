@@ -13,6 +13,12 @@ export type ActionResponse = {
 }
 
 export async function submitHostRequest(data: HostRequestFormValues): Promise<ActionResponse> {
+    if (data._honeypot && data._honeypot.length > 0) {
+        // Silent fake success — bot thinks it worked
+        const fakeRef = `HCF-${new Date().getFullYear()}-${Math.floor(Math.random() * 999).toString().padStart(3, '0')}`
+        return { success: true, referenceNumber: fakeRef }
+    }
+
     const validated = hostRequestSchema.safeParse(data)
 
     if (!validated.success) {
@@ -32,6 +38,16 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
     } = validated.data
 
     try {
+        // T11: Spam / Duplicate Limiter (24 hours)
+        const recentDuplicate = await prisma.hostRequest.findFirst({
+            where: {
+                contactEmail: contactEmail.toLowerCase(),
+                createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+            }
+        })
+        if (recentDuplicate) {
+            return { success: true, referenceNumber: recentDuplicate.referenceNumber }
+        }
         // Generate Reference Number: HCF-YYYY-XXX
         const year = new Date().getFullYear()
 
@@ -172,7 +188,7 @@ export async function submitHostRequest(data: HostRequestFormValues): Promise<Ac
         }
 
     } catch (error) {
-        console.error("Failed to submit host request:", error)
+        console.error("Failed to submit host request:")
         return {
             success: false,
             message: "An internal error occurred. Please try again later."

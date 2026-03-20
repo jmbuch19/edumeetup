@@ -33,7 +33,7 @@ export async function GET(request: Request) {
             checkedAt: now.toISOString(),
         })
     } catch (error) {
-        console.error('[fair-auto-live] Error:', error)
+        console.error('[fair-auto-live] Error:')
         return NextResponse.json({ error: 'Internal error' }, { status: 500 })
     }
 }

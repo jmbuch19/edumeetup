@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
                 to: party.email,
                 subject: `Meeting Cancelled: "${meeting.title || 'Booked Meeting'}"`,
                 html,
-            }).catch(err => console.error('[Delete] Cancel email failed:', err))
+            }).catch(err => console.error('[Delete] Cancel email failed:'))
         }
     }
 
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
         to: user.email,
         subject: 'Your EdUmeetup account is scheduled for deletion',
         html,
-    }).catch(err => console.error('[Delete] Confirmation email failed:', err))
+    }).catch(err => console.error('[Delete] Confirmation email failed:'))
 
     return NextResponse.json({
         success: true,

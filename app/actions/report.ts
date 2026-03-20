@@ -56,7 +56,7 @@ export async function submitBugReport(formData: FormData) {
 
         return { success: true }
     } catch (error) {
-        console.error("Failed to submit bug report:", error)
+        console.error("Failed to submit bug report:")
         return { error: "Failed to submit report" }
     }
 }

@@ -73,7 +73,7 @@ export async function searchUniversities({
         }
 
     } catch (error) {
-        console.error("Search Error:", error)
+        console.error("Search Error:")
         return { universities: [], totalPages: 0, currentPage: 1, totalCount: 0, error: "Failed to fetch universities" }
     }
 }
@@ -119,7 +119,7 @@ export async function getGroupedUniversities() {
 
         return { parents, standalones }
     } catch (error) {
-        console.error('[getGroupedUniversities] error:', error)
+        console.error('[getGroupedUniversities] error:')
         return { parents: [], standalones: [] }
     }
 }

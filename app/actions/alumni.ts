@@ -99,6 +99,15 @@ export async function registerAlumni(data: {
         data: { role: 'ALUMNI' }
     })
 
+    await prisma.systemLog.create({
+        data: {
+            level: 'INFO',
+            type: 'ROLE_ESCALATION',
+            message: `User ${user.id} escalated to ALUMNI via registration`,
+            metadata: JSON.stringify({ userId: user.id, oldRole: 'STUDENT', newRole: 'ALUMNI' })
+        }
+    })
+
     if (data.inviteToken) {
         await prisma.alumniInvitation.updateMany({
             where: { token: data.inviteToken, status: 'PENDING' },
@@ -317,13 +326,16 @@ export async function listVerifiedAlumni(filters?: {
 
     const alumni = alumniData as AlumniItem[]
 
-    const result = alumni.map((a: AlumniItem) => ({
-        ...a,
-        isAtCapacity: a.weeklyCapacity != null && a._count.connectRequests >= a.weeklyCapacity,
-        whatsapp: a.showWhatsapp ? a.whatsapp : null,
-        linkedinUrl: a.showLinkedin ? a.linkedinUrl : null,
-        usCity: a.showUsCity ? a.usCity : null,
-    }))
+    const result = alumni.map((a: AlumniItem) => {
+        const { whatsapp, linkedinUrl, usCity, ...publicData } = a;
+        return {
+            ...publicData,
+            isAtCapacity: a.weeklyCapacity != null && a._count.connectRequests >= a.weeklyCapacity,
+            whatsapp: a.showWhatsapp ? whatsapp : null,
+            linkedinUrl: a.showLinkedin ? linkedinUrl : null,
+            usCity: a.showUsCity ? usCity : null,
+        }
+    })
 
     return { alumni: result, total, page, totalPages: Math.ceil(total / take) }
 }
@@ -360,7 +372,7 @@ export async function requestAlumConnect(data: {
     const alumni = await prisma.alumni.findUnique({
         where: { id: data.alumniId },
         select: {
-            id: true, isVerified: true, adminReviewStatus: true, weeklyCapacity: true,
+            id: true, isVerified: true, adminReviewStatus: true, weeklyCapacity: true, blockedStudents: true,
             _count: { select: { connectRequests: { where: { status: 'PENDING' } } } },
             user: { select: { id: true, name: true } }
         }
@@ -368,6 +380,27 @@ export async function requestAlumConnect(data: {
     if (!alumni || !alumni.isVerified || alumni.adminReviewStatus === 'SUSPENDED') {
         return { error: 'This alumni is not available' }
     }
+    
+    // T13 Hard Block
+    if (alumni.blockedStudents.includes(student.id)) {
+        return { error: 'This alumni is not available for new requests at this time.' }
+    }
+    
+    // T13 Soft Block (30-day cooldown after decline)
+    const recentDecline = await prisma.alumConnectRequest.findFirst({
+        where: {
+            alumniId: alumni.id,
+            studentId: student.id,
+            status: 'DECLINED',
+            respondedAt: {
+                gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+            }
+        }
+    })
+    if (recentDecline) {
+        return { error: 'This alumni is not available for new requests at this time.' }
+    }
+
     if (alumni.weeklyCapacity != null && alumni._count.connectRequests >= alumni.weeklyCapacity) {
         return { error: 'This alumni has reached their weekly capacity. Please try again next week.' }
     }
@@ -400,6 +433,7 @@ export async function respondToConnectRequest(data: {
     requestId: string
     accept: boolean
     responseMessage?: string
+    blockUser?: boolean
 }) {
     const user = await getAuthUser()
     if (!user?.id || user.role !== 'ALUMNI') return { error: 'Unauthorized' }
@@ -421,6 +455,15 @@ export async function respondToConnectRequest(data: {
             respondedAt: new Date(),
         }
     })
+
+    if (!data.accept && data.blockUser) {
+        await prisma.alumni.update({
+            where: { id: alumni.id },
+            data: {
+                blockedStudents: { push: request.studentId }
+            }
+        })
+    }
 
     await prisma.studentNotification.create({
         data: {
@@ -514,7 +557,7 @@ ${data.message ? `<blockquote style="border-left:3px solid #D97706;padding-left:
 </div></body></html>`
         })
     } catch (e) {
-        console.error('[AlumniInvite] Email send failed:', e)
+        console.error('[AlumniInvite] Email send failed:')
     }
 
     return { success: true, inviteId: invite.id, token: invite.token }
@@ -574,7 +617,7 @@ export async function adminNudgeAlumni(alumniId: string) {
 </div></body></html>`
         })
     } catch (e) {
-        console.error('[AdminNudge] Email send failed:', e)
+        console.error('[AdminNudge] Email send failed:')
         return { error: 'Failed to send nudge email' }
     }
 

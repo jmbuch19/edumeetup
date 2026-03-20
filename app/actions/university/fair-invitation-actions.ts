@@ -96,7 +96,7 @@ export async function confirmFairParticipation(
         revalidatePath('/university/dashboard')
         return { ok: true }
     } catch (err) {
-        console.error('[confirmFairParticipation]', err)
+        console.error('[confirmFairParticipation]')
         return { ok: false, error: 'Failed to confirm participation. Please try again.' }
     }
 }
@@ -133,7 +133,7 @@ export async function declineFairInvitation(
         revalidatePath('/university/dashboard')
         return { ok: true }
     } catch (err) {
-        console.error('[declineFairInvitation]', err)
+        console.error('[declineFairInvitation]')
         return { ok: false, error: 'Failed to record your response. Please try again.' }
     }
 }
@@ -192,7 +192,7 @@ export async function sendFairInvitationReminder(
         revalidatePath(`/admin/fairs/${fairEventId}`)
         return { ok: true, sent }
     } catch (err) {
-        console.error('[sendFairInvitationReminder]', err)
+        console.error('[sendFairInvitationReminder]')
         return { ok: false, error: 'Failed to send reminders. Please try again.' }
     }
 }

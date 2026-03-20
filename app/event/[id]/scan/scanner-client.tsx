@@ -270,7 +270,7 @@ export function ScannerClient({
                     onError,
                 )
             } catch (err) {
-                console.error('[QR Scanner] Camera start failed:', err)
+                console.error('[QR Scanner] Camera start failed:')
                 if (mounted) {
                     setErrorMsg('Camera access denied. Please allow camera permissions and reload.')
                     setScanState('error')
