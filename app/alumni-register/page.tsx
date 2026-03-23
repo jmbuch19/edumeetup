@@ -24,7 +24,7 @@ export default async function AlumniRegisterRouter({ searchParams }: Props) {
         redirect(`/alumni-register/hero${tokenQuery}`)
     }
 
-    if (session.user.role === 'ALUMNI') {
+    if (session?.user?.role === 'ALUMNI') {
         // Already registered as alumni
         redirect('/alumni/dashboard')
     }
