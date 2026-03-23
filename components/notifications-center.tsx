@@ -121,7 +121,13 @@ export function NotificationsCenter({ userRole, invitationByFairId, programs }: 
                             )}
 
                             {data.notifications.length === 0 ? (
-                                <div className="text-center py-8 text-muted-foreground">You're all caught up!</div>
+                                <div className="flex flex-col items-center justify-center text-center py-12 rounded-2xl border border-[#E8EAF6] mt-4" style={{ backgroundColor: '#F0F2FF' }}>
+                                    <Bell className="h-12 w-12 mb-4 animate-float" style={{ color: '#C9A84C' }} />
+                                    <h3 className="mb-2" style={{ fontFamily: 'var(--font-fraunces)', fontWeight: 700, fontSize: 20, color: '#0B1340' }}>You're all caught up!</h3>
+                                    <p className="max-w-sm" style={{ fontFamily: 'var(--font-jakarta)', fontSize: 14, color: '#888888' }}>
+                                        When universities or advisors reach out to you, their messages will securely appear here.
+                                    </p>
+                                </div>
                             ) : (
                                 /* Scrollable list — max 5 items, max-height 400px */
                                 <div
@@ -164,20 +170,38 @@ export function NotificationsCenter({ userRole, invitationByFairId, programs }: 
                                         }
 
                                         // Generic notification card
+                                        const isUnread = !n.isRead && !n.readAt
+                                        const isAlumni = n.type === 'ALUMNI_MILESTONE'
+
                                         return (
                                             <div
                                                 key={n.id}
-                                                className="p-4 rounded-lg border bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                                                className={`rounded-lg relative overflow-hidden transition-all ${isUnread ? 'animate-pop shadow-sm' : ''} ${isAlumni ? 'p-5' : 'p-4'}`}
+                                                style={{ 
+                                                    backgroundColor: isUnread ? '#FDF6E3' : '#FFFFFF', 
+                                                    borderLeft: isUnread ? '3px solid #C9A84C' : '1px solid #E8EAF6',
+                                                    ...(isUnread ? { borderTop: '1px solid rgba(201,168,76,0.3)', borderRight: '1px solid rgba(201,168,76,0.3)', borderBottom: '1px solid rgba(201,168,76,0.3)' } : { border: '1px solid #E8EAF6' })
+                                                }}
                                             >
                                                 <div className="flex justify-between items-start gap-3">
-                                                    <div className="flex gap-3 min-w-0">
-                                                        <div className="mt-1 p-2 rounded-full bg-blue-100 text-blue-600 shrink-0">
-                                                            <Bell className="h-4 w-4" />
-                                                        </div>
+                                                    <div className="flex gap-4 min-w-0">
+                                                        {!isAlumni && (
+                                                            <div className="mt-1 p-2 rounded-full shrink-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(201,168,76,0.2)', color: '#A8873A' }}>
+                                                                <Bell className="h-4 w-4" />
+                                                            </div>
+                                                        )}
                                                         <div className="min-w-0">
-                                                            <h4 className="font-semibold text-sm">{n.title}</h4>
-                                                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{n.message}</p>
-                                                            <div className="text-xs text-muted-foreground mt-2">
+                                                            {isAlumni && (
+                                                                <div className="mb-2">
+                                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-[700]" style={{ backgroundColor: '#C9A84C', color: '#0B1340', fontFamily: 'var(--font-jakarta)' }}>
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse-gold"></span>
+                                                                        Alumni Update
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            <h4 className="leading-tight mb-1" style={{ fontFamily: 'var(--font-fraunces)', fontWeight: 700, fontSize: 15, color: '#0B1340' }}>{n.title}</h4>
+                                                            <p className="whitespace-pre-wrap leading-relaxed" style={{ fontFamily: 'var(--font-jakarta)', fontSize: 13, color: '#444444' }}>{n.message}</p>
+                                                            <div className="mt-2" style={{ fontFamily: 'var(--font-jakarta)', fontSize: 12, color: '#888888' }}>
                                                                 {new Date(n.createdAt).toLocaleDateString()}
                                                             </div>
                                                         </div>
@@ -186,7 +210,7 @@ export function NotificationsCenter({ userRole, invitationByFairId, programs }: 
                                                     <button
                                                         onClick={() => handleDismiss(n.id)}
                                                         title="Dismiss"
-                                                        className="shrink-0 h-6 w-6 flex items-center justify-center rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 text-muted-foreground hover:text-foreground transition-colors"
+                                                        className="shrink-0 h-6 w-6 flex items-center justify-center rounded hover:bg-black/5 text-[#888888] hover:text-[#0B1340] transition-colors"
                                                     >
                                                         <X className="h-3.5 w-3.5" />
                                                     </button>
@@ -205,7 +229,13 @@ export function NotificationsCenter({ userRole, invitationByFairId, programs }: 
 
                         <TabsContent value="announcements" className="space-y-4 pt-4">
                             {data.announcements.length === 0 ? (
-                                <div className="text-center py-8 text-muted-foreground">No active announcements.</div>
+                                <div className="flex flex-col items-center justify-center text-center py-12 rounded-2xl border border-[#E8EAF6]" style={{ backgroundColor: '#F0F2FF' }}>
+                                    <Megaphone className="h-12 w-12 mb-4 animate-float" style={{ color: '#C9A84C' }} />
+                                    <h3 className="mb-2" style={{ fontFamily: 'var(--font-fraunces)', fontWeight: 700, fontSize: 20, color: '#0B1340' }}>No active announcements</h3>
+                                    <p className="max-w-sm" style={{ fontFamily: 'var(--font-jakarta)', fontSize: 14, color: '#888888' }}>
+                                        Check back later for platform-wide updates and special event alerts.
+                                    </p>
+                                </div>
                             ) : (
                                 data.announcements.map(a => (
                                     <div key={a.id} className="p-4 rounded-lg border border-yellow-200 bg-yellow-50/50 dark:bg-yellow-900/10 dark:border-yellow-800">

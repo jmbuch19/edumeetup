@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { verifyTurnstile } from '@/lib/turnstile'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
@@ -45,7 +46,13 @@ export async function registerAlumni(data: {
     showLinkedin: boolean
     showUsCity: boolean
     inviteToken?: string
+    turnstileToken?: string
 }) {
+    const turnstileResult = await verifyTurnstile(data.turnstileToken)
+    if (!turnstileResult.success) {
+        return { error: turnstileResult.error || "Bot verification failed." }
+    }
+
     const user = await getAuthUser()
     if (!user?.id) return { error: 'Please sign in first' }
 

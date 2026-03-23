@@ -2,6 +2,7 @@
 
 import { hostRequestSchema, HostRequestFormValues } from "@/lib/host-fair-schema"
 import { prisma } from "@/lib/prisma"
+import { verifyTurnstile } from "@/lib/turnstile"
 import { sendEmail, EmailTemplates, generateEmailHtml, EMAIL_STYLES } from "@/lib/email"
 import { revalidatePath } from "next/cache"
 
@@ -13,6 +14,11 @@ export type ActionResponse = {
 }
 
 export async function submitHostRequest(data: HostRequestFormValues): Promise<ActionResponse> {
+    const turnstileResult = await verifyTurnstile(data.turnstileToken)
+    if (!turnstileResult.success) {
+        return { success: false, message: turnstileResult.error }
+    }
+
     if (data._honeypot && data._honeypot.length > 0) {
         // Silent fake success — bot thinks it worked
         const fakeRef = `HCF-${new Date().getFullYear()}-${Math.floor(Math.random() * 999).toString().padStart(3, '0')}`

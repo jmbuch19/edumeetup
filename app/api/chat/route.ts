@@ -19,6 +19,7 @@ import { BOT_VERSION } from '@/lib/bot/registry'
 import { getQuotaStatus, consumeMessage } from '@/lib/bot/quota'
 import { scoreConversation } from '@/lib/bot/lead-scorer'
 import * as Sentry from '@sentry/nextjs'
+import { verifyTurnstile } from '@/lib/turnstile'
 
 export const maxDuration = 30
 
@@ -125,6 +126,18 @@ export async function POST(req: NextRequest) {
       // ── Quota check (session/daily limits) ───────────────────────────────
       const session = await auth()
       const userId = session?.user?.id ?? null
+
+      if (!userId) {
+        const turnstileToken = req.headers.get('x-turnstile-token')
+        const turnstileResult = await verifyTurnstile(turnstileToken)
+        if (!turnstileResult.success) {
+          return NextResponse.json(
+            { error: 'Please verify you are human to use the advisor.' },
+            { status: 403 }
+          )
+        }
+      }
+
       let quota
       try {
         quota = await getQuotaStatus(ip, userId)

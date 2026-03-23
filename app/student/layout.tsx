@@ -23,63 +23,28 @@ export default async function StudentLayout({ children }: { children: React.Reac
     const firstName = rawName.split(' ')[0]
 
     return (
-        <div className="flex h-screen overflow-hidden" style={{ background: 'var(--surface)', fontFamily: 'var(--font-body)' }}>
-
-            {/* ── Left Navigation ─────────────────────────────────────────────── */}
+        <div className="flex flex-col h-screen overflow-hidden bg-[#F8F9FF] font-body relative">
+            {/* ── Top Navigation Bar ────────────────────────────────────────────── */}
             <StudentNav
                 userName={student?.fullName ?? session.user.name}
                 city={student?.city}
                 senderEmail={session.user.email}
             />
 
-            {/* ── Centre ──────────────────────────────────────────────────────── */}
-            <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-
-                {/* Sticky header */}
-                <header className="sticky top-0 z-10 flex items-center justify-between gap-3 px-5 py-3.5 border-b"
-                    style={{
-                        background: 'rgba(240,249,248,0.92)',
-                        backdropFilter: 'blur(12px)',
-                        borderColor: 'var(--border-dash)',
-                    }}>
-                    {/* Left — mobile hamburger (only shows on mobile) + greeting */}
-                    <div className="flex items-center gap-3 min-w-0">
-                        <StudentNav
-                            hamburgerOnly
-                            userName={student?.fullName ?? session.user.name}
-                            city={student?.city}
-                            senderEmail={session.user.email}
-                        />
-                        <ClientGreeting firstName={firstName} />
-                    </div>
-
-                    {/* Right — CTAs */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                        <a href="/student/profile"
-                            className="hidden sm:inline-flex items-center border rounded-full px-4 py-1.5 text-xs font-semibold transition-colors hover:bg-teal-50"
-                            style={{ borderColor: 'var(--teal)', color: 'var(--teal)', background: 'transparent' }}>
-                            My Profile
-                        </a>
-                        <a href="/universities"
-                            className="inline-flex items-center rounded-full px-4 py-1.5 text-xs font-semibold text-white transition-all hover:opacity-90"
-                            style={{ background: 'var(--teal)' }}>
-                            Explore All
-                        </a>
-                    </div>
-                </header>
-
+            {/* ── Main Layout Body ────────────────────────────────────────────── */}
+            <div className="flex flex-1 overflow-hidden relative z-10">
                 {/* Page content */}
-                <main className="flex-1 flex overflow-hidden">
-                    <div className="flex-1 w-full max-w-[860px] mx-auto overflow-y-auto px-3">
+                <main className="flex-1 overflow-y-auto">
+                    <div className="w-full max-w-[860px] mx-auto px-4 py-8">
                         {children}
                     </div>
                 </main>
-            </div>
 
-            {/* ── Right Sidebar ────────────────────────────────────────────────── */}
-            <Suspense fallback={<aside className="hidden lg:flex w-[300px] min-w-[300px] border-l" />}>
-                <StudentRightSidebar />
-            </Suspense>
+                {/* ── Right Sidebar ────────────────────────────────────────────────── */}
+                <Suspense fallback={<aside className="hidden lg:flex w-[300px] min-w-[300px] border-l bg-white z-0" />}>
+                    <StudentRightSidebar />
+                </Suspense>
+            </div>
         </div>
     )
 }

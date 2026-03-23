@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
+import { TurnstileWidget } from '@/components/ui/TurnstileWidget'
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
@@ -17,6 +18,7 @@ function UniversityLoginForm() {
     const [error, setError] = useState<string | null>(null)
     const [trustDevice, setTrustDevice] = useState(true)
     const [showTip, setShowTip] = useState(false)
+    const [turnstileToken, setTurnstileToken] = useState<string>('')
 
     // Rate Limit State
     const [rateLimitEnds, setRateLimitEnds] = useState<number | null>(null)
@@ -110,6 +112,7 @@ function UniversityLoginForm() {
         try {
             const formData = new FormData()
             formData.append('email', email)
+            formData.append('cf-turnstile-response', turnstileToken)
 
             const result = await loginUniversity(formData)
 
@@ -242,6 +245,10 @@ function UniversityLoginForm() {
                         </p>
                     )}
                 </div>
+
+                <TurnstileWidget 
+                    onVerify={setTurnstileToken}
+                />
 
                 <SubmitButton
                     type="submit"

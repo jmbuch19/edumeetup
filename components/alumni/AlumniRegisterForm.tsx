@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { registerAlumni } from '@/app/actions/alumni'
+import { TurnstileWidget } from '@/components/ui/TurnstileWidget'
 import {
     ALUMNI_STATUS_OPTIONS,
     ALUMNI_AVAILABLE_FOR_OPTIONS,
@@ -69,6 +70,8 @@ export default function AlumniRegisterForm({ inviteToken }: { inviteToken?: stri
     const router = useRouter()
     const [step, setStep] = useState(1)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+    const [turnstileError, setTurnstileError] = useState(false)
 
     const [form, setForm] = useState({
         // Step 1
@@ -139,6 +142,7 @@ export default function AlumniRegisterForm({ inviteToken }: { inviteToken?: stri
                 showLinkedin: form.showLinkedin,
                 showUsCity: form.showUsCity,
                 inviteToken,
+                turnstileToken: turnstileToken || undefined,
             })
             if ('error' in res) {
                 toast.error(res.error)
@@ -404,6 +408,19 @@ export default function AlumniRegisterForm({ inviteToken }: { inviteToken?: stri
                                         🔒 Your profile will be <strong>live immediately</strong> after registration. The IAES team reviews all alumni profiles in the background. You'll be able to manage everything from your Alumni Dashboard.
                                     </p>
                                 </div>
+
+                                <div className="pt-4">
+                                    <TurnstileWidget
+                                        onVerify={(token) => { setTurnstileToken(token); setTurnstileError(false) }}
+                                        onExpire={() => setTurnstileToken(null)}
+                                        onError={() => setTurnstileError(true)}
+                                    />
+                                    {turnstileError && (
+                                        <p className="text-sm text-red-500 mt-2 text-center">
+                                            Bot protection failed. Please refresh the page and try again.
+                                        </p>
+                                    )}
+                                </div>
                             </div>
                         )}
 
@@ -427,7 +444,7 @@ export default function AlumniRegisterForm({ inviteToken }: { inviteToken?: stri
                             ) : (
                                 <Button
                                     onClick={handleSubmit}
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || !turnstileToken}
                                     className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0"
                                 >
                                     {isSubmitting ? 'Submitting...' : 'Join Alumni Bridge 🌉'}

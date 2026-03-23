@@ -4,6 +4,18 @@
 
 @layer base {
   :root {
+    --font-heading: var(--font-fraunces), Georgia, serif;
+    --font-body:    var(--font-jakarta), system-ui, sans-serif;
+
+    /* Deep Indigo + Saffron Gold palette */
+    --color-indigo:        #0B1340;
+    --color-indigo-mid:    #1a2660;
+    --color-indigo-light:  #E8EAF6;
+    --color-indigo-subtle: #F0F2FF;
+    --color-gold:          #C9A84C;
+    --color-gold-light:    #FDF6E3;
+    --color-gold-dark:     #A8873A;
+
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
@@ -83,7 +95,92 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    background-color: #F8F9FF;
   }
+
+  h1, h2, h3, .font-heading {
+    font-family: var(--font-heading);
+  }
+}
+
+/* Glassmorphism utility classes */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 24px rgba(11, 19, 64, 0.08),
+              0 1px 4px rgba(11, 19, 64, 0.04);
+}
+
+@media (max-width: 768px) {
+  .glass-card { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+}
+
+.glass-card-gold {
+  background: rgba(253, 246, 227, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  box-shadow: 0 4px 24px rgba(201, 168, 76, 0.12);
+}
+
+@media (max-width: 768px) {
+  .glass-card-gold { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+}
+
+/* Micro-animation utilities */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-4px); }
+}
+
+@keyframes pop {
+  0%   { transform: scale(0.95); opacity: 0; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(201, 168, 76, 0); }
+}
+
+.animate-float   { animation: float 3s ease-in-out infinite; }
+.animate-pop     { animation: pop 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+.animate-shimmer {
+  background: linear-gradient(90deg,
+    transparent 0%, rgba(201,168,76,0.15) 50%, transparent 100%);
+  background-size: 200% auto;
+  animation: shimmer 2s linear infinite;
+}
+.animate-pulse-gold { animation: pulse-gold 2s ease-in-out infinite; }
+
+/* Hover lift effect */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(11, 19, 64, 0.12);
+}
+
+/* Gold gradient text */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #C9A84C 0%, #E8C97A 50%, #C9A84C 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Indigo gradient background */
+.bg-indigo-gradient {
+  background: linear-gradient(135deg, #0B1340 0%, #1a2660 100%);
 }
 
 /* ── Print: show ONLY the QR card, hide everything else ───────────────────── */

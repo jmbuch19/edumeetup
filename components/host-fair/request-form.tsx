@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import type { FairVenue, FairCircuit } from "@prisma/client"
+import { TurnstileWidget } from "@/components/ui/TurnstileWidget"
 
 const PREFERRED_COUNTRIES = ["USA", "UK", "Canada", "Australia", "New Zealand", "Europe (General)", "Ireland", "Germany", "France"]
 const FIELDS_OF_STUDY = ["Engineering", "Business & Management", "Computer Science", "Data Science", "Health Sciences", "Arts & Humanities", "Law", "Social Sciences"]
@@ -28,6 +29,8 @@ export type VenueWithCircuit = FairVenue & { circuit: FairCircuit | null }
 export function HostFairRequestForm({ venues = [] }: { venues?: VenueWithCircuit[] }) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [successRef, setSuccessRef] = useState<string | null>(null)
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+    const [turnstileError, setTurnstileError] = useState(false)
 
     const form = useForm<HostRequestFormValues>({
         resolver: zodResolver(hostRequestSchema),
@@ -47,7 +50,7 @@ export function HostFairRequestForm({ venues = [] }: { venues?: VenueWithCircuit
     async function onSubmit(data: HostRequestFormValues) {
         setIsSubmitting(true)
         try {
-            const result = await submitHostRequest(data)
+            const result = await submitHostRequest({ ...data, turnstileToken: turnstileToken || undefined })
 
             if (result.success && result.referenceNumber) {
                 setSuccessRef(result.referenceNumber)
@@ -368,11 +371,26 @@ export function HostFairRequestForm({ venues = [] }: { venues?: VenueWithCircuit
             />
 
             <div className="pt-6">
+                <TurnstileWidget
+                  onVerify={(token) => {
+                    setTurnstileToken(token)
+                    setTurnstileError(false)
+                  }}
+                  onExpire={() => setTurnstileToken(null)}
+                  onError={() => setTurnstileError(true)}
+                />
+                
+                {turnstileError && (
+                  <p className="text-sm text-red-500 mb-4 text-center">
+                    Bot protection failed. Please refresh the page and try again.
+                  </p>
+                )}
+
                 <Button 
                     type="submit" 
                     size="lg" 
                     className="w-full text-lg h-14 bg-primary hover:bg-primary/90" 
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !turnstileToken}
                 >
                     {isSubmitting ? (
                         <>

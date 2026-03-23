@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 
-import { Inter, Fraunces, Plus_Jakarta_Sans } from "next/font/google";
+import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -12,18 +12,18 @@ import { ClientOnlyWidgets } from "@/components/layout/client-only-widgets";
 import { SentryUserProvider } from "@/components/sentry-user-provider";
 import { WatiWidget } from "@/components/layout/wati-widget";
 
-
-const inter = Inter({ subsets: ["latin"] });
 const fraunces = Fraunces({
-  subsets: ["latin"],
-  axes: ["opsz"],
-  variable: "--font-fraunces",
-  display: "swap",
+  subsets: ['latin'],
+  weight: ['400', '700', '900'],
+  variable: '--font-fraunces',
+  display: 'swap',
 })
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-jakarta",
-  display: "swap",
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-jakarta',
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
@@ -74,8 +74,8 @@ export default async function RootLayout({
   ) : undefined;
 
   return (
-    <html lang="en">
-      <body className={`${plusJakarta.className} ${fraunces.variable} ${plusJakarta.variable} overflow-x-hidden`}>
+    <html lang="en" className={`${fraunces.variable} ${plusJakartaSans.variable}`}>
+      <body className={`${plusJakartaSans.className} overflow-x-hidden`}>
         <ThemeProvider>
           {/*
             PublicShell is a 'use client' component that reads usePathname().

@@ -12,6 +12,7 @@ import { COMMON_TYPO_DOMAINS } from '@/lib/schemas'
 import { signIn } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import { TurnstileWidget } from '@/components/ui/TurnstileWidget'
 
 function LoginContent() {
     const searchParams = useSearchParams()
@@ -21,6 +22,7 @@ function LoginContent() {
     const [emailError, setEmailError] = useState<string | null>(null)
     const [trustDevice, setTrustDevice] = useState(true)
     const [showTip, setShowTip] = useState(false)
+    const [turnstileToken, setTurnstileToken] = useState<string>('')
 
     function checkEmailTypo(email: string): string | null {
         const domain = email.trim().toLowerCase().split('@')[1] ?? ''
@@ -31,6 +33,7 @@ function LoginContent() {
     async function handleLogin(formData: FormData) {
         const emailVal = (formData.get('email') as string ?? '').trim().toLowerCase()
         formData.set('email', emailVal)
+        formData.set('cf-turnstile-response', turnstileToken)
 
         // Store device trust preference so SessionGuard can act on it after magic link redirect
         if (typeof window !== 'undefined') {
@@ -130,6 +133,10 @@ function LoginContent() {
                                 </p>
                             )}
                         </div>
+
+                        <TurnstileWidget 
+                            onVerify={setTurnstileToken}
+                        />
 
                         <Button className="w-full" type="submit" disabled={isLoading}>
                             {isLoading ? (

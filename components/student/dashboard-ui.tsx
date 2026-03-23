@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { GraduationCap, MapPin, Search, Calendar, CheckCircle, LogOut, Clock, ExternalLink } from 'lucide-react'
+import { GraduationCap, MapPin, Search, Calendar, CheckCircle, LogOut, Clock, ExternalLink, BookOpen } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
@@ -86,31 +86,71 @@ export function DashboardUI({
         }
     }
 
+    const completeness = 50 + (student.fieldOfInterest ? 15 : 0) + (student.preferredDegree ? 15 : 0) + (hasCv ? 20 : 0)
+    
+    // Dynamic greeting based on time of day
+    const hour = new Date().getHours()
+    const greeting = hour < 12 ? 'Good morning,' : hour < 18 ? 'Good afternoon,' : 'Good evening,'
+
+    const tabClasses = "rounded-none border-b-2 border-transparent bg-transparent p-0 pb-3 text-[14px] font-medium text-[#888888] transition-all duration-200 hover:text-[#0B1340] hover:border-[#E8EAF6] data-[state=active]:border-[#C9A84C] data-[state=active]:text-[#0B1340] data-[state=active]:font-[600] data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+    const tabStyle = { fontFamily: 'var(--font-jakarta)' }
+
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <div>
-                    <h1 className="text-3xl font-serif text-indigo-900">Student Dashboard</h1>
-                    <p className="text-gray-600">Welcome, {student.fullName}!</p>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                    <Link href="/student/profile">
-                        <Button variant="outline">Edit Profile</Button>
-                    </Link>
-                    <Link href="/universities">
-                        <Button className="gap-2">
-                            <Search className="h-4 w-4" />
-                            Browse All
-                        </Button>
-                    </Link>
-                    <Button
-                        variant="outline"
-                        className="gap-2 text-red-600 border-red-200 hover:bg-red-50"
-                        onClick={() => signOut({ callbackUrl: '/' })}
-                    >
-                        <LogOut className="h-4 w-4" />
-                        Sign Out
-                    </Button>
+        <div className="w-full pb-8">
+            {/* ── Dashboard Hero / Welcome Banner ── */}
+            <div className="relative w-full rounded-2xl overflow-hidden bg-indigo-gradient mb-8 p-8 md:p-10 shadow-xl border border-indigo-900/50">
+                {/* Subtle radial glow */}
+                <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none" 
+                     style={{ background: 'radial-gradient(circle, rgba(201,168,76,0.15) 0%, rgba(201,168,76,0) 70%)' }} />
+                
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+                    {/* Left: Greeting */}
+                    <div className="flex-1">
+                        <p className="text-[14px] font-medium" style={{ color: '#AAAACC', fontFamily: 'var(--font-jakarta)' }}>
+                            {greeting}
+                        </p>
+                        <h1 className="text-4xl md:text-[36px] text-white my-2 leading-tight" style={{ fontFamily: 'var(--font-fraunces)', fontWeight: 900 }}>
+                            {student.fullName}
+                        </h1>
+                        <p className="text-[14px] font-medium" style={{ color: '#C9A84C', fontFamily: 'var(--font-jakarta)' }}>
+                            {student.preferredDegree || 'Degree Not Set'} in {student.fieldOfInterest || 'Field Not Selected'}
+                        </p>
+                    </div>
+
+                    {/* Right: Profile Completeness Glass Card */}
+                    <div className="glass-card rounded-2xl p-6 w-full md:w-[280px] shrink-0">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-[12px] uppercase tracking-wider font-semibold" style={{ color: '#888888', fontFamily: 'var(--font-jakarta)' }}>
+                                Profile Strength
+                            </span>
+                        </div>
+                        <div className="flex items-baseline gap-1 mb-4">
+                            <span className="text-[48px] leading-none text-[#0B1340]" style={{ fontFamily: 'var(--font-fraunces)', fontWeight: 900 }}>
+                                {completeness}
+                            </span>
+                            <span className="text-lg font-bold text-[#0B1340] opacity-60">%</span>
+                        </div>
+                        
+                        {/* Progress Bar */}
+                        <div className="h-2.5 w-full rounded-full overflow-hidden mb-5" style={{ backgroundColor: '#E8EAF6' }}>
+                            <div className="h-full rounded-full animate-shimmer" 
+                                 style={{ 
+                                     width: `${completeness}%`, 
+                                     backgroundColor: '#C9A84C',
+                                     background: 'linear-gradient(90deg, #C9A84C 0%, #E8C97A 50%, #C9A84C 100%)',
+                                     backgroundSize: '200% auto'
+                                 }} 
+                            />
+                        </div>
+
+                        {/* CTA */}
+                        <Link href="/student/profile" className="block w-full">
+                            <button className={`w-full py-2.5 rounded-lg text-sm font-bold text-[#0B1340] transition-colors ${completeness < 100 ? 'animate-pulse-gold hover:opacity-90' : 'hover:opacity-90'}`}
+                                    style={{ backgroundColor: '#C9A84C', fontFamily: 'var(--font-jakarta)' }}>
+                                {completeness < 100 ? 'Complete Profile' : 'Update Profile'}
+                            </button>
+                        </Link>
+                    </div>
                 </div>
             </div>
 
@@ -119,31 +159,38 @@ export function DashboardUI({
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-                <TabsList className="bg-gray-100 p-1 h-auto flex-wrap justify-start">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="group-sessions" className="relative">
+                {/* ── Dashboard Tabs ── */}
+                <TabsList className="w-full bg-white border-b border-[#E8EAF6] rounded-none p-0 pb-[2px] flex flex-nowrap overflow-x-auto overflow-y-hidden justify-start h-auto gap-6 md:gap-8 no-scrollbar scrollbar-hide shrink-0">
+                    <TabsTrigger value="overview" className={tabClasses} style={tabStyle}>
+                        Overview
+                    </TabsTrigger>
+
+                    <TabsTrigger value="group-sessions" className={`${tabClasses} relative`} style={tabStyle}>
                         Group Sessions
                         {groupSessions.length > 0 && (
                             <span className="ml-1.5 inline-flex items-center justify-center
-                                rounded-full bg-blue-600 text-white text-[11px]
-                                font-medium px-1.5 py-0.5 min-w-[1.25rem]">
+                                rounded-full text-white text-[11px]
+                                font-bold px-1.5 py-0.5 min-w-[1.25rem]"
+                                style={{ backgroundColor: '#0B1340' }}>
                                 {groupSessions.length}
                             </span>
                         )}
                     </TabsTrigger>
-                    <TabsTrigger value="advisory" className="relative">
+
+                    <TabsTrigger value="advisory" className={`${tabClasses} relative`} style={tabStyle}>
                         Guided Pathway
                         {advisoryStatus && advisoryStatus.status === 'NEW' && (
-                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-white"></span>
+                            <span className="absolute -top-1 -right-3 w-2.5 h-2.5 rounded-full border-2 border-white" style={{ backgroundColor: '#C9A84C' }}></span>
                         )}
                         {advisoryStatus && advisoryStatus.status === 'COMPLETED' && (
-                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></span>
+                            <span className="absolute -top-1 -right-3 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></span>
                         )}
                     </TabsTrigger>
-                    <TabsTrigger value="alumni" className="relative">
+
+                    <TabsTrigger value="alumni" className={`${tabClasses} relative`} style={tabStyle}>
                         <span className="flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
                             Alumni Bridge 🌉
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse-gold" />
                         </span>
                     </TabsTrigger>
                 </TabsList>
@@ -206,81 +253,125 @@ export function DashboardUI({
                         </h2>
 
                         {matchedPrograms.length === 0 ? (
-                            <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200 border-dashed">
-                                <p className="text-gray-500">No matches yet — Update preferences to see recommended programs.</p>
-                                <p className="text-sm text-gray-400 mt-2">Try changing your Field of Interest or Degree Level in your profile.</p>
+                            <div className="flex flex-col items-center justify-center text-center py-12 rounded-2xl border border-[#E8EAF6]" style={{ backgroundColor: '#F0F2FF' }}>
+                                <GraduationCap className="h-12 w-12 mb-4 animate-float" style={{ color: '#C9A84C' }} />
+                                <h3 className="mb-2" style={{ fontFamily: 'var(--font-fraunces)', fontWeight: 700, fontSize: 20, color: '#0B1340' }}>No Matches Found</h3>
+                                <p className="mb-6 max-w-sm" style={{ fontFamily: 'var(--font-jakarta)', fontSize: 14, color: '#888888' }}>
+                                    Try changing your Field of Interest or Degree Level in your profile to see recommended programs.
+                                </p>
+                                <Link href="/student/profile">
+                                    <button className="px-5 py-2.5 rounded-lg text-sm font-bold hover-lift transition-transform" style={{ backgroundColor: '#C9A84C', color: '#0B1340', fontFamily: 'var(--font-jakarta)' }}>
+                                        Update Profile
+                                    </button>
+                                </Link>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {matchedPrograms.map((program: any) => {
+                                {matchedPrograms.map((program: any, index: number) => {
                                     const isInterested = interestedSet.has(program.universityId)
                                     return (
-                                        <div key={program.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:border-primary/50 transition-colors">
-                                            <div className="p-6">
+                                        <div key={program.id} 
+                                             className="glass-card hover-lift animate-pop rounded-2xl overflow-hidden relative flex flex-col justify-between group"
+                                             style={{ animationFillMode: 'both', animationDelay: `${index * 50}ms` }}
+                                        >
+                                            {/* Top accent bar */}
+                                            <div className="h-[3px] w-full transition-colors duration-200" style={{ backgroundColor: '#C9A84C' }} />
+                                            
+                                            <div className="p-6 flex-1 flex flex-col">
+                                                {/* Header: Logo, Name, Location, HOT Badge */}
                                                 <div className="flex justify-between items-start mb-4">
-                                                    <div>
-                                                        <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1">{program.programName}</h3>
-                                                        <p className="text-sm text-gray-600">{program.university.institutionName}</p>
+                                                    <div className="flex gap-3">
+                                                        {/* Logo */}
+                                                        <div className="w-12 h-12 rounded-full flex shrink-0 items-center justify-center bg-white overflow-hidden" style={{ border: '1px solid #E8EAF6' }}>
+                                                             <UniversityLogo src={program.university?.logo} alt={program.university?.institutionName ?? 'Uni Logo'} size="sm" />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="leading-tight" style={{ fontFamily: 'var(--font-fraunces)', fontWeight: 700, fontSize: 18, color: '#0B1340' }}>
+                                                                {program.university?.institutionName ?? 'Unknown Uni'}
+                                                            </h3>
+                                                            <p style={{ fontFamily: 'var(--font-jakarta)', fontSize: 13, color: '#888888' }}>
+                                                                {program.university?.city}, {program.university?.country}
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                    <div className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                                                        Match
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-3 mb-6">
-                                                    <div className="flex justify-between text-sm">
-                                                        <span className="text-gray-500">Tuition</span>
-                                                        <span className="font-medium">{program.currency} {program.tuitionFee.toLocaleString()}</span>
-                                                    </div>
-                                                    <div className="flex justify-between text-sm">
-                                                        <span className="text-gray-500">Duration</span>
-                                                        <span className="font-medium">{program.durationMonths} Months</span>
-                                                    </div>
-                                                    <div className="flex justify-between text-sm">
-                                                        <span className="text-gray-500">Location</span>
-                                                        <span className="font-medium">{program.university.city}, {program.university.country}</span>
+                                                    
+                                                    {/* HOT Badge */}
+                                                    <div className="animate-pulse-gold rounded-full px-2 py-0.5 whitespace-nowrap" 
+                                                         style={{ backgroundColor: '#C9A84C', color: '#0B1340', fontFamily: 'var(--font-jakarta)', fontSize: 11, fontWeight: 700 }}>
+                                                        HOT MATCH
                                                     </div>
                                                 </div>
 
-                                                {/* Actions */}
+                                                {/* Program Name */}
+                                                <h4 className="font-bold text-[#0B1340] mb-3 text-sm">{program.programName}</h4>
+
+                                                {/* Program tags */}
+                                                <div className="flex flex-wrap gap-2 mb-6">
+                                                    <span className="px-2.5 py-1 rounded-full whitespace-nowrap" style={{ backgroundColor: '#E8EAF6', color: '#0B1340', fontFamily: 'var(--font-jakarta)', fontSize: 11 }}>
+                                                        {program.currency ?? 'USD'} {(program.tuitionFee ?? 0).toLocaleString()}
+                                                    </span>
+                                                    <span className="px-2.5 py-1 rounded-full whitespace-nowrap" style={{ backgroundColor: '#E8EAF6', color: '#0B1340', fontFamily: 'var(--font-jakarta)', fontSize: 11 }}>
+                                                        {program.durationMonths ?? 12} Months
+                                                    </span>
+                                                </div>
+
+                                                {/* Spacer to push actions to bottom */}
+                                                <div className="mt-auto" />
+
+                                                {/* Bottom action row */}
                                                 {isInterested ? (
-                                                    <div className="flex gap-2">
-                                                        <Link href={`/universities/${program.university.id}`} className="flex-1">
-                                                            <Button variant="outline" className="w-full text-xs">View Details</Button>
+                                                    <div className="flex gap-2 w-full mt-4">
+                                                        <Link href={`/universities/${program.universityId}`} className="flex-1">
+                                                            <button className="w-full py-2 rounded-lg text-xs font-semibold hover-lift"
+                                                                style={{ border: '1px solid #0B1340', color: '#0B1340', transition: 'all 0.2s ease', backgroundColor: 'transparent' }}
+                                                                onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#0B1340'; e.currentTarget.style.color = '#fff' }}
+                                                                onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#0B1340' }}>
+                                                                View Details
+                                                            </button>
                                                         </Link>
-                                                        <Button disabled className="flex-1 bg-green-600 text-white hover:bg-green-700 text-xs">Interest Sent</Button>
+                                                        <button disabled className="flex-1 rounded-lg text-xs font-semibold py-2"
+                                                            style={{ backgroundColor: '#E8EAF6', color: '#888888' }}>
+                                                            Interest Sent
+                                                        </button>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex flex-col gap-2">
-                                                        <Button 
-                                                            onClick={() => handleAction('interest', program.id, program.university.id)} 
+                                                    <div className="flex flex-col gap-2 w-full mt-4">
+                                                        <button 
+                                                            onClick={() => handleAction('interest', program.id, program.universityId)} 
                                                             disabled={loadingAction === `interest-${program.id}`}
-                                                            className="w-full text-xs"
+                                                            className="w-full py-2.5 rounded-lg text-xs font-semibold hover-lift transition-colors block"
+                                                            style={{ backgroundColor: '#C9A84C', color: '#0B1340' }}
+                                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#A8873A'}
+                                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#C9A84C'}
                                                         >
                                                             {loadingAction === `interest-${program.id}` ? 'Sending...' : 'Express Interest'}
-                                                        </Button>
+                                                        </button>
                                                         <div className="flex gap-2">
-                                                            <Button 
-                                                                variant="outline" 
-                                                                onClick={() => handleAction('meeting', program.id, program.university.id)} 
+                                                            <button 
+                                                                onClick={() => handleAction('meeting', program.id, program.universityId)} 
                                                                 disabled={loadingAction === `meeting-${program.id}`}
-                                                                className="flex-1 text-xs px-2"
+                                                                className="flex-1 py-1.5 rounded-lg text-xs font-semibold hover-lift transition-all"
+                                                                style={{ border: '1px solid #0B1340', color: '#0B1340', backgroundColor: 'transparent' }}
+                                                                onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#0B1340'; e.currentTarget.style.color = '#fff' }}
+                                                                onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#0B1340' }}
                                                             >
                                                                 {loadingAction === `meeting-${program.id}` ? '...' : 'Request Meeting'}
-                                                            </Button>
-                                                            <Button 
-                                                                variant="outline" 
+                                                            </button>
+                                                            <button 
                                                                 onClick={() => {
                                                                     const msg = window.prompt("What would you like to ask the university?")
                                                                     if (msg && msg.trim()) {
-                                                                        handleAction('question', program.id, program.university.id, msg)
+                                                                        handleAction('question', program.id, program.universityId, msg)
                                                                     }
                                                                 }} 
                                                                 disabled={loadingAction === `question-${program.id}`}
-                                                                className="flex-1 text-xs px-2"
+                                                                className="flex-1 py-1.5 rounded-lg text-xs font-semibold hover-lift transition-all"
+                                                                style={{ border: '1px solid #0B1340', color: '#0B1340', backgroundColor: 'transparent' }}
+                                                                onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#0B1340'; e.currentTarget.style.color = '#fff' }}
+                                                                onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#0B1340' }}
                                                             >
                                                                 {loadingAction === `question-${program.id}` ? '...' : 'Ask Question'}
-                                                            </Button>
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 )}
@@ -296,34 +387,58 @@ export function DashboardUI({
                     <div>
                         <h2 className="text-2xl font-serif text-indigo-900 mb-6">Other Recommended Universities</h2>
                         {recommendedUniversities.length === 0 ? (
-                            <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
-                                <p className="text-gray-500">No universities found yet. Check back later!</p>
+                            <div className="flex flex-col items-center justify-center text-center py-12 rounded-2xl border border-[#E8EAF6]" style={{ backgroundColor: '#F0F2FF' }}>
+                                <BookOpen className="h-12 w-12 mb-4 animate-float" style={{ color: '#C9A84C' }} />
+                                <h3 className="mb-2" style={{ fontFamily: 'var(--font-fraunces)', fontWeight: 700, fontSize: 20, color: '#0B1340' }}>No Universities Found</h3>
+                                <p className="mb-6 max-w-sm" style={{ fontFamily: 'var(--font-jakarta)', fontSize: 14, color: '#888888' }}>
+                                    We are constantly adding new university partners. Check back later for fresh recommendations!
+                                </p>
+                                <Link href="/student/profile">
+                                    <button className="px-5 py-2.5 rounded-lg text-sm font-bold hover-lift transition-transform" style={{ backgroundColor: '#C9A84C', color: '#0B1340', fontFamily: 'var(--font-jakarta)' }}>
+                                        Explore Universities
+                                    </button>
+                                </Link>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {recommendedUniversities.map((uni) => (
-                                    <div key={uni.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                                        <div className="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-100">
-                                            <UniversityLogo
-                                                src={uni.logo}
-                                                alt={uni.institutionName}
-                                                size="xl"
-                                                websiteUrl={uni.website}
-                                            />
-                                        </div>
-                                        <div className="p-6">
-                                            <h3 className="text-xl font-bold text-gray-900 mb-2">{uni.institutionName}</h3>
-                                            <div className="flex items-center text-gray-500 mb-4 text-sm">
-                                                <MapPin className="h-4 w-4 mr-1" />
-                                                {uni.city}, {uni.country}
-                                            </div>
-                                            <div className="space-y-2 mb-6">
-                                                <div className="text-sm text-gray-600">
-                                                    <span className="font-medium">{uni.programs.length}</span> Programs Available
+                                {recommendedUniversities.map((uni, index) => (
+                                    <div key={uni.id} 
+                                         className="glass-card hover-lift animate-pop rounded-2xl overflow-hidden relative flex flex-col justify-between group"
+                                         style={{ animationFillMode: 'both', animationDelay: `${index * 50}ms` }}
+                                    >
+                                        <div className="h-[3px] w-full transition-colors duration-200" style={{ backgroundColor: '#0B1340' }} />
+                                        
+                                        <div className="p-6 flex-1 flex flex-col">
+                                            <div className="flex gap-4 items-center mb-5">
+                                                <div className="w-12 h-12 rounded-full flex shrink-0 items-center justify-center bg-white overflow-hidden" style={{ border: '1px solid #E8EAF6' }}>
+                                                    <UniversityLogo src={uni.logo} alt={uni.institutionName} size="sm" websiteUrl={uni.website} />
+                                                </div>
+                                                <div>
+                                                    <h3 className="leading-tight mb-0.5" style={{ fontFamily: 'var(--font-fraunces)', fontWeight: 700, fontSize: 18, color: '#0B1340' }}>
+                                                        {uni.institutionName}
+                                                    </h3>
+                                                    <div className="flex items-center gap-1" style={{ fontFamily: 'var(--font-jakarta)', fontSize: 13, color: '#888888' }}>
+                                                        <MapPin className="h-3 w-3" />
+                                                        {uni.city}, {uni.country}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <Link href={`/universities/${uni.id}`}>
-                                                <Button variant="outline" className="w-full">View Details</Button>
+
+                                            <div className="flex flex-wrap gap-2 mb-6">
+                                                <span className="px-2.5 py-1 rounded-full" style={{ backgroundColor: '#E8EAF6', color: '#0B1340', fontFamily: 'var(--font-jakarta)', fontSize: 11 }}>
+                                                    {uni.programs?.length ?? 0} Programs
+                                                </span>
+                                            </div>
+
+                                            <div className="mt-auto" />
+
+                                            <Link href={`/universities/${uni.id}`} className="w-full block">
+                                                <button className="w-full py-2.5 rounded-lg text-xs font-semibold hover-lift"
+                                                    style={{ border: '1px solid #0B1340', color: '#0B1340', transition: 'all 0.2s ease', backgroundColor: 'transparent' }}
+                                                    onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#0B1340'; e.currentTarget.style.color = '#fff' }}
+                                                    onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#0B1340' }}>
+                                                    View Details
+                                                </button>
                                             </Link>
                                         </div>
                                     </div>

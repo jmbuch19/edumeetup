@@ -60,61 +60,52 @@ export function StudentMeetingsTable({ meetings }: { meetings: MeetingParticipan
                 const showJoin = (isCloseEnough || isOngoing) && !isPast && meeting.joinUrl && participant.rsvpStatus === 'ACCEPTED'
 
                 return (
-                    <div key={participant.meetingId} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
-                        {/* ... existing header ... */}
-
-                        {/* We need to be careful with replace, verifying context. 
-                           Actually, better to replace the specific block inside the map.
-                           I will target the map function start or just the render part.
-                        */}
-
+                    <div key={participant.meetingId} className="glass-card hover-lift p-6 rounded-2xl relative overflow-hidden transition-all duration-200">
                         <div className="flex justify-between items-start gap-4">
                             <div>
-                                <h3 className="text-lg font-bold text-gray-900">{meeting.title}</h3>
-                                <p className="text-sm text-gray-600 font-medium">{meeting.university.institutionName}</p>
+                                {/* Status Dot */}
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className={`w-2 h-2 rounded-full ${participant.rsvpStatus === 'ACCEPTED' ? 'bg-green-500' : 'bg-amber-500 animate-pulse'}`} />
+                                    <span style={{ fontFamily: 'var(--font-jakarta)', fontSize: 11, fontWeight: 700, color: '#888888', letterSpacing: '0.05em' }} className="uppercase">
+                                        {isPast ? 'COMPLETED' : participant.rsvpStatus}
+                                    </span>
+                                </div>
 
-                                <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-gray-500">
-                                    <div className="flex items-center gap-1">
-                                        <Calendar className="h-4 w-4" />
+                                <h3 style={{ fontFamily: 'var(--font-fraunces)', fontWeight: 700, fontSize: 16, color: '#0B1340' }} className="leading-tight mb-0.5">
+                                    {meeting.university.institutionName}
+                                </h3>
+                                <p className="text-sm font-medium text-gray-700 mb-2">{meeting.title}</p>
+
+                                <div style={{ fontFamily: 'var(--font-jakarta)', fontSize: 13, color: '#888888' }} className="flex flex-wrap items-center gap-3">
+                                    <div className="flex items-center gap-1 text-[#0B1340]">
+                                        <Calendar className="h-3.5 w-3.5" />
                                         {startTime.toLocaleDateString()}
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <Clock className="h-4 w-4" />
+                                        <Clock className="h-3.5 w-3.5" />
                                         {startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        {meeting.timezone && <span className="text-xs text-gray-400">({meeting.timezone})</span>}
+                                        {meeting.timezone && <span>({meeting.timezone})</span>}
                                     </div>
-                                    <Badge variant="outline">{meeting.meetingType}</Badge>
+                                    <Badge variant="outline" className="text-[10px] h-5">{meeting.meetingType}</Badge>
                                 </div>
                                 {meeting.agenda && (
-                                    <p className="text-xs text-gray-500 mt-2 bg-gray-50 p-2 rounded max-w-md">
-                                        <span className="font-semibold">Agenda:</span> {meeting.agenda}
+                                    <p className="text-xs text-gray-500 mt-3 p-2 rounded-lg max-w-md" style={{ backgroundColor: 'rgba(11, 19, 64, 0.04)' }}>
+                                        <span className="font-semibold text-[#0B1340]">Agenda:</span> {meeting.agenda}
                                     </p>
                                 )}
                             </div>
-
-                            {/* ... status badge ... */}
-                            <div className="text-right">
-                                <Badge className={
-                                    isPast ? 'bg-gray-100 text-gray-800' :
-                                        participant.rsvpStatus === 'ACCEPTED' ? 'bg-green-100 text-green-800 hover:bg-green-100' :
-                                            participant.rsvpStatus === 'DECLINED' ? 'bg-red-100 text-red-800 hover:bg-red-100' :
-                                                'bg-yellow-100 text-yellow-800 hover:bg-yellow-100'
-                                }>
-                                    {isPast ? 'COMPLETED' : participant.rsvpStatus}
-                                </Badge>
-                            </div>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-4 pt-4 border-t border-gray-100 gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-5 pt-4 gap-4" style={{ borderTop: '1px solid #E8EAF6' }}>
                             {showJoin ? (
                                 <a href={meeting.joinUrl!} target="_blank" rel="noopener noreferrer">
-                                    <Button className="gap-2 animate-pulse bg-blue-600 hover:bg-blue-700">
+                                    <Button variant="indigo" className="gap-2">
                                         <Video className="h-4 w-4" />
                                         Join Meeting
                                     </Button>
                                 </a>
                             ) : (
-                                <div className="text-sm text-gray-500">
+                                <div style={{ fontFamily: 'var(--font-jakarta)', fontSize: 13, color: '#888888' }}>
                                     {isPast ? "Meeting has ended" :
                                         participant.rsvpStatus !== 'ACCEPTED' ? "Accept to see join link" :
                                             !meeting.joinUrl ? "No link provided yet" :
@@ -127,9 +118,9 @@ export function StudentMeetingsTable({ meetings }: { meetings: MeetingParticipan
                                     {participant.rsvpStatus !== 'ACCEPTED' && (
                                         <Button
                                             size="sm"
+                                            variant="outline-indigo"
                                             onClick={() => handleRSVP(meeting.id, 'ACCEPTED')}
                                             disabled={loadingId === meeting.id}
-                                            className="bg-green-600 hover:bg-green-700"
                                         >
                                             <Check className="h-4 w-4 mr-1" /> Accept
                                         </Button>
@@ -137,9 +128,10 @@ export function StudentMeetingsTable({ meetings }: { meetings: MeetingParticipan
                                     {participant.rsvpStatus !== 'DECLINED' && (
                                         <Button
                                             size="sm"
-                                            variant="destructive"
+                                            variant="ghost"
                                             onClick={() => handleRSVP(meeting.id, 'DECLINED')}
                                             disabled={loadingId === meeting.id}
+                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                         >
                                             <X className="h-4 w-4 mr-1" /> Decline
                                         </Button>

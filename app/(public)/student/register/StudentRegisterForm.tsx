@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from "react"
+import { TurnstileWidget } from '@/components/ui/TurnstileWidget'
 import { registerStudent } from "@/app/actions"
 import { toast } from "sonner"
 import { DegreeLevels } from "@/lib/constants"
@@ -443,6 +444,8 @@ export default function StudentRegisterForm({ initialCount }: { initialCount: nu
     const [animKey, setAnimKey] = useState(0)
     const [busy, setBusy] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+    const [turnstileError, setTurnstileError] = useState(false)
 
     const [form, setForm] = useState({
         fullName: "", email: "", confirmEmail: "", gender: "", ageGroup: "", phone: "", whatsappNumber: "", city: "", pincode: "",
@@ -515,6 +518,7 @@ export default function StudentRegisterForm({ initialCount }: { initialCount: nu
         if (form.actTaken === 'yes') fd.append("actScore", form.actScore)
         
         if (form.website_url) fd.append("website_url", form.website_url)
+        fd.append("cf-turnstile-response", turnstileToken || "")
 
         try {
             const res = await registerStudent(null, fd)
@@ -723,14 +727,26 @@ export default function StudentRegisterForm({ initialCount }: { initialCount: nu
                         </div>
 
                         {step === STEPS.length ? (
-                            <button className="btn-primary" onClick={submit} disabled={busy}>
-                                {busy ? (
-                                    <>
-                                        <span style={{ width: 15, height: 15, border: "2.5px solid rgba(255,255,255,0.35)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.7s linear infinite", display: "inline-block" }} />
-                                        Creating…
-                                    </>
-                                ) : "Launch My Profile 🚀"}
-                            </button>
+                            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                                {turnstileError && (
+                                    <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 500 }}>
+                                        Verification failed. Refresh page.
+                                    </span>
+                                )}
+                                <TurnstileWidget 
+                                    onVerify={(token) => { setTurnstileToken(token); setTurnstileError(false) }}
+                                    onExpire={() => setTurnstileToken(null)}
+                                    onError={() => setTurnstileError(true)}
+                                />
+                                <button className="btn-primary" onClick={submit} disabled={busy || !turnstileToken}>
+                                    {busy ? (
+                                        <>
+                                            <span style={{ width: 15, height: 15, border: "2.5px solid rgba(255,255,255,0.35)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.7s linear infinite", display: "inline-block" }} />
+                                            Creating…
+                                        </>
+                                    ) : "Launch My Profile 🚀"}
+                                </button>
+                            </div>
                         ) : (
                             <button className="btn-primary" onClick={() => {
                                 if (validateStep()) goTo(step + 1)

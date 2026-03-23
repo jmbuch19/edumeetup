@@ -2,6 +2,7 @@
 
 
 import { redirect } from 'next/navigation'
+import { verifyTurnstile } from '@/lib/turnstile'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, EmailTemplates, generateEmailHtml } from '@/lib/email'
@@ -54,6 +55,12 @@ interface UniversityRegistrationData {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function registerStudent(prevState: any, formData: FormData) {
     const rawData = Object.fromEntries(formData.entries())
+
+    const turnstileCheck = await verifyTurnstile(rawData['cf-turnstile-response'] as string)
+    if (!turnstileCheck.success) {
+        return { error: turnstileCheck.error }
+    }
+
     const validation = registerStudentSchema.safeParse({
         ...rawData,
     })
@@ -217,6 +224,12 @@ export async function registerStudent(prevState: any, formData: FormData) {
 
 export async function loginUniversity(formData: FormData) {
     const email = formData.get('email') as string
+    const token = formData.get('cf-turnstile-response') as string
+
+    const turnstileCheck = await verifyTurnstile(token)
+    if (!turnstileCheck.success) {
+        return { error: turnstileCheck.error }
+    }
 
     // 1. Validate Email
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -815,6 +828,12 @@ export async function verifyUniversity(formData: FormData) {
 // Login Action (Magic Link)
 export async function login(formData: FormData) {
     const rawData = Object.fromEntries(formData.entries())
+
+    const turnstileCheck = await verifyTurnstile(rawData['cf-turnstile-response'] as string)
+    if (!turnstileCheck.success) {
+        return { error: turnstileCheck.error }
+    }
+
     const validation = loginSchema.safeParse(rawData)
 
     if (!validation.success) {

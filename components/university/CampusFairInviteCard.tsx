@@ -93,51 +93,50 @@ export function CampusFairInviteCard({
     // ── CONFIRMED state ───────────────────────────────────────────────────────
     if (status === 'CONFIRMED') {
         return (
-            <Card className="border-teal-200 bg-teal-50/40">
-                <CardHeader className="pb-2 flex flex-row items-start gap-3">
-                    <div className="p-2 rounded-full bg-teal-100 text-teal-600 shrink-0 mt-0.5">
-                        <CheckCircle2 className="h-4 w-4" />
+            <div className="glass-card hover-lift p-5 rounded-2xl relative overflow-hidden transition-all duration-200 shadow-sm" style={{ borderLeft: '4px solid #10b981' }}>
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
                     </div>
                     <div className="min-w-0">
-                        <p className="font-semibold text-sm text-teal-800 leading-tight">
-                            You're attending {event.name}
+                        <p style={{ fontFamily: 'var(--font-fraunces)', fontWeight: 700, fontSize: 16, color: '#0B1340' }} className="leading-tight truncate">
+                            Attending {event.name}
                         </p>
-                        <p className="text-xs text-teal-600 mt-0.5">
+                        <p style={{ fontFamily: 'var(--font-jakarta)', fontSize: 13, color: '#888888' }} className="mt-0.5">
                             {[event.city, fmt(event.startDate)].filter(Boolean).join(' · ')}
                         </p>
                     </div>
-                </CardHeader>
-                <CardFooter className="pt-0">
+                </div>
+                <div className="pt-4" style={{ borderTop: '1px solid #E8EAF6' }}>
                     <a href={`/university/fairs/${event.id}/students`}>
                         <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-teal-700 border-teal-300 hover:bg-teal-50 flex items-center gap-1.5"
+                            variant="outline-indigo"
+                            className="w-full sm:w-auto h-8 text-xs flex items-center gap-1.5"
                         >
                             <Users className="h-3.5 w-3.5" />
                             View Registered Students
                             <ExternalLink className="h-3 w-3 opacity-60" />
                         </Button>
                     </a>
-                </CardFooter>
-            </Card>
+                </div>
+            </div>
         )
     }
 
     // ── DECLINED state ────────────────────────────────────────────────────────
     if (status === 'DECLINED') {
         return (
-            <Card className="border-gray-200 bg-gray-50/60 opacity-70">
-                <CardContent className="flex items-center gap-2.5 py-4">
+            <div className="glass-card p-4 rounded-2xl relative overflow-hidden transition-all duration-200 shadow-sm opacity-60" style={{ borderLeft: '4px solid #E8EAF6' }}>
+                <div className="flex items-center gap-2.5">
                     <XCircle className="h-4 w-4 text-gray-400 shrink-0" />
                     <div className="min-w-0">
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm font-medium text-gray-500">
                             You declined this fair invitation
                         </p>
                         <p className="text-xs text-gray-400 mt-0.5 truncate">{event.name}</p>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         )
     }
 
@@ -157,90 +156,76 @@ export function CampusFairInviteCard({
 
     return (
         <>
-            <Card className="border-blue-200 bg-white">
-                <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 min-w-0">
-                            <div className="p-2 rounded-full bg-blue-100 text-blue-600 shrink-0 mt-0.5">
-                                <span className="text-base leading-none">🏛️</span>
-                            </div>
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <p className="text-sm font-semibold text-gray-900">
-                                        Campus Fair Invitation
-                                    </p>
-                                    <Badge variant="secondary" className="text-[10px]">
-                                        RSVP needed
-                                    </Badge>
-                                </div>
-                                <p className="text-xs text-gray-400 mt-0.5">
-                                    {fmt(notification.createdAt, 'datetime')}
-                                </p>
-                            </div>
-                        </div>
+            <div className="glass-card hover-lift p-5 rounded-2xl relative overflow-hidden transition-all duration-200 shadow-sm" style={{ borderLeft: '4px solid #C9A84C' }}>
+                <div className="flex items-start gap-4 mb-4">
+                    {/* Date chip */}
+                    <div className="flex flex-col items-center justify-center shrink-0 w-14 h-14 rounded-xl bg-indigo-gradient text-white shadow-md">
+                        <span style={{ fontFamily: 'var(--font-jakarta)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }} className="opacity-90">
+                            {format(new Date(event.startDate), 'MMM')}
+                        </span>
+                        <span style={{ fontFamily: 'var(--font-fraunces)', fontSize: 22, fontWeight: 700, lineHeight: 1 }}>
+                            {format(new Date(event.startDate), 'dd')}
+                        </span>
                     </div>
-                </CardHeader>
 
-                <CardContent className="pt-0 pb-3 space-y-1.5">
-                    <p className="text-sm font-semibold text-gray-900 leading-tight">
-                        {event.name}
-                    </p>
-                    {(event.venue || event.city) && (
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                            <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                            {[event.venue, event.city].filter(Boolean).join(', ')}
+                    <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <Badge variant="secondary" className="text-[10px] bg-amber-50 text-amber-900 border-amber-200">
+                                RSVP needed
+                            </Badge>
                         </div>
-                    )}
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                        <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-                        {fmt(event.startDate)}
-                    </div>
-                    {event.rsvpDeadline && (
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                            <Clock className="h-3.5 w-3.5 flex-shrink-0" />
-                            <span>
-                                RSVP by:{' '}
-                                <span className={isDeadlinePassed ? 'text-red-500 font-medium' : 'font-medium'}>
-                                    {fmt(event.rsvpDeadline)}
+                        <h3 className="leading-tight mb-2 truncate" style={{ fontFamily: 'var(--font-fraunces)', fontWeight: 700, fontSize: 16, color: '#0B1340' }}>
+                            {event.name}
+                        </h3>
+
+                        <div className="flex flex-wrap gap-2">
+                             {(event.city || event.venue) && (
+                                <span className="px-2.5 py-1 rounded-full whitespace-nowrap inline-flex items-center gap-1" style={{ backgroundColor: '#FDF6E3', color: '#A8873A', fontFamily: 'var(--font-jakarta)', fontSize: 12, border: '1px solid #C9A84C', fontWeight: 600 }}>
+                                    <MapPin className="h-3 w-3" />
+                                    {[event.venue, event.city].filter(Boolean).join(', ')}
                                 </span>
-                            </span>
+                             )}
                         </div>
-                    )}
-                    {typeof event.totalRegistered === 'number' && (
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                            <Users className="h-3.5 w-3.5 flex-shrink-0" />
-                            {event.totalRegistered} students registered
-                        </div>
-                    )}
-                </CardContent>
+                    </div>
+                </div>
 
-                <CardFooter className="pt-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-4 mt-1 gap-3" style={{ borderTop: '1px solid #E8EAF6' }}>
                     {isDeadlinePassed ? (
-                        <p className="text-xs text-gray-400">
+                        <p style={{ fontFamily: 'var(--font-jakarta)', fontSize: 13, color: '#888888' }}>
                             RSVP closed · {fmt(event.rsvpDeadline!)}
                         </p>
                     ) : (
-                        <div className="flex items-center gap-3 w-full">
-                            <Button
-                                size="sm"
-                                onClick={() => setPanelOpen(true)}
-                                className="bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-1.5"
-                            >
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                Yes, We're Attending
-                            </Button>
-                            <button
-                                onClick={handleDecline}
-                                disabled={declining}
-                                className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2 disabled:opacity-50 flex items-center gap-1"
-                            >
-                                {declining && <Loader2 className="h-3 w-3 animate-spin" />}
-                                decline quietly
-                            </button>
-                        </div>
+                        <>
+                            {event.rsvpDeadline ? (
+                                <div className="flex items-center gap-1.5" style={{ fontFamily: 'var(--font-jakarta)', fontSize: 12, color: '#888888' }}>
+                                    <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                                    <span>RSVP by <span className="font-semibold text-[#0B1340]">{fmt(event.rsvpDeadline)}</span></span>
+                                </div>
+                            ) : <div />}
+
+                            <div className="flex items-center gap-3 justify-end flex-1">
+                                <button
+                                    onClick={handleDecline}
+                                    disabled={declining}
+                                    style={{ fontFamily: 'var(--font-jakarta)', fontSize: 13 }}
+                                    className="text-gray-400 hover:text-[#0B1340] underline underline-offset-2 disabled:opacity-50 flex items-center gap-1 transition-colors"
+                                >
+                                    {declining && <Loader2 className="h-3 w-3 animate-spin" />}
+                                    decline
+                                </button>
+                                <Button
+                                    variant="gold"
+                                    onClick={() => setPanelOpen(true)}
+                                    className="flex items-center gap-1.5 shadow-sm hover-lift"
+                                >
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    Register
+                                </Button>
+                            </div>
+                        </>
                     )}
-                </CardFooter>
-            </Card>
+                </div>
+            </div>
 
             {/* Slide-in response panel */}
             <FairResponsePanel
