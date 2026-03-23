@@ -155,6 +155,7 @@ export function StudentAdvisor({ studentName }: StudentAdvisorProps) {
                 })
             }
 
+            let fullAssistantResponse = ''
             while (true) {
                 const { done, value } = await reader.read()
                 if (done) {
@@ -162,18 +163,20 @@ export function StudentAdvisor({ studentName }: StudentAdvisorProps) {
                     flush()
                     break
                 }
-                chunkBuf.current += decoder.decode(value, { stream: true })
+                const chunkText = decoder.decode(value, { stream: true })
+                chunkBuf.current += chunkText
+                fullAssistantResponse += chunkText
                 if (!rafId.current) {
                     rafId.current = requestAnimationFrame(flush)
                 }
             }
 
             // Save updated conversation to DB after each exchange (fire & forget)
-            setMessages(prev => {
-                const toSave = prev.filter(m => m.content.trim())
-                saveAdvisorHistory(toSave).catch(() => { /* non-fatal */ })
-                return prev
-            })
+            const finalMessagesToSave = [
+                ...contextMessages,
+                { role: 'assistant', content: fullAssistantResponse }
+            ]
+            saveAdvisorHistory(finalMessagesToSave.filter(m => m.content.trim() !== '') as Message[]).catch(() => { /* non-fatal */ })
 
         } catch {
             setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Connection issue. Please check your internet and try again.' }])
