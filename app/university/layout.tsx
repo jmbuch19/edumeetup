@@ -42,6 +42,17 @@ export default async function UniversityLayout({ children }: { children: React.R
 
     const pendingCount = uni?._count.interests ?? 0
 
+    const alumniCount = uni ? await prisma.alumni.count({
+        where: {
+            isVerified: true,
+            adminReviewStatus: { not: 'SUSPENDED' },
+            OR: [
+                { usUniversityId: uni.id },
+                { usUniversityName: { contains: uni.institutionName, mode: 'insensitive' } }
+            ]
+        }
+    }) : 0
+
     return (
         <div className="flex h-screen overflow-hidden" style={{ background: 'var(--surface)', fontFamily: 'var(--font-body)' }}>
 
@@ -53,6 +64,7 @@ export default async function UniversityLayout({ children }: { children: React.R
                 uniId={uni?.id}
                 senderEmail={session.user.email}
                 liveFairHref={liveFair ? `/event/${(liveFair as any).slug}/scan` : undefined}
+                alumniCount={alumniCount > 0 ? alumniCount : undefined}
             />
 
             {/* ── Centre — scrollable content ─────────────────────────────────── */}
@@ -76,6 +88,7 @@ export default async function UniversityLayout({ children }: { children: React.R
                             uniId={uni?.id}
                             senderEmail={session.user.email}
                             liveFairHref={liveFair ? `/event/${(liveFair as any).slug}/scan` : undefined}
+                            alumniCount={alumniCount > 0 ? alumniCount : undefined}
                         />
                         <div className="min-w-0">
                             <p className="text-lg font-semibold truncate" style={{ fontFamily: 'var(--font-display)', color: 'var(--navy)' }}>

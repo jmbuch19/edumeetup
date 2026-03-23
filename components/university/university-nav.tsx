@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, LayoutDashboard, Users, Zap, CalendarDays, MessageSquare, Mail, BookOpen, BarChart2, Settings, Shield, MapPin, HelpCircle, User, LogOut } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Users, Zap, CalendarDays, MessageSquare, Mail, BookOpen, BarChart2, Settings, Shield, MapPin, HelpCircle, User, LogOut, GraduationCap } from 'lucide-react'
 import { UniversityAvatar } from './university-avatar'
 import { ContactAdminPanel } from '@/components/layout/contact-admin-panel'
 import { signOut } from 'next-auth/react'
@@ -24,6 +24,7 @@ const NAV_ITEMS: NavItem[] = [
     { href: '/university/engagement', label: 'Engagement', icon: <MessageSquare className="h-4.5 w-4.5" /> },
     { href: '/university/messages', label: 'Messages', icon: <Mail className="h-4.5 w-4.5" /> },
     { href: '/university/dashboard?tab=programs', label: 'Programs', icon: <BookOpen className="h-4.5 w-4.5" /> },
+    { href: '/university/alumni', label: 'Alumni Hub', icon: <GraduationCap className="h-4.5 w-4.5" /> },
     { href: '/university/analytics', label: 'Analytics', icon: <BarChart2 className="h-4.5 w-4.5" /> },
     { href: '/university/settings', label: 'Settings', icon: <Settings className="h-4.5 w-4.5" /> },
 ]
@@ -40,9 +41,10 @@ interface UniversityNavProps {
     uniId?: string | null
     senderEmail?: string | null
     liveFairHref?: string | null
+    alumniCount?: number
 }
 
-function NavContent({ userName, institutionName, logoUrl, uniId, senderEmail, liveFairHref, onClose }: UniversityNavProps & { onClose?: () => void }) {
+function NavContent({ userName, institutionName, logoUrl, uniId, senderEmail, liveFairHref, alumniCount, onClose }: UniversityNavProps & { onClose?: () => void }) {
     const pathname = usePathname()
     const [helpOpen, setHelpOpen] = useState(false)
     const [popoverOpen, setPopoverOpen] = useState(false)
@@ -97,22 +99,31 @@ function NavContent({ userName, institutionName, logoUrl, uniId, senderEmail, li
                 <p className="text-[9px] font-semibold tracking-[2px] uppercase px-3 pb-2" style={{ color: 'rgba(255,255,255,0.3)' }}>Main</p>
                 {NAV_ITEMS.map(item => {
                     const active = pathname === item.href || (item.href !== '/university/dashboard' && pathname.startsWith(item.href.split('?')[0]))
+                    const isAlumni = item.href === '/university/alumni'
+                    
+                    let badge = item.badge
+                    let badgeColor = item.badgeColor
+                    if (isAlumni && alumniCount && alumniCount > 0) {
+                        badge = alumniCount
+                        badgeColor = 'gold'
+                    }
+
                     return (
                         <Link key={item.href} href={item.href} onClick={onClose}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 relative group"
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 relative group ${isAlumni ? 'font-[family-name:var(--font-jakarta)]' : ''}`}
                             style={{
-                                color: active ? 'var(--teal-light)' : 'rgba(255,255,255,0.65)',
-                                background: active ? 'rgba(13,148,136,0.18)' : 'transparent',
+                                color: isAlumni && active ? '#0B1340' : active ? 'var(--teal-light)' : 'rgba(255,255,255,0.65)',
+                                background: isAlumni && active ? '#E8D19D' : active ? 'rgba(13,148,136,0.18)' : 'transparent',
                             }}>
                             {active && (
-                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-3/5 rounded-r-sm" style={{ background: 'var(--teal-light)' }} />
+                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-3/5 rounded-r-sm" style={{ background: isAlumni ? '#C9A84C' : 'var(--teal-light)' }} />
                             )}
-                            <span className="opacity-80">{item.icon}</span>
+                            <span className="opacity-80" style={{ color: isAlumni && !active ? '#C9A84C' : undefined }}>{item.icon}</span>
                             {item.label}
-                            {item.badge && (
+                            {badge && (
                                 <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                                    style={{ background: item.badgeColor === 'teal' ? 'var(--teal)' : 'var(--gold)', color: item.badgeColor === 'teal' ? 'white' : 'var(--navy)' }}>
-                                    {item.badge}
+                                    style={{ background: badgeColor === 'teal' ? 'var(--teal)' : 'var(--gold)', color: badgeColor === 'teal' ? 'white' : 'var(--navy)' }}>
+                                    {badge}
                                 </span>
                             )}
                         </Link>

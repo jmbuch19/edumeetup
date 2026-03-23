@@ -124,12 +124,12 @@ export async function UniAlumniTab({ universityId, universityName }: Props) {
                     />
                 </div>
             ) : (
-                <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between">
+                <div className="glass-card-gold border border-[#F4E9CD] rounded-2xl shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-[#F4E9CD]/50 flex items-center justify-between">
                         <p className="text-sm font-semibold text-slate-700">{totalAlumni} alumni found</p>
                         <span className="text-xs text-slate-400">Sorted by most recent</span>
                     </div>
-                    <div className="divide-y divide-slate-50">
+                    <div className="divide-y divide-[#F4E9CD]/30">
                         {alumni.map(a => {
                             const status = STATUS_LABEL[a.alumniStatus] ?? { label: 'Alumni', color: 'bg-gray-100 text-gray-600' }
                             const initials = (a.user?.name ?? 'A').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()

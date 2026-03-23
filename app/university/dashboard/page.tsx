@@ -173,6 +173,7 @@ export default async function UniversityDashboard() {
         fairModeResult,
         fairInvitationsResult,
         fairCircuitsResult,
+        alumniCountResult,
     ] = await Promise.allSettled([
         // 1. Matched students
         uniqueFields.length > 0
@@ -273,6 +274,18 @@ export default async function UniversityDashboard() {
                 foreignReps: { where: { universityId: uni.id } }
             },
             orderBy: { startDate: 'asc' }
+        }),
+        
+        // 12. Alumni Count
+        prisma.alumni.count({
+            where: {
+                isVerified: true,
+                adminReviewStatus: { not: 'SUSPENDED' },
+                OR: [
+                    { usUniversityId: uni.id },
+                    { usUniversityName: { contains: uni.institutionName, mode: 'insensitive' } }
+                ]
+            }
         })
     ])
 
@@ -290,6 +303,7 @@ export default async function UniversityDashboard() {
         fairModeResult.status === 'fulfilled' ? fairModeResult.value : [null, null, null, []]
     const fairInvitations = fairInvitationsResult.status === 'fulfilled' ? fairInvitationsResult.value : []
     const fairCircuits = fairCircuitsResult.status === 'fulfilled' ? fairCircuitsResult.value : []
+    const alumniCount = alumniCountResult.status === 'fulfilled' ? (alumniCountResult.value as number) : 0
 
     // ── Group sessions (with full relation data) ────────────────────
     const groupSessions = await prisma.groupSession.findMany({
@@ -550,10 +564,12 @@ export default async function UniversityDashboard() {
                             )}
                         </TabsTrigger>
                         <TabsTrigger value="alumni" className="relative">
-                            <span className="flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                                Our Alumni
-                            </span>
+                            Alumni Hub
+                            {alumniCount > 0 && (
+                                <span className="ml-2 bg-[#C9A84C] text-[#0B1340] text-xs font-bold px-2 py-0.5 rounded-full font-jakarta">
+                                    {alumniCount}
+                                </span>
+                            )}
                         </TabsTrigger>
                         {fairHistoryWithDetails.length > 0 && (
                             <TabsTrigger value="fair-leads" className="relative">
