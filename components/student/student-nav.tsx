@@ -10,7 +10,7 @@ import { signOut } from 'next-auth/react'
 const NAV_ITEMS = [
     { href: '/student/dashboard', label: 'Dashboard' },
     { href: '/universities', label: 'Discover' },
-    { href: '/student/saved', label: 'Saved' },
+    // { href: '/student/saved', label: 'Saved' }, // TODO: Implement saved universities page
     { href: '/student/meetings', label: 'Meetings' },
     { href: '/student/messages', label: 'Messages' },
 ]
