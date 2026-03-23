@@ -5,6 +5,8 @@ import { Prisma } from '@prisma/client'
 import { verifyTurnstile } from '@/lib/turnstile'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { sendMagicLink } from '@/lib/magic-link'
+import { sendEmail, generateEmailHtml } from '@/lib/email'
 
 type AlumniStatus = 'STUDENT_CURRENTLY' | 'OPT_CPT' | 'H1B_PENDING' | 'H1B_APPROVED' | 'GREEN_CARD' | 'PR_OTHER_COUNTRY' | 'EMPLOYED_USA' | 'FURTHER_STUDIES' | 'RETURNED_HOME' | 'OTHER'
 
@@ -28,6 +30,8 @@ async function getStudentFromSession() {
 
 // ── Action 1: registerAlumni ────────────────────────────────────────────────
 export async function registerAlumni(data: {
+    fullName: string
+    email: string
     whatsapp?: string
     yearWentToUSA?: number
     usUniversityName: string
@@ -48,20 +52,41 @@ export async function registerAlumni(data: {
     inviteToken?: string
     turnstileToken?: string
 }) {
+    // 1. Verify Turnstile
     const turnstileResult = await verifyTurnstile(data.turnstileToken)
     if (!turnstileResult.success) {
         return { error: turnstileResult.error || "Bot verification failed." }
     }
 
-    const user = await getAuthUser()
-    if (!user?.id) return { error: 'Please sign in first' }
-
-    const existing = await prisma.alumni.findUnique({ where: { userId: user.id } })
-    if (existing) return { error: 'You already have an alumni profile' }
-
+    if (!data.fullName?.trim()) return { error: 'Full name is required' }
+    if (!data.email?.trim()) return { error: 'Email is required' }
     if (!data.usUniversityName?.trim()) return { error: 'University name is required' }
     if (!data.usProgram?.trim()) return { error: 'Degree program is required' }
     if (!data.consentDataSharing) return { error: 'Data sharing consent is required to appear in discovery' }
+
+    // 2. Check if email already has an account
+    const emailToUse = data.email.toLowerCase().trim()
+    const existingUser = await prisma.user.findUnique({
+        where: { email: emailToUse }
+    })
+
+    let userId: string
+
+    if (existingUser) {
+        if (existingUser.role === 'ALUMNI') {
+            return { error: 'An alumni profile already exists for this email.' }
+        }
+        userId = existingUser.id
+    } else {
+        const newUser = await prisma.user.create({
+            data: {
+                email: emailToUse,
+                name: data.fullName.trim(),
+                role: 'ALUMNI',
+            }
+        })
+        userId = newUser.id
+    }
 
     // Try to match to a partner university
     let usUniversityId: string | null = null
@@ -74,9 +99,10 @@ export async function registerAlumni(data: {
     })
     usUniversityId = matched?.id ?? null
 
+    // 3. Create Alumni record
     const alumni = await prisma.alumni.create({
         data: {
-            userId: user.id,
+            userId,
             whatsapp: data.whatsapp?.trim() || null,
             yearWentToUSA: data.yearWentToUSA || null,
             usUniversityName: data.usUniversityName.trim(),
@@ -101,19 +127,21 @@ export async function registerAlumni(data: {
         }
     })
 
-    await prisma.user.update({
-        where: { id: user.id },
-        data: { role: 'ALUMNI' }
-    })
-
-    await prisma.systemLog.create({
-        data: {
-            level: 'INFO',
-            type: 'ROLE_ESCALATION',
-            message: `User ${user.id} escalated to ALUMNI via registration`,
-            metadata: JSON.stringify({ userId: user.id, oldRole: 'STUDENT', newRole: 'ALUMNI' })
-        }
-    })
+    // 4. Update role to ALUMNI if existing user
+    if (existingUser && existingUser.role !== 'ALUMNI') {
+        await prisma.user.update({
+            where: { id: userId },
+            data: { role: 'ALUMNI' }
+        })
+        await prisma.systemLog.create({
+            data: {
+                level: 'INFO',
+                type: 'ROLE_ESCALATION',
+                message: `User ${userId} escalated to ALUMNI via registration`,
+                metadata: JSON.stringify({ userId, oldRole: existingUser.role, newRole: 'ALUMNI' })
+            }
+        })
+    }
 
     if (data.inviteToken) {
         await prisma.alumniInvitation.updateMany({
@@ -121,6 +149,20 @@ export async function registerAlumni(data: {
             data: { status: 'REGISTERED', alumniId: alumni.id }
         })
     }
+
+    // 5. Send magic link 
+    await sendMagicLink(emailToUse, '/alumni/dashboard')
+
+    // 6. Notify admin
+    const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || 'info@edumeetup.com'
+    await sendEmail({
+        to: adminEmail,
+        subject: `New Alumni Registration — ${data.fullName}`,
+        html: generateEmailHtml('New Alumni Registration',
+            `<p>${data.fullName} (${emailToUse}) has registered as an alumni mentor.</p>
+             <p><a href="${process.env.NEXTAUTH_URL || 'https://edumeetup.com'}/admin/alumni">Review in Admin Dashboard →</a></p>`
+        )
+    })
 
     revalidatePath('/alumni/dashboard')
     return { success: true, alumniId: alumni.id }

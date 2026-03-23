@@ -26,14 +26,8 @@ export default async function AlumniRegisterFormPage({ searchParams }: Props) {
     const params = await searchParams
     const token = params?.token
 
-    // Must be signed in — send to login with callback
-    if (!session?.user?.id) {
-        const callbackUrl = encodeURIComponent(token ? `/alumni-register/form?token=${token}` : '/alumni-register/form')
-        redirect(`/login?callbackUrl=${callbackUrl}`)
-    }
-
     // Already an alumni — send to dashboard
-    if (session.user.role === 'ALUMNI') {
+    if (session?.user?.role === 'ALUMNI') {
         redirect('/alumni/dashboard')
     }
 

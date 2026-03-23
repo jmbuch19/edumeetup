@@ -75,6 +75,8 @@ export default function AlumniRegisterForm({ inviteToken }: { inviteToken?: stri
 
     const [form, setForm] = useState({
         // Step 1
+        fullName: '',
+        email: '',
         whatsapp: '',
         yearWentToUSA: '',
         // Step 2
@@ -102,6 +104,11 @@ export default function AlumniRegisterForm({ inviteToken }: { inviteToken?: stri
         setForm(prev => ({ ...prev, [key]: value }))
 
     const validateStep = () => {
+        if (step === 1) {
+            if (!form.fullName.trim()) { toast.error('Full name is required'); return false }
+            if (!form.email.trim()) { toast.error('Email is required'); return false }
+            if (!/^\S+@\S+\.\S+$/.test(form.email)) { toast.error('Please enter a valid email address'); return false }
+        }
         if (step === 2) {
             if (!form.usUniversityName.trim()) { toast.error('University name is required'); return false }
             if (!form.usProgram.trim()) { toast.error('Degree program is required'); return false }
@@ -124,6 +131,8 @@ export default function AlumniRegisterForm({ inviteToken }: { inviteToken?: stri
         setIsSubmitting(true)
         try {
             const res = await registerAlumni({
+                fullName: form.fullName,
+                email: form.email,
                 whatsapp: form.whatsapp || undefined,
                 yearWentToUSA: form.yearWentToUSA ? parseInt(form.yearWentToUSA) : undefined,
                 usUniversityName: form.usUniversityName,
@@ -147,8 +156,11 @@ export default function AlumniRegisterForm({ inviteToken }: { inviteToken?: stri
             if ('error' in res) {
                 toast.error(res.error)
             } else {
-                toast.success('Welcome to the IAES Alumni Bridge! 🎓')
-                router.push('/alumni/dashboard')
+                toast.success('Registration complete! Check your email for a login link to access your alumni dashboard.')
+                // Wait briefly then redirect or keep on success page
+                setTimeout(() => {
+                    router.push('/login?message=check-email')
+                }, 2000)
             }
         } finally {
             setIsSubmitting(false)
@@ -206,7 +218,24 @@ export default function AlumniRegisterForm({ inviteToken }: { inviteToken?: stri
                             <div className="space-y-5">
                                 <div>
                                     <h2 className="text-xl font-bold text-gray-900 mb-1">Who are you?</h2>
-                                    <p className="text-sm text-gray-500">Tell us a bit about yourself. Name and email are pre-filled from your account.</p>
+                                    <p className="text-sm text-gray-500">Tell us a bit about yourself so we can set up your account.</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Full Name <span className="text-red-500">*</span></Label>
+                                    <Input
+                                        placeholder="e.g. John Doe"
+                                        value={form.fullName}
+                                        onChange={e => set('fullName', e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Email Address <span className="text-red-500">*</span></Label>
+                                    <Input
+                                        type="email"
+                                        placeholder="e.g. john@example.com"
+                                        value={form.email}
+                                        onChange={e => set('email', e.target.value)}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>WhatsApp / Contact Number <span className="text-gray-400 text-xs">(optional)</span></Label>
