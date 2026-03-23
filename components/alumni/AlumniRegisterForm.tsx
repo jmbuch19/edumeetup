@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent } from '@/components/ui/card'
-import { GraduationCap, MapPin, BookOpen, Heart, Shield, ChevronRight, ChevronLeft } from 'lucide-react'
+import { GraduationCap, MapPin, BookOpen, Heart, Shield, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react'
 
 const STEPS = [
     { id: 1, label: 'Who you are', icon: GraduationCap },
@@ -72,6 +72,7 @@ export default function AlumniRegisterForm({ inviteToken }: { inviteToken?: stri
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
     const [turnstileError, setTurnstileError] = useState(false)
+    const [isSuccess, setIsSuccess] = useState(false)
 
     const [form, setForm] = useState({
         // Step 1
@@ -156,11 +157,7 @@ export default function AlumniRegisterForm({ inviteToken }: { inviteToken?: stri
             if ('error' in res) {
                 toast.error(res.error)
             } else {
-                toast.success('Registration complete! Check your email for a login link to access your alumni dashboard.')
-                // Wait briefly then redirect or keep on success page
-                setTimeout(() => {
-                    router.push('/login?message=check-email')
-                }, 2000)
+                setIsSuccess(true)
             }
         } finally {
             setIsSubmitting(false)
@@ -168,6 +165,32 @@ export default function AlumniRegisterForm({ inviteToken }: { inviteToken?: stri
     }
 
     const progress = ((step - 1) / (STEPS.length - 1)) * 100
+
+    if (isSuccess) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 flex items-center justify-center p-4">
+                <Card className="w-full max-w-lg border-0 shadow-xl shadow-amber-100/40 text-center p-8 sm:p-12 rounded-2xl">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CheckCircle2 className="w-8 h-8 text-green-600" />
+                    </div>
+                    <h2 className="text-3xl font-bold text-gray-900 mb-2">You're registered!</h2>
+                    <p className="text-gray-600 mb-8 max-w-sm mx-auto">
+                        Thank you <strong>{form.fullName}</strong>. Your alumni profile is live.
+                    </p>
+                    <div className="bg-amber-50/80 border border-amber-100/50 rounded-xl p-5 mb-8 text-sm text-gray-700 space-y-2">
+                        <p>We've sent a login link to <strong>{form.email}</strong>.</p>
+                        <p>Click it to access your Alumni Dashboard where you can manage your profile and connect requests.</p>
+                    </div>
+                    <Button 
+                        onClick={() => router.push('/login?message=check-email')} 
+                        className="w-full gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-6 text-base rounded-xl shadow-md border-0"
+                    >
+                        Check your email <ChevronRight className="w-4 h-4" />
+                    </Button>
+                </Card>
+            </div>
+        )
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 flex items-center justify-center p-4">
