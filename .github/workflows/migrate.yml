@@ -1,0 +1,33 @@
+name: Deploy Database Migrations
+
+# 1. The Trigger: Wake up only when code is pushed to the 'main' branch
+on:
+  push:
+    branches:
+      - main
+
+# 2. What the robot does
+jobs:
+  migrate-database:
+    name: Run Prisma Migrate Deploy
+    runs-on: ubuntu-latest # Borrow a fresh Linux server from GitHub
+    
+    steps:
+      - name: 📥 Download your code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Install project dependencies
+        run: npm ci # Faster and safer than npm install for automated robots
+
+      - name: 🚀 Run Database Migration (via Prisma)
+        env:
+          # We use the DIRECT_URL for both because migrations require the direct connection.
+          # You only need to add ONE secret in GitHub!
+          DATABASE_URL: ${{ secrets.DIRECT_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: npx prisma migrate deploy
