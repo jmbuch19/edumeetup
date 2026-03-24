@@ -7,7 +7,9 @@ import { revalidatePath } from "next/cache"
 
 // --- Availability Actions ---
 
-export async function setAvailability(slots: { startTime: Date, endTime: Date }[]) {
+export async function setAvailability(
+    slots: { startTime: Date, endTime: Date }[]
+): Promise<{ success?: boolean; error?: string }> {
     const user = await requireRole('UNIVERSITY')
     const university = await prisma.university.findUnique({
         where: { userId: user.id }
@@ -35,7 +37,9 @@ export async function setAvailability(slots: { startTime: Date, endTime: Date }[
     }
 }
 
-export async function getAvailability(universityId: string) {
+export async function getAvailability(
+    universityId: string
+): Promise<any[]> {
     // Public or protected? Maybe public for students to see?
     // For now, let's assume it's for the dashboard or booking flow
     const slots = await prisma.availabilitySlot.findMany({
@@ -48,7 +52,7 @@ export async function getAvailability(universityId: string) {
     return slots
 }
 
-export async function deleteAvailabilitySlot(slotId: string) {
+export async function deleteAvailabilitySlot(slotId: string): Promise<{ success?: boolean; error?: string }> {
     const user = await requireRole('UNIVERSITY')
     const university = await prisma.university.findUnique({
         where: { userId: user.id }
@@ -78,7 +82,7 @@ export async function deleteAvailabilitySlot(slotId: string) {
 
 // --- Follow-up Request Action ---
 
-export async function requestFollowUp(meetingId: string) {
+export async function requestFollowUp(meetingId: string): Promise<{ success?: boolean; error?: string }> {
     const user = await requireRole('STUDENT')
 
     // 1. Verify the meeting exists and user was a participant
@@ -89,7 +93,7 @@ export async function requestFollowUp(meetingId: string) {
 
     if (!meeting) return { error: "Meeting not found" }
 
-    const isParticipant = meeting.participants.some(p => p.participantUserId === user.id)
+    const isParticipant = meeting.participants.some((p: any) => p.participantUserId === user.id)
     if (!isParticipant) return { error: "You were not a participant in this meeting" }
 
     if (meeting.meetingType !== 'GROUP') {

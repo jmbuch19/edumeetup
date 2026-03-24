@@ -3,11 +3,12 @@
 import { Button } from '@/components/ui/button'
 import { BookingState } from './BookingWizard'
 import { format } from 'date-fns'
-import { Calendar, Clock, Video, Loader2 } from 'lucide-react'
+import { CheckCircle, AlertCircle, Calendar, Video, Clock, Upload, Loader2, Link2, MapPin } from 'lucide-react'
+import type { University } from '@prisma/client'
 
 interface StepProps {
     data: BookingState
-    university: any
+    university: University
     onConfirm: () => void
     onBack: () => void
     isSubmitting: boolean

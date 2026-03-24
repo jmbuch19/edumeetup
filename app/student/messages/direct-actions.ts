@@ -140,7 +140,7 @@ export async function getStudentConversations() {
 
     // Attach unread count (messages from university that are unread)
     const withUnread = await Promise.all(
-        conversations.map(async (c) => {
+        conversations.map(async (c: any) => {
             const unreadCount = await prisma.directMessage.count({
                 where: { conversationId: c.id, senderRole: 'UNIVERSITY', studentReadAt: null },
             })

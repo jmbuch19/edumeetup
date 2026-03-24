@@ -29,7 +29,7 @@ export default async function AdminFairDetailPage(props: Props) {
         orderBy: [{ answeredAt: 'asc' }, { createdAt: 'asc' }],
         select: { id: true, question: true, askerRole: true, answer: true, answeredAt: true, createdAt: true },
     })
-    const questions: FairQuestionRow[] = rawQs.map(q => ({
+    const questions: FairQuestionRow[] = rawQs.map((q: any) => ({
         id: q.id,
         question: q.question,
         askerRole: q.askerRole,

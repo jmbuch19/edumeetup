@@ -1,39 +1,46 @@
 'use client'
-
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import Link from 'next/link'
-import { AlertTriangle } from 'lucide-react'
+import { ShieldAlert } from 'lucide-react'
+import * as Sentry from '@sentry/nextjs'
 
-export default function AdminSubError({
-    error,
-    reset,
-}: {
-    error: Error & { digest?: string }
-    reset: () => void
-}) {
-    useEffect(() => {
-        console.error('[AdminSubError]', error.message, error.digest)
-    }, [error])
+export default function AdminDashboardError({
+  error, reset
+}: { error: Error & { digest?: string }, reset: () => void }) {
+  useEffect(() => {
+    console.error('[AdminDashboard]', error)
+    Sentry.captureException(error)
+  }, [error])
 
-    return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
-            <div className="mx-auto bg-red-100 p-3 rounded-full w-fit mb-4">
-                <AlertTriangle className="h-8 w-8 text-red-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Admin page error</h2>
-            <p className="text-gray-500 mb-1 text-sm font-mono">
-                {error.message || 'An unexpected error occurred.'}
-            </p>
-            {error.digest && (
-                <p className="text-xs text-gray-400 mb-6 font-mono">Digest: {error.digest}</p>
-            )}
-            <div className="flex gap-3 mt-4">
-                <Button onClick={() => reset()}>Try Again</Button>
-                <Link href="/login">
-                    <Button variant="outline">Back to Login</Button>
-                </Link>
-            </div>
-        </div>
-    )
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center px-4">
+      <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-center max-w-sm w-full">
+        <ShieldAlert className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        
+        <h2 className="font-fraunces text-xl font-bold text-[#0B1340] mb-2">
+          Admin panel error
+        </h2>
+        
+        <p className="font-jakarta text-sm text-[#888888] mb-2">
+          An error occurred in the admin panel.
+        </p>
+
+        {Sentry.lastEventId() && (
+          <p className="text-xs text-red-500 font-mono mb-4 bg-white rounded p-2">
+            Error ID: {Sentry.lastEventId()}
+          </p>
+        )}
+
+        {process.env.NODE_ENV === 'development' && (
+          <p className="text-xs text-red-500 font-mono mb-4 text-left bg-white rounded p-2 break-all">
+            {error.message}
+          </p>
+        )}
+        
+        <Button variant="outline-indigo" onClick={reset} className="w-full">
+          Retry
+        </Button>
+      </div>
+    </div>
+  )
 }

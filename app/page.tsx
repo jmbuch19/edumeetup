@@ -52,5 +52,5 @@ export default async function Home() {
   // Graceful fallback: if DB is down or cold-starting, show default hero
   const slides = await getHeroSlides().catch(() => [])
   const circuits = await getPublishedCircuits().catch(() => [])
-  return <HomeClient slides={slides} circuits={circuits} />
+  return <HomeClient slides={slides as any[]} circuits={circuits as any[]} />
 }

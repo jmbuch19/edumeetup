@@ -50,7 +50,7 @@ export default async function AdminUniversitiesPage() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            universities.map((uni) => (
+                            universities.map((uni: any) => (
                                 <TableRow key={uni.id}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">

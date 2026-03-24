@@ -50,7 +50,7 @@ export async function getSurveyDashboardData() {
   let passives = 0
   let detractors = 0
 
-  responses.forEach(r => {
+  responses.forEach((r: any) => {
     if (r.score >= 9) promoters++
     else if (r.score >= 7) passives++
     else detractors++

@@ -104,7 +104,7 @@ export default async function handler() {
         where: { fairEventId: fair.id, studentId: { not: null } },
       })
       await Promise.allSettled(
-        passes.map((pass) =>
+        passes.map((pass: any) =>
           prisma.studentNotification.create({
             data: {
               studentId: pass.studentId!,
@@ -123,7 +123,7 @@ export default async function handler() {
         where: { verificationStatus: 'VERIFIED', notifyFairOpportunities: true },
       })
       await Promise.allSettled(
-        universities.map((uni) =>
+        universities.map((uni: any) =>
           prisma.universityNotification.create({
             data: {
               universityId: uni.id,
@@ -171,7 +171,7 @@ export default async function handler() {
       })
 
       await Promise.allSettled(
-        grouped.map(async (record) => {
+        grouped.map(async (record: any) => {
           const dedupKey = `FAIR_FOLLOWUP_NUDGE:${fair.id}:${record.universityId}:${now.toISOString().slice(0, 13)}`
           const existing = await prisma.systemLog.findFirst({
             where: { type: 'FAIR_FOLLOWUP_NUDGE', message: { contains: dedupKey } },
@@ -228,7 +228,7 @@ export default async function handler() {
     })
 
     const nudgeResults = await Promise.allSettled(
-      stalePasses.map(async (pass) => {
+      stalePasses.map(async (pass: any) => {
         const dedupKey = `FAIR_PARTIAL_NUDGE:${pass.id}`
         const existing = await prisma.systemLog.findFirst({
           where: { type: 'FAIR_PARTIAL_NUDGE', message: { contains: dedupKey } },
@@ -302,14 +302,14 @@ export default async function handler() {
         const universities =
           participatingIds.length > 0
             ? await prisma.university.findMany({
-              where: { id: { in: participatingIds.map((u) => u.universityId) } },
+              where: { id: { in: participatingIds.map((u: any) => u.universityId) } },
             })
             : await prisma.university.findMany({
               where: { verificationStatus: 'VERIFIED' },
             })
 
         await Promise.allSettled(
-          universities.map((uni) =>
+          universities.map((uni: any) =>
             prisma.universityNotification.create({
               data: {
                 universityId: uni.id,

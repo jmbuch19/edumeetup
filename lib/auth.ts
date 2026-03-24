@@ -311,6 +311,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         async jwt({ token, user, trigger }) {
             if (user) {
                 token.id = user.id
+                token.createdAt = Date.now() // Stamp absolute creation time
+            }
+
+            // Security: Absolute Session Lifetime Enforcer
+            // Prevents a stolen token from being kept alive indefinitely via NextAuth's rolling session mechanic.
+            // Hard forces re-authentication after 30 days regardless of recent activity.
+            const ABSOLUTE_MAX_AGE = 30 * 24 * 60 * 60 * 1000 // 30 days
+            if (token.createdAt && Date.now() - (token.createdAt as number) > ABSOLUTE_MAX_AGE) {
+                console.warn(`[AUTH jwt] Token reached absolute maximum age. Forcing re-login for security.`)
+                return null
             }
 
             // 15 min interval — 3× less DB traffic than the previous 5 min

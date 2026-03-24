@@ -46,11 +46,11 @@ export async function GET(
 
     // Collect unique duration options across all profiles
     const durations = [...new Set(
-        profiles.flatMap((p) => p.meetingDurationOptions)
-    )].sort((a, b) => a - b)
+        profiles.flatMap((p: any) => p.meetingDurationOptions)
+    )].sort((a: any, b: any) => a - b)
 
     // Build available days summary
-    const availability = profiles.map((p) => ({
+    const availability = profiles.map((p: any) => ({
         dayOfWeek: p.dayOfWeek,
         startTime: p.startTime,
         endTime: p.endTime,

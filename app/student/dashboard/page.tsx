@@ -5,6 +5,7 @@ import { DashboardUI } from '@/components/student/dashboard-ui'
 import { getStudentAdvisoryStatus } from '@/app/actions/advisory-actions'
 import { getStudentGroupSessions, getDiscoverableGroupSessions } from '@/app/university/actions/group-sessions'
 import { StudentAdvisor } from '@/components/chat/student-advisor'
+import { ComponentErrorBoundary } from '@/components/error-boundary'
 
 
 
@@ -103,7 +104,7 @@ export default async function StudentDashboard() {
     const groupSessions = groupSessionsResult.status === 'fulfilled' ? (groupSessionsResult.value.sessions ?? []) : []
     const discoverableSessions = discoverableResult.status === 'fulfilled' ? (discoverableResult.value.sessions ?? []) : []
 
-    const interestedUniIds = interests.map(i => i.universityId)
+    const interestedUniIds = interests.map((i: any) => i.universityId)
 
     return (
         <>
@@ -119,7 +120,9 @@ export default async function StudentDashboard() {
                 discoverableSessions={JSON.parse(JSON.stringify(discoverableSessions))}
             />
             {/* Student-only AI advisor — bottom-left, teal, distinct from public AdmissionsChat */}
-            <StudentAdvisor studentName={student.fullName} />
+            <ComponentErrorBoundary name="BotChat">
+                <StudentAdvisor studentName={student.fullName} />
+            </ComponentErrorBoundary>
         </>
     )
 }

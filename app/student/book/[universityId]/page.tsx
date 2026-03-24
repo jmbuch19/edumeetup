@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import BookingWizard from "@/components/booking/BookingWizard"
+import { BookingWizard } from '@/components/booking/BookingWizard'
 import { getBookingData } from "./actions"
 
 export default async function StudentBookingPage(props: { params: Promise<{ universityId: string }> }) {

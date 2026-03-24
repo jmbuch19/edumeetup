@@ -50,7 +50,7 @@ export default async function GroupPage(props: Props) {
 
     const totalPrograms =
         parent.programList.length +
-        parent.schools.reduce((acc, s) => acc + s.programList.length, 0)
+        parent.schools.reduce((acc: any, s: any) => acc + s.programList.length, 0)
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -115,7 +115,7 @@ export default async function GroupPage(props: Props) {
                         Schools & Faculties
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {parent.schools.map(school => (
+                        {parent.schools.map((school: any) => (
                             <UniversityCard
                                 key={school.id}
                                 university={school as any}

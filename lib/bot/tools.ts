@@ -119,7 +119,7 @@ export async function searchInternalUniversities(args: {
             found: true,
             source: 'INTERNAL',
             count: universities.length,
-            universities: universities.map(u => ({
+            universities: universities.map((u: any) => ({
                 id: u.id,
                 name: u.institutionName,
                 country: u.country,
@@ -239,7 +239,7 @@ export async function getUpcomingFairs() {
 
         return {
             found: true,
-            fairs: fairs.map(f => ({
+            fairs: fairs.map((f: any) => ({
                 ...f,
                 url: `/fairs/${f.slug}`,
             }))

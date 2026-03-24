@@ -39,7 +39,7 @@ export async function GET(request: Request) {
         const pendingAttendances = await prisma.fairAttendance.groupBy({
             by: ['universityId', 'fairEventId'],
             where: {
-                fairEventId: { in: staleFairs.map(f => f.id) },
+                fairEventId: { in: staleFairs.map((f: any) => f.id) },
                 followUpStatus: 'PENDING',
             },
             _count: { id: true },
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
                 })
                 if (!university?.repEmail) continue
 
-                const fair = staleFairs.find(f => f.id === group.fairEventId)
+                const fair = staleFairs.find((f: any) => f.id === group.fairEventId)
                 const count = group._count.id
                 const repName = university.repName ?? 'there'
                 const reportUrl = `${baseUrl}/dashboard/university/fair-report/${group.fairEventId}`

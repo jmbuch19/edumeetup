@@ -17,7 +17,7 @@ export default async function CalendarPage() {
         orderBy: { startTime: 'asc' }
     })
 
-    const formattedMeetings = meetings.map(m => ({
+    const formattedMeetings = meetings.map((m: any) => ({
         ...m,
         title: m.title || 'Untitled Meeting',
         meetingType: m.meetingType || 'ONE_TO_ONE',

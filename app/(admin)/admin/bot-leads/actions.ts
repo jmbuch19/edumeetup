@@ -54,7 +54,7 @@ export async function getBotLeads(filter: LeadFilter = 'all', limit = 50): Promi
     })
 
     // Extract typed fields from JSON metadata
-    const raw: BotLead[] = logs.map(log => {
+    const raw: BotLead[] = logs.map((log: any) => {
         const m = (log.metadata ?? {}) as Record<string, any>
         return {
             id: log.id,
@@ -84,11 +84,11 @@ export async function getBotLeads(filter: LeadFilter = 'all', limit = 50): Promi
             where: { id: { in: userIds } },
             select: { id: true, email: true, name: true },
         })
-        const userMap = new Map(users.map(u => [u.id, u]))
+        const userMap = new Map<string, any>(users.map((u: any) => [u.id, u]))
         raw.forEach(r => {
             if (r.userId) {
                 const u = userMap.get(r.userId)
-                if (u) { r.email = u.email; r.name = u.name }
+                if (u) { (r as any).email = u.email; (r as any).name = u.name }
             }
         })
     }

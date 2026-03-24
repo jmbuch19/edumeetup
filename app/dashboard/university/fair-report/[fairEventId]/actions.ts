@@ -159,7 +159,7 @@ export async function exportLeadsCSV(
 
         const escape = (v: string | null | undefined) => `"${String(v ?? '').replace(/"/g, '""')}"`
 
-        const rows = leads.map((l) => [
+        const rows = leads.map((l: any) => [
             escape(l.pass.fullName),
             escape(l.pass.email),
             escape(l.pass.phone),
@@ -279,7 +279,7 @@ export async function exportAllPassesCSV(
         const escape = (v: string | null | undefined) =>
             `"${String(v ?? '').replace(/"/g, '""')}"`
 
-        const rows = passes.map((p) =>
+        const rows = passes.map((p: any) =>
             [
                 escape(p.fullName),
                 escape(p.email),

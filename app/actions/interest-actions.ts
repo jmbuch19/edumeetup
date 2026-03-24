@@ -43,7 +43,7 @@ export async function getProgramInterestStats(programId: string): Promise<Intere
 
     // Aggregate by Country
     const countryMap = new Map<string, number>()
-    interests.filter(i => i.student !== null).forEach(i => {
+    interests.filter((i: any) => i.student !== null).forEach((i: any) => {
         const country = i.student?.country || 'Unknown'
         countryMap.set(country, (countryMap.get(country) || 0) + 1)
     })
@@ -54,7 +54,7 @@ export async function getProgramInterestStats(programId: string): Promise<Intere
 
     // Aggregate by Status
     const statusMap = new Map<string, number>()
-    interests.filter(i => i.student !== null).forEach(i => {
+    interests.filter((i: any) => i.student !== null).forEach((i: any) => {
         const status = i.student?.currentStatus || 'Unknown'
         statusMap.set(status, (statusMap.get(status) || 0) + 1)
     })
@@ -85,7 +85,7 @@ export async function getInterestedStudents(programId: string): Promise<Interest
 
     // Check for existing meetings to flag "hasMeeting"
     // This is a bit expensive in loop, maybe optimize later
-    const students = await Promise.all(interests.filter(i => i.student !== null).map(async (i) => {
+    const students = await Promise.all(interests.filter((i: any) => i.student !== null).map(async (i: any) => {
         const meeting = await prisma.meetingParticipant.findFirst({
             where: {
                 participantUserId: i.student!.userId,
@@ -110,7 +110,11 @@ export async function getInterestedStudents(programId: string): Promise<Interest
     return students
 }
 
-export async function sendBulkNotification(programId: string, subject: string, message: string) {
+export async function sendBulkNotification(
+    programId: string, 
+    subject: string, 
+    message: string
+): Promise<{ success?: boolean; count?: number; error?: string }> {
     const user = await requireUser()
     const uni = await prisma.university.findUnique({ where: { userId: user.id } })
     if (!uni) throw new Error("Unauthorized")
@@ -134,7 +138,7 @@ export async function sendBulkNotification(programId: string, subject: string, m
 
     // Create Notifications (generic table + role-specific bell)
     await prisma.notification.createMany({
-        data: interests.filter(i => i.student !== null).map(i => ({
+        data: interests.filter((i: any) => i.student !== null).map((i: any) => ({
             userId: i.student.userId,
             type: 'UNIVERSITY_MESSAGE',
             title: subject,

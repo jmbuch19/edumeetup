@@ -19,7 +19,7 @@ export default async function UniversityProctorPage() {
     })
 
     // Dates → ISO strings for client component serialisation
-    const serialised = requests.map(r => ({
+    const serialised = requests.map((r: any) => ({
         ...r,
         fees: undefined,          // not shown to university
         reminderSentAt: undefined, // internal only

@@ -118,7 +118,7 @@ export default async function FairRegisteredStudentsPage(
                 </Card>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {registeredStudents.map(pass => (
+                    {registeredStudents.map((pass: any) => (
                         <Card key={pass.id} className="hover:shadow-sm transition-shadow flex flex-col">
                             <CardHeader className="pb-2">
                                 <div className="flex items-start justify-between gap-2">

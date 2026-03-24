@@ -218,7 +218,7 @@ export async function createMeetingRequest(data: BookingData) {
         // Step 4: Lock slot (isBooked=true, meetingId=newMeeting.id)
         // All succeed or all roll back.
 
-        const meeting = await prisma.$transaction(async (tx) => {
+        const meeting = await prisma.$transaction(async (tx: any) => {
 
             // Step 1: Fetch slot by ID — no timestamp fragility
             const slot = await tx.availabilitySlot.findUnique({ where: { id: slotId } })

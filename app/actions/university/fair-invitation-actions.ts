@@ -170,7 +170,7 @@ export async function sendFairInvitationReminder(
         })
 
         const results = await Promise.allSettled(
-            pending.map((inv) => {
+            pending.map((inv: any) => {
                 const email = inv.university.repEmail ?? inv.university.contactEmail
                 if (!email) return Promise.resolve({ skipped: true })
                 return sendEmail({

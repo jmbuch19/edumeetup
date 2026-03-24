@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import type { User } from '@prisma/client'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -157,7 +158,7 @@ export async function getUniversityEvents() {
     if (!universityId) {
         // Check rep
         // Fetch full user to avoid type inference issues with partial selects
-        const user = await prisma.user.findUnique({ where: { id: userId } }) as any
+        const user = await prisma.user.findUnique({ where: { id: userId } }) as User & { universityId?: string }
         universityId = user?.universityId || undefined
     }
 
@@ -187,7 +188,7 @@ export async function createEvent(formData: FormData) {
     const profile = await prisma.university.findUnique({ where: { userId } })
     if (profile) universityId = profile.id
     else {
-        const user = await prisma.user.findUnique({ where: { id: userId } }) as any
+        const user = await prisma.user.findUnique({ where: { id: userId } }) as User & { universityId?: string }
         universityId = user?.universityId
     }
 

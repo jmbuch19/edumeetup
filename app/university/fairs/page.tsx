@@ -14,7 +14,7 @@ export default async function UniversityFairsPage() {
     const outreachItemsRaw = await getUniversityOutreach()
 
     // Serialize dates for Client Component
-    const outreachItems = outreachItemsRaw.map(item => ({
+    const outreachItems = outreachItemsRaw.map((item: any) => ({
         ...item,
 
         sentAt: new Date(item.sentAt as any).toISOString(),
@@ -28,8 +28,8 @@ export default async function UniversityFairsPage() {
         }
     }))
 
-    const pending = outreachItems.filter(i => i.status === 'SENT')
-    const history = outreachItems.filter(i => i.status !== 'SENT')
+    const pending = outreachItems.filter((i: any) => i.status === 'SENT')
+    const history = outreachItems.filter((i: any) => i.status !== 'SENT')
 
     return (
         <div className="container mx-auto py-8">
@@ -53,7 +53,7 @@ export default async function UniversityFairsPage() {
                                 <p className="text-slate-500">No new invitations at the moment.</p>
                             </div>
                         ) : (
-                            pending.map(item => (
+                            pending.map((item: any) => (
                                 <FairInvitationCard key={item.id} outreach={item} />
                             ))
                         )}
@@ -65,7 +65,7 @@ export default async function UniversityFairsPage() {
                                 <p className="text-slate-500">No response history yet.</p>
                             </div>
                         ) : (
-                            history.map(item => (
+                            history.map((item: any) => (
                                 <FairInvitationCard key={item.id} outreach={item} />
                             ))
                         )}

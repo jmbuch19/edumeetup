@@ -29,7 +29,7 @@ async function getSeenMilestones(): Promise<string[]> {
     where: { type: 'MILESTONE_SEEN' },
     select: { message: true }
   })
-  return logs.map(l => l.message)
+  return logs.map((l: any) => l.message)
 }
 
 async function markMilestoneSeen(milestoneId: string) {

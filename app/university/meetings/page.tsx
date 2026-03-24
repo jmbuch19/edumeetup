@@ -16,9 +16,9 @@ export default async function UniversityMeetingsPage() {
     // Fetch all meetings
     const allMeetings = await getUniversityMeetings() || []
 
-    const pendingMeetings = allMeetings.filter(m => m.status === 'PENDING')
-    const upcomingMeetings = allMeetings.filter(m => m.status === 'CONFIRMED' && new Date(m.proposedDatetime) > new Date())
-    const pastMeetings = allMeetings.filter(m =>
+    const pendingMeetings = allMeetings.filter((m: any) => m.status === 'PENDING')
+    const upcomingMeetings = allMeetings.filter((m: any) => m.status === 'CONFIRMED' && new Date(m.proposedDatetime) > new Date())
+    const pastMeetings = allMeetings.filter((m: any) =>
         (m.status === 'CONFIRMED' && new Date(m.proposedDatetime) <= new Date()) ||
         m.status === 'COMPLETED' ||
         m.status === 'CANCELLED' ||

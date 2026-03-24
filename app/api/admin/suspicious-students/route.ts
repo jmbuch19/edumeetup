@@ -48,7 +48,7 @@ export async function GET() {
         });
 
         // Format for easy reading in admin UI
-        const formatted = suspicious.map((s) => ({
+        const formatted = suspicious.map((s: any) => ({
             id: s.id,
             name: s.fullName,
             email: s.user.email,

@@ -20,9 +20,34 @@ const edgeChatLimiter = new Ratelimit({
 export default async function middleware(req: NextRequest) {
     const { nextUrl } = req
 
-    // ── STEP 1: ALL /api/ routes bypass this middleware completely ──────────
-    // Except /api/chat which requires edge ratelimits before Node initializes.
+    // ── STEP 1: Strict CORS & API Defenses ──────────
     if (nextUrl.pathname.startsWith('/api/')) {
+        const origin = req.headers.get('origin')
+        const allowedOrigins = [
+            'http://localhost:3000',
+            'https://www.edumeetup.com',
+            'https://edumeetup.com'
+        ]
+
+        // 1. Block unauthorized cross-origin API requests (Deep CSRF protection)
+        if (origin && !allowedOrigins.includes(origin)) {
+            console.warn(`[middleware] Blocked malicious CORS request from: ${origin}`)
+            return new NextResponse('CORS Policy: Origin not allowed', { status: 403 })
+        }
+
+        // 2. Handle preflight OPTIONS requests dynamically
+        if (req.method === 'OPTIONS') {
+            const preflightRes = new NextResponse(null, { status: 204 })
+            if (origin && allowedOrigins.includes(origin)) {
+                preflightRes.headers.set('Access-Control-Allow-Origin', origin)
+                preflightRes.headers.set('Access-Control-Allow-Credentials', 'true')
+                preflightRes.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT')
+                preflightRes.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token, X-Requested-With, x-turnstile-token, x-cron-secret')
+            }
+            return preflightRes
+        }
+
+        // 3. Apply Edge Ratelimiter for specific high-risk API routes
         const isProtectedApi = nextUrl.pathname === '/api/chat' || 
                                nextUrl.pathname === '/api/student-chat' || 
                                nextUrl.pathname === '/api/auth/signin/email'
@@ -40,7 +65,14 @@ export default async function middleware(req: NextRequest) {
                 console.warn('[middleware] Edge Ratelimit error:', (e as Error).message)
             }
         }
-        return NextResponse.next()
+
+        // 4. Append secure CORS headers to the actual response
+        const res = NextResponse.next()
+        if (origin && allowedOrigins.includes(origin)) {
+            res.headers.set('Access-Control-Allow-Origin', origin)
+            res.headers.set('Access-Control-Allow-Credentials', 'true')
+        }
+        return res
     }
 
     // ── STEP 2: Public routes — always pass through, no auth needed ──────────
@@ -53,7 +85,10 @@ export default async function middleware(req: NextRequest) {
         nextUrl.pathname.startsWith('/universities') ||
         nextUrl.pathname.startsWith('/student/register') ||
         nextUrl.pathname.startsWith('/university/register') ||
-        nextUrl.pathname === '/university-login'
+        nextUrl.pathname === '/university-login' ||
+        nextUrl.pathname.startsWith('/alumni-register') ||
+        nextUrl.pathname.startsWith('/host-a-fair') ||
+        nextUrl.pathname === '/alumni'
     )
     if (isPublicRoute) {
         return NextResponse.next()
@@ -92,12 +127,14 @@ export default async function middleware(req: NextRequest) {
     const tokenExpired = token?.exp ? (token.exp as number) < Math.floor(Date.now() / 1000) : false
 
     const isLoggedIn = !!token && !tokenExpired
-    const role = isLoggedIn ? (token?.role as "ADMIN" | "UNIVERSITY" | "UNIVERSITY_REP" | "STUDENT" | undefined) : undefined
+    const role = isLoggedIn ? (token?.role as "ADMIN" | "UNIVERSITY" | "UNIVERSITY_REP" | "STUDENT" | "ALUMNI" | "EVENT_PLANNER" | undefined) : undefined
 
     const isAuthRoute = nextUrl.pathname.startsWith('/login') || nextUrl.pathname.startsWith('/register')
     const isStudentRoute = nextUrl.pathname.startsWith('/student')
     const isUniversityRoute = nextUrl.pathname.startsWith('/university')
     const isAdminRoute = nextUrl.pathname.startsWith('/admin')
+    const isAlumniRoute = nextUrl.pathname.startsWith('/alumni')
+    const isFairOpsRoute = nextUrl.pathname.startsWith('/fair-ops')
 
     // ── STEP 4: PAGE ROUTE PROTECTION ────────────────────────────────────────
 
@@ -112,12 +149,14 @@ export default async function middleware(req: NextRequest) {
         if (role === 'ADMIN') return NextResponse.redirect(new URL('/admin/dashboard', nextUrl))
         if (role === 'UNIVERSITY' || role === 'UNIVERSITY_REP') return NextResponse.redirect(new URL('/university/dashboard', nextUrl))
         if (role === 'STUDENT') return NextResponse.redirect(new URL('/student/dashboard', nextUrl))
+        if (role === 'ALUMNI') return NextResponse.redirect(new URL('/alumni/dashboard', nextUrl))
+        if (role === 'EVENT_PLANNER') return NextResponse.redirect(new URL('/fair-ops', nextUrl))
         // Unknown / unset role — let them through rather than loop
         return NextResponse.next()
     }
 
     // Redirect unauthenticated users away from protected routes
-    if (!isLoggedIn && (isStudentRoute || isUniversityRoute || isAdminRoute)) {
+    if (!isLoggedIn && (isStudentRoute || isUniversityRoute || isAdminRoute || isAlumniRoute || isFairOpsRoute)) {
         // Strip nested callbackUrl params to prevent snowballing
         // (e.g. /admin/dashboard?callbackUrl=/admin/dashboard → /admin/dashboard)
         const cleanSearch = (() => {
@@ -131,19 +170,22 @@ export default async function middleware(req: NextRequest) {
         return NextResponse.redirect(new URL(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`, nextUrl))
     }
 
-    // Cross-role enforcement — only run when role is known to prevent loops
-    if (isLoggedIn && role) {
-        if (isAdminRoute && role !== 'ADMIN') {
-            const dest = (role === 'UNIVERSITY' || role === 'UNIVERSITY_REP') ? '/university/dashboard' : '/student/dashboard'
-            return NextResponse.redirect(new URL(dest, nextUrl))
+    // Cross-role enforcement — strictly bounce unauthorized access even if role is undefined
+    if (isLoggedIn) {
+        const getDest = (r: typeof role) => {
+            if (r === 'ADMIN') return '/admin/dashboard'
+            if (r === 'UNIVERSITY' || r === 'UNIVERSITY_REP') return '/university/dashboard'
+            if (r === 'STUDENT') return '/student/dashboard'
+            if (r === 'ALUMNI') return '/alumni/dashboard'
+            if (r === 'EVENT_PLANNER') return '/fair-ops'
+            return '/'
         }
-        if (isUniversityRoute && role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP') {
-            return NextResponse.redirect(new URL('/student/dashboard', nextUrl))
-        }
-        if (isStudentRoute && (role === 'ADMIN' || role === 'UNIVERSITY' || role === 'UNIVERSITY_REP')) {
-            const dest = role === 'ADMIN' ? '/admin/dashboard' : '/university/dashboard'
-            return NextResponse.redirect(new URL(dest, nextUrl))
-        }
+
+        if (isAdminRoute && role !== 'ADMIN') return NextResponse.redirect(new URL(getDest(role), nextUrl))
+        if (isUniversityRoute && role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP') return NextResponse.redirect(new URL(getDest(role), nextUrl))
+        if (isStudentRoute && role !== 'STUDENT') return NextResponse.redirect(new URL(getDest(role), nextUrl))
+        if (isAlumniRoute && role !== 'ALUMNI' && role !== 'ADMIN') return NextResponse.redirect(new URL('/login', nextUrl))
+        if (isFairOpsRoute && role !== 'EVENT_PLANNER' && role !== 'ADMIN') return NextResponse.redirect(new URL('/login', nextUrl))
     }
 
     return NextResponse.next()
@@ -151,9 +193,7 @@ export default async function middleware(req: NextRequest) {
 
 export const config = {
     matcher: [
-        "/((?!_next/static|_next/image|favicon.ico|api).*)",
-        "/api/chat",
-        "/api/student-chat",
-        "/api/auth/signin/email"
+        // All pages except Next.js internals
+        "/((?!_next/static|_next/image|favicon.ico).*)",
     ],
 }

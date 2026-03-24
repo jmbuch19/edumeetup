@@ -128,7 +128,7 @@ export async function notifyMatchedStudents(
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata'
     }) + ' IST'
 
-    await Promise.all(students.map(async (student) => {
+    await Promise.all(students.map(async (student: any) => {
         // In-app notification
         await prisma.studentNotification.create({
             data: {
@@ -201,7 +201,7 @@ export async function joinGroupSession(
     }
 
     try {
-        const seat = await prisma.$transaction(async (tx) => {
+        const seat = await prisma.$transaction(async (tx: any) => {
             // Lock and count confirmed seats
             const gs = await tx.groupSession.findUnique({
                 where: { id: sessionId },
@@ -307,7 +307,7 @@ export async function leaveGroupSession(
 
     const wasConfirmed = seat.status === 'CONFIRMED'
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
         // Cancel the leaving student's seat
         await tx.groupSessionSeat.update({
             where: { id: seat.id },
@@ -423,7 +423,7 @@ export async function publishFollowUpDraft(
             weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata',
         }) + ' IST'
 
-        await Promise.all(waitlisted.map(async (ws) => {
+        await Promise.all(waitlisted.map(async (ws: any) => {
             await prisma.studentNotification.create({
                 data: {
                     studentId: ws.student.id,
@@ -517,7 +517,7 @@ export async function startGroupSession(
     }) + ' IST'
 
     // Notify all confirmed students with student join URL
-    await Promise.all(gs.seats.map(async (seat) => {
+    await Promise.all(gs.seats.map(async (seat: any) => {
         const firstName = seat.student.fullName?.split(' ')[0] || 'there'
 
         await prisma.studentNotification.create({
@@ -575,7 +575,7 @@ export async function shareRecap(
     await prisma.groupSession.update({ where: { id: sessionId }, data: { recapUrl } })
 
     // Build recipient list: confirmed + waitlisted + all matched interested students
-    const confirmedIds = new Set(gs.seats.map(s => s.studentId))
+    const confirmedIds = new Set(gs.seats.map((s: any) => s.studentId))
     const matchedIds = await getMatchedStudentIds(uni.id, gs.programId, gs.targetField)
     const allIds = [...new Set([...confirmedIds, ...matchedIds])]
 
@@ -584,7 +584,7 @@ export async function shareRecap(
         select: { id: true, fullName: true, user: { select: { email: true } } },
     })
 
-    await Promise.all(students.map(async (student) => {
+    await Promise.all(students.map(async (student: any) => {
         const wasConfirmed = confirmedIds.has(student.id)
 
         await prisma.studentNotification.create({
@@ -641,7 +641,7 @@ export async function getGroupSessions(): Promise<{ sessions?: GroupSessionWithS
     })
 
     return {
-        sessions: sessions.map(s => ({
+        sessions: sessions.map((s: any) => ({
             id: s.id,
             title: s.title,
             agenda: s.agenda,
@@ -656,8 +656,8 @@ export async function getGroupSessions(): Promise<{ sessions?: GroupSessionWithS
             recapUrl: s.recapUrl,
             notifiedCount: s.notifiedCount,
             followUpDraftId: s.followUpDraftId,
-            confirmedCount: s.seats.filter(s => s.status === 'CONFIRMED').length,
-            waitlistedCount: s.seats.filter(s => s.status === 'WAITLISTED').length,
+            confirmedCount: s.seats.filter((s: any) => s.status === 'CONFIRMED').length,
+            waitlistedCount: s.seats.filter((s: any) => s.status === 'WAITLISTED').length,
         }))
     }
 }
@@ -708,7 +708,7 @@ export async function getStudentGroupSessions(): Promise<{ sessions?: StudentGro
     })
 
     return {
-        sessions: seats.map(seat => ({
+        sessions: seats.map((seat: any) => ({
             seatId: seat.id,
             seatStatus: seat.status as 'CONFIRMED' | 'WAITLISTED',
             waitlistPos: seat.waitlistPos,
@@ -773,8 +773,8 @@ export async function getDiscoverableGroupSessions(): Promise<{ sessions?: Disco
         select: { programId: true, program: { select: { fieldCategory: true } } },
     })
 
-    const interestedProgramIds = interests.map(i => i.programId).filter(Boolean) as string[]
-    const interestedFields = interests.map(i => i.program?.fieldCategory).filter(Boolean) as string[]
+    const interestedProgramIds = interests.map((i: any) => i.programId).filter(Boolean) as string[]
+    const interestedFields = interests.map((i: any) => i.program?.fieldCategory).filter(Boolean) as string[]
     if (student.fieldOfInterest) interestedFields.push(student.fieldOfInterest)
 
     // Discoverable sessions: OPEN, FILLING, FULL and scheduled in the future
@@ -803,7 +803,7 @@ export async function getDiscoverableGroupSessions(): Promise<{ sessions?: Disco
     })
 
     // Sort by relevance (Tier 1 > Tier 2/3 > Universal)
-    const sorted = discoverable.sort((a, b) => {
+    const sorted = discoverable.sort((a: any, b: any) => {
         const tierA = (a.programId && interestedProgramIds.includes(a.programId)) ? 1 : (a.targetField && interestedFields.includes(a.targetField)) ? 2 : 3;
         const tierB = (b.programId && interestedProgramIds.includes(b.programId)) ? 1 : (b.targetField && interestedFields.includes(b.targetField)) ? 2 : 3;
         if (tierA !== tierB) return tierA - tierB
@@ -811,7 +811,7 @@ export async function getDiscoverableGroupSessions(): Promise<{ sessions?: Disco
     })
 
     return {
-        sessions: sorted.map(s => ({
+        sessions: sorted.map((s: any) => ({
             id: s.id,
             title: s.title,
             agenda: s.agenda,
@@ -896,7 +896,7 @@ async function getMatchedStudentIdsByTier(
         select: { id: true },
     }) : []
 
-    const tier1Ids = new Set(tier1.map(s => s.id))
+    const tier1Ids = new Set(tier1.map((s: any) => s.id))
 
     // Tier 2: field match via Interest → Program.fieldCategory
     const tier2Raw = targetField ? await prisma.student.findMany({
@@ -908,7 +908,7 @@ async function getMatchedStudentIdsByTier(
         select: { id: true },
     }) : []
 
-    const tier2Ids = new Set(tier2Raw.map(s => s.id))
+    const tier2Ids = new Set(tier2Raw.map((s: any) => s.id))
 
     // Tier 3: general field of interest on student profile
     const tier3 = targetField ? await prisma.student.findMany({
@@ -922,8 +922,8 @@ async function getMatchedStudentIdsByTier(
     }) : []
 
     return {
-        tier1: tier1.map(s => s.id),
-        tier2: tier2Raw.map(s => s.id),
-        tier3: tier3.map(s => s.id),
+        tier1: tier1.map((s: any) => s.id),
+        tier2: tier2Raw.map((s: any) => s.id),
+        tier3: tier3.map((s: any) => s.id),
     }
 }

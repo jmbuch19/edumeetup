@@ -6,32 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { createMeeting } from "@/app/actions"
 
-interface InterestWithStudent {
-    id: string
-    student: {
-        id: string
-        fullName: string
-        country: string | null
-        user: {
-            email: string
-            id: string // userId needed for participant
-        }
-    }
-    program: {
-        programName: string
-    } | null
-    status: string
-    createdAt: string | Date // Allow string for serialized data
-}
+import type { Interest, Student, User, Program, AvailabilitySlot } from '@prisma/client'
 
-interface AvailabilitySlot {
-    id: string
-    startTime: string | Date // Allow string
-    endTime: string | Date // Allow string
-    isBooked: boolean
-}
-
-export function InterestedStudentsTable({ interests, availabilitySlots = [], programs = [], compact = false }: { interests: any[], availabilitySlots?: any[], programs?: any[], compact?: boolean }) {
+export function InterestedStudentsTable({ interests, availabilitySlots = [], programs = [], compact = false }: { interests: (Interest & { student: (Student & { user: User | null; profile?: any }) | null; program: Program | null })[], availabilitySlots?: AvailabilitySlot[], programs?: Program[], compact?: boolean }) {
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
@@ -153,7 +130,6 @@ export function InterestedStudentsTable({ interests, availabilitySlots = [], pro
                                     <TableCell className="font-medium">
                                         {(() => {
                                             const name = interest.student?.fullName
-                                                ?? [interest.student?.firstName, interest.student?.lastName].filter(Boolean).join(' ')
                                             return name?.trim() || interest.student?.user?.email || 'Student'
                                         })()}
                                     </TableCell>

@@ -5,8 +5,10 @@ import { Plus, Calendar, Users, MapPin } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 
+import type { Event } from '@prisma/client'
+
 export default async function UniversityEventsPage() {
-    const events = await getUniversityEvents() as any[]
+    const events = await getUniversityEvents() as (Event & { _count: { registrations: number } })[]
 
     return (
         <div className="container mx-auto px-4 py-8">

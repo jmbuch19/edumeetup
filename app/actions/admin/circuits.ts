@@ -4,7 +4,9 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 // import { sendEmail } from "@/lib/email" // assuming future integration
 
-export async function sendCircuitWelcomeEmails(circuitId: string) {
+export async function sendCircuitWelcomeEmails(
+    circuitId: string
+): Promise<{ success: boolean; error?: string; message?: string; unassignedUniversities?: string[] }> {
     const session = await auth()
     if (!session?.user || session.user.role !== 'ADMIN') {
         return { success: false, error: "Unauthorized" }
@@ -16,13 +18,13 @@ export async function sendCircuitWelcomeEmails(circuitId: string) {
             include: { university: { select: { institutionName: true } } }
         })
 
-        const unassigned = registrations.filter(r => !r.repId)
+        const unassigned = registrations.filter((r: any) => !r.repId)
 
         if (unassigned.length > 0) {
             return {
                 success: false,
                 error: `${unassigned.length} registration(s) have no rep assigned. Please ensure all reps are assigned before sending welcome emails.`,
-                unassignedUniversities: unassigned.map(r => r.university.institutionName || 'Unknown')
+                unassignedUniversities: unassigned.map((r: any) => r.university.institutionName || 'Unknown')
             }
         }
 

@@ -178,44 +178,63 @@ ${plainText.slice(0, 300)}
     try {
         const fromAddress = process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>'
 
-        const { error } = await getResend().emails.send({
-            from: fromAddress,
-            to,
-            subject,
-            html,
-            text: plainText,
-            ...(replyTo ? { replyTo } : {}),
-            ...(attachments && attachments.length > 0 ? {
-                attachments: attachments.map(a => ({
-                    filename: a.filename,
-                    content: a.content,
-                }))
-            } : {})
-        })
+        const executeSend = async () => {
+            try {
+                const { error } = await getResend().emails.send({
+                    from: fromAddress,
+                    to,
+                    subject,
+                    html,
+                    text: plainText,
+                    ...(replyTo ? { replyTo } : {}),
+                    ...(attachments && attachments.length > 0 ? {
+                        attachments: attachments.map(a => ({
+                            filename: a.filename,
+                            content: a.content,
+                        }))
+                    } : {})
+                })
 
-        if (error) throw new Error((error as any).message)
+                if (error) throw new Error((error as any).message)
 
-        console.log(`[RESEND] Email sent → ${to} | ${subject}`)
+                console.log(`[RESEND] Email sent → ${to} | ${subject}`)
 
-        await logSystemEvent({
-            level: 'INFO',
-            type: 'EMAIL_SENT',
-            message: `Email sent to ${to}`,
-            metadata: { to, subject }
-        })
+                await logSystemEvent({
+                    level: 'INFO',
+                    type: 'EMAIL_SENT',
+                    message: `Email sent to ${to}`,
+                    metadata: { to, subject }
+                })
+            } catch (error) {
+                console.error('[RESEND] Failed to send email:', error)
+                await logSystemEvent({
+                    level: 'ERROR',
+                    type: 'EMAIL_FAILURE',
+                    message: error instanceof Error ? error.message : 'Unknown email error',
+                    metadata: { to, subject, error: JSON.stringify(error) }
+                })
+            }
+        }
+
+        // Fire-and-forget background execution.
+        // Next.js 15 'after()' keeps the serverless lambda alive until the email resolves,
+        // without forcing the user's UI request to block and wait for SMTP.
+        try {
+            const { after, unstable_after } = await import('next/server') as any
+            const runAfter = after || unstable_after
+            if (typeof runAfter === 'function') {
+                runAfter(() => executeSend())
+            } else {
+                executeSend().catch(() => {})
+            }
+        } catch {
+            // Fallback for non-Next.js contexts or older versions
+            executeSend().catch(() => {})
+        }
 
         return { success: true }
     } catch (error) {
-        console.error('[RESEND] Failed to send email:', error)
-
-        await logSystemEvent({
-            level: 'ERROR',
-            type: 'EMAIL_FAILURE',
-            message: error instanceof Error ? error.message : 'Unknown email error',
-            metadata: { to, subject, error: JSON.stringify(error) }
-        })
-
-        return { error: 'Failed to send email' }
+        return { error: 'Failed to queue email' }
     }
 }
 

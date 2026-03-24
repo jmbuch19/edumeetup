@@ -56,7 +56,7 @@ export async function createAnnouncement(formData: FormData) {
             // Bulk in-app bell (no consent gate — admin messages always appear in bell)
             if (students.length > 0) {
                 await prisma.studentNotification.createMany({
-                    data: students.map(s => ({
+                    data: students.map((s: any) => ({
                         studentId: s.id,
                         title,
                         message: content,
@@ -94,7 +94,7 @@ export async function createAnnouncement(formData: FormData) {
 
             if (universities.length > 0) {
                 await prisma.universityNotification.createMany({
-                    data: universities.map(u => ({
+                    data: universities.map((u: any) => ({
                         universityId: u.id,
                         title,
                         message: content,

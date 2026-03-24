@@ -86,7 +86,7 @@ export default async function ProfileHistoryPage() {
                     <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200" aria-hidden />
 
                     <div className="space-y-6">
-                        {logs.map((log, idx) => {
+                        {logs.map((log: any, idx: any) => {
                             const changedFields = log.changedFields as Record<string, { from: string | null; to: string | null }>
                             const snapshot = log.snapshot as Record<string, string | null>
                             const changedKeys = Object.keys(changedFields)

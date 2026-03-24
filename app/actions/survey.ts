@@ -12,7 +12,7 @@ const surveySchema = z.object({
   allowContact: z.boolean().default(false)
 })
 
-export async function submitNpsSurvey(formData: z.infer<typeof surveySchema>) {
+export async function submitNpsSurvey(formData: z.infer<typeof surveySchema>): Promise<{ success?: boolean; error?: string }> {
   try {
     const session = await auth()
     if (!session?.user?.id) {
@@ -22,7 +22,7 @@ export async function submitNpsSurvey(formData: z.infer<typeof surveySchema>) {
     const { score, feedback, role, allowContact } = surveySchema.parse(formData)
     
     // Use an interactive transaction to insert the response and update the user flag safely
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       // Create the survey record
       await tx.npsSurveyResponse.create({
         data: {
@@ -54,7 +54,7 @@ export async function submitNpsSurvey(formData: z.infer<typeof surveySchema>) {
   }
 }
 
-export async function dismissNpsSurvey() {
+export async function dismissNpsSurvey(): Promise<{ success?: boolean; error?: string }> {
   try {
     const session = await auth()
     if (!session?.user?.id) {

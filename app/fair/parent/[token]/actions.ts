@@ -65,7 +65,7 @@ export async function getParentViewData(
             fairEventTitle: pass.fairEvent.name,
             fairEventDate: pass.fairEvent.startDate.toISOString(),
             fairEnded,
-            visits: pass.attendances.map((att) => ({
+            visits: pass.attendances.map((att: any) => ({
                 id: att.id,
                 universityName: att.university.institutionName,
                 universityLogo: att.university.logo,

@@ -26,7 +26,7 @@ export default async function UniversityAvailabilityPage() {
                     </p>
                 </div>
 
-                <AvailabilityForm initialProfiles={profiles} />
+                <AvailabilityForm initialAvailability={profiles} />
             </div>
         </div>
     )

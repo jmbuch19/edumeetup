@@ -41,6 +41,7 @@ export type RecentActivity = {
 export async function getFreshStudents(): Promise<SegmentStudent[]> {
     const since = daysAgo(FRESH_DAYS)
     const rows = await prisma.student.findMany({
+        take: 5000, // explicit — admin bulk operations
         where: {
             user: { createdAt: { gte: since }, role: 'STUDENT' }
         },
@@ -51,7 +52,7 @@ export async function getFreshStudents(): Promise<SegmentStudent[]> {
         },
         orderBy: { user: { createdAt: 'desc' } },
     })
-    return rows.map(r => ({
+    return rows.map((r: any) => ({
         id: r.id,
         name: r.user.name,
         email: r.user.email,
@@ -64,6 +65,7 @@ export async function getFreshStudents(): Promise<SegmentStudent[]> {
 export async function getDormantStudents(): Promise<SegmentStudent[]> {
     const cutoff = daysAgo(DORMANT_DAYS)
     const rows = await prisma.student.findMany({
+        take: 5000, // explicit — admin bulk operations
         where: {
             user: {
                 createdAt: { lt: cutoff },
@@ -81,7 +83,7 @@ export async function getDormantStudents(): Promise<SegmentStudent[]> {
         },
         orderBy: { lastSeenAt: 'asc' },
     })
-    return rows.map(r => ({
+    return rows.map((r: any) => ({
         id: r.id,
         name: r.user.name,
         email: r.user.email,

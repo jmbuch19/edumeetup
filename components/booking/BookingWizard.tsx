@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
-import { ChevronLeft, Check, Loader2 } from 'lucide-react'
+import { ChevronLeft, Calendar as CalendarIcon, Clock, Users, FileText, ArrowRight, Loader2 } from 'lucide-react'
+import type { University, Meeting, AvailabilityProfile } from '@prisma/client'
 import { BookingData, createMeetingRequest } from '@/app/student/book/[universityId]/actions'
 import { AvailableSlot } from './Step3TimeSlot'
 
@@ -17,14 +18,16 @@ import Step3TimeSlot from './Step3TimeSlot'
 import Step4Confirm from './Step4Confirm'
 
 interface BookingWizardProps {
-    university: any
-    existingBookings: any[]
+    university: University & {
+        availabilityProfiles?: AvailabilityProfile[]
+    }
+    existingBookings: Meeting[]
     availableSlots: AvailableSlot[]
 }
 
 export type BookingState = Partial<BookingData>
 
-export default function BookingWizard({ university, existingBookings, availableSlots }: BookingWizardProps) {
+export function BookingWizard({ university, existingBookings, availableSlots }: BookingWizardProps) {
     const router = useRouter()
     const [step, setStep] = useState(1)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -111,11 +114,11 @@ export default function BookingWizard({ university, existingBookings, availableS
                 )}
                 {step === 3 && (
                     <Step3TimeSlot
-                        data={data}
+                        data={data as BookingData}
                         updateData={updateData}
-                        availabilityProfiles={university.availabilityProfiles}
+                        availabilityProfiles={university.availabilityProfiles || []}
                         availableSlots={availableSlots}
-                        existingBookings={existingBookings}
+                        existingBookings={existingBookings as (Meeting & { repId: string })[]}
                         onNext={nextStep}
                         onBack={prevStep}
                     />

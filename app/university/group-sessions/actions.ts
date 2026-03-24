@@ -83,7 +83,7 @@ export async function joinGroupSession(sessionId: string) {
     if (!student) return { error: 'Student profile not found' }
 
     try {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: any) => {
             // Lock the session row
             const session = await tx.groupSession.findUnique({
                 where: { id: sessionId },
@@ -198,7 +198,7 @@ export async function leaveGroupSession(sessionId: string) {
     })
     if (!seat) return { error: 'You are not in this session' }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
         // Cancel the seat
         await tx.groupSessionSeat.update({
             where: { id: seat.id },
@@ -332,10 +332,10 @@ export async function shareRecap(sessionId: string, recapUrl: string) {
     })
 
     // Notify ALL students who had a seat (confirmed, waitlisted, cancelled)
-    const allStudentIds = session.seats.map(s => s.studentId)
+    const allStudentIds = session.seats.map((s: any) => s.studentId)
 
     await prisma.studentNotification.createMany({
-        data: allStudentIds.map(studentId => ({
+        data: allStudentIds.map((studentId: any) => ({
             studentId,
             title: `🎬 Recap available — ${session.title}`,
             message: `The recap for the ${session.title} group session is now available. Watch it at your convenience.`,
@@ -394,7 +394,7 @@ export async function createFollowUpSession(sessionId: string, scheduledAt: stri
     })
 
     // Notify waitlisted students from original session FIRST
-    const waitlistedIds = original.seats.map(s => s.studentId)
+    const waitlistedIds = original.seats.map((s: any) => s.studentId)
     if (waitlistedIds.length > 0) {
         await notifyMatchedStudents(followUp.id, waitlistedIds)
     }
@@ -419,7 +419,7 @@ async function resolveSmartAudience(
             select: { studentId: true },
             distinct: ['studentId']
         })
-        direct.forEach(i => studentIdSet.add(i.studentId))
+        direct.forEach((i: any) => studentIdSet.add(i.studentId))
     }
 
     // Tier 2 — field of interest match
@@ -432,7 +432,7 @@ async function resolveSmartAudience(
             select: { id: true },
             take: 50,
         })
-        fieldMatches.forEach(s => studentIdSet.add(s.id))
+        fieldMatches.forEach((s: any) => studentIdSet.add(s.id))
     }
 
     return [...studentIdSet]

@@ -107,7 +107,7 @@ export default async function FairPage(props: PageProps) {
         orderBy: { answeredAt: 'asc' },
         select: { id: true, question: true, askerRole: true, answer: true, answeredAt: true, createdAt: true },
     })
-    const publicQuestions: QAItem[] = rawQuestions.map(q => ({
+    const publicQuestions: QAItem[] = rawQuestions.map((q: any) => ({
         id: q.id,
         question: q.question,
         askerRole: q.askerRole,

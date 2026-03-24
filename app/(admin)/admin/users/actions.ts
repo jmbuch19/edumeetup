@@ -129,7 +129,7 @@ export async function sendSegmentNudge(formData: FormData) {
     const ctaUrl = filter === 'fair_registered' ? '/onboarding/student' : '/student/dashboard'
 
     // Batch in-app notifications (single round trip)
-    const notifData = users.map(user => {
+    const notifData = users.map((user: any) => {
         const firstName = user.student?.fullName?.split(' ')[0] || user.name?.split(' ')[0] || 'there'
         return {
             userId: user.id,
@@ -148,10 +148,10 @@ export async function sendSegmentNudge(formData: FormData) {
     let failed = 0
     if (sendEmailFlag) {
         const emailTargets = isFairFilter
-            ? users.filter(u => u.consentMarketing)
+            ? users.filter((u: any) => u.consentMarketing)
             : users
         const emailResults = await Promise.allSettled(
-            emailTargets.map(user => {
+            emailTargets.map((user: any) => {
                 const firstName = user.student?.fullName?.split(' ')[0] || user.name?.split(' ')[0] || 'there'
                 return sendNudgeEmail({
                     to: user.email,
@@ -249,7 +249,7 @@ export async function nudgeFairWalkins(message: string, ctaUrl: string) {
     if (walkIns.length === 0) return { success: true, notified: 0, emailed: 0, failed: 0 }
 
     const emailResults = await Promise.allSettled(
-        walkIns.map(pass => {
+        walkIns.map((pass: any) => {
             const firstName = pass.fullName?.split(' ')[0] || 'there'
             const personalised = message.replace(/\{\{name\}\}/g, firstName)
             const body = `${personalised}\n\nYou visited <strong>${pass.fairEvent.name}</strong>. The universities you spoke with are ready to connect.`

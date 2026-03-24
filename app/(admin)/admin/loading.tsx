@@ -1,10 +1,13 @@
-import { Loader2 } from 'lucide-react'
-
 export default function AdminLoading() {
-    return (
-        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
-            <p className="text-sm font-medium text-slate-500">Loading admin dashboard...</p>
-        </div>
-    )
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-8 animate-pulse space-y-4">
+      <div className="h-8 w-48 bg-[#E8EAF6] rounded" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="rounded-2xl bg-[#E8EAF6] h-24" />
+        ))}
+      </div>
+      <div className="rounded-2xl bg-[#E8EAF6] h-64" />
+    </div>
+  )
 }

@@ -35,7 +35,7 @@ export async function GET(
     return NextResponse.json({
         studentName: student.user.name ?? 'Student',
         studentImage: student.user.image ?? null,
-        messages: messages.map((m) => ({
+        messages: messages.map((m: any) => ({
             id: m.id,
             content: m.content,
             sentAt: m.sentAt.toISOString(),

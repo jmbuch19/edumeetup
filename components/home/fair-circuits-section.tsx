@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
+import { FairCircuit, FairEvent, University } from '@prisma/client'
 
-export function FairCircuitsSection({ circuits = [] }: { circuits: any[] }) {
+export function FairCircuitsSection({ circuits = [] }: { circuits: (FairCircuit & { events: FairEvent[], participatingUniversities?: University[], venues?: any[] })[] }) {
     return (
         <section className="w-full py-20 bg-slate-900 text-white relative overflow-hidden">
             {/* Background elements */}
@@ -71,7 +72,7 @@ export function FairCircuitsSection({ circuits = [] }: { circuits: any[] }) {
                                         <Building2 className="w-4 h-4 mr-3 mt-0.5 text-slate-400 shrink-0" />
                                         <div>
                                             {circuit.venues?.slice(0, 3).map((v: any) => v.city).join(", ")}
-                                            {circuit.venues?.length > 3 && ` +${circuit.venues.length - 3} more`}
+                                            {(circuit.venues?.length || 0) > 3 && ` +${(circuit.venues?.length || 0) - 3} more`}
                                             {(!circuit.venues || circuit.venues.length === 0) && "Venues TBD"}
                                         </div>
                                     </div>

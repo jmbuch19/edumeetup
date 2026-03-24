@@ -33,10 +33,10 @@ export async function GET(req: NextRequest) {
         take: 10,
     })
 
-    const registeredIds = new Set(passes.map((p) => p.fairEventId))
+    const registeredIds = new Set(passes.map((p: any) => p.fairEventId))
 
     return NextResponse.json({
-        myFairs: passes.map((p) => ({
+        myFairs: passes.map((p: any) => ({
             id: p.fairEvent.id,
             name: p.fairEvent.name,
             venue: p.fairEvent.venue ?? p.fairEvent.city ?? 'TBD',
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
             registered: true,
             passId: p.id,
         })),
-        upcomingFairs: upcomingFairs.map((f) => ({
+        upcomingFairs: upcomingFairs.map((f: any) => ({
             id: f.id,
             name: f.name,
             venue: f.venue ?? f.city ?? 'TBD',

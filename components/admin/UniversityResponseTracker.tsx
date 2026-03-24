@@ -103,7 +103,7 @@ export function UniversityResponseTracker({ fairId, invitations }: Props) {
                         </div>
                         {inv.status === 'CONFIRMED' && inv.programsShowcasing.length > 0 && (
                             <div className="flex flex-wrap gap-1 justify-end">
-                                {inv.programsShowcasing.slice(0, 2).map(p => (
+                                {inv.programsShowcasing.slice(0, 2).map((p: any) => (
                                     <span
                                         key={p}
                                         className="text-[10px] font-semibold bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full whitespace-nowrap max-w-[100px] truncate"

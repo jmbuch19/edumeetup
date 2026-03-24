@@ -32,8 +32,8 @@ export default async function HostRequestsPage(props: { searchParams: Promise<{ 
     }).catch(() => [])
 
 
-    const inNetworkRequests = requests.filter(r => r.isNomination === false)
-    const nominations = requests.filter(r => r.isNomination === true)
+    const inNetworkRequests = requests.filter((r: any) => r.isNomination === false)
+    const nominations = requests.filter((r: any) => r.isNomination === true)
 
     return (
         <div className="space-y-6">
@@ -68,7 +68,7 @@ export default async function HostRequestsPage(props: { searchParams: Promise<{ 
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            inNetworkRequests.map((req) => (
+                            inNetworkRequests.map((req: any) => (
                                 <TableRow key={req.id} className="hover:bg-slate-50 transition-colors">
                                     <TableCell className="font-mono font-medium text-slate-700">{req.referenceNumber}</TableCell>
                                     <TableCell>
@@ -116,7 +116,7 @@ export default async function HostRequestsPage(props: { searchParams: Promise<{ 
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                nominations.map((req) => (
+                                nominations.map((req: any) => (
                                     <TableRow key={req.id} className="hover:bg-slate-50 transition-colors">
                                         <TableCell className="font-mono font-medium text-slate-700">{req.referenceNumber}</TableCell>
                                         <TableCell>

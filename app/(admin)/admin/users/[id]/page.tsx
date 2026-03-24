@@ -307,7 +307,7 @@ export default async function AdminUserDetailPage(props: { params: Promise<{ id:
                             </CardHeader>
                             <CardContent>
                                 <div className="flex flex-wrap gap-2">
-                                    {s.bookmarks.map(b => (
+                                    {s.bookmarks.map((b: any) => (
                                         <Badge key={b.id} variant="secondary">{b.university.institutionName}</Badge>
                                     ))}
                                 </div>

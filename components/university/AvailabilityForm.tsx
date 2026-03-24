@@ -10,7 +10,7 @@ import { toast } from 'sonner'
 import { AvailabilityProfileData, saveAllAvailabilityProfiles } from '@/app/university/availability/actions'
 import { DaysOfWeek, MeetingDurations, VideoProviders, DegreeLevels } from '@/lib/constants'
 import { AvailabilityProfile, DayOfWeek, VideoProvider } from '@prisma/client'
-import { Loader2, Plus, Trash2 } from 'lucide-react'
+import { Loader2, Plus, Trash2, Clock, MapPin, Copy } from 'lucide-react'
 
 // Helper to get default profile structure
 const createDefaultProfile = (day: DayOfWeek): AvailabilityProfileData => ({
@@ -28,17 +28,17 @@ const createDefaultProfile = (day: DayOfWeek): AvailabilityProfileData => ({
     timezone: 'UTC',  // rep's scheduling timezone — can be updated via profile settings
 })
 
-interface AvailabilityFormProps {
-    initialProfiles: AvailabilityProfile[]
-}
-
-export default function AvailabilityForm({ initialProfiles }: AvailabilityFormProps) {
+export default function AvailabilityForm({
+    initialAvailability = []
+}: {
+    initialAvailability: AvailabilityProfile[] // Array of Availability records
+}) {
     const [isLoading, setIsLoading] = useState(false)
 
     // Initialize state merging existing profiles with defaults for all days
     const [profiles, setProfiles] = useState<AvailabilityProfileData[]>(() => {
         return DaysOfWeek.map(dayObj => {
-            const existing = initialProfiles.find(p => p.dayOfWeek === dayObj.value)
+            const existing = initialAvailability.find(p => p.dayOfWeek === dayObj.value)
             // If existing, map to data structure (handling optional fields)
             if (existing) {
                 return {

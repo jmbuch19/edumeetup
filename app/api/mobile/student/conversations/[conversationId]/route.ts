@@ -41,7 +41,7 @@ export async function GET(
     return NextResponse.json({
         universityName: university.institutionName,
         universityLogo: university.logo ?? null,
-        messages: messages.map((m) => ({
+        messages: messages.map((m: any) => ({
             id: m.id,
             content: m.content,
             sentAt: m.sentAt.toISOString(),

@@ -297,7 +297,7 @@ export default async function UniversityDetailPage({
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {uni.documents.map(doc => (
+                {uni.documents.map((doc: any) => (
                   <div key={doc.id}
                     className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors">
                     <div className="flex items-center gap-2.5">
@@ -335,7 +335,7 @@ export default async function UniversityDetailPage({
               <CardTitle className="text-base">Upcoming Events</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {uni.events.map(event => (
+              {uni.events.map((event: any) => (
                 <div key={event.id}
                   className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">

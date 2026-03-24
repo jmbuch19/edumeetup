@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 
 const globalForPrisma = globalThis as unknown as {
-    prisma: PrismaClient | undefined
+    prisma: any
 }
 
 /**
@@ -18,6 +18,14 @@ function buildDatasourceUrl(): string | undefined {
     if (!url) return undefined
     try {
         const parsed = new URL(url)
+
+        // CRITICAL: Neon serverless pooling safety
+        // Prevents Prisma from ignoring the PgBouncer transaction mode during traffic spikes,
+        // which violently crashes the DB and exhausts connections by forcing prepared statements.
+        if (parsed.hostname.includes('pooler') && !parsed.searchParams.has('pgbouncer')) {
+            parsed.searchParams.set('pgbouncer', 'true')
+        }
+
         if (!parsed.searchParams.has('connection_timeout')) {
             parsed.searchParams.set('connection_timeout', '10')
         }
@@ -35,9 +43,24 @@ function buildDatasourceUrl(): string | undefined {
 }
 
 const prismaClientSingleton = () => {
-    return new PrismaClient({
+    const client = new PrismaClient({
         log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
         datasourceUrl: buildDatasourceUrl(),
+    })
+    
+    return client.$extends({
+        query: {
+            $allModels: {
+                async findMany({ args, query }) {
+                    // Global memory protection: cap unbounded queries.
+                    // Prevents fetching massive datasets at once. If 'take' is set manually, it overrides this.
+                    if (args.take === undefined) {
+                        args.take = 1000
+                    }
+                    return query(args)
+                }
+            }
+        }
     })
 }
 

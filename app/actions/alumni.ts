@@ -51,7 +51,7 @@ export async function registerAlumni(data: {
     showUsCity: boolean
     inviteToken?: string
     turnstileToken?: string
-}) {
+}): Promise<{ error?: string; success?: boolean; alumniId?: string }> {
     // 1. Verify Turnstile
     const turnstileResult = await verifyTurnstile(data.turnstileToken)
     if (!turnstileResult.success) {
@@ -185,7 +185,7 @@ export async function updateAlumniProfile(data: {
     showWhatsapp?: boolean
     showLinkedin?: boolean
     showUsCity?: boolean
-}) {
+}): Promise<{ error?: string; success?: boolean }> {
     const user = await getAuthUser()
     if (!user?.id) return { error: 'Unauthorized' }
 
@@ -252,8 +252,8 @@ export async function updateAlumniProfile(data: {
             
             const allStudentIds = [
                 ...new Set([
-                    ...connectedStudents.map(s => s.studentId),
-                    ...interestedStudents.map(s => s.studentId),
+                    ...connectedStudents.map((s: any) => s.studentId),
+                    ...interestedStudents.map((s: any) => s.studentId),
                 ])
             ]
             
@@ -307,7 +307,7 @@ export async function listVerifiedAlumni(filters?: {
     alumniStatus?: string
     availableFor?: string
     page?: number
-}) {
+}): Promise<{ error?: string; alumni?: any[]; total?: number; page?: number; totalPages?: number }> {
     const user = await getAuthUser()
     if (!user) return { error: 'Please sign in to browse alumni' }
 
@@ -394,7 +394,7 @@ export async function requestAlumConnect(data: {
     alumniId: string
     type: 'EMAIL' | 'MEETING' | 'LINKEDIN'
     message: string
-}) {
+}): Promise<{ error?: string; success?: boolean; requestId?: string }> {
     const user = await getAuthUser()
     if (!user?.id) return { error: 'Please sign in' }
     if (user.role !== 'STUDENT') return { error: 'Only students can send connect requests' }
@@ -483,7 +483,7 @@ export async function respondToConnectRequest(data: {
     accept: boolean
     responseMessage?: string
     blockUser?: boolean
-}) {
+}): Promise<{ error?: string; success?: boolean }> {
     const user = await getAuthUser()
     if (!user?.id || user.role !== 'ALUMNI') return { error: 'Unauthorized' }
 
@@ -531,7 +531,7 @@ export async function respondToConnectRequest(data: {
 }
 
 // ── Action 6: getMyAlumniDashboard ──────────────────────────────────────────
-export async function getMyAlumniDashboard() {
+export async function getMyAlumniDashboard(): Promise<any> {
     const user = await getAuthUser()
     if (!user?.id || user.role !== 'ALUMNI') return null
 
@@ -552,7 +552,7 @@ export async function getMyAlumniDashboard() {
 }
 
 // ── Action 7: sendAlumniInvite (University) ──────────────────────────────────
-export async function sendAlumniInvite(data: { email: string; message?: string }) {
+export async function sendAlumniInvite(data: { email: string; message?: string }): Promise<{ error?: string; success?: boolean; inviteId?: string; token?: string }> {
     const user = await getAuthUser()
     if (!user?.id) return { error: 'Unauthorized' }
     if (user.role !== 'UNIVERSITY' && user.role !== 'UNIVERSITY_REP') {
@@ -613,7 +613,7 @@ ${data.message ? `<blockquote style="border-left:3px solid #D97706;padding-left:
 }
 
 // ── Admin actions ────────────────────────────────────────────────────────────
-export async function adminApproveAlumni(alumniId: string, note?: string) {
+export async function adminApproveAlumni(alumniId: string, note?: string): Promise<{ error?: string; success?: boolean }> {
     const user = await getAuthUser()
     if (!user?.id || user.role !== 'ADMIN') return { error: 'Unauthorized' }
     await prisma.alumni.update({
@@ -624,7 +624,7 @@ export async function adminApproveAlumni(alumniId: string, note?: string) {
     return { success: true }
 }
 
-export async function adminSuspendAlumni(alumniId: string, reason: string) {
+export async function adminSuspendAlumni(alumniId: string, reason: string): Promise<{ error?: string; success?: boolean }> {
     const user = await getAuthUser()
     if (!user?.id || user.role !== 'ADMIN') return { error: 'Unauthorized' }
     await prisma.alumni.update({
@@ -635,7 +635,7 @@ export async function adminSuspendAlumni(alumniId: string, reason: string) {
     return { success: true }
 }
 
-export async function adminNudgeAlumni(alumniId: string) {
+export async function adminNudgeAlumni(alumniId: string): Promise<{ error?: string; success?: boolean }> {
     const user = await getAuthUser()
     if (!user?.id || user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
@@ -673,7 +673,7 @@ export async function adminNudgeAlumni(alumniId: string) {
     return { success: true }
 }
 
-export async function adminGetAlumniStats() {
+export async function adminGetAlumniStats(): Promise<any> {
     const user = await getAuthUser()
     if (!user?.id || user.role !== 'ADMIN') return null
     const [total, pendingReview, approved, suspended, connectRequests] = await Promise.all([
@@ -686,7 +686,7 @@ export async function adminGetAlumniStats() {
     return { total, pendingReview, approved, suspended, connectRequests }
 }
 
-export async function adminGetPendingAlumni() {
+export async function adminGetPendingAlumni(): Promise<any[]> {
     const user = await getAuthUser()
     if (!user?.id || user.role !== 'ADMIN') return []
     return prisma.alumni.findMany({
@@ -695,7 +695,7 @@ export async function adminGetPendingAlumni() {
     })
 }
 
-export async function adminGetAllAlumni(filters?: { status?: string; search?: string }) {
+export async function adminGetAllAlumni(filters?: { status?: string; search?: string }): Promise<any[]> {
     const user = await getAuthUser()
     if (!user?.id || user.role !== 'ADMIN') return []
     const where: Record<string, unknown> = {}

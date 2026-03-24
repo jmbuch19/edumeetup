@@ -28,7 +28,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ success: true, remindersSent: 0 })
         }
 
-        const liveFairIds = liveFairs.map(f => f.id)
+        const liveFairIds = liveFairs.map((f: any) => f.id)
 
         // Find universities that have attendances in a live fair
         const participatingUniversities = await prisma.university.findMany({
@@ -62,7 +62,7 @@ export async function GET(request: Request) {
                 const fairId = uni.fairAttendances[0]?.fairEventId
                 if (!fairId) continue
 
-                const fair = liveFairs.find(f => f.id === fairId)
+                const fair = liveFairs.find((f: any) => f.id === fairId)
                 const scannerUrl = `${baseUrl}/event/${fairId}/scan`
                 const reportUrl = `${baseUrl}/dashboard/university/fair-report/${fairId}`
 

@@ -33,7 +33,7 @@ export async function listFairEvents() {
         },
     })
 
-    return events.map((e) => ({
+    return events.map((e: any) => ({
         id: e.id,
         name: e.name,
         slug: e.slug,
@@ -283,7 +283,7 @@ export async function getRegistrations(fairEventId: string) {
         },
     })
 
-    return passes.map((p) => ({
+    return passes.map((p: any) => ({
         id: p.id,
         fullName: p.fullName,
         email: p.email,
@@ -330,7 +330,7 @@ export async function exportAllRegistrationsCSV(
         const escape = (v: string | null | undefined) =>
             `"${String(v ?? '').replace(/"/g, '""')}"`
 
-        const rows = passes.map((p) =>
+        const rows = passes.map((p: any) =>
             [
                 escape(p.fullName),
                 escape(p.email),

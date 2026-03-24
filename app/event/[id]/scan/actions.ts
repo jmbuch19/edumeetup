@@ -140,7 +140,7 @@ export async function processQRScan(
 
         // Match programs by fieldOfInterest (simple substring check)
         const interestLower = (pass.fieldOfInterest ?? '').toLowerCase()
-        const matchedPrograms = university.programList.filter((p) => {
+        const matchedPrograms = university.programList.filter((p: any) => {
             if (!interestLower) return true // no filter — include all
             return (
                 p.fieldCategory.toLowerCase().includes(interestLower) ||
@@ -148,8 +148,8 @@ export async function processQRScan(
                 interestLower.includes(p.fieldCategory.toLowerCase())
             )
         })
-        const matchedProgramIds = matchedPrograms.map((p) => p.id)
-        const matchedProgramNames = matchedPrograms.map((p) => p.programName)
+        const matchedProgramIds = matchedPrograms.map((p: any) => p.id)
+        const matchedProgramNames = matchedPrograms.map((p: any) => p.programName)
 
         // ── 5. Transaction: attendance + notifications ────────────────────────
         const studentName = pass.fullName ?? 'Unknown Student'

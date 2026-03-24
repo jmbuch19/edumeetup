@@ -182,7 +182,7 @@ export async function getNudgeableStudents(universityId: string) {
         select: { country: true, programList: { select: { fieldCategory: true } } },
     })
 
-    const programFields = [...new Set(uni?.programList.map(p => p.fieldCategory) ?? [])]
+    const programFields = [...new Set(uni?.programList.map((p: any) => p.fieldCategory) ?? [])]
 
     // Students who: have a complete profile, consent to marketing, haven't expressed
     // interest in this university yet, and have a matching field of interest
@@ -214,7 +214,7 @@ export async function getNudgeableStudents(universityId: string) {
     })
 
     // Fetch last nudge per student for this university (for cooldown display)
-    const studentIds = students.map(s => s.id)
+    const studentIds = students.map((s: any) => s.id)
     const lastNudges = await prisma.proactiveMessage.findMany({
         where: { universityId, studentId: { in: studentIds } },
         orderBy: { sentAt: 'desc' },
@@ -230,7 +230,7 @@ export async function getNudgeableStudents(universityId: string) {
         select: { proactiveCooldownDays: true },
     }))?.proactiveCooldownDays ?? 21
 
-    return students.map(s => ({
+    return students.map((s: any) => ({
         id: s.id,
         maskedName: maskName(s.user.name),
         country: s.country ?? 'Unknown',

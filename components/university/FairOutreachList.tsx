@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from "react"
+import { Prisma } from '@prisma/client'
 import { format } from "date-fns"
 import { Loader2, ThumbsUp, ThumbsDown, CheckCircle2, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -32,7 +33,8 @@ type OutreachRequest = {
         preferredDateStart: Date
         preferredDateEnd: Date
         expectedStudentCount: string
-        fieldsOfStudy: any
+        fieldsOfStudy: Prisma.JsonValue
+        createdAt: string
         additionalRequirements: string | null
     }
 }
@@ -112,7 +114,7 @@ function OutreachCard({ outreach }: { outreach: OutreachRequest }) {
                     <div>
                         <h4 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Fields of Study</h4>
                         <div className="flex flex-wrap gap-1">
-                            {Array.isArray(outreach.hostRequest.fieldsOfStudy) && outreach.hostRequest.fieldsOfStudy.map((field: string) => (
+                            {(outreach.hostRequest.fieldsOfStudy as string[] || []).slice(0, 3).map((field: string) => (
                                 <Badge key={field} variant="secondary" className="text-xs">{field}</Badge>
                             ))}
                         </div>

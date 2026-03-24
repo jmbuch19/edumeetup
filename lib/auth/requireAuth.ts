@@ -253,7 +253,7 @@ export async function requireMeetingAccess(meetingId: string): Promise<AuthSessi
         throw new AuthorizationError('Meeting not found', 403)
     }
 
-    const isParticipant = meeting.participants.some(p => p.user?.id === session.user.id)
+    const isParticipant = meeting.participants.some((p: any) => p.user?.id === session.user.id)
     const isRep = meeting.repId === session.user.id
     const isUniOwner = meeting.university?.userId === session.user.id
     const isBookingStudent = meeting.student?.user?.id === session.user.id
@@ -299,7 +299,7 @@ export async function requireConversationAccess(conversationId: string): Promise
 
     const isStudent = conv.student.userId === session.user.id
     const isUniOwner = conv.university.userId === session.user.id
-    const isUniRep = conv.university.reps.some(r => r.id === session.user.id)
+    const isUniRep = conv.university.reps.some((r: any) => r.id === session.user.id)
 
     if (!isStudent && !isUniOwner && !isUniRep) {
         throw new AuthorizationError('Forbidden — you are not part of this conversation', 403)

@@ -9,6 +9,12 @@
  */
 
 export async function register() {
+    // 1. Validate environment variables at boot (Node.js runtime only)
+    if (process.env.NEXT_RUNTIME === "nodejs") {
+        const { validateEnv } = await import("@/lib/env");
+        validateEnv();
+    }
+
     const isProd = process.env.NEXT_PUBLIC_APP_ENV === "production";
     const sentryCommon = {
         dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,

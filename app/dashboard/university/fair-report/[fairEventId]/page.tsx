@@ -105,7 +105,7 @@ export default async function FairReportPage(props: PageProps) {
     })
 
     // Serialize dates for client component
-    const serializedLeads = leads.map((l) => ({
+    const serializedLeads = leads.map((l: any) => ({
         ...l,
         scannedAt: l.scannedAt.toISOString(),
     }))

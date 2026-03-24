@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import * as Sentry from "@sentry/nextjs";
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { AlertTriangle } from 'lucide-react'
@@ -13,7 +14,8 @@ export default function AdminError({
     reset: () => void
 }) {
     useEffect(() => {
-        console.error('[Admin Error Boundary]')
+        console.error('[Admin Error Boundary]', error)
+        Sentry.captureException(error)
     }, [error])
 
     return (

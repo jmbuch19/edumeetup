@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     })
 
     return NextResponse.json(
-        universities.map((u) => ({
+        universities.map((u: any) => ({
             id: u.id,
             name: u.institutionName,
             country: u.country ?? 'Unknown',

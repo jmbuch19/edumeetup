@@ -49,7 +49,7 @@ export default async function TicketListPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y">
-                            {tickets.map((ticket) => (
+                            {tickets.map((ticket: any) => (
                                 <tr key={ticket.id} className="hover:bg-gray-50">
                                     <td className="p-4 font-mono text-sm">#{ticket.id.slice(-6)}</td>
                                     <td className="p-4">{ticket.category}</td>

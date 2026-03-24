@@ -42,7 +42,7 @@ export default async function FairLeadsIndexPage() {
     // Enrich with FairEvent details
     const fairs = (
         await Promise.all(
-            attendanceGroups.map(async (group) => {
+            attendanceGroups.map(async (group: any) => {
                 const fair = await prisma.fairEvent.findUnique({
                     where: { id: group.fairEventId },
                 })

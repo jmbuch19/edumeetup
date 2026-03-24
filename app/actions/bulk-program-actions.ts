@@ -81,7 +81,7 @@ export async function bulkCreatePrograms(
             where: { universityId },
             select: { programName: true },
         })
-        const existingNames = new Set(existing.map(p => p.programName.trim().toLowerCase()))
+        const existingNames = new Set(existing.map((p: any) => p.programName.trim().toLowerCase()))
 
         let createdCount = 0
         let skippedCount = 0

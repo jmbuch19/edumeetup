@@ -54,7 +54,7 @@ export async function StudentRightSidebar() {
         where: { studentId: student.id },
         select: { universityId: true }
     })
-    const excludeIds = interestedIds.map(i => i.universityId)
+    const excludeIds = interestedIds.map((i: any) => i.universityId)
 
     const suggested = await prisma.university.findMany({
         where: {
@@ -134,7 +134,7 @@ export async function StudentRightSidebar() {
                         Suggested For You
                     </p>
                     <div className="flex flex-col">
-                        {suggested.map((u, i) => (
+                        {suggested.map((u: any, i: any) => (
                             <div key={u.id}
                                 className={`flex items-center gap-3 py-2.5 ${i < suggested.length - 1 ? 'border-b' : ''}`}
                                 style={{ borderColor: 'var(--border-dash)' }}>

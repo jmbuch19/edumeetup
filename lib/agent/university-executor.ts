@@ -44,7 +44,7 @@ export async function calculateResponseRate(universityId: string, slaHours = 48)
 
   if (allInterests.length === 0) return 100
 
-  const responded = allInterests.filter(i => {
+  const responded = allInterests.filter((i: any) => {
     if (!i.universityNote) return false
     return (i.updatedAt.getTime() - i.createdAt.getTime()) <= slaHours * 60 * 60 * 1000
   })

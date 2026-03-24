@@ -51,7 +51,7 @@ export async function UniversityRightSidebar() {
         { done: !!uni.repName && !!uni.repEmail,                     label: 'Rep name & email' },
         { done: !!uni.contactPhone,                                  label: 'Contact phone' },
         { done: uni.programList.length > 0 &&
-                 uni.programList.every(p => (p.description?.length ?? 0) > 30), label: 'Programme descriptions' },
+                 uni.programList.every((p: any) => (p.description?.length ?? 0) > 30), label: 'Programme descriptions' },
         { done: uni.scholarshipsAvailable,                           label: 'Scholarship info' },
         { done: !!uni.foundedYear,                                   label: 'Founded year' },
     ]
@@ -148,7 +148,7 @@ export async function UniversityRightSidebar() {
                     <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>No upcoming meetings</p>
                 ) : (
                     <div className="flex flex-col">
-                        {upcoming.map((m, i) => (
+                        {upcoming.map((m: any, i: any) => (
                             <div key={m.id} className={`flex items-start gap-2.5 py-2.5 ${i < upcoming.length - 1 ? 'border-b' : ''}`}
                                 style={{ borderColor: 'var(--border-dash)' }}>
                                 <div className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--gold)' }} />

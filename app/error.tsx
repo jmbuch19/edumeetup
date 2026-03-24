@@ -1,74 +1,56 @@
 'use client'
 
-import * as Sentry from "@sentry/nextjs";
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import * as Sentry from '@sentry/nextjs'
 
-export default function Error({
-    error,
-    reset,
+export default function ErrorBoundary({
+  error,
+  reset,
 }: {
-    error: Error & { digest?: string }
-    reset: () => void
+  error: Error & { digest?: string }
+  reset: () => void
 }) {
-    const [eventId, setEventId] = useState<string | null>(null)
-    const isDev = process.env.NODE_ENV === 'development'
+  useEffect(() => {
+    console.error('[GlobalError]', error)
+    Sentry.captureException(error)
+  }, [error])
 
-    useEffect(() => {
-        // Capture to Sentry and store the event ID so users can quote it
-        const id = Sentry.captureException(error)
-        setEventId(id ?? null)
-    }, [error])
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F8F9FF] px-4">
+      <div className="glass-card rounded-2xl p-10 text-center max-w-md w-full animate-pop">
+        <div className="text-5xl mb-4 animate-float inline-block">🔧</div>
+        
+        <h1 className="font-fraunces text-2xl font-bold text-[#0B1340] mb-3">
+          Something went wrong
+        </h1>
+        
+        <p className="font-jakarta text-sm text-[#888888] mb-6 leading-relaxed">
+          We hit an unexpected error. Your data is safe.
+          Please try again — if it persists, contact support.
+        </p>
 
-    return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Something went wrong!</h2>
-            <p className="text-gray-600 mb-4 max-w-md">
-                We apologize for the inconvenience. Our team has been automatically notified.
-            </p>
-
-            {/* Event ID — helps correlate user reports to Sentry events */}
-            {eventId && (
-                <p className="text-xs font-mono text-gray-400 mb-4">
-                    Reference ID: <span className="select-all">{eventId}</span>
-                </p>
-            )}
-
-            {/* Raw error details — dev only so we don't leak internals to users in prod */}
-            {isDev && (
-                <div className="mb-6 max-w-2xl w-full text-left bg-red-50 border border-red-200 rounded-lg p-4">
-                    <p className="text-xs font-mono font-bold text-red-700 mb-1">ERROR (dev only):</p>
-                    <p className="text-sm font-mono text-red-800 break-all">{error.message || '(no message)'}</p>
-                    {error.digest && (
-                        <p className="text-xs font-mono text-red-500 mt-1">Digest: {error.digest}</p>
-                    )}
-                    {error.stack && (
-                        <pre className="text-xs font-mono text-red-600 mt-2 whitespace-pre-wrap overflow-auto max-h-48">
-                            {error.stack}
-                        </pre>
-                    )}
-                </div>
-            )}
-
-            <div className="flex gap-4 flex-wrap justify-center">
-                <Button onClick={() => reset()}>Try again</Button>
-                <Button variant="outline" onClick={() => { window.location.href = '/' }}>
-                    Return Home
-                </Button>
-                <Button
-                    variant="secondary"
-                    onClick={() => window.open(
-                        `mailto:${process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? 'support@edumeetup.com'}` +
-                        `?subject=Crash Report&body=` +
-                        `Error: ${encodeURIComponent(error.message)}%0D%0A` +
-                        `Reference ID: ${encodeURIComponent(eventId ?? 'N/A')}%0D%0A` +
-                        `Digest: ${encodeURIComponent(error.digest ?? 'N/A')}`,
-                        '_blank'
-                    )}
-                >
-                    Report Issue
-                </Button>
-            </div>
+        {Sentry.lastEventId() && (
+          <p className="text-xs font-mono text-gray-400 mb-6 bg-gray-50 p-2 rounded">
+            Error ID: {Sentry.lastEventId()}
+          </p>
+        )}
+        
+        <div className="flex gap-3 justify-center">
+          <Button variant="gold" onClick={reset}>
+            Try Again
+          </Button>
+          <Button variant="outline-indigo" onClick={() => window.location.href = '/'}>
+            Go Home
+          </Button>
         </div>
-    )
+        
+        {process.env.NODE_ENV === 'development' && (
+          <p className="mt-4 text-xs text-red-400 font-mono text-left bg-red-50 rounded p-2 break-all">
+            {error.message}
+          </p>
+        )}
+      </div>
+    </div>
+  )
 }

@@ -95,7 +95,7 @@ export default async function PublicAlumniPage() {
             {/* ── Blurred cards grid ── */}
             <section className="relative px-4 pb-0 max-w-6xl mx-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {alumni.map((a, i) => {
+                    {alumni.map((a: any, i: any) => {
                         const initials = (a.user?.name ?? 'A').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
                         const status = STATUS_LABEL[a.alumniStatus] ?? { label: 'Alumni', emoji: '⭐' }
                         // First 2 cards slightly visible, rest more blurred
@@ -129,7 +129,7 @@ export default async function PublicAlumniPage() {
                                                 </span>
                                             )}
                                         </div>
-                                        {a.helpTopics.slice(0, 2).map(t => (
+                                        {a.helpTopics.slice(0, 2).map((t: any) => (
                                             <span key={t} className="inline-block mr-1 mb-1 text-[10px] px-1.5 py-0.5 rounded border border-amber-100 text-amber-600 bg-amber-50">
                                                 {TOPIC_LABEL[t] ?? t}
                                             </span>

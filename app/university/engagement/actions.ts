@@ -58,14 +58,14 @@ async function filterByFieldMatch(
     })
 
     return students
-        .filter(s => {
+        .filter((s: any) => {
             // No preference set → always include (we can't rule them out)
             if (!s.fieldOfInterest) return true
             const studentField = s.fieldOfInterest.toLowerCase().trim()
             // Include if at least one university category is a substring match
             return normalised.some(cat => cat.includes(studentField) || studentField.includes(cat))
         })
-        .map(s => s.id)
+        .map((s: any) => s.id)
 }
 
 /** Return deduplicated, field-matched student IDs based on the chosen segment */
@@ -83,7 +83,7 @@ async function resolveSegment(
             select: { studentId: true },
             distinct: ['studentId']
         })
-        interests.forEach(i => studentIdSet.add(i.studentId))
+        interests.forEach((i: any) => studentIdSet.add(i.studentId))
     }
 
     if (segment === 'meetings' || segment === 'all') {
@@ -92,7 +92,7 @@ async function resolveSegment(
             select: { studentId: true },
             distinct: ['studentId']
         })
-        meetings.forEach(m => { if (m.studentId) studentIdSet.add(m.studentId) })
+        meetings.forEach((m: any) => { if (m.studentId) studentIdSet.add(m.studentId) })
     }
 
     const rawIds = [...studentIdSet]
@@ -116,7 +116,7 @@ export async function getSegmentCount(segment: string, dayRange: number = 30) {
     if (!uni) return { error: 'University profile not found' }
 
     const since = new Date(Date.now() - dayRange * 24 * 60 * 60 * 1_000)
-    const fieldCategories = (uni.programList ?? []).map(p => p.fieldCategory as string)
+    const fieldCategories = (uni.programList ?? []).map((p: any) => p.fieldCategory as string)
     const ids = await resolveSegment(uni.id, segment, since, fieldCategories)
     return { count: Math.min(ids.length, MAX_STUDENTS_PER_CAMPAIGN) }
 }
@@ -193,7 +193,7 @@ async function applyPerStudentCap(studentIds: string[]): Promise<{
     })
 
     const countMap = new Map<string, number>(
-        recentCounts.map(r => [r.studentId, r._count.id])
+        recentCounts.map((r: any) => [r.studentId, r._count.id])
     )
 
     const eligible = studentIds.filter(id => (countMap.get(id) ?? 0) < PER_STUDENT_WEEKLY_CAP)
@@ -237,7 +237,7 @@ export async function sendUniversityNotification(formData: FormData) {
 
     // ── Collect target students ───────────────────────────────────────────────
     const since = new Date(Date.now() - dayRange * 24 * 60 * 60 * 1_000)
-    const fieldCategories = (uni.programList ?? []).map(p => p.fieldCategory as string)
+    const fieldCategories = (uni.programList ?? []).map((p: any) => p.fieldCategory as string)
     const allStudentIds = await resolveSegment(uni.id, segment, since, fieldCategories)
 
     if (allStudentIds.length === 0) {
@@ -285,8 +285,8 @@ export async function sendUniversityNotification(formData: FormData) {
         const emailHtml = generateEmailHtml(title, EmailTemplates.announcement(title, message))
         const results = await Promise.allSettled(
             students
-                .filter(s => s.user.consentMarketing)
-                .map(s => sendMarketingEmail({
+                .filter((s: any) => s.user.consentMarketing)
+                .map((s: any) => sendMarketingEmail({
                     userEmail: s.user.email,
                     to: s.user.email,
                     subject: `[EdUmeetup] ${title}`,

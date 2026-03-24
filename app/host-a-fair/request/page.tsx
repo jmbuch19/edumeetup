@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma"
 
 export default async function HostFairRequestPage() {
     const activeVenues = await prisma.fairVenue.findMany({
+        take: 200, // explicit — more than default needed
         where: { isActive: true },
         include: { circuit: true },
         orderBy: [{ circuit: { startDate: 'asc' } }, { city: 'asc' }]

@@ -21,8 +21,9 @@ type HeroSlide = {
 }
 
 import { FairCircuitsSection } from "@/components/home/fair-circuits-section";
+import type { FairCircuit, FairEvent, University } from '@prisma/client'
 
-export function HomeClient({ slides = [], circuits = [] }: { slides?: HeroSlide[], circuits?: any[] }) {
+export function HomeClient({ slides = [], circuits = [] }: { slides?: HeroSlide[], circuits?: (FairCircuit & { events: FairEvent[], participatingUniversities?: University[], venues?: any[] })[] }) {
     const [activeTab, setActiveTab] = useState<'student' | 'university'>('student');
     const hasTrackedRef = useRef(false);
 

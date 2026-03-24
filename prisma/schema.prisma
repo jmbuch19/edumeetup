@@ -75,6 +75,7 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -83,6 +84,9 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expires])
 }
 
 model VerificationToken {
@@ -153,6 +157,12 @@ model Student {
   fairPasses         FairStudentPass[]
   conversations      Conversation[]
   alumConnectRequests AlumConnectRequest[]
+
+  @@index([profileComplete])
+  @@index([fieldOfInterest])
+  @@index([country])
+  @@index([currentStatus])
+  @@index([preferredDegree])
 }
 
 model ProfileChangeLog {
@@ -373,6 +383,11 @@ model Program {
   groupSessions   GroupSession[]
   documents       UniversityDocument[]
   university      University           @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@index([universityId])
+  @@index([status])
+  @@index([degreeLevel])
+  @@index([fieldCategory])
 }
 
 model Interest {
@@ -391,6 +406,9 @@ model Interest {
 
   @@unique([studentId, universityId, programId])
   @@index([status])
+  @@index([studentId])
+  @@index([universityId])
+  @@index([createdAt])
 }
 
 model Notification {
@@ -414,6 +432,10 @@ model AuditLog {
   metadata   Json?
   createdAt  DateTime @default(now())
   actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
 }
 
 model AdvisoryRequest {
@@ -501,6 +523,9 @@ model HostRequest {
   proposedCircuitId      String?
   proposedCircuit        FairCircuit?          @relation("ProposedCircuitRequest", fields: [proposedCircuitId], references: [id], onDelete: SetNull)
   isNomination           Boolean               @default(false)
+
+  @@index([status])
+  @@index([createdAt])
 }
 
 model HostRequestOutreach {
@@ -666,6 +691,8 @@ model MeetingRequest {
 
   @@index([universityId])
   @@index([studentId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Bookmark {
@@ -695,6 +722,10 @@ model Event {
   updatedAt     DateTime            @updatedAt
   university    University          @relation(fields: [universityId], references: [id], onDelete: Cascade)
   registrations EventRegistration[]
+
+  @@index([universityId])
+  @@index([status])
+  @@index([dateTime])
 }
 
 model EventRegistration {
@@ -769,6 +800,7 @@ model SystemLog {
 
   @@index([type])
   @@index([level])
+  @@index([createdAt])
 }
 
 model SystemReport {
@@ -805,6 +837,8 @@ model StudentNotification {
 
   @@index([studentId])
   @@index([dismissed])
+  @@index([studentId, isRead])
+  @@index([createdAt])
 }
 
 model NotificationCampaign {
@@ -841,6 +875,8 @@ model UniversityNotification {
 
   @@index([universityId])
   @@index([dismissed])
+  @@index([universityId, isRead])
+  @@index([createdAt])
 }
 
 model AdminAnnouncement {
@@ -1035,6 +1071,7 @@ model ProctorRequest {
   @@index([universityId])
   @@index([status])
   @@index([examStartDate])
+  @@index([createdAt])
 }
 
 // ── Proactive Outreach ────────────────────────────────────────────────
@@ -1196,6 +1233,7 @@ model CircuitRegistration {
   @@unique([circuitId, universityId])
   @@index([circuitId])
   @@index([universityId])
+  @@index([universityId, status])
 }
 
 model Payment {

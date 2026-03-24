@@ -24,7 +24,7 @@ export default async function DebugPage() {
 
     const logs = await prisma.systemLog.findMany({
         orderBy: { createdAt: 'desc' },
-        take: 50
+        take: 500, // explicit — recent logs view
     })
 
     return (
@@ -32,7 +32,7 @@ export default async function DebugPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex justify-between items-center">
-                        <span>System Debug Logs (Last 50)</span>
+                        <span>System Debug Logs (Last 500)</span>
                         <Badge variant="outline">{logs.length} Entries</Badge>
                     </CardTitle>
                 </CardHeader>
@@ -48,7 +48,7 @@ export default async function DebugPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {logs.map((log) => (
+                            {logs.map((log: any) => (
                                 <TableRow key={log.id}>
                                     <TableCell className="font-mono text-xs">
                                         {new Date(log.createdAt).toLocaleString()}

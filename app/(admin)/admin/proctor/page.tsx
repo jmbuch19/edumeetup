@@ -35,8 +35,8 @@ export default async function AdminProctorPage() {
         orderBy: { createdAt: 'desc' },
     })
 
-    const pending = requests.filter(r => r.status === 'PENDING').length
-    const active = requests.filter(r => ['UNDER_REVIEW', 'CONFIRMED'].includes(r.status)).length
+    const pending = requests.filter((r: any) => r.status === 'PENDING').length
+    const active = requests.filter((r: any) => ['UNDER_REVIEW', 'CONFIRMED'].includes(r.status)).length
 
     const fmt = (d: Date) => new Date(d).toLocaleDateString('en-IN', {
         day: 'numeric', month: 'short', year: 'numeric',
@@ -83,8 +83,8 @@ export default async function AdminProctorPage() {
                 </Card>
             ) : (
                 <div className="space-y-4">
-                    {requests.map(req => {
-                        const nextStatus = NEXT_STATUS[req.status]
+                    {requests.map((req: any) => {
+                        const nextStatus = NEXT_STATUS[req.status as ProctorRequestStatus]
                         return (
                             <Card key={req.id} className={req.status === 'PENDING' ? 'border-amber-200' : ''}>
                                 <CardHeader className="pb-3">
@@ -96,7 +96,7 @@ export default async function AdminProctorPage() {
                                                 {req.examType} · {fmt(req.examStartDate)} – {fmt(req.examEndDate)}
                                             </p>
                                         </div>
-                                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${STATUS_COLORS[req.status]}`}>
+                                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${STATUS_COLORS[req.status as ProctorRequestStatus]}`}>
                                             {req.status.replace('_', ' ')}
                                         </span>
                                     </div>

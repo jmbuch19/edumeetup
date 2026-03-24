@@ -246,7 +246,7 @@ export async function POST(req: NextRequest) {
                 }
                 return {
                   found: true, source: 'EdUmeetup Verified', count: universities.length,
-                  universities: universities.map(u => ({
+                  universities: universities.map((u: any) => ({
                     name: u.institutionName, country: u.country, city: u.city,
                     scholarships: u.scholarshipsAvailable,
                     about: u.about?.slice(0, 150),
@@ -274,10 +274,10 @@ export async function POST(req: NextRequest) {
                 if (circuits.length === 0) return { found: false, message: 'No upcoming circuits right now. Encourage the rep to register their interest for the next season.' }
                 return { 
                   found: true, 
-                  circuits: circuits.map(c => ({
+                  circuits: circuits.map((c: any) => ({
                     name: c.name,
                     dates: `${c.startDate.toISOString().split('T')[0]} to ${c.endDate.toISOString().split('T')[0]}`,
-                    citiesIncluded: c.events.map(e => e.city).join(', '),
+                    citiesIncluded: c.events.map((e: any) => e.city).join(', '),
                     estimatedStudents: c.events.length * 150 // heuristic
                   }))
                 }

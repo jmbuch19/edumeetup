@@ -9,7 +9,9 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { registerForCircuit } from '@/app/actions/circuits'
 
-export function CircuitInviteCard({ circuit }: { circuit: any }) {
+import type { FairCircuit, FairEvent, University } from '@prisma/client'
+
+export function CircuitInviteCard({ circuit }: { circuit: FairCircuit & { events: FairEvent[], participatingUniversities?: University[], foreignReps?: any[] } }) {
     const [isRegistering, setIsRegistering] = useState(false)
     const [registered, setRegistered] = useState(circuit.foreignReps && circuit.foreignReps.length > 0)
 

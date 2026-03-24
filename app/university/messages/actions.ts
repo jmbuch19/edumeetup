@@ -40,7 +40,7 @@ export async function getUniversityQuota(universityId: string) {
     })
     if (!uni) return { daily: 0, annual: 0, dailyLimit: DAILY_LIMIT, annualLimit: ANNUAL_LIMIT }
 
-    const repIds = [uni.userId, ...uni.reps.map((r) => r.id)]
+    const repIds = [uni.userId, ...uni.reps.map((r: any) => r.id)]
 
     const [daily, annual] = await Promise.all([
         prisma.directMessage.count({
@@ -132,7 +132,7 @@ export async function getUniversityConversations() {
     })
 
     const withUnread = await Promise.all(
-        conversations.map(async (c) => {
+        conversations.map(async (c: any) => {
             const unreadCount = await prisma.directMessage.count({
                 where: { conversationId: c.id, senderRole: 'STUDENT', universityReadAt: null },
             })

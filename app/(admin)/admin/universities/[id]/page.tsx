@@ -53,11 +53,11 @@ export default async function AdminUniversityDetailPage(props: Props) {
         await verifyUniversity(fd)
     }
 
-    const statusColor = {
+    const statusColor = ({
         VERIFIED: 'bg-green-100 text-green-800 border-green-200',
         PENDING: 'bg-amber-100 text-amber-800 border-amber-200',
         REJECTED: 'bg-red-100 text-red-800 border-red-200',
-    }[uni.verificationStatus] ?? 'bg-gray-100 text-gray-700'
+    } as Record<string, string>)[uni.verificationStatus] ?? 'bg-gray-100 text-gray-700'
 
     return (
         <div className="max-w-3xl mx-auto space-y-6 py-4 md:py-8 px-4">
@@ -214,7 +214,7 @@ export default async function AdminUniversityDetailPage(props: Props) {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="divide-y divide-gray-50">
-                        {uni.programList.map((p) => (
+                        {uni.programList.map((p: any) => (
                             <div key={p.id} className="py-3 flex items-start justify-between gap-4">
                                 <div>
                                     <p className="font-medium text-gray-900 text-sm">{p.programName}</p>

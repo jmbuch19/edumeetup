@@ -1,5 +1,7 @@
 import React from 'react'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
+import type { University, Student, Alumni, FairEvent } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createProgram, updateUniversityProfile } from '@/app/actions'
@@ -88,30 +90,33 @@ export default async function UniversityDashboard() {
     const user = await requireUser()
     const email = user.email
 
-    // ── Wave 1: Load the uni record (everything else depends on uni.id) ─────
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let uni: any = null
+    const getUni = () => prisma.university.findFirst({
+        where: { user: { email: email! } },
+        include: { 
+            programList: {
+                orderBy: { createdAt: 'desc' },
+                include: { _count: { select: { interests: true } } }
+            },
+            interests: {
+                include: { student: { include: { user: true } }, program: true },
+                orderBy: { createdAt: 'desc' },
+                take: 200,
+            },
+            documents: {
+                where: { deletedAt: null },
+                orderBy: { uploadedAt: 'desc' },
+                select: { id: true, displayName: true, category: true, fileName: true, mimeType: true, sizeBytes: true, uploadedAt: true }
+            }
+        },
+    });
+
+    type DashboardUniversity = NonNullable<Awaited<ReturnType<typeof getUni>>> & { proactiveCooldownDays?: number; responseRate?: number; reps?: any[] };
+
+    let uni: DashboardUniversity | null = null
 
 
     try {
-        uni = await prisma.university.findFirst({
-            where: { user: { email: email! } },
-            include: { programList: {
-                    orderBy: { createdAt: 'desc' },
-                    include: { _count: { select: { interests: true } } }
-                },
-                interests: {
-                    include: { student: { include: { user: true } }, program: true },
-                    orderBy: { createdAt: 'desc' },
-                    take: 200,
-                },
-                documents: {
-                    where: { deletedAt: null },
-                    orderBy: { uploadedAt: 'desc' },
-                    select: { id: true, displayName: true, category: true, fileName: true, mimeType: true, sizeBytes: true, uploadedAt: true }
-                }
-            },
-        }) as typeof uni
+        uni = await getUni() as DashboardUniversity
     } catch {
         // DB unreachable — show friendly error
         return (
@@ -375,7 +380,7 @@ export default async function UniversityDashboard() {
         ? await prisma.fairEvent.findMany({ where: { id: { in: fairEventIds } } }).catch(() => [])
         : []
     const fairEventMap = Object.fromEntries(fairEventsForHistory.map((e: any) => [e.id, e]))
-    const fairHistoryWithDetails = fairHistoryGroups.map((record: any) => ({
+    const fairHistoryWithDetails: { fair: FairEvent | null; leadCount: number }[] = fairHistoryGroups.map((record: any) => ({
         fair: fairEventMap[record.fairEventId] ?? null,
         leadCount: record._count.id,
     }))
@@ -532,11 +537,11 @@ export default async function UniversityDashboard() {
                         <TabsTrigger value="meetings">Meetings</TabsTrigger>
                         <TabsTrigger value="group-sessions">
                             Group Sessions
-                            {groupSessions.filter(s =>
+                            {groupSessions.filter((s: any) =>
                                 ['OPEN','FILLING','FULL'].includes(s.status)
                             ).length > 0 && (
                                 <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-medium px-1.5 py-0.5 min-w-[1.25rem]">
-                                    {groupSessions.filter(s =>
+                                    {groupSessions.filter((s: any) =>
                                         ['OPEN','FILLING','FULL'].includes(s.status)
                                     ).length}
                                 </span>
@@ -545,15 +550,15 @@ export default async function UniversityDashboard() {
                         <TabsTrigger value="programs">Programs</TabsTrigger>
                         <TabsTrigger value="fairs" className="relative">
                             Campus Fairs
-                            {(fairInvitations.some(i => i.status === 'PENDING') ||
-                                fairOutreach.filter(o => o.status === 'SENT').length > 0) && (
+                            {(fairInvitations.some((i: any) => i.status === 'PENDING') ||
+                                fairOutreach.filter((o: any) => o.status === 'SENT').length > 0) && (
                                     <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
                                 )}
                         </TabsTrigger>
                         <TabsTrigger value="documents">Documents</TabsTrigger>
                         <TabsTrigger value="proctor" className="relative">
                             Proctor Services
-                            {proctorRequests.some(r => r.status === 'CONFIRMED') && (
+                            {proctorRequests.some((r: any) => r.status === 'CONFIRMED') && (
                                 <span className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full" />
                             )}
                         </TabsTrigger>
@@ -659,7 +664,7 @@ export default async function UniversityDashboard() {
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {matchedStudents.slice(0, 6).map(student => (
+                                {matchedStudents.slice(0, 6).map((student: any) => (
                                     <div key={student.id} className="p-4 rounded-lg bg-gray-50 border border-gray-100 flex flex-col justify-between">
                                         <div>
                                             <div className="flex justify-between items-start mb-2">
@@ -739,7 +744,7 @@ export default async function UniversityDashboard() {
                         {fairInvitations.length > 0 && (
                             <div className="space-y-3">
                                 <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Standalone Fair Invitations</h3>
-                                {fairInvitations.map((inv) => (
+                                {fairInvitations.map((inv: any) => (
                                     <CampusFairInviteCard
                                         key={inv.id}
                                         notification={{

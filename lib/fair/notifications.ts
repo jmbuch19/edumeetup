@@ -48,7 +48,7 @@ export async function triggerFairCreatedNotifications(fairEventId: string): Prom
 
     // ── 3. Notify each university ─────────────────────────────────────────────
     const uniResults = await Promise.allSettled(
-        universities.map((uni) =>
+        universities.map((uni: any) =>
             Promise.allSettled([
                 // a. In-app notification
                 prisma.universityNotification.create({
@@ -87,7 +87,7 @@ export async function triggerFairCreatedNotifications(fairEventId: string): Prom
 
     // ── 5. Notify each student ────────────────────────────────────────────────
     const studentResults = await Promise.allSettled(
-        students.map((student) => {
+        students.map((student: any) => {
             // Respect opt-out preferences
             const prefs = (student.notificationPrefs ?? {}) as Record<string, unknown>
             const emailEnabled = prefs['emailUniversityUpdates'] !== false // default true
@@ -144,7 +144,7 @@ export async function triggerFairGoLiveNotifications(fairEventId: string): Promi
     })
 
     const uniFilter = attendingUniIds.length > 0
-        ? { id: { in: attendingUniIds.map(a => a.universityId) } }
+        ? { id: { in: attendingUniIds.map((a: any) => a.universityId) } }
         : { verificationStatus: 'VERIFIED' as const, notifyFairOpportunities: true }
 
     const universities = await prisma.university.findMany({
@@ -153,7 +153,7 @@ export async function triggerFairGoLiveNotifications(fairEventId: string): Promi
     })
 
     const uniResults = await Promise.allSettled(
-        universities.map((uni) =>
+        universities.map((uni: any) =>
             Promise.allSettled([
                 prisma.universityNotification.create({
                     data: {
@@ -175,7 +175,7 @@ export async function triggerFairGoLiveNotifications(fairEventId: string): Promi
         where: { fairEventId, status: 'CONFIRMED' },
         include: { university: { select: { institutionName: true } } },
     })
-    const confirmedNames = confirmedInvitations.map(inv => inv.university.institutionName)
+    const confirmedNames = confirmedInvitations.map((inv: any) => inv.university.institutionName)
     const uniListMessage = confirmedNames.length > 0
         ? `${confirmedNames.slice(0, 3).join(', ')}${confirmedNames.length > 3
             ? ` +${confirmedNames.length - 3} more universities` : ''} will be present. `
@@ -190,7 +190,7 @@ export async function triggerFairGoLiveNotifications(fairEventId: string): Promi
         : []
 
     const studentResults = await Promise.allSettled(
-        cityStudents.map((student) =>
+        cityStudents.map((student: any) =>
             prisma.studentNotification.create({
                 data: {
                     studentId: student.id,
@@ -233,15 +233,15 @@ export async function triggerFairEndedNotifications(fairEventId: string): Promis
         _count: { id: true },
     })
 
-    const uniIds = leadGroups.map(g => g.universityId)
+    const uniIds = leadGroups.map((g: any) => g.universityId)
     const universities = await prisma.university.findMany({
         where: { id: { in: uniIds } },
         select: { id: true, institutionName: true, repName: true, repEmail: true, contactEmail: true },
     })
 
     const uniResults = await Promise.allSettled(
-        universities.map((uni) => {
-            const count = leadGroups.find(g => g.universityId === uni.id)?._count.id ?? 0
+        universities.map((uni: any) => {
+            const count = leadGroups.find((g: any) => g.universityId === uni.id)?._count.id ?? 0
             return Promise.allSettled([
                 prisma.universityNotification.create({
                     data: {
@@ -266,8 +266,8 @@ export async function triggerFairEndedNotifications(fairEventId: string): Promis
 
     const studentResults = await Promise.allSettled(
         checkedInPasses
-            .filter((p): p is typeof p & { studentId: string } => p.studentId !== null)
-            .map((p) =>
+            .filter((p: { studentId: string | null }): p is { studentId: string } => p.studentId !== null)
+            .map((p: any) =>
                 prisma.studentNotification.create({
                     data: {
                         studentId: p.studentId,

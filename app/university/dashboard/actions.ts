@@ -76,8 +76,8 @@ export async function getUniversityMetrics() {
 
     // Calculate Rates
     const totalPast30 = past30DaysMeetings.length
-    const cancelled = past30DaysMeetings.filter(m => m.status === 'CANCELLED').length
-    const noShows = past30DaysMeetings.filter(m => m.status === 'NO_SHOW').length // If we support this status
+    const cancelled = past30DaysMeetings.filter((m: any) => m.status === 'CANCELLED').length
+    const noShows = past30DaysMeetings.filter((m: any) => m.status === 'NO_SHOW').length // If we support this status
 
     const cancellationRate = totalPast30 > 0 ? (cancelled / totalPast30) * 100 : 0
     const noShowRate = totalPast30 > 0 ? (noShows / totalPast30) * 100 : 0

@@ -17,28 +17,25 @@ import { UniversityLogo } from '@/components/university/university-logo'
 import GroupSessionList, { DiscoverSessionCard } from '@/components/student/GroupSessionCard'
 import { type StudentGroupSession, type DiscoverableGroupSession } from '@/app/university/actions/group-sessions'
 import AlumniBridgeSection from '@/components/alumni/AlumniBridgeSection'
+import { ComponentErrorBoundary } from '@/components/error-boundary'
 
 // Types
 // Types
 // Types
-type Program = any
-type University = any
-type MeetingParticipant = any
-type Meeting = any
-type AdvisoryRequest = any
+import type { Program, University, MeetingParticipant, Meeting, AdvisoryRequest } from '@prisma/client'
 
 // Extended types for relations
-type ExtendedProgram = Program & { university: University }
+type ExtendedProgram = Program & { university: University | null }
 type ExtendedUniversity = University & { programs: Program[] }
-type ExtendedMeeting = MeetingParticipant & { meeting: Meeting & { university: University } }
+type ExtendedMeeting = MeetingParticipant & { meeting: Omit<Meeting, 'title' | 'timezone' | 'meetingType'> & { university: University | null; timezone: string | null; title: string; meetingType: string } }
 
 interface DashboardUIProps {
     student: { fullName: string; fieldOfInterest: string | null; preferredDegree: string | null; user: { email: string } }
-    matchedPrograms: any[] // Serialized ExtendedProgram
-    recommendedUniversities: any[] // Serialized ExtendedUniversity
-    myMeetings: any[] // Serialized ExtendedMeeting
-    interestedUniIds: string[] // Changed from Set to Array for serialization
-    advisoryStatus: any // Serialized AdvisoryRequest
+    matchedPrograms: ExtendedProgram[] 
+    recommendedUniversities: ExtendedUniversity[] 
+    myMeetings: ExtendedMeeting[] 
+    interestedUniIds: string[] 
+    advisoryStatus: AdvisoryRequest | null 
     hasCv: boolean
     groupSessions: StudentGroupSession[]
     discoverableSessions: DiscoverableGroupSession[]
@@ -225,7 +222,7 @@ export function DashboardUI({
                                 <Calendar className="h-6 w-6 text-indigo-600" />
                                 My Meetings
                             </h2>
-                            <StudentMeetingsTable meetings={myMeetings} />
+                            <StudentMeetingsTable meetings={myMeetings as any} />
                         </div>
                     )}
 
@@ -608,7 +605,9 @@ export function DashboardUI({
 
                 {/* ── Alumni Bridge tab ── */}
                 <TabsContent value="alumni">
-                    <AlumniBridgeSection />
+                    <ComponentErrorBoundary name="AlumniBridge">
+                        <AlumniBridgeSection />
+                    </ComponentErrorBoundary>
                 </TabsContent>
             </Tabs>
 

@@ -24,7 +24,9 @@ const formatDateRange = (start: Date, end: Date) => {
     return `${format(new Date(start), "MMM d")} - ${format(new Date(end), "MMM d, yyyy")}`
 }
 
-export default function FairInvitationCard({ outreach }: { outreach: any }) {
+import type { HostRequestOutreach, HostRequest } from '@prisma/client'
+
+export default function FairInvitationCard({ outreach }: { outreach: HostRequestOutreach & { hostRequest: HostRequest } }) {
     const { hostRequest, status } = outreach
     const isPending = status === 'SENT'
 
@@ -126,7 +128,7 @@ export default function FairInvitationCard({ outreach }: { outreach: any }) {
                 ) : (
                     <div className="text-sm text-slate-500 flex items-center gap-2">
                         {status === 'INTERESTED' ? (
-                            <><CheckCircle className="h-4 w-4 text-green-600" /> You marked this as Interested on {format(new Date(outreach.respondedAt), 'MMM d')}</>
+                            <><CheckCircle className="h-4 w-4 text-green-600" /> You marked this as Interested{outreach.respondedAt ? ` on ${format(new Date(outreach.respondedAt), 'MMM d')}` : ''}</>
                         ) : (
                             <><XCircle className="h-4 w-4 text-slate-400" /> You declined this invitation.</>
                         )}

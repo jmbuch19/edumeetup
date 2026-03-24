@@ -7,6 +7,7 @@ import { FIELD_CATEGORIES } from '@/lib/constants'
 import Link from 'next/link'
 import { Search } from 'lucide-react'
 import { UniversityBrowseClient } from '@/components/universities/browse-client'
+import type { University } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,9 +98,9 @@ export default async function UniversitiesPage(
 
             {/* Browse client: handles toggle + both views */}
             <UniversityBrowseClient
-                parents={parents as any}
-                standalones={standalones as any}
-                flatUniversities={universities as any}
+            parents={parents as any}
+            standalones={standalones as any}
+            flatUniversities={universities as any}
                 userRole={userRole}
                 totalPages={totalPages}
                 currentPage={page}

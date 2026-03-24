@@ -17,12 +17,12 @@ export async function GET(req: NextRequest) {
     })
 
     // Batch-load universities
-    const uniIds = [...new Set(messages.map((m) => m.universityId))]
+    const uniIds = [...new Set(messages.map((m: any) => m.universityId))]
     const universities = await prisma.university.findMany({
         where: { id: { in: uniIds } },
         select: { id: true, institutionName: true, logo: true },
     })
-    const uniMap = new Map(universities.map((u) => [u.id, u]))
+    const uniMap = new Map<string, any>(universities.map((u: any) => [u.id, u]))
 
     // Group by university
     const convMap = new Map<string, {

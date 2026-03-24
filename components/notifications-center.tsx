@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
+import { useRouter } from 'next/navigation'
+import type { Notification, AdminAnnouncement, SponsoredContent } from '@prisma/client'
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -20,11 +22,13 @@ interface NotificationsCenterProps {
     programs?: { id: string; programName: string }[]
 }
 
+type ExtendedNotification = Notification & { metadata?: any; readAt?: string | Date | null }
+
 export function NotificationsCenter({ userRole, invitationByFairId, programs }: NotificationsCenterProps) {
     const [data, setData] = useState<{
-        notifications: any[]
-        announcements: any[]
-        sponsored: any[]
+        notifications: ExtendedNotification[]
+        announcements: AdminAnnouncement[]
+        sponsored: SponsoredContent[]
         fairInvitationMap: Record<string, { id: string; status: 'PENDING' | 'CONFIRMED' | 'DECLINED'; respondedAt: string | null }>
         fairEventsMap: Record<string, any>
         universityPrograms: { id: string; name: string; degreeLevel: string | null }[]
@@ -32,6 +36,7 @@ export function NotificationsCenter({ userRole, invitationByFairId, programs }: 
         notifications: [], announcements: [], sponsored: [],
         fairInvitationMap: {}, fairEventsMap: {}, universityPrograms: [],
     })
+
     const [loading, setLoading] = useState(true)
 
     const notifType: "STUDENT" | "UNIVERSITY" = userRole === "STUDENT" ? "STUDENT" : "UNIVERSITY"

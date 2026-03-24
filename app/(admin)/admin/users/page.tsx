@@ -94,7 +94,7 @@ export default async function AdminUsersPage(
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            users.map((user) => {
+                            users.map((user: any) => {
                                 const s = user.student
                                 // Use stored boolean for list — full 10-field check is on detail page
                                 const complete = s?.profileComplete ?? null

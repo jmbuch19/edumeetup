@@ -45,7 +45,7 @@ export default async function FairVisitsPage() {
     })
 
     // ── Resolve matchedPrograms IDs → names ───────────────────────────────────
-    const allProgramIds = [...new Set(rawVisits.flatMap((v) => v.matchedPrograms))]
+    const allProgramIds = [...new Set(rawVisits.flatMap((v: any) => v.matchedPrograms))]
     const programs =
         allProgramIds.length > 0
             ? await prisma.program.findMany({
@@ -53,19 +53,19 @@ export default async function FairVisitsPage() {
                 select: { id: true, programName: true, fieldCategory: true },
             })
             : []
-    const programMap = new Map(programs.map((p) => [p.id, p.programName]))
+    const programMap = new Map(programs.map((p: any) => [p.id, p.programName]))
 
     // ── Serialize for client ──────────────────────────────────────────────────
-    const visits: VisitData[] = rawVisits.map((v) => {
+    const visits: VisitData[] = rawVisits.map((v: any) => {
         const brochureDoc = v.university.documents.find(
-            (d) => d.category.toLowerCase() === 'brochure',
+            (d: any) => d.category.toLowerCase() === 'brochure',
         )
 
         return {
             id: v.id,
             createdAt: v.scannedAt.toISOString(),
             matchedPrograms: v.matchedPrograms
-                .map((pid) => programMap.get(pid) ?? null)
+                .map((pid: any) => programMap.get(pid) ?? null)
                 .filter(Boolean) as string[],
             repNotes: v.repNotes,
             emailSent: v.emailSent,
@@ -86,7 +86,7 @@ export default async function FairVisitsPage() {
                 id: v.pass.id,
                 isPartialProfile: v.pass.isPartialProfile,
             },
-            messages: v.messages.map((m) => ({
+            messages: v.messages.map((m: any) => ({
                 id: m.id,
                 content: m.content,
                 senderRole: m.senderRole,
@@ -95,7 +95,7 @@ export default async function FairVisitsPage() {
         }
     })
 
-    const hasPartialProfile = rawVisits.some((v) => v.pass.isPartialProfile)
+    const hasPartialProfile = rawVisits.some((v: any) => v.pass.isPartialProfile)
 
     return (
         <FairVisitsDashboard

@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     })
 
     return NextResponse.json(
-        interests.map((i) => ({
+        interests.map((i: any) => ({
             id: i.student.userId,
             name: i.student.user.name,
             email: i.student.user.email,
