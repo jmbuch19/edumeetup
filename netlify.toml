@@ -1,5 +1,5 @@
 [build]
-  command = "rm -rf .next && node scripts/neon-backup.mjs && npx prisma migrate deploy && node scripts/seed-admin.mjs && npm run build"
+  command = "npm run build"
 
 
 
