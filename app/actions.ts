@@ -649,7 +649,7 @@ export async function createProgram(formData: FormData) {
                     type: 'INFO',
                     actionUrl: `/universities/${university.id}`,
                 }))
-            }).catch(e => console.error('[createProgram] Bulk notification failed:', e))
+            }).catch((e: unknown) => console.error('[createProgram] Bulk notification failed:', e))
         }
 
         revalidatePath('/university/dashboard')
