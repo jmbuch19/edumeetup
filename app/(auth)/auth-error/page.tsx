@@ -55,14 +55,7 @@ function AuthErrorContent() {
         }
     }
 
-    // "Verification" usually means token issue in Auth.js, so treating same as Expired is fine.
-    // Overriding icon import for Verification because CheckCircle2 wasn't in list but used here? 
-    // Wait, I imported CheckCircle2 in prev file, here I didn't import CheckCircle2. 
-    // Let's stick to AlertTriangle for Verification based on prompt "same as above" (EmailSignin).
 
-    // Fix: Re-map Verification to match EmailSignin logic exactly as requested?
-    // "Verification: Link already used — same as above"
-    // So distinct message, but similar action.
 
     const errorConfig = errorMap[error as string] || errorMap.Default
     const Icon = errorConfig.icon

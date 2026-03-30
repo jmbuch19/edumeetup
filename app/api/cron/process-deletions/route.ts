@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
 
     let deletedCount = 0
     const errors: string[] = []
+    const successfulUsers: { user: any, r2DeletedCount: number }[] = []
 
     for (const user of usersToDelete) {
         try {
@@ -65,30 +66,41 @@ export async function GET(request: NextRequest) {
                     console.error(`[process-deletions] R2 delete failed for user ${user.id}:`)
                 )
             }
-
-            // 2. Write final audit log BEFORE deleting user
-            //    (AuditLog.actorId FK — we use SYSTEM sentinel since user won't exist after)
-            await prisma.systemLog.create({
-                data: {
-                    level: 'INFO',
-                    type: 'ACCOUNT_HARD_DELETE',
-                    message: `Hard-deleted user ${user.email} (${user.role})`,
-                    metadata: {
-                        userId: user.id,
-                        email: user.email,
-                        r2FilesDeleted: r2Keys.length,
-                        deletedAt: now.toISOString(),
-                    }
-                }
-            })
-
-            // 3. Hard-delete user — all related records cascade via Prisma onDelete: Cascade
-            await prisma.user.delete({ where: { id: user.id } })
-
-            deletedCount++
+            
+            successfulUsers.push({ user, r2DeletedCount: r2Keys.length })
         } catch (err) {
-            console.error(`[process-deletions] Failed to delete user ${user.id}:`)
+            console.error(`[process-deletions] Failed to prep deletion for user ${user.id}:`)
             errors.push(user.id)
+        }
+    }
+
+    if (successfulUsers.length > 0) {
+        try {
+            // 2. Write final audit logs iteratively in one single payload chunk 
+            const logsToCreate = successfulUsers.map(({ user, r2DeletedCount }) => ({
+                level: 'INFO',
+                type: 'ACCOUNT_HARD_DELETE',
+                message: `Hard-deleted user ${user.email} (${user.role})`,
+                metadata: {
+                    userId: user.id,
+                    email: user.email,
+                    r2FilesDeleted: r2DeletedCount,
+                    deletedAt: now.toISOString(),
+                }
+            }))
+            
+            await prisma.systemLog.createMany({ data: logsToCreate })
+
+            // 3. Native Prisma Bulk Cascading Delete in one trip
+            const userIdsToDrop = successfulUsers.map(s => s.user.id)
+            const deleteResult = await prisma.user.deleteMany({
+                 where: { id: { in: userIdsToDrop } }
+            })
+            
+            deletedCount = deleteResult.count
+        } catch (err) {
+            console.error(`[process-deletions] Bulk DB deletion crashed transaction:`, err)
+            successfulUsers.forEach(s => errors.push(s.user.id))
         }
     }
 

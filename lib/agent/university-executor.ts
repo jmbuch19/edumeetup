@@ -270,8 +270,6 @@ async function executeDailyBrief(action: UniversityAgentAction) {
   await logAgentAction('AGENT_DAILY_BRIEF_SENT', universityId, {
     newInterests, newMeetings, pendingResponse, meetingsNext24h, responseRate,
   })
-
-  console.log(`[AGENT:UNI] Daily brief → ${universityEmail} (rate: ${responseRate}%)`)
 }
 
 // ── Proctor Escalation ────────────────────────────────────────────────────────

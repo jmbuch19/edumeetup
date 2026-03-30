@@ -52,7 +52,7 @@ export async function getParentViewData(
 
         // A1 fix: token expires 7 days after the fair ends (or starts if no endDate)
         const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
-        const fairEndMs = (pass.fairEvent.endDate ?? pass.fairEvent.startDate).getTime()
+        const fairEndMs = (pass.fairEvent.endedAt ?? pass.fairEvent.endDate ?? pass.fairEvent.startDate).getTime()
         if (Date.now() > fairEndMs + SEVEN_DAYS_MS) {
             console.log(`[getParentViewData] token expired for pass fair=${pass.fairEvent.name}`)
             return null

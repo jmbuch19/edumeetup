@@ -292,7 +292,13 @@ export async function registerUniversity(formData: FormData) {
     try {
         const existingUser = await prisma.user.findUnique({ where: { email } })
         if (existingUser) {
-            return { error: 'User already exists' }
+            if (existingUser.role === 'UNIVERSITY' || existingUser.role === 'UNIVERSITY_REP') {
+                if (existingUser.isActive) {
+                    await sendMagicLink(email, '/university/dashboard').catch(() => null)
+                }
+                return { success: true, message: "Registered. Please check your email to login." }
+            }
+            return { error: 'Registration failed. Please contact support if you need help.' }
         }
 
         await prisma.user.create({
@@ -633,13 +639,17 @@ export async function createProgram(formData: FormData) {
             select: { studentId: true },
             distinct: ['studentId'],
         })
-        for (const { studentId } of interestedStudents) {
-            await notifyStudent(studentId, {
-                title: 'New Programme Added',
-                message: `${university.institutionName} has added a new programme: ${fields.programName}.`,
-                type: 'INFO',
-                actionUrl: `/universities/${university.id}`,
-            })
+        
+        if (interestedStudents.length > 0) {
+            await prisma.studentNotification.createMany({
+                data: interestedStudents.map(({ studentId }: { studentId: string }) => ({
+                    studentId,
+                    title: 'New Programme Added',
+                    message: `${university.institutionName} has added a new programme: ${fields.programName}.`,
+                    type: 'INFO',
+                    actionUrl: `/universities/${university.id}`,
+                }))
+            }).catch(e => console.error('[createProgram] Bulk notification failed:', e))
         }
 
         revalidatePath('/university/dashboard')
@@ -857,6 +867,9 @@ export async function login(formData: FormData) {
 
         if (!user) {
             // B2 fix: don't reveal whether email is in DB — constant-time same response
+            // Deliberate stochastic delay to simulate the Resend API latency and prevent timing attacks
+            const simulatedNetworkLatency = 600 + Math.random() * 500
+            await new Promise(resolve => setTimeout(resolve, simulatedNetworkLatency))
             return { success: true, message: "Check your email for the login link!" }
         }
 
@@ -944,7 +957,10 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
 
         // Block only if they already have a university profile
         if (existingUser?.university) {
-            return { error: 'A university profile already exists for this email. Please sign in instead.' }
+            if (existingUser.isActive) {
+                await sendMagicLink(email, '/university/dashboard').catch(() => null)
+            }
+            return { success: true, isAutoApproved: true, message: "Registered successfully! Check your email to login." }
         }
 
         // ── 2. Parent Institution Auto-Detection ──────────────────────────────
