@@ -121,7 +121,6 @@ async function ensureLoaded(): Promise<void> {
         if (uniMap.status === 'fulfilled') {
             domainMap = uniMap.value
             isUniversityLoaded = true
-            console.log(`[university-domains] Loaded ${domainMap.size} university domains.`)
         } else {
             console.warn('[university-domains] University list fetch failed:', uniMap.reason)
         }
@@ -129,7 +128,6 @@ async function ensureLoaded(): Promise<void> {
         if (dispSet.status === 'fulfilled') {
             disposableSet = dispSet.value
             isDisposableLoaded = true
-            console.log(`[university-domains] Loaded ${disposableSet.size} disposable domains.`)
         } else {
             console.warn('[university-domains] Disposable list fetch failed (using hardcoded fallback):', dispSet.reason)
         }
@@ -175,7 +173,6 @@ export async function refreshDomains(): Promise<{
     }
 
     lastUpdated = new Date()
-    console.log(`[university-domains] Refreshed — uni: ${domainMap.size}, disposable: ${disposableSet.size}`)
 
     return {
         universityCount: domainMap.size,
