@@ -94,7 +94,6 @@ async function executeNewInterestAlert(action: UniversityAgentAction) {
   })
 
   await logAgentAction('AGENT_NEW_INTEREST_ALERTED', interestId, { universityId, studentName })
-  console.log(`[AGENT:UNI] New interest → ${universityEmail}`)
 }
 
 // ── Meeting Booked ────────────────────────────────────────────────────────────
@@ -140,7 +139,6 @@ async function executeMeetingBookedAlert(action: UniversityAgentAction) {
   })
 
   await logAgentAction('AGENT_MEETING_BOOKED_ALERTED', meetingId, { universityId, studentName })
-  console.log(`[AGENT:UNI] Meeting booked → ${universityEmail}`)
 }
 
 // ── Meeting Cancelled ─────────────────────────────────────────────────────────
@@ -184,7 +182,6 @@ async function executeMeetingCancelledAlert(action: UniversityAgentAction) {
   })
 
   await logAgentAction('AGENT_MEETING_CANCELLED_ALERTED', meetingId, { universityId, studentName, cancelReason })
-  console.log(`[AGENT:UNI] Meeting cancelled → ${universityEmail}`)
 }
 
 // ── Daily Brief ───────────────────────────────────────────────────────────────
@@ -270,8 +267,6 @@ async function executeDailyBrief(action: UniversityAgentAction) {
   await logAgentAction('AGENT_DAILY_BRIEF_SENT', universityId, {
     newInterests, newMeetings, pendingResponse, meetingsNext24h, responseRate,
   })
-
-  console.log(`[AGENT:UNI] Daily brief → ${universityEmail} (rate: ${responseRate}%)`)
 }
 
 // ── Proctor Escalation ────────────────────────────────────────────────────────
@@ -320,8 +315,6 @@ async function executeProctorEscalation(action: UniversityAgentAction) {
   await logAgentAction('AGENT_PROCTOR_ESCALATION_SENT', payload.requestId as string, {
     universityId, daysUntilExam, subjects,
   })
-
-  console.log(`[AGENT:UNI] Proctor escalation → ${universityEmail} (${daysUntilExam}d to exam)`)
 }
 
 // ── Main executor ─────────────────────────────────────────────────────────────
