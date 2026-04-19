@@ -7,6 +7,12 @@ export async function verifyTurnstile(token: string | null | undefined): Promise
   error?: string
 }> {
   if (!token) {
+    // If Turnstile secret isn't configured either, the widget was never set up —
+    // pass through and rely on other server-side guards (rate limiting, etc.)
+    if (!process.env.TURNSTILE_SECRET_KEY) {
+      console.warn('[turnstile] No token and no secret key — skipping check')
+      return { success: true }
+    }
     return { success: false, error: 'Bot protection token missing. Please refresh and try again.' }
   }
 

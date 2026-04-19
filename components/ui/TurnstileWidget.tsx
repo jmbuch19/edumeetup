@@ -29,9 +29,14 @@ export function TurnstileWidget({ onVerify, onExpire, onError }: TurnstileWidget
   useEffect(() => {
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
     if (!siteKey) {
-      console.warn('[turnstile] NEXT_PUBLIC_TURNSTILE_SITE_KEY not set')
+      // Site key not configured — skip widget and unblock form immediately.
+      // Server-side verifyTurnstile will also pass when TURNSTILE_SECRET_KEY is unset.
+      console.warn('[turnstile] NEXT_PUBLIC_TURNSTILE_SITE_KEY not set — skipping widget')
+      onVerify('')
       return
     }
+
+    let timeoutId: ReturnType<typeof setTimeout>
 
     function renderWidget() {
       if (!containerRef.current || !window.turnstile) return
@@ -40,15 +45,28 @@ export function TurnstileWidget({ onVerify, onExpire, onError }: TurnstileWidget
         theme: 'light',
         size: 'invisible', // invisible to users — no checkbox shown
         callback: (token: string) => {
+          clearTimeout(timeoutId)
           onVerify(token)
         },
         'expired-callback': () => {
           onExpire?.()
         },
         'error-callback': () => {
+          // If Cloudflare can't be reached (ad blocker / network blip),
+          // unblock the form — server-side is the real security gate.
+          clearTimeout(timeoutId)
+          console.warn('[turnstile] Widget error — falling back to server-side check only')
+          onVerify('')
           onError?.()
         },
       })
+
+      // Safety net: if the invisible widget never fires (e.g. partial CSP block),
+      // unblock the form after 8 seconds so the user isn't permanently stuck.
+      timeoutId = setTimeout(() => {
+        console.warn('[turnstile] Widget timeout — unblocking form after 8s')
+        onVerify('')
+      }, 8000)
     }
 
     // Load Turnstile script if not already loaded
@@ -60,10 +78,16 @@ export function TurnstileWidget({ onVerify, onExpire, onError }: TurnstileWidget
       script.async = true
       script.defer = true
       script.onload = renderWidget
+      // If script fails to load entirely, unblock the form
+      script.onerror = () => {
+        console.warn('[turnstile] Script failed to load — unblocking form')
+        onVerify('')
+      }
       document.head.appendChild(script)
     }
 
     return () => {
+      clearTimeout(timeoutId)
       if (widgetIdRef.current && window.turnstile) {
         window.turnstile.remove(widgetIdRef.current)
       }
