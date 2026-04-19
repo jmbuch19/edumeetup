@@ -23,6 +23,7 @@ function LoginContent() {
     const [trustDevice, setTrustDevice] = useState(true)
     const [showTip, setShowTip] = useState(false)
     const [turnstileToken, setTurnstileToken] = useState<string>('')
+    const [turnstileReady, setTurnstileReady] = useState(false)
 
     function checkEmailTypo(email: string): string | null {
         const domain = email.trim().toLowerCase().split('@')[1] ?? ''
@@ -135,16 +136,20 @@ function LoginContent() {
                         </div>
 
                         <TurnstileWidget 
-                            onVerify={setTurnstileToken}
+                            onVerify={(token) => { setTurnstileToken(token); setTurnstileReady(true) }}
+                            onExpire={() => { setTurnstileToken(''); setTurnstileReady(false) }}
+                            onError={() => { setTurnstileToken(''); setTurnstileReady(false) }}
                         />
 
-                        <Button className="w-full" type="submit" disabled={isLoading}>
+                        <Button className="w-full" type="submit" disabled={isLoading || !turnstileReady}>
                             {isLoading ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : !turnstileReady ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             ) : (
                                 <Mail className="mr-2 h-4 w-4" />
                             )}
-                            Sign In with Email
+                            {!turnstileReady ? 'Verifying...' : 'Sign In with Email'}
                         </Button>
                     </form>
 

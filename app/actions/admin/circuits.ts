@@ -28,7 +28,9 @@ export async function sendCircuitWelcomeEmails(
             }
         }
 
-        // TODO: In the future, actually send the welcome emails here using sendEmail()
+        // TODO: Send welcome emails once EmailTemplates.circuitWelcome(repName, circuitName, institutionName, startDate, endDate)
+        //       is added to lib/email.ts. Also expand the findMany() include to fetch rep { name, email }
+        //       and circuit { name, startDate, endDate } before wiring up the email loop.
         
         return { success: true, message: "Welcome emails dispatched successfully." }
     } catch (error: any) {

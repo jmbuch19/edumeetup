@@ -54,5 +54,9 @@ test('Meeting State Machine Transitions', async (t) => {
         assert.strictEqual(canCancel(MeetingStatus.REJECTED), false, 'REJECTED cannot be cancelled')
         assert.strictEqual(canCancel(MeetingStatus.CANCELLED), false, 'CANCELLED cannot be cancelled')
         assert.strictEqual(canCancel(MeetingStatus.COMPLETED), false, 'COMPLETED cannot be cancelled')
+        
+        // Invalid inputs
+        assert.strictEqual(canCancel('INVALID_STATUS'), false, 'Unknown status cannot be cancelled')
+        assert.strictEqual(canCancel(''), false, 'Empty string cannot be cancelled')
     })
 })
