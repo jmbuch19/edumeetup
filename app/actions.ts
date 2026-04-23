@@ -11,6 +11,7 @@ import { requireUser, requireRole, signIn, isUniversityEmail } from '@/lib/auth'
 import { sendMagicLink } from '@/lib/magic-link'
 import { logAudit } from '@/lib/audit'
 import { isDisposableEmail } from '@/lib/email-blocklist'
+import { hasMxRecord } from '@/lib/email-validate'
 import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateLimiter, interestRateLimiter, inviteRateLimiter } from '@/lib/ratelimit'
 import { headers } from 'next/headers'
 import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema, studentProfileSchema, pdoRegistrationSchema, studentInteractionSchema } from '@/lib/schemas'
@@ -1186,6 +1187,13 @@ export async function submitPublicInquiry(prevState: any, formData: FormData) {
         return { error: turnstileCheck.error }
     }
 
+    // Submission-time check — bots submit in milliseconds; real users take seconds.
+    // Silent accept matches the honeypot pattern so bots can't distinguish failures.
+    const formTs = parseInt(rawData['_form_ts'] as string, 10)
+    if (!isNaN(formTs) && Date.now() - formTs < 2000) {
+        return { success: true }
+    }
+
     const validation = publicInquirySchema.safeParse(rawData)
 
     if (!validation.success) {
@@ -1201,6 +1209,11 @@ export async function submitPublicInquiry(prevState: any, formData: FormData) {
     // Block disposable / throwaway email providers
     if (isDisposableEmail(email)) {
         return { error: "Please use a permanent email address." }
+    }
+
+    // Reject emails whose domain has no mail server (catches made-up domains)
+    if (!(await hasMxRecord(email))) {
+        return { error: "This email domain doesn't appear to accept mail. Please double-check your email address." }
     }
 
     try {
@@ -1253,6 +1266,12 @@ export async function submitPdoRegistration(prevState: any, formData: FormData) 
         return { error: turnstileCheck.error }
     }
 
+    // Submission-time check — silent accept if submitted too fast (likely bot)
+    const formTs = parseInt(rawData['_form_ts'] as string, 10)
+    if (!isNaN(formTs) && Date.now() - formTs < 2000) {
+        return { success: true }
+    }
+
     const validation = pdoRegistrationSchema.safeParse(rawData)
 
     if (!validation.success) {
@@ -1268,6 +1287,11 @@ export async function submitPdoRegistration(prevState: any, formData: FormData) 
     // Block disposable / throwaway email providers
     if (isDisposableEmail(email)) {
         return { error: "Please use a permanent email address." }
+    }
+
+    // Reject emails whose domain has no mail server
+    if (!(await hasMxRecord(email))) {
+        return { error: "This email domain doesn't appear to accept mail. Please double-check your email address." }
     }
 
     const timestamp = new Date().toLocaleString('en-IN', {

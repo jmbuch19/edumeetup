@@ -35,6 +35,10 @@ export function ContactForm() {
     const router = useRouter()
     const formRef = useRef<HTMLFormElement>(null)
     const [turnstileToken, setTurnstileToken] = useState("")
+    // Timestamp when the form first rendered — used server-side to reject
+    // bot submissions that complete in under 2 seconds. Lazy-init so it's
+    // stable across re-renders.
+    const [formLoadedAt] = useState(() => Date.now())
 
     useEffect(() => {
         if (state?.success) {
@@ -132,6 +136,9 @@ export function ContactForm() {
                     defaultValue=""
                 />
             </div>
+
+            {/* Form load timestamp — server rejects submissions completed in <2s */}
+            <input type="hidden" name="_form_ts" value={formLoadedAt} readOnly />
 
             {/* Invisible Cloudflare Turnstile — verified server-side */}
             <input type="hidden" name="cf-turnstile-response" value={turnstileToken} readOnly />
