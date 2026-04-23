@@ -43,7 +43,11 @@ export function TurnstileWidget({ onVerify, onExpire, onError }: TurnstileWidget
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
         theme: 'light',
-        size: 'invisible', // invisible to users — no checkbox shown
+        // Cloudflare removed the `size: 'invisible'` option. The modern way to
+        // stay invisible to real users is a flexible-size widget with
+        // `appearance: 'interaction-only'` — only rendered if a challenge is needed.
+        size: 'flexible',
+        appearance: 'interaction-only',
         callback: (token: string) => {
           clearTimeout(timeoutId)
           onVerify(token)
