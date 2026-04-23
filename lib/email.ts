@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { logSystemEvent } from './system-log'
+import { escapeHtml } from './sanitize'
 
 /**
  * Unified Email Utility
@@ -245,7 +246,7 @@ export const EmailTemplates = {
     // ── Registration ─────────────────────────────────────────────────────────
 
     welcomeStudent: (fullName: string) => `
-        <p>Hi ${fullName},</p>
+        <p>Hi ${escapeHtml(fullName)},</p>
         <p>Welcome to <strong>EdUmeetup</strong>! Your account has been created successfully.</p>
         <p>You can now:</p>
         <ul style="padding-left:20px;color:#374151;">
@@ -263,8 +264,8 @@ export const EmailTemplates = {
     adminNewStudent: (fullName: string, email: string) => `
         <p>A new student has registered on the platform.</p>
         <div class="info-box">
-            <div class="info-row"><span class="info-label">Name:</span> ${fullName}</div>
-            <div class="info-row"><span class="info-label">Email:</span> ${email}</div>
+            <div class="info-row"><span class="info-label">Name:</span> ${escapeHtml(fullName)}</div>
+            <div class="info-row"><span class="info-label">Email:</span> ${escapeHtml(email)}</div>
         </div>
         <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'}/admin/dashboard" class="btn">View in Admin Dashboard</a></p>
     `,
@@ -272,8 +273,8 @@ export const EmailTemplates = {
     adminNewUniversity: (instName: string, email: string) => `
         <p>A new university has registered and is awaiting verification.</p>
         <div class="info-box">
-            <div class="info-row"><span class="info-label">Institution:</span> ${instName}</div>
-            <div class="info-row"><span class="info-label">Contact:</span> <a href="mailto:${email}">${email}</a></div>
+            <div class="info-row"><span class="info-label">Institution:</span> ${escapeHtml(instName)}</div>
+            <div class="info-row"><span class="info-label">Contact:</span> <a href="mailto:${encodeURIComponent(email)}">${escapeHtml(email)}</a></div>
             <div class="info-row"><span class="info-label">Status:</span> <span style="color:#d97706;font-weight:600;">Pending Verification</span></div>
         </div>
         <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'}/admin/dashboard" class="btn">Review &amp; Verify Now →</a></p>
@@ -282,13 +283,13 @@ export const EmailTemplates = {
     // ── Interest ──────────────────────────────────────────────────────────────
 
     universityInterest: (studentName: string, studentEmail: string, message: string) => `
-        <p><strong>${studentName}</strong> has expressed interest in your university.</p>
+        <p><strong>${escapeHtml(studentName)}</strong> has expressed interest in your university.</p>
         <div class="info-box">
-            <div class="info-row"><span class="info-label">Student:</span> ${studentName}</div>
-            <div class="info-row"><span class="info-label">Email:</span> <a href="mailto:${studentEmail}">${studentEmail}</a></div>
+            <div class="info-row"><span class="info-label">Student:</span> ${escapeHtml(studentName)}</div>
+            <div class="info-row"><span class="info-label">Email:</span> <a href="mailto:${encodeURIComponent(studentEmail)}">${escapeHtml(studentEmail)}</a></div>
         </div>
         <p><strong>Message:</strong></p>
-        <blockquote>${message}</blockquote>
+        <blockquote style="white-space:pre-wrap;">${escapeHtml(message)}</blockquote>
         <p style="margin-top:20px;">You can reply directly to this email to contact the student, or view their full profile on the dashboard.</p>
         <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'}/university/dashboard" class="btn">View Dashboard →</a></p>
     `,
@@ -376,45 +377,45 @@ export const EmailTemplates = {
     // ── Support ───────────────────────────────────────────────────────────────
 
     supportTicketReceived: (ticketId: string, category: string, priority: string, userName: string) => `
-        <p>Hi ${userName},</p>
+        <p>Hi ${escapeHtml(userName)},</p>
         <p>We have received your support request and our team will review it shortly.</p>
         <div class="info-box">
-            <div class="info-row"><span class="info-label">Ticket #:</span> ${ticketId.slice(-6).toUpperCase()}</div>
-            <div class="info-row"><span class="info-label">Category:</span> ${category}</div>
-            <div class="info-row"><span class="info-label">Priority:</span> ${priority}</div>
+            <div class="info-row"><span class="info-label">Ticket #:</span> ${escapeHtml(ticketId.slice(-6).toUpperCase())}</div>
+            <div class="info-row"><span class="info-label">Category:</span> ${escapeHtml(category)}</div>
+            <div class="info-row"><span class="info-label">Priority:</span> ${escapeHtml(priority)}</div>
         </div>
         <p>Our team typically responds within <strong>24–48 hours</strong>. You will receive an email when your ticket is updated.</p>
         <p>In the meantime, you can reply to this email if you have additional information to add.</p>
     `,
 
     publicInquiryNotification: (inquiry: PublicInquiryData) => `
-        <p><strong>From:</strong> ${inquiry.fullName} (${inquiry.role})</p>
-        <p><strong>Email:</strong> <a href="mailto:${inquiry.email}">${inquiry.email}</a></p>
-        <p><strong>Country:</strong> ${inquiry.country}</p>
-        <p><strong>Subject:</strong> ${inquiry.subject}</p>
+        <p><strong>From:</strong> ${escapeHtml(inquiry.fullName)} (${escapeHtml(inquiry.role)})</p>
+        <p><strong>Email:</strong> <a href="mailto:${encodeURIComponent(inquiry.email)}">${escapeHtml(inquiry.email)}</a></p>
+        <p><strong>Country:</strong> ${escapeHtml(inquiry.country)}</p>
+        <p><strong>Subject:</strong> ${escapeHtml(inquiry.subject)}</p>
         <hr/>
         <h3>Message:</h3>
-        <p>${inquiry.message}</p>
+        <p style="white-space:pre-wrap;">${escapeHtml(inquiry.message)}</p>
         <hr/>
-        <p><strong>Phone:</strong> ${inquiry.phone || 'N/A'}</p>
-        <p><strong>Organization:</strong> ${inquiry.orgName || 'N/A'}</p>
+        <p><strong>Phone:</strong> ${escapeHtml(inquiry.phone || 'N/A')}</p>
+        <p><strong>Organization:</strong> ${escapeHtml(inquiry.orgName || 'N/A')}</p>
     `,
 
     publicInquiryAutoReply: (fullName: string) => `
-        <p>Hi ${fullName},</p>
+        <p>Hi ${escapeHtml(fullName)},</p>
         <p>Thank you for reaching out to <strong>EdUmeetup</strong>! We've received your inquiry and will get back to you within 24–48 hours.</p>
         <p>If your matter is urgent, you can also reach us at <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@edumeetup.com'}">${process.env.SUPPORT_EMAIL || 'support@edumeetup.com'}</a>.</p>
         <p>Best regards,<br/>The EdUmeetup Team</p>
     `,
 
     supportTicketNotification: (ticket: SupportTicketData, userName: string, userEmail: string) => `
-        <p><strong>User:</strong> ${userName} (${ticket.type})</p>
-        <p><strong>Email:</strong> <a href="mailto:${userEmail}">${userEmail}</a></p>
-        <p><strong>Category:</strong> ${ticket.category}</p>
-        <p><strong>Priority:</strong> <span style="color:${ticket.priority === 'HIGH' ? '#dc2626' : '#374151'}">${ticket.priority}</span></p>
+        <p><strong>User:</strong> ${escapeHtml(userName)} (${escapeHtml(ticket.type)})</p>
+        <p><strong>Email:</strong> <a href="mailto:${encodeURIComponent(userEmail)}">${escapeHtml(userEmail)}</a></p>
+        <p><strong>Category:</strong> ${escapeHtml(ticket.category)}</p>
+        <p><strong>Priority:</strong> <span style="color:${ticket.priority === 'HIGH' ? '#dc2626' : '#374151'}">${escapeHtml(ticket.priority)}</span></p>
         <hr/>
         <h3>Message:</h3>
-        <blockquote>${ticket.message}</blockquote>
+        <blockquote style="white-space:pre-wrap;">${escapeHtml(ticket.message)}</blockquote>
         <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'}/admin/support" class="btn">View in Admin →</a></p>
     `,
 
@@ -427,10 +428,10 @@ export const EmailTemplates = {
     `,
 
     hostRequestConfirmation: (refNumber: string, contactName: string) => `
-        <p>Dear ${contactName},</p>
+        <p>Dear ${escapeHtml(contactName)},</p>
         <p>Thank you for your interest in hosting a campus fair through <strong>EdUmeetup</strong>. We have received your request.</p>
         <div class="info-box">
-            <div class="info-row"><span class="info-label">Reference:</span> <strong>${refNumber}</strong></div>
+            <div class="info-row"><span class="info-label">Reference:</span> <strong>${escapeHtml(refNumber)}</strong></div>
             <div class="info-row"><span class="info-label">Status:</span> Under Review</div>
             <div class="info-row"><span class="info-label">Review time:</span> 48 hours</div>
         </div>
@@ -442,21 +443,21 @@ export const EmailTemplates = {
         <p>A new campus fair request has been submitted and requires review.</p>
         <div class="info-box">
             <div class="info-row"><span class="info-label">Type:</span> ${isNomination ? '<span style="color:#d97706;font-weight:600;">Venue Nomination (Out of Network)</span>' : '<span style="color:#16a34a;font-weight:600;">Standard Request</span>'}</div>
-            <div class="info-row"><span class="info-label">Institution:</span> ${institution}</div>
-            <div class="info-row"><span class="info-label">Location:</span> ${city}</div>
-            <div class="info-row"><span class="info-label">Reference:</span> ${refNumber}</div>
-            <div class="info-row"><span class="info-label">Contact:</span> ${contactName}</div>
-            <div class="info-row"><span class="info-label">Email:</span> <a href="mailto:${contactEmail}">${contactEmail}</a></div>
-            <div class="info-row"><span class="info-label">Phone:</span> ${contactPhone}</div>
+            <div class="info-row"><span class="info-label">Institution:</span> ${escapeHtml(institution)}</div>
+            <div class="info-row"><span class="info-label">Location:</span> ${escapeHtml(city)}</div>
+            <div class="info-row"><span class="info-label">Reference:</span> ${escapeHtml(refNumber)}</div>
+            <div class="info-row"><span class="info-label">Contact:</span> ${escapeHtml(contactName)}</div>
+            <div class="info-row"><span class="info-label">Email:</span> <a href="mailto:${encodeURIComponent(contactEmail)}">${escapeHtml(contactEmail)}</a></div>
+            <div class="info-row"><span class="info-label">Phone:</span> ${escapeHtml(contactPhone)}</div>
         </div>
         <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'}/admin/host-requests" class="btn">Review Request →</a></p>
     `,
 
     hostRequestApproved: (refNumber: string, contactName: string) => `
-        <p>Dear ${contactName},</p>
+        <p>Dear ${escapeHtml(contactName)},</p>
         <p>We are pleased to inform you that your campus fair request has been <span style="color:#16a34a;font-weight:700;">approved</span>!</p>
         <div class="info-box">
-            <div class="info-row"><span class="info-label">Reference:</span> ${refNumber}</div>
+            <div class="info-row"><span class="info-label">Reference:</span> ${escapeHtml(refNumber)}</div>
             <div class="info-row"><span class="info-label">Status:</span> <span style="color:#16a34a;font-weight:600;">Approved</span></div>
         </div>
         <p>Our team is now reaching out to partner universities. You will receive updates as universities express interest in participating in your fair.</p>
@@ -464,12 +465,12 @@ export const EmailTemplates = {
     `,
 
     hostRequestRejected: (refNumber: string, contactName: string, reason?: string) => `
-        <p>Dear ${contactName},</p>
+        <p>Dear ${escapeHtml(contactName)},</p>
         <p>Thank you for your interest in hosting a campus fair through EdUmeetup.</p>
         <p>After careful review, we are unable to proceed with your request at this time.</p>
         <div class="info-box">
-            <div class="info-row"><span class="info-label">Reference:</span> ${refNumber}</div>
-            ${reason ? `<div class="info-row"><span class="info-label">Reason:</span> ${reason}</div>` : ''}
+            <div class="info-row"><span class="info-label">Reference:</span> ${escapeHtml(refNumber)}</div>
+            ${reason ? `<div class="info-row"><span class="info-label">Reason:</span> ${escapeHtml(reason)}</div>` : ''}
         </div>
         <p>If you have questions or would like to discuss further, please contact us at <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@edumeetup.com'}">${process.env.SUPPORT_EMAIL || 'support@edumeetup.com'}</a>.</p>
         <p>We hope to work with you in the future.<br/>The EdUmeetup Team</p>

@@ -6,6 +6,7 @@ import { verifyTurnstile } from '@/lib/turnstile'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, EmailTemplates, generateEmailHtml } from '@/lib/email'
+import { escapeHtml } from '@/lib/sanitize'
 import { requireUser, requireRole, signIn, isUniversityEmail } from '@/lib/auth'
 import { sendMagicLink } from '@/lib/magic-link'
 import { logAudit } from '@/lib/audit'
@@ -1179,13 +1180,28 @@ export async function submitPublicInquiry(prevState: any, formData: FormData) {
         return { error: "Too many inquiries. Please try again later." }
     }
 
+    // Turnstile (bot check) — must run before validation so we don't leak errors to bots
+    const turnstileCheck = await verifyTurnstile(rawData['cf-turnstile-response'] as string)
+    if (!turnstileCheck.success) {
+        return { error: turnstileCheck.error }
+    }
+
     const validation = publicInquirySchema.safeParse(rawData)
 
     if (!validation.success) {
+        // Honeypot tripped or validation failed — respond generically to avoid tipping off bots
+        if (validation.error.issues.some(i => i.path[0] === 'website_url')) {
+            return { success: true } // silently accept to avoid telling the bot it failed
+        }
         return { error: validation.error.flatten().fieldErrors }
     }
 
     const { fullName, email, subject, message, role, country, phone, orgName } = validation.data
+
+    // Block disposable / throwaway email providers
+    if (isDisposableEmail(email)) {
+        return { error: "Please use a permanent email address." }
+    }
 
     try {
         // Send email to Admin
@@ -1231,13 +1247,28 @@ export async function submitPdoRegistration(prevState: any, formData: FormData) 
         return { error: "Too many submissions. Please try again later." }
     }
 
+    // Turnstile (bot check)
+    const turnstileCheck = await verifyTurnstile(rawData['cf-turnstile-response'] as string)
+    if (!turnstileCheck.success) {
+        return { error: turnstileCheck.error }
+    }
+
     const validation = pdoRegistrationSchema.safeParse(rawData)
 
     if (!validation.success) {
+        // Honeypot tripped — silently accept so bots don't learn the field name
+        if (validation.error.issues.some(i => i.path[0] === 'website_url')) {
+            return { success: true }
+        }
         return { errors: validation.error.flatten().fieldErrors, error: 'Please fix the errors below.' }
     }
 
     const { fullName, email, phone, universityName, programName, degreeLevel, intakeSemester, visaStatus, city, questions } = validation.data
+
+    // Block disposable / throwaway email providers
+    if (isDisposableEmail(email)) {
+        return { error: "Please use a permanent email address." }
+    }
 
     const timestamp = new Date().toLocaleString('en-IN', {
         timeZone: 'Asia/Kolkata',
@@ -1250,23 +1281,23 @@ export async function submitPdoRegistration(prevState: any, formData: FormData) 
         const adminHtml = generateEmailHtml('New PDO Registration', `
             <p>A student has registered for a <strong>Pre-Departure Orientation (PDO)</strong> session at the Ahmedabad office.</p>
             <div class="info-box">
-                <div class="info-row"><span class="info-label">Name:</span> ${fullName}</div>
-                <div class="info-row"><span class="info-label">Email:</span> <a href="mailto:${email}">${email}</a></div>
-                <div class="info-row"><span class="info-label">Phone / WhatsApp:</span> ${phone}</div>
-                <div class="info-row"><span class="info-label">City (Departing From):</span> ${city}</div>
-                <div class="info-row"><span class="info-label">Admitted University:</span> ${universityName}</div>
-                <div class="info-row"><span class="info-label">Program:</span> ${programName}</div>
-                <div class="info-row"><span class="info-label">Degree Level:</span> ${degreeLevel}</div>
-                <div class="info-row"><span class="info-label">Intake Semester:</span> ${intakeSemester}</div>
-                <div class="info-row"><span class="info-label">Visa Status:</span> ${visaStatus}</div>
-                <div class="info-row"><span class="info-label">Submitted:</span> ${timestamp} IST</div>
+                <div class="info-row"><span class="info-label">Name:</span> ${escapeHtml(fullName)}</div>
+                <div class="info-row"><span class="info-label">Email:</span> <a href="mailto:${encodeURIComponent(email)}">${escapeHtml(email)}</a></div>
+                <div class="info-row"><span class="info-label">Phone / WhatsApp:</span> ${escapeHtml(phone)}</div>
+                <div class="info-row"><span class="info-label">City (Departing From):</span> ${escapeHtml(city)}</div>
+                <div class="info-row"><span class="info-label">Admitted University:</span> ${escapeHtml(universityName)}</div>
+                <div class="info-row"><span class="info-label">Program:</span> ${escapeHtml(programName)}</div>
+                <div class="info-row"><span class="info-label">Degree Level:</span> ${escapeHtml(degreeLevel)}</div>
+                <div class="info-row"><span class="info-label">Intake Semester:</span> ${escapeHtml(intakeSemester)}</div>
+                <div class="info-row"><span class="info-label">Visa Status:</span> ${escapeHtml(visaStatus)}</div>
+                <div class="info-row"><span class="info-label">Submitted:</span> ${escapeHtml(timestamp)} IST</div>
             </div>
             ${questions ? `
                 <h3 style="margin:20px 0 8px;">Questions / Comments</h3>
-                <blockquote style="border-left:4px solid #0d9488;padding-left:16px;margin:0;color:#1e293b;white-space:pre-wrap;">${questions.trim()}</blockquote>
+                <blockquote style="border-left:4px solid #0d9488;padding-left:16px;margin:0;color:#1e293b;white-space:pre-wrap;">${escapeHtml(questions.trim())}</blockquote>
             ` : ''}
             <p style="margin-top:24px;">
-                <a href="mailto:${email}" class="btn">Reply to ${fullName} →</a>
+                <a href="mailto:${encodeURIComponent(email)}" class="btn">Reply to ${escapeHtml(fullName)} →</a>
             </p>
         `)
 
@@ -1279,14 +1310,14 @@ export async function submitPdoRegistration(prevState: any, formData: FormData) 
 
         // Auto-reply to student
         const studentHtml = generateEmailHtml('PDO Registration Confirmed 🎓', `
-            <p>Hi <strong>${fullName}</strong>,</p>
+            <p>Hi <strong>${escapeHtml(fullName)}</strong>,</p>
             <p>Thank you for registering for the <strong>Pre-Departure Orientation (PDO)</strong> at the EdUmeetup Ahmedabad office!</p>
-            <p>We have received your details and our team will get in touch with you shortly to confirm your session schedule for <strong>${intakeSemester}</strong>.</p>
+            <p>We have received your details and our team will get in touch with you shortly to confirm your session schedule for <strong>${escapeHtml(intakeSemester)}</strong>.</p>
             <div class="info-box">
-                <div class="info-row"><span class="info-label">University:</span> ${universityName}</div>
-                <div class="info-row"><span class="info-label">Program:</span> ${programName} (${degreeLevel})</div>
-                <div class="info-row"><span class="info-label">Intake:</span> ${intakeSemester}</div>
-                <div class="info-row"><span class="info-label">Visa Status:</span> ${visaStatus}</div>
+                <div class="info-row"><span class="info-label">University:</span> ${escapeHtml(universityName)}</div>
+                <div class="info-row"><span class="info-label">Program:</span> ${escapeHtml(programName)} (${escapeHtml(degreeLevel)})</div>
+                <div class="info-row"><span class="info-label">Intake:</span> ${escapeHtml(intakeSemester)}</div>
+                <div class="info-row"><span class="info-label">Visa Status:</span> ${escapeHtml(visaStatus)}</div>
             </div>
             <p>The PDO session covers everything you need to know before you fly — from setting up your bank account to navigating campus life in the US.</p>
             <p>If you have any immediate questions, feel free to reply to this email.</p>

@@ -1,5 +1,16 @@
 import { z } from "zod";
 
+// Shared name validator — letters (including Unicode/accented), spaces, hyphens, apostrophes.
+// Rejects digits, lone punctuation, and strings that are only whitespace/symbols.
+const nameValidator = z
+    .string()
+    .transform(val => val.trim())
+    .refine(val => val.length >= 2, { message: 'Name must be at least 2 characters' })
+    .refine(val => val.length <= 100, { message: 'Name must be 100 characters or fewer' })
+    .refine(val => !/\d/.test(val), { message: 'Name must not contain numbers' })
+    .refine(val => /^[\p{L}\p{M}'\-\s]+$/u.test(val), { message: 'Name must only contain letters, spaces, hyphens, or apostrophes' })
+    .refine(val => !/^[\s'\-]+$/.test(val), { message: 'Please enter a valid name' })
+
 const GENERIC_EMAIL_DOMAINS = [
     "gmail.com", "googlemail.com", "yahoo.com", "yahoo.in", "ymail.com",
     "outlook.com", "hotmail.com", "live.com", "rediffmail.com",
@@ -17,7 +28,7 @@ export const hostRequestSchema = z.object({
     websiteUrl: z.string().url("Please enter a valid URL (e.g., https://university.edu.in)"),
 
     // Contact Info
-    contactName: z.string().min(2, "Contact Name is required"),
+    contactName: nameValidator,
     contactDesignation: z.string().min(2, "Designation is required"),
     contactEmail: z.string().email("Invalid email address")
         .refine((email) => {

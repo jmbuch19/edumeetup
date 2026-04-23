@@ -3,7 +3,8 @@
 import { useFormState } from "react-dom"
 import { ContactSubmitButton } from "@/components/contact-submit-button"
 import { submitPdoRegistration } from "@/app/actions"
-import { useEffect, useRef } from "react"
+import { TurnstileWidget } from "@/components/ui/TurnstileWidget"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 interface PdoState {
@@ -33,6 +34,7 @@ export function PdoRequestForm() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [state, formAction] = useFormState(submitPdoRegistration as any, initialState)
     const formRef = useRef<HTMLFormElement>(null)
+    const [turnstileToken, setTurnstileToken] = useState("")
 
     useEffect(() => {
         if (state?.success) {
@@ -58,6 +60,7 @@ export function PdoRequestForm() {
                         name="fullName"
                         id="pdo-fullName"
                         required
+                        maxLength={100}
                         className="w-full p-2 border rounded-md"
                         placeholder="e.g. Priya Sharma"
                     />
@@ -72,6 +75,7 @@ export function PdoRequestForm() {
                         id="pdo-email"
                         type="email"
                         required
+                        maxLength={200}
                         className="w-full p-2 border rounded-md"
                         placeholder="priya@gmail.com"
                     />
@@ -89,6 +93,7 @@ export function PdoRequestForm() {
                         name="phone"
                         id="pdo-phone"
                         required
+                        maxLength={30}
                         className="w-full p-2 border rounded-md"
                         placeholder="+91 98765 43210"
                     />
@@ -102,6 +107,7 @@ export function PdoRequestForm() {
                         name="city"
                         id="pdo-city"
                         required
+                        maxLength={100}
                         className="w-full p-2 border rounded-md"
                         placeholder="e.g. Ahmedabad, Surat, Vadodara"
                     />
@@ -119,6 +125,7 @@ export function PdoRequestForm() {
                         name="universityName"
                         id="pdo-universityName"
                         required
+                        maxLength={200}
                         className="w-full p-2 border rounded-md"
                         placeholder="e.g. University of Illinois Urbana-Champaign"
                     />
@@ -132,6 +139,7 @@ export function PdoRequestForm() {
                         name="programName"
                         id="pdo-programName"
                         required
+                        maxLength={200}
                         className="w-full p-2 border rounded-md"
                         placeholder="e.g. MS Computer Science"
                     />
@@ -207,10 +215,28 @@ export function PdoRequestForm() {
                     name="questions"
                     id="pdo-questions"
                     rows={4}
+                    maxLength={2000}
                     className="w-full p-2 border rounded-md"
                     placeholder="Any questions about the PDO session, what to bring, housing, banking in the US, etc."
                 />
             </div>
+
+            {/* Honeypot — hidden from real users, bots fill it and get rejected */}
+            <div aria-hidden="true" style={{ position: 'absolute', left: '-5000px', width: '1px', height: '1px', overflow: 'hidden' }}>
+                <label htmlFor="pdo-website_url">Website (leave blank)</label>
+                <input
+                    type="text"
+                    name="website_url"
+                    id="pdo-website_url"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    defaultValue=""
+                />
+            </div>
+
+            {/* Invisible Cloudflare Turnstile — verified server-side */}
+            <input type="hidden" name="cf-turnstile-response" value={turnstileToken} readOnly />
+            <TurnstileWidget onVerify={setTurnstileToken} onExpire={() => setTurnstileToken("")} />
 
             {state?.error && !state?.errors && (
                 <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">

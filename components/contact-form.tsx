@@ -3,7 +3,8 @@
 import { useFormState } from "react-dom"
 import { ContactSubmitButton } from "@/components/contact-submit-button"
 import { submitPublicInquiry } from "@/app/actions"
-import { useEffect, useRef } from "react"
+import { TurnstileWidget } from "@/components/ui/TurnstileWidget"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
@@ -33,6 +34,7 @@ export function ContactForm() {
     const [state, formAction] = useFormState(submitPublicInquiry as any, initialState)
     const router = useRouter()
     const formRef = useRef<HTMLFormElement>(null)
+    const [turnstileToken, setTurnstileToken] = useState("")
 
     useEffect(() => {
         if (state?.success) {
@@ -40,7 +42,6 @@ export function ContactForm() {
             formRef.current?.reset()
             router.push('/contact/success')
         } else if (state?.error) {
-            // Handle object errors (validation) or string errors
             const errorMessage = typeof state.error === 'string'
                 ? state.error
                 : "Please check the form for errors."
@@ -54,12 +55,12 @@ export function ContactForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                     <label htmlFor="fullName" className="text-sm font-medium">Full Name <span className="text-red-500">*</span></label>
-                    <input name="fullName" id="fullName" required className="w-full p-2 border rounded-md" placeholder="John Doe" />
+                    <input name="fullName" id="fullName" required maxLength={100} className="w-full p-2 border rounded-md" placeholder="John Doe" />
                     {state?.errors?.fullName && <p className="text-red-500 text-xs">{state.errors.fullName}</p>}
                 </div>
                 <div className="space-y-2">
                     <label htmlFor="email" className="text-sm font-medium">Email <span className="text-red-500">*</span></label>
-                    <input name="email" id="email" type="email" required className="w-full p-2 border rounded-md" placeholder="john@example.com" />
+                    <input name="email" id="email" type="email" required maxLength={200} className="w-full p-2 border rounded-md" placeholder="john@example.com" />
                     {state?.errors?.email && <p className="text-red-500 text-xs">{state.errors.email}</p>}
                 </div>
             </div>
@@ -104,20 +105,37 @@ export function ContactForm() {
 
             <div className="space-y-2">
                 <label htmlFor="message" className="text-sm font-medium">Message <span className="text-red-500">*</span></label>
-                <textarea name="message" id="message" required rows={5} className="w-full p-2 border rounded-md" placeholder="How can we help you?" />
+                <textarea name="message" id="message" required rows={5} maxLength={5000} className="w-full p-2 border rounded-md" placeholder="How can we help you?" />
                 {state?.errors?.message && <p className="text-red-500 text-xs">{state.errors.message}</p>}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                     <label htmlFor="phone" className="text-sm font-medium">Phone (Optional)</label>
-                    <input name="phone" id="phone" className="w-full p-2 border rounded-md" placeholder="+1 234 567 8900" />
+                    <input name="phone" id="phone" maxLength={30} className="w-full p-2 border rounded-md" placeholder="+1 234 567 8900" />
                 </div>
                 <div className="space-y-2">
                     <label htmlFor="orgName" className="text-sm font-medium">Organization (Optional)</label>
-                    <input name="orgName" id="orgName" className="w-full p-2 border rounded-md" placeholder="University or Company Name" />
+                    <input name="orgName" id="orgName" maxLength={200} className="w-full p-2 border rounded-md" placeholder="University or Company Name" />
                 </div>
             </div>
+
+            {/* Honeypot — hidden from real users, bots fill it and get rejected */}
+            <div aria-hidden="true" style={{ position: 'absolute', left: '-5000px', width: '1px', height: '1px', overflow: 'hidden' }}>
+                <label htmlFor="website_url">Website (leave blank)</label>
+                <input
+                    type="text"
+                    name="website_url"
+                    id="website_url"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    defaultValue=""
+                />
+            </div>
+
+            {/* Invisible Cloudflare Turnstile — verified server-side */}
+            <input type="hidden" name="cf-turnstile-response" value={turnstileToken} readOnly />
+            <TurnstileWidget onVerify={setTurnstileToken} onExpire={() => setTurnstileToken("")} />
 
             {state?.error && typeof state.error === 'string' && (
                 <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">

@@ -1,5 +1,26 @@
 import { z } from 'zod'
 
+// ── Name validation ────────────────────────────────────────────────────────────
+// Accepts letters (including accented/Unicode), spaces, hyphens, and apostrophes.
+// Rejects: digits, leading/trailing spaces, lone punctuation, obvious spam.
+const nameValidator = z
+    .string()
+    .transform(val => val.trim())
+    .refine(val => val.length >= 2, { message: 'Name must be at least 2 characters' })
+    .refine(val => val.length <= 100, { message: 'Name must be 100 characters or fewer' })
+    .refine(
+        val => !/\d/.test(val),
+        { message: 'Name must not contain numbers' }
+    )
+    .refine(
+        val => /^[\p{L}\p{M}'\-\s]+$/u.test(val),
+        { message: 'Name must only contain letters, spaces, hyphens, or apostrophes' }
+    )
+    .refine(
+        val => !/^[\s'\-]+$/.test(val),
+        { message: 'Please enter a valid name' }
+    )
+
 // ── Common email domain typos ──────────────────────────────────────────────────
 // These are valid RFC-5322 formats that pass .email(), but are almost certainly typos.
 export const COMMON_TYPO_DOMAINS: Record<string, string> = {
@@ -62,7 +83,7 @@ export const loginSchema = z.object({
 
 export const registerStudentSchema = z.object({
     email: emailValidator,
-    fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+    fullName: nameValidator,
     country: z.string().optional().default('India'),
     gender: z.string().min(1, 'Please select a gender'),
     ageGroup: z.string().min(1, 'Please select an age group'),
@@ -136,31 +157,35 @@ export const supportTicketSchema = z.object({
 })
 
 export const publicInquirySchema = z.object({
-    fullName: z.string().min(2, 'Please enter your full name'),
+    fullName: nameValidator,
     email: emailValidator,
     role: z.string().min(1, 'Please select your role'),
     country: z.string().min(2, 'Please select your country'),
     subject: z.string().min(2, 'Please enter a subject'),
-    message: z.string().min(10, 'Message must be at least 10 characters'),
-    phone: z.string().optional(),
-    orgName: z.string().optional()
+    message: z.string().min(10, 'Message must be at least 10 characters').max(5000, 'Message is too long'),
+    phone: z.string().max(30, 'Phone number is too long').optional(),
+    orgName: z.string().max(200, 'Organization name is too long').optional(),
+    // Honeypot — real users leave this blank, bots fill it
+    website_url: z.string().max(0, 'Spam detected').optional().or(z.literal(''))
 })
 
 export const pdoRegistrationSchema = z.object({
-    fullName: z.string().min(2, 'Please enter your full name'),
+    fullName: nameValidator,
     email: emailValidator,
-    phone: z.string().min(7, 'Please enter a valid phone number'),
-    universityName: z.string().min(2, 'Please enter your admitted university name'),
-    programName: z.string().min(2, 'Please enter your course of study'),
+    phone: z.string().min(7, 'Please enter a valid phone number').max(30, 'Phone number is too long'),
+    universityName: z.string().min(2, 'Please enter your admitted university name').max(200, 'University name is too long'),
+    programName: z.string().min(2, 'Please enter your course of study').max(200, 'Program name is too long'),
     degreeLevel: z.string().min(1, 'Please select your degree level'),
     intakeSemester: z.string().min(1, 'Please select your intake semester'),
     visaStatus: z.string().min(1, 'Please select your visa status'),
-    city: z.string().min(2, 'Please enter your city'),
-    questions: z.string().optional(),
+    city: z.string().min(2, 'Please enter your city').max(100, 'City name is too long'),
+    questions: z.string().max(2000, 'Questions field is too long').optional(),
+    // Honeypot — real users leave this blank, bots fill it
+    website_url: z.string().max(0, 'Spam detected').optional().or(z.literal(''))
 })
 
 export const studentProfileSchema = z.object({
-    fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+    fullName: nameValidator,
     country: z.string().optional().default('India'),
     gender: z.string().min(1, 'Please select a gender'),
     ageGroup: z.string().optional(),
