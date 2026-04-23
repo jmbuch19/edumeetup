@@ -3,7 +3,11 @@ import { z } from 'zod'
 // ── Name validation ────────────────────────────────────────────────────────────
 // Accepts letters (including accented/Unicode), spaces, hyphens, and apostrophes.
 // Rejects: digits, leading/trailing spaces, lone punctuation, obvious spam.
-const nameValidator = z
+// Real names contain vowels; acronym-style inputs ("TBH", "LRS") get rejected.
+const VOWEL_CHAR_RE = /[aeiouyàáâäãåæèéêëìíîïòóôõöøœùúûüÿ]/gi
+const LETTER_RE = /\p{L}/gu
+
+export const nameValidator = z
     .string()
     .transform(val => val.trim())
     .refine(val => val.length >= 2, { message: 'Name must be at least 2 characters' })
@@ -19,6 +23,15 @@ const nameValidator = z
     .refine(
         val => !/^[\s'\-]+$/.test(val),
         { message: 'Please enter a valid name' }
+    )
+    .refine(
+        val => {
+            const letters = val.match(LETTER_RE) ?? []
+            if (letters.length === 0) return false
+            const vowels = val.match(VOWEL_CHAR_RE) ?? []
+            return (vowels.length / letters.length) >= 0.15
+        },
+        { message: 'Please enter a real name' }
     )
 
 // ── Common email domain typos ──────────────────────────────────────────────────

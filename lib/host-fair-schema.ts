@@ -1,15 +1,5 @@
 import { z } from "zod";
-
-// Shared name validator — letters (including Unicode/accented), spaces, hyphens, apostrophes.
-// Rejects digits, lone punctuation, and strings that are only whitespace/symbols.
-const nameValidator = z
-    .string()
-    .transform(val => val.trim())
-    .refine(val => val.length >= 2, { message: 'Name must be at least 2 characters' })
-    .refine(val => val.length <= 100, { message: 'Name must be 100 characters or fewer' })
-    .refine(val => !/\d/.test(val), { message: 'Name must not contain numbers' })
-    .refine(val => /^[\p{L}\p{M}'\-\s]+$/u.test(val), { message: 'Name must only contain letters, spaces, hyphens, or apostrophes' })
-    .refine(val => !/^[\s'\-]+$/.test(val), { message: 'Please enter a valid name' })
+import { nameValidator } from "./schemas";
 
 const GENERIC_EMAIL_DOMAINS = [
     "gmail.com", "googlemail.com", "yahoo.com", "yahoo.in", "ymail.com",
