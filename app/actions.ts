@@ -900,7 +900,7 @@ export async function login(formData: FormData) {
         if (error instanceof AuthError) {
             return { error: "Authentication failed" }
         }
-        console.error('Login error:')
+        console.error('[login] error:', error)
         return { error: 'Failed to login' }
     }
 }
