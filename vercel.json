@@ -3,6 +3,26 @@
     {
       "path": "/api/cron/vercel-master",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/alumni-nudge",
+      "schedule": "0 9 1 */2 *"
+    },
+    {
+      "path": "/api/cron/circuit-state",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/host-sla",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/bot-health-check",
+      "schedule": "15 * * * *"
+    },
+    {
+      "path": "/api/cron/uni-rsvp",
+      "schedule": "0 9 * * 1"
     }
   ]
 }
