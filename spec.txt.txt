@@ -1,5 +1,0 @@
-Read Section 1 of my meeting system spec.
-Create these 4 new data types in my existing 
-edUmeetup database: Availability, Meeting Request, 
-Bookmark, Notification Log. Use exact field names 
-and types as specified.

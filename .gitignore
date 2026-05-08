@@ -63,3 +63,18 @@ deno.lock
 
 # Embedded repositories
 edumeetup-mobile/
+
+# Local build / typecheck output captures (don't commit)
+build-output.txt
+build_log*.txt
+tsc_output*.txt
+tsc_errors*.log
+tsc_final*.log
+ts_errors*.log
+
+# Deployed-site snapshots
+deployed_*.html
+deployed_*.css
+
+# One-off prompt fragments
+spec.txt.txt
