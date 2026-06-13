@@ -332,8 +332,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 Date.now() - (token.lastRefreshed as number) > REFRESH_INTERVAL_MS
 
             if (shouldRefresh && token.sub) {
-                console.log(`[AUTH jwt] Refreshing role for sub=${token.sub}`)
-
                 // Primary lookup: by ID (the happy path)
                 let dbUser = await prisma.user.findUnique({
                     where: { id: token.sub },
@@ -350,7 +348,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     if (dbUser) {
                         // Patch token.sub so future lookups use the real DB id
                         token.sub = dbUser.id
-                        console.log(`[AUTH jwt] Patched sub to ${dbUser.id} via email fallback`)
                     }
                 }
 
