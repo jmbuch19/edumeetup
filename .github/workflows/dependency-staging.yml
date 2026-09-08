@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  next-migration:
+  dependency-migration:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,12 +21,13 @@ jobs:
           node-version: '20'
           cache: npm
 
-      - name: Install validated PWA-retired tree
+      - name: Install current tree
         run: npm ci
 
-      - name: Upgrade Next.js to patched major
+      - name: Retire Workbox and upgrade Next.js
         shell: bash
         run: |
+          npm uninstall next-pwa
           npm install next@16.3.4 eslint-config-next@16.3.4
           python - <<'PY'
           import json
@@ -39,13 +40,40 @@ jobs:
 
           config_path = Path('next.config.mjs')
           config = config_path.read_text()
+          config = config.replace("import { createRequire } from 'module';\n\nconst require = createRequire(import.meta.url);\nconst withPWA = require('next-pwa')({\n    dest: 'public',\n    disable: process.env.NODE_ENV === 'development',\n    register: true,\n    skipWaiting: true,\n})\n\n", "")
+          config = config.replace('export default withSentryConfig(withPWA(nextConfig), {', 'export default withSentryConfig(nextConfig, {')
           config = config.replace('import { withSentryConfig } from "@sentry/nextjs";', 'import { withSentryConfig } from "@sentry/nextjs/config";')
           config = config.replace("    eslint: {\n        ignoreDuringBuilds: true,\n    },\n", '')
           config_path.write_text(config)
+
+          ip_path = Path('lib/getIpInfo.ts')
+          ip_source = ip_path.read_text()
+          ip_source = ip_source.replace('import { headers, type UnsafeUnwrappedHeaders } from "next/headers";', 'import { headers } from "next/headers";')
+          ip_source = ip_source.replace('export function getIpFromHeaders(): string {\n    const headersList = (headers() as unknown as UnsafeUnwrappedHeaders);', 'export async function getIpFromHeaders(): Promise<string> {\n    const headersList = await headers();')
+          ip_path.write_text(ip_source)
+
+          actions_path = Path('app/actions.ts')
+          actions = actions_path.read_text()
+          actions = actions.replace('const ip = getIpFromHeaders()', 'const ip = await getIpFromHeaders()')
+          actions_path.write_text(actions)
           PY
+          cat > public/sw.js <<'EOF'
+          // One-release cleanup worker for installations created by the retired next-pwa/Workbox stack.
+          self.addEventListener('install', () => self.skipWaiting());
+          self.addEventListener('activate', (event) => {
+            event.waitUntil((async () => {
+              const keys = await caches.keys();
+              await Promise.all(keys.map((key) => caches.delete(key)));
+              await self.registration.unregister();
+              const clients = await self.clients.matchAll({ type: 'window' });
+              for (const client of clients) client.navigate(client.url);
+            })());
+          });
+          EOF
+          rm -f public/sw.js.map public/workbox-*.js public/workbox-*.js.map
 
       - name: Production dependency audit
-        run: npm audit --omit=dev || true
+        run: npm audit --omit=dev
 
       - name: Generate Prisma client
         env:
@@ -71,13 +99,13 @@ jobs:
           NEXT_PUBLIC_APP_URL: http://localhost:3000
         run: npm run build
 
-      - name: Commit validated Next.js migration
+      - name: Commit validated migration
         shell: bash
         run: |
           git config user.name "jmbuch19"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json next.config.mjs
+          git add -A package.json package-lock.json next.config.mjs public lib/getIpInfo.ts app/actions.ts
           if ! git diff --cached --quiet; then
-            git commit -m "Stage patched Next.js migration [skip ci]"
+            git commit -m "Stage PWA retirement and patched Next.js [skip ci]"
             git push origin HEAD:codex/pwa-next-staging
           fi
