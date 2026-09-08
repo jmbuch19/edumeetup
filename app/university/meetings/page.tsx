@@ -1,4 +1,4 @@
-import { getUniversityMeetings } from '@/app/actions'
+import { getUniversityMeetingsSafe } from '@/app/actions/meeting-queries'
 import MeetingList from '@/components/university/MeetingList'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
@@ -13,16 +13,15 @@ export default async function UniversityMeetingsPage() {
         redirect('/login')
     }
 
-    // Fetch all meetings
-    const allMeetings = await getUniversityMeetings() || []
+    const allMeetings = await getUniversityMeetingsSafe()
 
-    const pendingMeetings = allMeetings.filter((m: any) => m.status === 'PENDING')
-    const upcomingMeetings = allMeetings.filter((m: any) => m.status === 'CONFIRMED' && new Date(m.proposedDatetime) > new Date())
-    const pastMeetings = allMeetings.filter((m: any) =>
+    const pendingMeetings = allMeetings.filter((m) => m.status === 'PENDING')
+    const upcomingMeetings = allMeetings.filter((m) => m.status === 'CONFIRMED' && new Date(m.proposedDatetime) > new Date())
+    const pastMeetings = allMeetings.filter((m) =>
         (m.status === 'CONFIRMED' && new Date(m.proposedDatetime) <= new Date()) ||
         m.status === 'COMPLETED' ||
         m.status === 'CANCELLED' ||
-        m.status === 'REJECTED'
+        m.status === 'NO_SHOW'
     )
 
     return (
