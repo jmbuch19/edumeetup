@@ -1,5 +1,5 @@
 import { getStudentMeetingsSafe } from '@/app/actions/meeting-queries'
-import StudentMeetingList from '@/components/student/StudentMeetingList'
+import StudentMeetingListHardened from '@/components/student/StudentMeetingListHardened'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
@@ -24,7 +24,7 @@ export default async function StudentMeetingsPage() {
             <div className="container mx-auto px-4 -mt-16 pb-12">
                 <div className="max-w-3xl mx-auto">
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 min-h-[400px]">
-                        <StudentMeetingList meetings={meetings} />
+                        <StudentMeetingListHardened meetings={meetings} />
                     </div>
                 </div>
             </div>
