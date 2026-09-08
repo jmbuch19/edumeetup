@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Calendar, Clock, MapPin, Video, XCircle, ExternalLink } from 'lucide-react'
-import { cancelMeetingByStudent } from '@/app/actions'
+import { cancelStudentMeeting } from '@/app/actions/meeting-student'
 import { useRouter } from 'next/navigation'
 import { RescheduleModal } from '@/components/meeting/RescheduleModal'
 
@@ -17,6 +17,7 @@ interface Meeting {
     studentQuestions?: string | null
     meetingIdCode?: string | null
     videoProvider?: string | null
+    meetingLink?: string | null
     university: {
         institutionName: string
         country: string
@@ -36,7 +37,7 @@ export default function StudentMeetingList({ meetings }: { meetings: Meeting[] }
         if (!confirm('Are you sure you want to cancel this meeting?')) return
 
         setCancellingId(id)
-        const res = await cancelMeetingByStudent(id, "Student requested cancellation")
+        const res = await cancelStudentMeeting(id, 'Student requested cancellation')
         setCancellingId(null)
 
         if (res.error) {
@@ -107,19 +108,19 @@ export default function StudentMeetingList({ meetings }: { meetings: Meeting[] }
                             <span>{meeting.meetingPurpose}</span>
                         </div>
 
-                        {meeting.status === 'CONFIRMED' && (
+                        {meeting.status === 'CONFIRMED' && meeting.meetingLink && (
                             <div className="mt-2 p-3 bg-green-50 rounded-lg border border-green-100">
                                 <div className="flex items-center gap-2 text-green-800 font-medium mb-1">
                                     <Video className="h-4 w-4" />
                                     Meeting Link
                                 </div>
                                 <a
-                                    href="https://meet.google.com"
+                                    href={meeting.meetingLink}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="text-sm text-green-700 hover:underline flex items-center gap-1"
                                 >
-                                    Join Google Meet <ExternalLink className="h-3 w-3" />
+                                    Join Meeting <ExternalLink className="h-3 w-3" />
                                 </a>
                                 <div className="text-xs text-green-600 mt-1">
                                     ID: {meeting.meetingIdCode}
