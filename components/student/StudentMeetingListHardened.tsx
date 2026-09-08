@@ -23,7 +23,7 @@ interface Meeting {
     rescheduleProposedTime?: Date | null
     university: {
         institutionName: string
-        country: string
+        country: string | null
         city: string | null
     }
     rep?: { name?: string | null; email?: string | null } | null
