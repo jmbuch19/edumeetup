@@ -130,7 +130,7 @@ export async function acceptMeetingReschedule(meetingId: string) {
     const newEnd = new Date(newStart.getTime() + durationMs)
 
     try {
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const current = await tx.meeting.findUnique({
                 where: { id: meetingId },
                 select: { status: true, rescheduleProposedTime: true, repId: true, universityId: true, joinUrl: true, hostRoomUrl: true },
