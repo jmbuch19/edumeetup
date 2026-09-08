@@ -6,8 +6,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { proposeReschedule } from '@/app/actions'
-import { Calendar, Loader2 } from 'lucide-react'
+import { proposeMeetingReschedule } from '@/app/actions/meeting-reschedule'
+import { Loader2 } from 'lucide-react'
 
 interface RescheduleModalProps {
     meetingId: string
@@ -25,8 +25,14 @@ export function RescheduleModal({ meetingId, currentDate, trigger, onSuccess }: 
     const [error, setError] = useState('')
 
     const handleSubmit = async () => {
-        if (!date || !time || !reason) {
+        if (!date || !time || !reason.trim()) {
             setError('Please fill in all fields')
+            return
+        }
+
+        const localDateTime = new Date(`${date}T${time}`)
+        if (Number.isNaN(localDateTime.getTime())) {
+            setError('Please choose a valid date and time')
             return
         }
 
@@ -34,17 +40,17 @@ export function RescheduleModal({ meetingId, currentDate, trigger, onSuccess }: 
         setError('')
 
         try {
-            // Combine date time
-            const datetimeStr = `${date}T${time}`
-            const res = await proposeReschedule(meetingId, datetimeStr, reason)
-
+            const res = await proposeMeetingReschedule(meetingId, localDateTime.toISOString(), reason)
             if (res?.error) {
                 setError(res.error)
             } else {
                 setOpen(false)
-                if (onSuccess) onSuccess()
+                setDate('')
+                setTime('')
+                setReason('')
+                onSuccess?.()
             }
-        } catch (e) {
+        } catch {
             setError('Failed to propose reschedule')
         } finally {
             setLoading(false)
@@ -60,14 +66,12 @@ export function RescheduleModal({ meetingId, currentDate, trigger, onSuccess }: 
                 <DialogHeader>
                     <DialogTitle>Propose New Time</DialogTitle>
                     <DialogDescription>
-                        Suggest a new time for this meeting. The other party will need to confirm.
+                        Suggest an available new time for this meeting. The other party will need to confirm.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="date" className="text-right">
-                            Date
-                        </Label>
+                        <Label htmlFor="date" className="text-right">Date</Label>
                         <Input
                             id="date"
                             type="date"
@@ -78,9 +82,7 @@ export function RescheduleModal({ meetingId, currentDate, trigger, onSuccess }: 
                         />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="time" className="text-right">
-                            Time
-                        </Label>
+                        <Label htmlFor="time" className="text-right">Time</Label>
                         <Input
                             id="time"
                             type="time"
@@ -90,15 +92,14 @@ export function RescheduleModal({ meetingId, currentDate, trigger, onSuccess }: 
                         />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="reason" className="text-right">
-                            Reason
-                        </Label>
+                        <Label htmlFor="reason" className="text-right">Reason</Label>
                         <Textarea
                             id="reason"
                             className="col-span-3"
                             placeholder="Why do you need to reschedule?"
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
+                            maxLength={500}
                         />
                     </div>
                     {error && <p className="text-red-500 text-sm text-center">{error}</p>}
