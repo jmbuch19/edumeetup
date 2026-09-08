@@ -13,22 +13,17 @@ export async function cancelUniversityMeeting(meetingId: string, reason = 'Cance
     if (!user?.id || !['UNIVERSITY', 'UNIVERSITY_REP'].includes(user.role || '')) {
         return { error: 'Unauthorized' }
     }
-
     if (!meetingId || meetingId.length > 100) return { error: 'Invalid meeting' }
 
     const meeting = await prisma.meeting.findUnique({
         where: { id: meetingId },
-        include: {
-            university: { include: { user: true } },
-            availabilitySlot: true,
-        },
+        include: { university: { include: { user: true } } },
     })
     if (!meeting) return { error: 'Meeting not found' }
 
     const isOwner = meeting.university?.userId === user.id
     const isRep = meeting.repId === user.id && user.role === 'UNIVERSITY_REP'
     if (!isOwner && !isRep) return { error: 'Unauthorized' }
-
     if (!['DRAFT', 'PENDING', 'CONFIRMED', 'RESCHEDULE_PROPOSED'].includes(meeting.status)) {
         return { error: 'This meeting cannot be cancelled.' }
     }
@@ -40,12 +35,14 @@ export async function cancelUniversityMeeting(meetingId: string, reason = 'Cance
         await prisma.$transaction(async (tx) => {
             const current = await tx.meeting.findUnique({
                 where: { id: meetingId },
-                select: { id: true, universityId: true, repId: true, status: true, availabilitySlotId: true },
+                select: { id: true, universityId: true, repId: true, status: true },
             })
             if (!current || current.universityId !== meeting.universityId) throw new Error('UNAUTHORIZED')
             if (user.role === 'UNIVERSITY_REP' && current.repId !== user.id) throw new Error('UNAUTHORIZED')
             if (user.role === 'UNIVERSITY' && meeting.university?.userId !== user.id) throw new Error('UNAUTHORIZED')
-            if (!['DRAFT', 'PENDING', 'CONFIRMED', 'RESCHEDULE_PROPOSED'].includes(current.status)) throw new Error('NOT_CANCELLABLE')
+            if (!['DRAFT', 'PENDING', 'CONFIRMED', 'RESCHEDULE_PROPOSED'].includes(current.status)) {
+                throw new Error('NOT_CANCELLABLE')
+            }
 
             await tx.meeting.update({
                 where: { id: meetingId },
@@ -58,12 +55,10 @@ export async function cancelUniversityMeeting(meetingId: string, reason = 'Cance
                 },
             })
 
-            if (current.availabilitySlotId) {
-                await tx.availabilitySlot.updateMany({
-                    where: { id: current.availabilitySlotId, meetingId },
-                    data: { isBooked: false, meetingId: null },
-                })
-            }
+            await tx.availabilitySlot.updateMany({
+                where: { meetingId },
+                data: { isBooked: false, meetingId: null },
+            })
         })
 
         if (meeting.studentId) {
