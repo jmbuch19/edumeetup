@@ -9,15 +9,9 @@ import { revalidatePath } from 'next/cache'
 
 const cancellationReasonSchema = (reason: string) => reason.trim().slice(0, 500)
 
-/**
- * Student-only cancellation for meetings owned by the authenticated student.
- * The meeting and its AvailabilitySlot are changed in one transaction so a
- * cancellation cannot leave a slot permanently marked as booked.
- */
 export async function cancelStudentMeeting(meetingId: string, reason = 'Student requested cancellation') {
     const session = await requireStudentUser().catch(() => null)
     if (!session?.user?.id) return { error: 'Unauthorized' }
-
     if (!meetingId || meetingId.length > 100) return { error: 'Invalid meeting' }
 
     const student = await prisma.student.findUnique({
@@ -28,12 +22,8 @@ export async function cancelStudentMeeting(meetingId: string, reason = 'Student 
 
     const meeting = await prisma.meeting.findUnique({
         where: { id: meetingId },
-        include: {
-            university: { include: { user: true } },
-            availabilitySlot: true,
-        },
+        include: { university: { include: { user: true } } },
     })
-
     if (!meeting) return { error: 'Meeting not found' }
     if (meeting.studentId !== student.id) return { error: 'Unauthorized' }
     if (!['DRAFT', 'PENDING', 'CONFIRMED', 'RESCHEDULE_PROPOSED'].includes(meeting.status)) {
@@ -47,7 +37,7 @@ export async function cancelStudentMeeting(meetingId: string, reason = 'Student 
         await prisma.$transaction(async (tx) => {
             const current = await tx.meeting.findUnique({
                 where: { id: meetingId },
-                select: { id: true, studentId: true, status: true, availabilitySlotId: true },
+                select: { id: true, studentId: true, status: true },
             })
             if (!current || current.studentId !== student.id) throw new Error('UNAUTHORIZED')
             if (!['DRAFT', 'PENDING', 'CONFIRMED', 'RESCHEDULE_PROPOSED'].includes(current.status)) {
@@ -65,12 +55,10 @@ export async function cancelStudentMeeting(meetingId: string, reason = 'Student 
                 },
             })
 
-            if (current.availabilitySlotId) {
-                await tx.availabilitySlot.updateMany({
-                    where: { id: current.availabilitySlotId, meetingId },
-                    data: { isBooked: false, meetingId: null },
-                })
-            }
+            await tx.availabilitySlot.updateMany({
+                where: { meetingId },
+                data: { isBooked: false, meetingId: null },
+            })
         })
 
         const universityUserId = meeting.university?.user?.id
