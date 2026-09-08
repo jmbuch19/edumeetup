@@ -8,19 +8,100 @@ import { revalidatePath } from 'next/cache'
 
 const ALLOWED_STATUSES = ['PENDING', 'CONFIRMED', 'RESCHEDULE_PROPOSED'] as const
 
-async function getSessionUser() {
-    const session = await auth()
-    return session?.user as { id?: string; role?: string } | undefined
+type SessionUser = { id?: string; role?: string }
+type MeetingActor = 'STUDENT' | 'UNIVERSITY' | 'UNIVERSITY_REP'
+type RescheduleSlotRow = { id: string; startTime: Date; endTime: Date }
+
+export type RescheduleSlotOption = {
+    id: string
+    startTime: string
+    endTime: string
+    durationMinutes: number
+    repTimezone: string
 }
 
-export async function proposeMeetingReschedule(meetingId: string, proposedIso: string, reason: string) {
+async function getSessionUser() {
+    const session = await auth()
+    return session?.user as SessionUser | undefined
+}
+
+async function authorizeMeetingActor(
+    user: SessionUser,
+    meeting: { studentId: string | null; repId: string | null; university: { userId: string } }
+): Promise<MeetingActor | null> {
+    if (!user.id) return null
+
+    if (user.role === 'STUDENT') {
+        const student = await prisma.student.findUnique({
+            where: { userId: user.id },
+            select: { id: true },
+        })
+        return student && meeting.studentId === student.id ? 'STUDENT' : null
+    }
+
+    if (user.role === 'UNIVERSITY') {
+        return meeting.university.userId === user.id ? 'UNIVERSITY' : null
+    }
+
+    if (user.role === 'UNIVERSITY_REP') {
+        return meeting.repId === user.id ? 'UNIVERSITY_REP' : null
+    }
+
+    return null
+}
+
+export async function getRescheduleAvailableSlots(meetingId: string) {
+    const user = await getSessionUser()
+    if (!user?.id) return { error: 'Unauthorized', slots: [] as RescheduleSlotOption[] }
+    if (!meetingId || meetingId.length > 100) return { error: 'Invalid meeting', slots: [] as RescheduleSlotOption[] }
+
+    const meeting = await prisma.meeting.findUnique({
+        where: { id: meetingId },
+        include: { university: { select: { userId: true } } },
+    })
+    if (!meeting) return { error: 'Meeting not found', slots: [] as RescheduleSlotOption[] }
+    if (!meeting.repId) return { error: 'This meeting does not have an assigned representative.', slots: [] as RescheduleSlotOption[] }
+    if (!ALLOWED_STATUSES.includes(meeting.status as (typeof ALLOWED_STATUSES)[number])) {
+        return { error: 'This meeting cannot be rescheduled.', slots: [] as RescheduleSlotOption[] }
+    }
+
+    const actor = await authorizeMeetingActor(user, meeting)
+    if (!actor) return { error: 'Unauthorized', slots: [] as RescheduleSlotOption[] }
+
+    const durationMs = meeting.endTime.getTime() - meeting.startTime.getTime()
+    const now = new Date()
+    const slots: RescheduleSlotRow[] = await prisma.availabilitySlot.findMany({
+        where: {
+            universityId: meeting.universityId,
+            repId: meeting.repId,
+            startTime: { gt: now },
+            isBooked: false,
+            meetingId: null,
+        },
+        select: { id: true, startTime: true, endTime: true },
+        orderBy: { startTime: 'asc' },
+        take: 120,
+    })
+
+    const repTimezone = meeting.repTimezone || 'UTC'
+    const matchingSlots: RescheduleSlotOption[] = slots
+        .filter((slot: RescheduleSlotRow) => slot.endTime.getTime() - slot.startTime.getTime() === durationMs)
+        .slice(0, 60)
+        .map((slot: RescheduleSlotRow) => ({
+            id: slot.id,
+            startTime: slot.startTime.toISOString(),
+            endTime: slot.endTime.toISOString(),
+            durationMinutes: Math.round(durationMs / 60_000),
+            repTimezone,
+        }))
+
+    return { slots: matchingSlots }
+}
+
+export async function proposeMeetingReschedule(meetingId: string, slotId: string, reason: string) {
     const user = await getSessionUser()
     if (!user?.id) return { error: 'Unauthorized' }
-    if (!meetingId || meetingId.length > 100) return { error: 'Invalid meeting' }
-
-    const proposedTime = new Date(proposedIso)
-    if (Number.isNaN(proposedTime.getTime())) return { error: 'Invalid date or time' }
-    if (proposedTime <= new Date()) return { error: 'Please choose a future time.' }
+    if (!meetingId || meetingId.length > 100 || !slotId || slotId.length > 100) return { error: 'Invalid meeting or slot' }
 
     const safeReason = reason.trim().slice(0, 500)
     if (!safeReason) return { error: 'Please provide a reason for rescheduling.' }
@@ -35,36 +116,34 @@ export async function proposeMeetingReschedule(meetingId: string, proposedIso: s
         return { error: 'This meeting cannot be rescheduled.' }
     }
 
-    let proposedBy: 'STUDENT' | 'UNIVERSITY' | 'UNIVERSITY_REP'
-    if (user.role === 'STUDENT') {
-        const student = await prisma.student.findUnique({ where: { userId: user.id }, select: { id: true } })
-        if (!student || meeting.studentId !== student.id) return { error: 'Unauthorized' }
-        proposedBy = 'STUDENT'
-    } else if (user.role === 'UNIVERSITY') {
-        if (meeting.university.userId !== user.id) return { error: 'Unauthorized' }
-        proposedBy = 'UNIVERSITY'
-    } else if (user.role === 'UNIVERSITY_REP') {
-        if (meeting.repId !== user.id) return { error: 'Unauthorized' }
-        proposedBy = 'UNIVERSITY_REP'
-    } else {
-        return { error: 'Unauthorized' }
+    const proposedBy = await authorizeMeetingActor(user, meeting)
+    if (!proposedBy) return { error: 'Unauthorized' }
+
+    const slot = await prisma.availabilitySlot.findUnique({
+        where: { id: slotId },
+        select: {
+            id: true,
+            universityId: true,
+            repId: true,
+            startTime: true,
+            endTime: true,
+            isBooked: true,
+            meetingId: true,
+        },
+    })
+    if (!slot) return { error: 'That slot is no longer available. Please refresh and choose another.' }
+    if (slot.universityId !== meeting.universityId || slot.repId !== meeting.repId) {
+        return { error: 'Invalid slot selection.' }
     }
+    if (slot.isBooked || slot.meetingId) return { error: 'That slot was just taken. Please choose another.' }
+    if (slot.startTime <= new Date()) return { error: 'Please choose a future slot.' }
 
     const durationMs = meeting.endTime.getTime() - meeting.startTime.getTime()
-    const proposedEnd = new Date(proposedTime.getTime() + durationMs)
+    if (slot.endTime.getTime() - slot.startTime.getTime() !== durationMs) {
+        return { error: 'That slot does not match this meeting duration.' }
+    }
 
-    const slot = await prisma.availabilitySlot.findFirst({
-        where: {
-            universityId: meeting.universityId,
-            repId: meeting.repId,
-            startTime: proposedTime,
-            endTime: proposedEnd,
-            isBooked: false,
-            meetingId: null,
-        },
-        select: { id: true },
-    })
-    if (!slot) return { error: 'That time is not currently available. Please choose an open slot.' }
+    const proposedTime = slot.startTime
 
     try {
         await prisma.meeting.update({
