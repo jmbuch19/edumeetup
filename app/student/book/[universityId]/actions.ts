@@ -58,11 +58,12 @@ function getZonedDateParts(date: Date, timeZone: string) {
 
 /** Return the UTC instant corresponding to local midnight in an IANA timezone. */
 function zonedMidnightUtc(year: number, month: number, day: number, timeZone: string): Date {
-    // Start with the same nominal UTC clock values, then correct for the timezone offset.
     let candidate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
     for (let i = 0; i < 3; i++) {
         const p = getZonedDateParts(candidate, timeZone)
-        const localAsUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour === 24 ? 0 : p.hour, p.minute, 0, 0)
+        const localHour = p.hour === '24' ? 0 : Number(p.hour)
+        const localMinute = Number(p.minute)
+        const localAsUtc = Date.UTC(p.year, p.month - 1, p.day, localHour, localMinute, 0, 0)
         const targetAsUtc = Date.UTC(year, month - 1, day, 0, 0, 0, 0)
         const offsetMs = localAsUtc - targetAsUtc
         const corrected = new Date(candidate.getTime() - offsetMs)
@@ -147,8 +148,6 @@ export async function createMeetingRequest(data: BookingData) {
         if (!program || program.universityId !== universityId) return { error: "Program does not belong to this university" }
     }
 
-    // Read the selected slot before policy validation so ALL timing/cap checks use
-    // authoritative database times rather than a client-supplied timestamp.
     const selectedSlot = await prisma.availabilitySlot.findUnique({
         where: { id: slotId },
         select: { id: true, repId: true, universityId: true, startTime: true, endTime: true, isBooked: true, meetingId: true },
@@ -165,8 +164,6 @@ export async function createMeetingRequest(data: BookingData) {
         return { error: `Selected slot is ${slotDurationMinutes} minutes; please choose the matching duration.` }
     }
 
-    // Reject materially inconsistent client timestamps. The slot is authoritative,
-    // but this prevents stale/malformed clients from bypassing front-end assumptions.
     if (Math.abs(clientStart.getTime() - start.getTime()) > 60_000) {
         return { error: "Selected time no longer matches this slot. Please refresh and try again." }
     }
@@ -209,9 +206,7 @@ export async function createMeetingRequest(data: BookingData) {
     })
 
     try {
-        const meeting = await prisma.$transaction(async (tx) => {
-            // Serializable isolation makes the daily-cap check and slot booking
-            // safe against concurrent requests for the same representative/day.
+        const meeting = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const slot = await tx.availabilitySlot.findUnique({ where: { id: slotId } })
             if (!slot) throw new Error('NO_SLOT')
             if (slot.repId !== repId || slot.universityId !== universityId) throw new Error('SLOT_MISMATCH')
