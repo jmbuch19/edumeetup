@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 import { requireStudentUser } from '@/lib/auth/requireAuth'
 import { createNotification } from '@/lib/notifications'
 import { sendEmail, generateEmailHtml } from '@/lib/email'
@@ -34,7 +35,7 @@ export async function cancelStudentMeeting(meetingId: string, reason = 'Student 
     const safeReason = cancellationReasonSchema(reason) || 'Student requested cancellation'
 
     try {
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const current = await tx.meeting.findUnique({
                 where: { id: meetingId },
                 select: { id: true, studentId: true, status: true },
