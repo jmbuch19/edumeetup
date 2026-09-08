@@ -1,5 +1,5 @@
 import { getUniversityMeetingsSafe } from '@/app/actions/meeting-queries'
-import MeetingList from '@/components/university/MeetingList'
+import MeetingListHardened from '@/components/university/MeetingListHardened'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -15,7 +15,7 @@ export default async function UniversityMeetingsPage() {
 
     const allMeetings = await getUniversityMeetingsSafe()
 
-    const pendingMeetings = allMeetings.filter((m) => m.status === 'PENDING')
+    const pendingMeetings = allMeetings.filter((m) => m.status === 'PENDING' || m.status === 'RESCHEDULE_PROPOSED')
     const upcomingMeetings = allMeetings.filter((m) => m.status === 'CONFIRMED' && new Date(m.proposedDatetime) > new Date())
     const pastMeetings = allMeetings.filter((m) =>
         (m.status === 'CONFIRMED' && new Date(m.proposedDatetime) <= new Date()) ||
@@ -49,15 +49,15 @@ export default async function UniversityMeetingsPage() {
                 </TabsList>
 
                 <TabsContent value="pending">
-                    <MeetingList meetings={pendingMeetings} />
+                    <MeetingListHardened meetings={pendingMeetings} />
                 </TabsContent>
 
                 <TabsContent value="upcoming">
-                    <MeetingList meetings={upcomingMeetings} />
+                    <MeetingListHardened meetings={upcomingMeetings} />
                 </TabsContent>
 
                 <TabsContent value="past">
-                    <MeetingList meetings={pastMeetings} />
+                    <MeetingListHardened meetings={pastMeetings} />
                 </TabsContent>
             </Tabs>
         </div>
