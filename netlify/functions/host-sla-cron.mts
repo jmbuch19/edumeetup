@@ -6,9 +6,10 @@ const prisma = new PrismaClient()
 
 // Run daily at 9am
 export default async function handler(request: Request) {
-  // MUST be first — before prisma queries, before anything
+  // Legacy Netlify cron: fail closed when the shared secret is not configured.
+  const configuredSecret = process.env.CRON_SECRET
   const incomingSecret = request.headers.get('x-cron-secret')
-  if (process.env.CRON_SECRET && incomingSecret !== process.env.CRON_SECRET) {
+  if (!configuredSecret || incomingSecret !== configuredSecret) {
     return new Response('Unauthorized', { status: 401 })
   }
 
