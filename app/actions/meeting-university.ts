@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 import { auth } from '@/lib/auth'
 import { createNotification } from '@/lib/notifications'
 import { sendEmail, generateEmailHtml } from '@/lib/email'
@@ -42,7 +43,7 @@ export async function confirmUniversityMeeting(meetingId: string) {
             const room = await createWherebyMeeting(meeting.title || 'edumeetup-session', meeting.durationMinutes)
             joinUrl = room.roomUrl
             hostRoomUrl = room.hostRoomUrl
-        } catch (error) {
+        } catch {
             console.error('[confirmUniversityMeeting] Whereby room creation failed')
             return { error: 'Could not create the meeting room. Please try again.' }
         }
@@ -93,7 +94,7 @@ export async function cancelUniversityMeeting(meetingId: string, reason = 'Cance
     const safeReason = reason.trim().slice(0, 500) || 'Cancelled by university'
 
     try {
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const current = await tx.meeting.findUnique({
                 where: { id: meetingId },
                 select: { id: true, universityId: true, repId: true, status: true },
