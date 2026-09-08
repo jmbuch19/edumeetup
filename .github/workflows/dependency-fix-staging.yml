@@ -43,28 +43,32 @@ jobs:
               raise SystemExit('Expected legacy Email provider import not found')
           text = text.replace(old_import, new_import, 1)
 
-          old_provider = '''        Email({
-            // NextAuth requires `server` to exist for validation even when
-            // sendVerificationRequest fully overrides sending (via Resend below).
-            server: {
-                host: 'localhost',
-                port: 25,
-                auth: { user: 'placeholder', pass: 'placeholder' }
-            },
-            from: process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>',
-          '''
-          new_provider = '''        ResendProvider({
-            // Preserve the historical provider id so existing signIn("email")
-            // calls and callback URLs continue working without a migration.
-            id: "email",
-            name: "Email",
-            apiKey: process.env.RESEND_API_KEY,
-            from: process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>',
-          '''
-          if old_provider not in text:
-              raise SystemExit('Expected legacy Email provider configuration not found')
-          text = text.replace(old_provider, new_provider, 1)
-          path.write_text(text)
+          lines = text.splitlines()
+          try:
+              start = next(i for i, line in enumerate(lines) if line.strip() == 'Email({')
+          except StopIteration:
+              raise SystemExit('Expected legacy Email provider start not found')
+
+          end = None
+          for i in range(start, min(start + 20, len(lines))):
+              if lines[i].strip().startswith("from: process.env.EMAIL_FROM"):
+                  end = i
+                  break
+          if end is None:
+              raise SystemExit('Expected legacy Email provider from line not found')
+
+          from_line = lines[end].strip()
+          replacement = [
+              '        ResendProvider({',
+              '            // Preserve the historical provider id so existing signIn("email")',
+              '            // calls and callback URLs continue working without a migration.',
+              '            id: "email",',
+              '            name: "Email",',
+              '            apiKey: process.env.RESEND_API_KEY,',
+              f'            {from_line}',
+          ]
+          lines[start:end + 1] = replacement
+          path.write_text('\n'.join(lines) + '\n')
           PY
 
       - name: Remove Nodemailer packages
