@@ -18,7 +18,49 @@ type UniversityMeetingRow = Prisma.MeetingGetPayload<{
     }
 }>
 
-export async function getStudentMeetingsSafe() {
+export type StudentMeetingView = {
+    id: string
+    meetingPurpose: string
+    proposedDatetime: Date
+    durationMinutes: number
+    status: string
+    studentQuestions: string | null
+    meetingIdCode: string
+    meetingLink: string | null
+    videoProvider: string
+    rescheduleProposedBy: string | null
+    rescheduleProposedTime: Date | null
+    university: {
+        institutionName: string
+        country: string | null
+        city: string | null
+    }
+    rep: { name: string | null; email: string } | null
+}
+
+export type UniversityMeetingView = {
+    id: string
+    meetingPurpose: string
+    proposedDatetime: Date
+    durationMinutes: number
+    status: string
+    studentQuestions: string | null
+    meetingIdCode: string
+    meetingLink: string | null
+    hostRoomUrl: string | null
+    videoProvider: string
+    rescheduleProposedBy: string | null
+    rescheduleProposedTime: Date | null
+    student: {
+        id?: string
+        fullName: string
+        country: string | null
+        cvFileName: string | null
+        user: { email: string }
+    }
+}
+
+export async function getStudentMeetingsSafe(): Promise<StudentMeetingView[]> {
     const session = await auth()
     const user = session?.user as { id?: string; role?: string } | undefined
     if (!user?.id || user.role !== 'STUDENT') return []
@@ -38,7 +80,7 @@ export async function getStudentMeetingsSafe() {
         orderBy: { startTime: 'asc' },
     })
 
-    return meetings.map((meeting: StudentMeetingRow) => ({
+    return meetings.map((meeting: StudentMeetingRow): StudentMeetingView => ({
         id: meeting.id,
         meetingPurpose: meeting.title || meeting.purpose,
         proposedDatetime: meeting.startTime,
@@ -59,7 +101,7 @@ export async function getStudentMeetingsSafe() {
     }))
 }
 
-export async function getUniversityMeetingsSafe() {
+export async function getUniversityMeetingsSafe(): Promise<UniversityMeetingView[]> {
     const session = await auth()
     const user = session?.user as { id?: string; role?: string } | undefined
     if (!user?.id || !['UNIVERSITY', 'UNIVERSITY_REP'].includes(user.role || '')) return []
@@ -77,7 +119,7 @@ export async function getUniversityMeetingsSafe() {
         orderBy: { startTime: 'asc' },
     })
 
-    return meetings.map((meeting: UniversityMeetingRow) => ({
+    return meetings.map((meeting: UniversityMeetingRow): UniversityMeetingView => ({
         id: meeting.id,
         meetingPurpose: meeting.title || meeting.purpose,
         proposedDatetime: meeting.startTime,
