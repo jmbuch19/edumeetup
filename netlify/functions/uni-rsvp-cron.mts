@@ -4,14 +4,10 @@ import { sendEmail, generateEmailHtml } from '../../lib/email'
 
 const prisma = new PrismaClient()
 
-export default async function handler(request: Request) {
-  // Legacy Netlify cron: fail closed when the shared secret is not configured.
-  const configuredSecret = process.env.CRON_SECRET
-  const incomingSecret = request.headers.get('x-cron-secret')
-  if (!configuredSecret || incomingSecret !== configuredSecret) {
-    return new Response('Unauthorized', { status: 401 })
-  }
-
+// Native Netlify Scheduled Function. Published scheduled functions are invoked by
+// Netlify's scheduler and are not directly URL-invokable in production, so do not
+// require an x-cron-secret header that the scheduler does not provide.
+export default async function handler() {
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
   const recentRun = await prisma.systemLog.findFirst({
     where: { type: 'UNI_RSVP_CRON', createdAt: { gte: twoHoursAgo } }
@@ -19,7 +15,6 @@ export default async function handler(request: Request) {
   if (recentRun) {
     return new Response('Already ran recently', { status: 200 })
   }
-
 
   const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   const now = new Date()
@@ -36,38 +31,37 @@ export default async function handler(request: Request) {
     include: { university: true, circuit: true }
   })
 
-  let emailsSent = 0;
+  let emailsSent = 0
   for (const reg of missingReps) {
-     // Find university admins to email
-     const admins = await prisma.user.findMany({
-       where: { universityId: reg.universityId, role: UserRole.UNIVERSITY }
-     })
+    const admins = await prisma.user.findMany({
+      where: { universityId: reg.universityId, role: UserRole.UNIVERSITY }
+    })
 
-     for (const admin of admins) {
-       await sendEmail({
-         to: admin.email,
-         subject: `Action Required: Assign Representative for ${reg.circuit.name}`,
-         html: generateEmailHtml(
-            'Action Required',
-            `<p>Hi ${admin.name || 'there'},</p>
-            <p>Your university is registered for <strong>${reg.circuit.name}</strong>, which starts in less than 30 days!</p>
-            <p>However, you have not yet assigned a Representative to this circuit. Your account will not be fully activated in the War Room until a Representative is assigned.</p>
-            <p><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'}/university/fairs">Assign Representative Now →</a></p>`
-         )
-       })
-       emailsSent++;
-     }
+    for (const admin of admins) {
+      await sendEmail({
+        to: admin.email,
+        subject: `Action Required: Assign Representative for ${reg.circuit.name}`,
+        html: generateEmailHtml(
+          'Action Required',
+          `<p>Hi ${admin.name || 'there'},</p>
+          <p>Your university is registered for <strong>${reg.circuit.name}</strong>, which starts in less than 30 days!</p>
+          <p>However, you have not yet assigned a Representative to this circuit. Your account will not be fully activated in the War Room until a Representative is assigned.</p>
+          <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://www.edumeetup.com'}/university/fairs">Assign Representative Now →</a></p>`
+        )
+      })
+      emailsSent++
+    }
   }
 
   await prisma.systemLog.create({
-     data: {
-       level: 'INFO',
-       type: 'UNI_RSVP_CRON',
-       message: `Sent ${emailsSent} reminder emails to universities missing rep assignments for upcoming circuits.`,
-       metadata: { emailsSent, circuitsCount: missingReps.length }
-     }
+    data: {
+      level: 'INFO',
+      type: 'UNI_RSVP_CRON',
+      message: `Sent ${emailsSent} reminder emails to universities missing rep assignments for upcoming circuits.`,
+      metadata: { emailsSent, circuitsCount: missingReps.length }
+    }
   })
-  
+
   return new Response('OK', { status: 200 })
 }
 

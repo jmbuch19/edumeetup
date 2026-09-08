@@ -1,78 +1,155 @@
-# EdUmeetup MVP - Deployment Guide
+# EdUmeetup Production Deployment Guide
 
-## 1. Prepare for Deployment
+## 1. Deployment model
 
-### A. Environment Variables
-Ensure you have the following environment variables ready for production (Vercel):
-- `DATABASE_URL`: Your production database URL (e.g., from Neon, Supabase, or Railway). **SQLite will NOT work on Vercel** as it is ephemeral. You must provision a PostgreSQL or MySQL database.
-- `NEXT_PUBLIC_APP_URL`: Your Vercel deployment URL (e.g., `https://EdUmeetup-mvp.vercel.app`).
+EdUmeetup is currently deployed with:
 
-### B. Database Migration (Neon.tech)
-We are switching to PostgreSQL for production (Neon).
-1.  **Update Local Config:**
-    *   I have updated `prisma/schema.prisma` to use `postgresql`.
-    *   **ACTION REQUIRED:** Open your `.env` file and replace the `DATABASE_URL` with your **Neon connection string**.
-        ```env
-        DATABASE_URL="postgres://user:password@ep-cool-site.us-east-2.aws.neon.tech/neondb?sslmode=require"
-        ```
-2.  **Push Schema to Neon:**
-    *   Run this terminal command to setup the tables in your Neon Cloud DB:
-        ```bash
-        npx prisma db push
-        ```
-3.  **Seed Data (Optional):**
-    *   To get the initial universities and admin, run:
-        ```bash
-        curl http://localhost:3000/api/seed
-        ```
-        (Make sure `npm run dev` is running)
+- **Application hosting:** Netlify
+- **Database:** Neon PostgreSQL through Prisma
+- **Source / CI:** GitHub
+- **Database migrations:** GitHub Actions (`.github/workflows/migrate.yml`)
+- **Production domain:** `https://www.edumeetup.com`
 
-## 2. Push to GitHub
+Vercel is not the active production hosting platform. Old Vercel commit statuses may still appear in GitHub if the old integration remains connected; they are not a production deployment gate.
 
-1. **Initialize Git** (if not already done):
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial MVP release"
-   ```
+## 2. Pre-merge checks
 
-2. **Create a Repository on GitHub:**
-   - Go to GitHub -> New Repository
-   - Name it `EdUmeetup-mvp`
+Before merging a production change, the branch must pass:
 
-3. **Link and Push:**
-   ```bash
-   git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/EdUmeetup-mvp.git
-   git push -u origin main
-   ```
+```bash
+npm ci
+npx prisma generate --schema=./prisma/schema.prisma
+npm run lint
+npm run typecheck
+npm test
+```
 
-## 3. Deploy to Vercel
+GitHub Actions runs the repository CI workflow automatically on `main`, `codex/**`, and pull requests targeting `main`.
 
-1. **Import Project:**
-   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
-   - Click **"Add New..."** -> **"Project"**
-   - Import `EdUmeetup-mvp` from the list.
+Do not merge merely because Netlify can build a preview. CI type safety and tests are separate release gates.
 
-2. **Configure Project:**
-   - **Framework Preset:** Next.js (should be auto-detected)
-   - **Root Directory:** `./`
-   - **Environment Variables:**
-     - Add `DATABASE_URL` (Connection string to your production DB)
-     - Add `SESSION_SECRET` (e.g., a random string like `complex-password-here`)
-     - Add `GMAIL_USER` (Your Gmail address for notifications)
-     - Add `GMAIL_APP_PASSWORD` (The App Password you generated)
-     - (Optional) `INFO_EMAIL` (Receiver for contact form, defaults to info@edumeetup.com)
-     - (Optional) `SUPPORT_EMAIL` (Receiver for support tickets, defaults to support@edumeetup.com)
-   
-3. **Deploy:**
-   - Click **"Deploy"**.
-   - Vercel will build and start your app.
+## 3. Netlify environment variables
 
-## 4. Post-Deployment
+Configure production values in Netlify Site configuration → Environment variables. Never commit secret values.
 
-1. **Seed Database (Optional):**
-   - You may need to run your seed script or manually create an Admin account via Prisma Studio (if you can connect to remote DB) or via a temporary API route.
+### Core
 
-2. **Verify functionality:**
-   - Check Sign Up, Login, and Dashboard.
+- `DATABASE_URL` — Neon PostgreSQL application connection string
+- `AUTH_URL` — `https://www.edumeetup.com`
+- `AUTH_SECRET` — stable production NextAuth v5 secret
+- `AUTH_GOOGLE_ID` — Google OAuth client ID
+- `AUTH_GOOGLE_SECRET` — Google OAuth client secret
+- `NEXT_PUBLIC_APP_URL` — `https://www.edumeetup.com`
+- `SUPPORT_EMAIL` — support mailbox
+- `NEXT_PUBLIC_SUPPORT_EMAIL` — support mailbox exposed to client UI
+- `ADMIN_NOTIFICATION_EMAIL` — operational alert mailbox when used
+
+### Email
+
+- `RESEND_API_KEY`
+- `EMAIL_FROM`
+
+Configure any SMTP variables only if a code path still intentionally uses SMTP.
+
+### Storage
+
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET`
+- `R2_PUBLIC_URL`
+
+### AI / monitoring
+
+Configure only the providers actually enabled in production, for example:
+
+- `ANTHROPIC_API_KEY`
+- other AI provider keys used by enabled routes
+- `NEXT_PUBLIC_SENTRY_DSN`
+- `NEXT_PUBLIC_APP_ENV=production`
+- `SENTRY_AUTH_TOKEN`
+
+### Cron secrets
+
+- `CRON_SECRET` is required for HTTP-exposed cron/API endpoints that explicitly authenticate with it.
+- Do **not** use `CRON_SECRET` as a request-header requirement inside native Netlify Scheduled Functions. Netlify invokes those functions through the platform scheduler and does not supply an arbitrary custom header.
+
+## 4. Database migrations
+
+Production schema changes must be represented by committed Prisma migrations.
+
+The GitHub workflow `.github/workflows/migrate.yml` runs `prisma migrate deploy` on pushes to `main` using the repository secret `DIRECT_URL` for the direct Neon connection.
+
+Required GitHub Actions secret:
+
+- `DIRECT_URL` — direct/non-pooled Neon connection string suitable for Prisma migrations
+
+Do not use a public seed endpoint or `prisma db push` as the normal production migration path.
+
+### Migration safety
+
+A push to `main` can cause the migration workflow and Netlify deployment to progress independently. Therefore schema changes should be backward compatible with the currently deployed application:
+
+1. Expand the schema first (new nullable columns/tables, compatible indexes).
+2. Deploy code that can operate across the transition.
+3. Backfill/migrate data if required.
+4. Remove old fields/constraints only in a later release after all production code no longer depends on them.
+
+For a destructive migration, coordinate the publish window rather than assuming migration and deploy ordering.
+
+## 5. Netlify build
+
+The production build is defined in `netlify.toml` and runs the Next.js build with Prisma Client generation. `@netlify/plugin-nextjs` handles the Next.js deployment integration.
+
+Netlify must have access to the production environment variables required by build-time and runtime code.
+
+Native scheduled jobs are defined either inline in their function `config.schedule` or in `netlify.toml`. Netlify Scheduled Functions run only for published deploys; branch deploys/previews can be triggered manually from Netlify for testing.
+
+## 6. Release procedure
+
+1. Work on a non-`main` branch.
+2. Confirm GitHub CI is green.
+3. Review the branch diff, especially Prisma schema/migrations and authentication/authorization changes.
+4. Merge to `main`.
+5. Confirm the database migration workflow succeeds when migrations are present.
+6. Confirm the Netlify production deploy succeeds.
+7. Run the post-deploy smoke tests below.
+
+## 7. Post-deploy smoke tests
+
+At minimum verify:
+
+- Student authentication and dashboard access
+- University authentication and dashboard access
+- University representative access to assigned meetings
+- University browse/profile pages
+- Student slot-based meeting booking
+- Student meeting list after booking
+- University/rep meeting confirmation
+- Student and university cancellation authorization
+- Reschedule proposal, accept, and decline flows
+- Transactional email/notifications for the tested workflow
+- Fair/event pages relevant to the next live event
+- Admin access to operational pages
+
+For scheduled functions, use Netlify's **Run now** control on the function detail page when a safe manual test is appropriate, then inspect function logs and the corresponding idempotency/system-log record.
+
+## 8. Rollback
+
+If application code is unhealthy but the database migration is backward compatible:
+
+1. Roll back to the previous known-good published deploy in Netlify.
+2. Confirm core authentication and meeting flows recover.
+3. Diagnose on a branch before republishing.
+
+Do not blindly roll back a destructive database migration. Restore/forward-fix schema and data deliberately.
+
+## 9. Provider status checks
+
+GitHub can show a red overall commit indicator when an obsolete external provider check fails even if `CI / quality` passes. For EdUmeetup today, use these release signals:
+
+- GitHub `CI / quality`
+- GitHub database migration workflow when applicable
+- Netlify deploy status
+
+If Vercel is no longer used at all, disconnect its GitHub integration/checks from this repository to eliminate misleading commit statuses.
