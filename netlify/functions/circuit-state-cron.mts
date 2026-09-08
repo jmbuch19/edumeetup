@@ -5,9 +5,10 @@ import { sendEmail, generateEmailHtml } from '../../lib/email'
 const prisma = new PrismaClient()
 
 export default async function handler(request: Request) {
-  // MUST be first — before prisma queries, before anything
+  // Legacy Netlify cron: fail closed when the shared secret is not configured.
+  const configuredSecret = process.env.CRON_SECRET
   const incomingSecret = request.headers.get('x-cron-secret')
-  if (process.env.CRON_SECRET && incomingSecret !== process.env.CRON_SECRET) {
+  if (!configuredSecret || incomingSecret !== configuredSecret) {
     return new Response('Unauthorized', { status: 401 })
   }
 
@@ -22,7 +23,6 @@ export default async function handler(request: Request) {
   const now = new Date()
 
   // PUBLISHED → ONGOING
-  // Find circuits where status=PUBLISHED and startDate <= now
   const toOngoing = await prisma.fairCircuit.findMany({
     where: {
       status: 'PUBLISHED',
@@ -36,7 +36,6 @@ export default async function handler(request: Request) {
       data: { status: 'ONGOING' }
     })
 
-    // Notify admin
     if (process.env.ADMIN_NOTIFICATION_EMAIL) {
       await sendEmail({
         to: process.env.ADMIN_NOTIFICATION_EMAIL,
@@ -64,7 +63,6 @@ export default async function handler(request: Request) {
   }
 
   // ONGOING → COMPLETED
-  // Find circuits where status=ONGOING and endDate < now
   const toCompleted = await prisma.fairCircuit.findMany({
     where: {
       status: 'ONGOING',
@@ -78,7 +76,6 @@ export default async function handler(request: Request) {
       data: { status: 'COMPLETED' }
     })
 
-    // Notify admin
     if (process.env.ADMIN_NOTIFICATION_EMAIL) {
         await sendEmail({
         to: process.env.ADMIN_NOTIFICATION_EMAIL,
@@ -103,7 +100,6 @@ export default async function handler(request: Request) {
     })
   }
 
-  // Log total run
   await prisma.systemLog.create({
     data: {
       level: 'INFO',
