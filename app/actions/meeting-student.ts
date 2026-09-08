@@ -2,7 +2,8 @@
 
 import { prisma } from '@/lib/prisma'
 import { requireStudentUser } from '@/lib/auth/requireAuth'
-import { createNotification, sendEmail, generateEmailHtml } from '@/lib/notifications'
+import { createNotification } from '@/lib/notifications'
+import { sendEmail, generateEmailHtml } from '@/lib/email'
 import { notifyUniversity } from '@/lib/notify'
 import { revalidatePath } from 'next/cache'
 
@@ -30,7 +31,6 @@ export async function cancelStudentMeeting(meetingId: string, reason = 'Student 
         include: {
             university: { include: { user: true } },
             availabilitySlot: true,
-            participants: { include: { user: true } },
         },
     })
 
