@@ -28,7 +28,46 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Remove unused Nodemailer packages
+      - name: Migrate Auth email provider to Resend
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/auth.ts')
+          text = path.read_text()
+
+          old_import = 'import Email from "next-auth/providers/email"'
+          new_import = 'import ResendProvider from "next-auth/providers/resend"'
+          if old_import not in text:
+              raise SystemExit('Expected legacy Email provider import not found')
+          text = text.replace(old_import, new_import, 1)
+
+          old_provider = '''        Email({
+            // NextAuth requires `server` to exist for validation even when
+            // sendVerificationRequest fully overrides sending (via Resend below).
+            server: {
+                host: 'localhost',
+                port: 25,
+                auth: { user: 'placeholder', pass: 'placeholder' }
+            },
+            from: process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>',
+'''
+          new_provider = '''        ResendProvider({
+            // Preserve the historical provider id so existing signIn("email")
+            // calls and callback URLs continue working without a migration.
+            id: "email",
+            name: "Email",
+            apiKey: process.env.RESEND_API_KEY,
+            from: process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>',
+'''
+          if old_provider not in text:
+              raise SystemExit('Expected legacy Email provider configuration not found')
+          text = text.replace(old_provider, new_provider, 1)
+          path.write_text(text)
+          PY
+
+      - name: Remove Nodemailer packages
         run: npm uninstall nodemailer @types/nodemailer
 
       - name: Apply non-breaking npm security fixes
@@ -51,15 +90,15 @@ jobs:
         continue-on-error: true
         run: npm audit --omit=dev --audit-level=high
 
-      - name: Commit generated dependency files
+      - name: Commit validated remediation
         shell: bash
         run: |
-          if git diff --quiet -- package.json package-lock.json; then
-            echo "No package changes generated"
+          if git diff --quiet -- lib/auth.ts package.json package-lock.json; then
+            echo "No remediation changes generated"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json
-          git commit -m "Remove unused Nodemailer and refresh safe dependencies"
+          git add lib/auth.ts package.json package-lock.json
+          git commit -m "Move email auth to Resend and refresh safe dependencies"
           git push origin HEAD:codex/dependency-fix-staging
