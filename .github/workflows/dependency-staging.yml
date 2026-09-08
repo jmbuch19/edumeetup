@@ -1,0 +1,91 @@
+name: Dependency migration staging
+
+on:
+  push:
+    branches:
+      - codex/pwa-next-staging
+
+permissions:
+  contents: write
+
+jobs:
+  pwa-retirement:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/pwa-next-staging
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install current tree
+        run: npm ci
+
+      - name: Retire next-pwa and generated Workbox assets
+        shell: bash
+        run: |
+          npm uninstall next-pwa
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('next.config.mjs')
+          s = p.read_text()
+          s = s.replace("import { createRequire } from 'module';\n\nconst require = createRequire(import.meta.url);\nconst withPWA = require('next-pwa')({\n    dest: 'public',\n    disable: process.env.NODE_ENV === 'development',\n    register: true,\n    skipWaiting: true,\n})\n\n", "")
+          s = s.replace('export default withSentryConfig(withPWA(nextConfig), {', 'export default withSentryConfig(nextConfig, {')
+          p.write_text(s)
+          PY
+          cat > public/sw.js <<'EOF'
+          // One-release cleanup worker: removes caches created by the retired next-pwa/Workbox stack,
+          // takes control immediately, then unregisters itself so future visits use the network normally.
+          self.addEventListener('install', () => self.skipWaiting());
+          self.addEventListener('activate', (event) => {
+            event.waitUntil((async () => {
+              const keys = await caches.keys();
+              await Promise.all(keys.map((key) => caches.delete(key)));
+              await self.registration.unregister();
+              const clients = await self.clients.matchAll({ type: 'window' });
+              for (const client of clients) client.navigate(client.url);
+            })());
+          });
+          EOF
+          rm -f public/sw.js.map public/workbox-*.js public/workbox-*.js.map
+
+      - name: Production dependency audit after PWA retirement
+        run: npm audit --omit=dev || true
+
+      - name: Generate Prisma client
+        env:
+          DATABASE_URL: ${{ secrets.DIRECT_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: npx prisma generate --schema=./prisma/schema.prisma
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        env:
+          DATABASE_URL: ${{ secrets.DIRECT_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          AUTH_SECRET: staging-build-secret-not-for-production
+          AUTH_URL: http://localhost:3000
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+        run: npm run build
+
+      - name: Commit validated PWA retirement
+        shell: bash
+        run: |
+          git config user.name "jmbuch19"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json next.config.mjs public/sw.js public/sw.js.map 'public/workbox-*.js' 'public/workbox-*.js.map' 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Stage PWA dependency retirement [skip ci]"
+            git push origin HEAD:codex/pwa-next-staging
+          fi
