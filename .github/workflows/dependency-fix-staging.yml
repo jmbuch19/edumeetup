@@ -52,7 +52,7 @@ jobs:
                 auth: { user: 'placeholder', pass: 'placeholder' }
             },
             from: process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>',
-'''
+          '''
           new_provider = '''        ResendProvider({
             // Preserve the historical provider id so existing signIn("email")
             // calls and callback URLs continue working without a migration.
@@ -60,7 +60,7 @@ jobs:
             name: "Email",
             apiKey: process.env.RESEND_API_KEY,
             from: process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>',
-'''
+          '''
           if old_provider not in text:
               raise SystemExit('Expected legacy Email provider configuration not found')
           text = text.replace(old_provider, new_provider, 1)
