@@ -47,8 +47,6 @@ export async function proposeMeetingReschedule(meetingId: string, proposedIso: s
     const durationMs = meeting.endTime.getTime() - meeting.startTime.getTime()
     const proposedEnd = new Date(proposedTime.getTime() + durationMs)
 
-    // Only permit proposals that correspond to a currently free generated slot.
-    // This prevents arbitrary times outside the university representative's availability.
     const slot = await prisma.availabilitySlot.findFirst({
         where: {
             universityId: meeting.universityId,
@@ -60,15 +58,13 @@ export async function proposeMeetingReschedule(meetingId: string, proposedIso: s
         },
         select: { id: true },
     })
-    if (!slot) {
-        return { error: 'That time is not currently available. Please choose an open slot.' }
-    }
+    if (!slot) return { error: 'That time is not currently available. Please choose an open slot.' }
 
     try {
         await prisma.$transaction(async (tx) => {
             const current = await tx.meeting.findUnique({
                 where: { id: meetingId },
-                select: { status: true, studentId: true, universityId: true, repId: true },
+                select: { status: true },
             })
             if (!current || !ALLOWED_STATUSES.includes(current.status as (typeof ALLOWED_STATUSES)[number])) {
                 throw new Error('NOT_RESCHEDULABLE')
@@ -80,7 +76,6 @@ export async function proposeMeetingReschedule(meetingId: string, proposedIso: s
                     status: 'RESCHEDULE_PROPOSED',
                     rescheduleProposedBy: proposedBy,
                     rescheduleProposedTime: proposedTime,
-                    rescheduleReason: safeReason,
                 },
             })
         })
