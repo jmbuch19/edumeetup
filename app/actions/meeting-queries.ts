@@ -2,6 +2,21 @@
 
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
+
+type StudentMeetingRow = Prisma.MeetingGetPayload<{
+    include: {
+        university: true
+        rep: { select: { name: true; email: true } }
+    }
+}>
+
+type UniversityMeetingRow = Prisma.MeetingGetPayload<{
+    include: {
+        student: { include: { user: true } }
+        university: true
+    }
+}>
 
 export async function getStudentMeetingsSafe() {
     const session = await auth()
@@ -23,7 +38,7 @@ export async function getStudentMeetingsSafe() {
         orderBy: { startTime: 'asc' },
     })
 
-    return meetings.map((meeting) => ({
+    return meetings.map((meeting: StudentMeetingRow) => ({
         id: meeting.id,
         meetingPurpose: meeting.title || meeting.purpose,
         proposedDatetime: meeting.startTime,
@@ -62,7 +77,7 @@ export async function getUniversityMeetingsSafe() {
         orderBy: { startTime: 'asc' },
     })
 
-    return meetings.map((meeting) => ({
+    return meetings.map((meeting: UniversityMeetingRow) => ({
         id: meeting.id,
         meetingPurpose: meeting.title || meeting.purpose,
         proposedDatetime: meeting.startTime,
