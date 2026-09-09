@@ -1,17 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
-import { ChevronLeft, Calendar as CalendarIcon, Clock, Users, FileText, ArrowRight, Loader2 } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import type { University, Meeting, AvailabilityProfile } from '@prisma/client'
-import { BookingData, createMeetingRequest } from '@/app/student/book/[universityId]/actions'
+import { HardenedBookingData, createMeetingRequestHardened } from '@/app/student/book/[universityId]/actions-hardened'
 import { AvailableSlot } from './Step3TimeSlot'
 
-// Steps
 import Step1Purpose from './Step1Purpose'
 import Step2Format from './Step2Format'
 import Step3TimeSlot from './Step3TimeSlot'
@@ -19,30 +18,34 @@ import Step4Confirm from './Step4Confirm'
 
 interface BookingWizardProps {
     university: University & {
-        availabilityProfiles?: AvailabilityProfile[]
+        availabilityProfiles?: (AvailabilityProfile & {
+            repUser?: { id: string; name: string | null; image?: string | null; role?: string; isActive?: boolean }
+        })[]
     }
-    existingBookings: Meeting[]
+    existingBookings: Pick<Meeting, 'startTime' | 'endTime' | 'repId' | 'status'>[]
     availableSlots: AvailableSlot[]
 }
 
-export type BookingState = Partial<BookingData>
+export type BookingState = Partial<HardenedBookingData>
 
 export function BookingWizard({ university, existingBookings, availableSlots }: BookingWizardProps) {
     const router = useRouter()
     const [step, setStep] = useState(1)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // Form State
-    const [data, setData] = useState<BookingState>({
+    const availableDurations = useMemo(() => {
+        const durations = availableSlots
+            .map(slot => Math.round((new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / 60_000))
+            .filter(duration => [10, 15, 20].includes(duration))
+        return Array.from(new Set(durations)).sort((a, b) => a - b)
+    }, [availableSlots])
+
+    const [data, setData] = useState<BookingState>(() => ({
         universityId: university.id,
-        // repId: university.availabilityProfiles[0]?.repId, // Default rep? Or select?
-        // Let's assume user picks a slot first, and the slot dictates the rep. 
-        // OR user picks a rep first? 
-        // Spec says: "Step C: Select Time Slot" is where availability is shown.
-        // We might aggregate all availability for the university.
-        durationMinutes: 15,
-        audioOnly: false
-    })
+        durationMinutes: availableDurations.includes(15) ? 15 : (availableDurations[0] ?? 15),
+        audioOnly: false,
+        studentTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    }))
 
     const totalSteps = 4
     const progress = (step / totalSteps) * 100
@@ -55,26 +58,26 @@ export function BookingWizard({ university, existingBookings, availableSlots }: 
     }
 
     const handleConfirm = async () => {
-        if (!data.universityId || !data.repId || !data.slotId || !data.startTime || !data.purpose) {
-            toast.error("Missing required information")
+        if (!data.universityId || !data.repId || !data.slotId || !data.startTime || !data.purpose || !data.durationMinutes) {
+            toast.error('Missing required information')
             return
         }
 
         setIsSubmitting(true)
-        const res = await createMeetingRequest(data as BookingData)
+        const res = await createMeetingRequestHardened(data as HardenedBookingData)
         setIsSubmitting(false)
 
         if (res.error) {
             toast.error(res.error)
         } else {
-            toast.success("Meeting booked successfully!")
+            toast.success('Meeting request sent!')
             router.push('/student/meetings')
+            router.refresh()
         }
     }
 
     return (
         <div className="max-w-3xl mx-auto py-8 px-4">
-            {/* Header */}
             <div className="mb-8 space-y-4">
                 <Button
                     variant="ghost"
@@ -82,7 +85,7 @@ export function BookingWizard({ university, existingBookings, availableSlots }: 
                     className="pl-0 text-slate-500"
                 >
                     <ChevronLeft className="mr-2 h-4 w-4" />
-                    {step === 1 ? "Back to University" : "Back"}
+                    {step === 1 ? 'Back to University' : 'Back'}
                 </Button>
 
                 <div className="flex items-center justify-between">
@@ -95,7 +98,6 @@ export function BookingWizard({ university, existingBookings, availableSlots }: 
                 <Progress value={progress} className="h-2" />
             </div>
 
-            {/* Steps */}
             <Card className="min-h-[400px] p-6 shadow-lg border-slate-200">
                 {step === 1 && (
                     <Step1Purpose
@@ -108,17 +110,18 @@ export function BookingWizard({ university, existingBookings, availableSlots }: 
                     <Step2Format
                         data={data}
                         updateData={updateData}
+                        availableDurations={availableDurations}
                         onNext={nextStep}
                         onBack={prevStep}
                     />
                 )}
                 {step === 3 && (
                     <Step3TimeSlot
-                        data={data as BookingData}
+                        data={data}
                         updateData={updateData}
                         availabilityProfiles={university.availabilityProfiles || []}
                         availableSlots={availableSlots}
-                        existingBookings={existingBookings as (Meeting & { repId: string })[]}
+                        existingBookings={existingBookings}
                         onNext={nextStep}
                         onBack={prevStep}
                     />
