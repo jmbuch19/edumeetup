@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { validateFileSignature } from '@/lib/file-signature'
+import { getUniversityForActor } from '@/lib/university-actor'
 
-const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
-const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
+const MAX_SIZE_BYTES = 10 * 1024 * 1024
+const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] as const
 const VALID_CATEGORIES = ['BROCHURE', 'PROGRAM_INFO', 'LEAFLET', 'OTHER']
+const EXTENSION_BY_TYPE: Record<(typeof ALLOWED_TYPES)[number], string> = {
+    'application/pdf': 'pdf',
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+}
 
 async function uploadToR2(buffer: Buffer, key: string, mimeType: string): Promise<string> {
     const accountId = process.env.R2_ACCOUNT_ID
@@ -31,7 +39,7 @@ async function uploadToR2(buffer: Buffer, key: string, mimeType: string): Promis
         ContentType: mimeType,
     }))
 
-    return `${publicUrl}/${key}`
+    return `${publicUrl.replace(/\/$/, '')}/${key}`
 }
 
 export async function POST(req: NextRequest) {
@@ -39,14 +47,13 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if ((session.user.role !== 'UNIVERSITY' && session.user.role !== 'UNIVERSITY_REP')) {
+
+    const role = String(session.user.role ?? '')
+    if (role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP') {
         return NextResponse.json({ error: 'Only universities can upload documents' }, { status: 403 })
     }
 
-    const university = await prisma.university.findFirst({
-        where: { userId: session.user.id },
-        select: { id: true },
-    })
+    const university = await getUniversityForActor(session.user.id, role)
     if (!university) {
         return NextResponse.json({ error: 'University profile not found' }, { status: 404 })
     }
@@ -62,31 +69,40 @@ export async function POST(req: NextRequest) {
     const displayName = (formData.get('displayName') as string | null)?.trim()
     const category = (formData.get('category') as string | null) ?? 'OTHER'
 
-    if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
-    if (!displayName) return NextResponse.json({ error: 'Document name is required' }, { status: 400 })
+    if (!file || file.size <= 0) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    if (!displayName || displayName.length > 120) {
+        return NextResponse.json({ error: 'Document name must be between 1 and 120 characters' }, { status: 400 })
+    }
     if (!VALID_CATEGORIES.includes(category)) return NextResponse.json({ error: 'Invalid category' }, { status: 422 })
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (!ALLOWED_TYPES.includes(file.type as (typeof ALLOWED_TYPES)[number])) {
         return NextResponse.json({ error: 'Only PDF or image files (JPG/PNG/WebP) are accepted' }, { status: 422 })
     }
     if (file.size > MAX_SIZE_BYTES) {
         return NextResponse.json({ error: `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max 10 MB.` }, { status: 422 })
     }
 
-    // Limit per university (prevent abuse)
-    const count = await prisma.universityDocument.count({ where: { universityId: university.id, deletedAt: null } })
+    const count = await prisma.universityDocument.count({
+        where: { universityId: university.id, deletedAt: null },
+    })
     if (count >= 20) {
         return NextResponse.json({ error: 'Maximum 20 documents allowed. Please delete some first.' }, { status: 429 })
     }
 
-    const fileName = file.name.replace(/[^a-zA-Z0-9._\-]/g, '_')
+    const mimeType = file.type as (typeof ALLOWED_TYPES)[number]
+    const buffer = Buffer.from(await file.arrayBuffer())
+    if (!validateFileSignature(buffer, mimeType)) {
+        return NextResponse.json({ error: 'File content does not match the declared file type.' }, { status: 422 })
+    }
+
+    const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._\-]/g, '_').slice(0, 100) || 'document'
+    const fileName = `${baseName}.${EXTENSION_BY_TYPE[mimeType]}`
     const r2Key = `uni-docs/${university.id}/${Date.now()}_${fileName}`
 
     let fileUrl: string
     try {
-        const buffer = Buffer.from(await file.arrayBuffer())
-        fileUrl = await uploadToR2(buffer, r2Key, file.type)
-    } catch (err) {
-        console.error('R2 upload failed:')
+        fileUrl = await uploadToR2(buffer, r2Key, mimeType)
+    } catch {
+        console.error('[Uni Doc Upload] R2 upload failed')
         return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 })
     }
 
@@ -97,7 +113,7 @@ export async function POST(req: NextRequest) {
             category,
             fileName,
             fileUrl,
-            mimeType: file.type,
+            mimeType,
             sizeBytes: file.size,
         },
     })
