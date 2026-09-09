@@ -5,8 +5,12 @@ const VALID_DURATIONS = new Set([10, 15, 20])
 const HORIZON_DAYS = 14
 
 type Weekday = AvailabilityProfile['dayOfWeek']
-
 type ExistingMeetingWindow = Pick<Meeting, 'repId' | 'startTime' | 'endTime' | 'status'>
+type ExistingSlotWindow = { repId: string; startTime: Date; endTime: Date }
+
+const WEEKDAYS: Weekday[] = [
+  'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY',
+]
 
 function zonedParts(date: Date, timeZone: string) {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -40,8 +44,18 @@ function localToUtc(year: number, month: number, day: number, hour: number, minu
 }
 
 function parseHHMM(value: string) {
-  const [h, m] = value.split(':').map(Number)
-  return { hour: h, minute: m }
+  const [hour, minute] = value.split(':').map(Number)
+  return { hour, minute }
+}
+
+function addLocalCalendarDays(year: number, month: number, day: number, offset: number) {
+  const nominal = new Date(Date.UTC(year, month - 1, day + offset, 0, 0, 0, 0))
+  return {
+    year: nominal.getUTCFullYear(),
+    month: nominal.getUTCMonth() + 1,
+    day: nominal.getUTCDate(),
+    weekday: WEEKDAYS[nominal.getUTCDay()],
+  }
 }
 
 function overlapsMeeting(repId: string, startTime: Date, endTime: Date, meetings: ExistingMeetingWindow[]) {
@@ -71,14 +85,16 @@ export async function ensureBookingSlots(
 
   const now = new Date()
   const horizon = new Date(now.getTime() + HORIZON_DAYS * 24 * 60 * 60 * 1000)
-  const existing = await prisma.availabilitySlot.findMany({
+  const existing: ExistingSlotWindow[] = await prisma.availabilitySlot.findMany({
     where: {
       universityId,
       startTime: { gte: now, lte: horizon },
     },
     select: { repId: true, startTime: true, endTime: true },
   })
-  const existingKeys = new Set(existing.map(slot => `${slot.repId}|${slot.startTime.toISOString()}|${slot.endTime.toISOString()}`))
+  const existingKeys = new Set(
+    existing.map((slot: ExistingSlotWindow) => `${slot.repId}|${slot.startTime.toISOString()}|${slot.endTime.toISOString()}`),
+  )
 
   const candidates: { universityId: string; repId: string; startTime: Date; endTime: Date; isBooked: boolean }[] = []
   const profileByRepAndDay = new Map(activeProfiles.map(profile => [`${profile.repId}|${profile.dayOfWeek}`, profile]))
@@ -91,8 +107,7 @@ export async function ensureBookingSlots(
     const today = zonedParts(now, timeZone)
 
     for (let offset = 0; offset < HORIZON_DAYS; offset++) {
-      const nominal = new Date(Date.UTC(today.year, today.month - 1, today.day + offset, 12, 0, 0, 0))
-      const localDay = zonedParts(nominal, timeZone)
+      const localDay = addLocalCalendarDays(today.year, today.month, today.day, offset)
       const profile = profileByRepAndDay.get(`${repId}|${localDay.weekday}`)
       if (!profile) continue
 
