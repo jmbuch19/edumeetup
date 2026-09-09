@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { BookingWizard } from '@/components/booking/BookingWizard'
-import { getBookingData } from "./actions"
+import { getBookingDataHardened } from "./actions-hardened"
 
 export default async function StudentBookingPage(props: { params: Promise<{ universityId: string }> }) {
     const params = await props.params
@@ -11,7 +11,7 @@ export default async function StudentBookingPage(props: { params: Promise<{ univ
     }
 
     const { universityId } = params
-    const bookingData = await getBookingData(universityId)
+    const bookingData = await getBookingDataHardened(universityId)
 
     if (bookingData.error || !bookingData.university) {
         return (
