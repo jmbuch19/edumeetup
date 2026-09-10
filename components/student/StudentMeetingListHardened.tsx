@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Calendar, Clock, MapPin, Video } from 'lucide-react'
+import { Calendar, Clock, MapPin, Video, GraduationCap } from 'lucide-react'
 import { cancelStudentMeeting } from '@/app/actions/meeting-student'
 import { acceptMeetingReschedule, declineMeetingReschedule } from '@/app/actions/meeting-reschedule'
+import { createAdvisoryRequestFromMeeting } from '@/app/actions/advisory-actions'
 import { RescheduleModal } from '@/components/meeting/RescheduleModal'
 
 interface Meeting {
@@ -39,6 +40,19 @@ export default function StudentMeetingListHardened({ meetings }: { meetings: Mee
         setProcessing(null)
         if (result.error) alert(result.error)
         else router.refresh()
+    }
+
+    const requestIaesFollowUp = async (meeting: Meeting) => {
+        setProcessing(meeting.id)
+        const result = await createAdvisoryRequestFromMeeting(meeting.id)
+        setProcessing(null)
+        if (result.error) {
+            alert(result.error)
+            return
+        }
+        alert(`Your ${meeting.university.institutionName} meeting context has been sent to the IAES advisory team.`)
+        router.push('/student/dashboard')
+        router.refresh()
     }
 
     if (!meetings.length) {
@@ -84,6 +98,11 @@ export default function StudentMeetingListHardened({ meetings }: { meetings: Mee
                                     Proposed new time: <strong>{proposed.toLocaleString()}</strong>
                                 </div>
                             )}
+                            {meeting.status === 'COMPLETED' && (
+                                <div className="rounded-md border bg-slate-50 p-3 text-slate-700">
+                                    Need an independent view on what to do next? Continue this meeting with an IAES adviser; the meeting context will be carried forward automatically.
+                                </div>
+                            )}
                         </CardContent>
                         <CardFooter className="flex flex-wrap justify-end gap-2">
                             {(meeting.status === 'PENDING' || meeting.status === 'CONFIRMED') && (
@@ -118,6 +137,19 @@ export default function StudentMeetingListHardened({ meetings }: { meetings: Mee
 
                             {meeting.status === 'RESCHEDULE_PROPOSED' && meeting.rescheduleProposedBy === 'STUDENT' && (
                                 <span className="text-sm text-gray-500">Waiting for the university to respond.</span>
+                            )}
+
+                            {meeting.status === 'COMPLETED' && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={processing === meeting.id}
+                                    onClick={() => requestIaesFollowUp(meeting)}
+                                    className="gap-2"
+                                >
+                                    <GraduationCap className="h-4 w-4" />
+                                    {processing === meeting.id ? 'Sending…' : 'Continue with IAES Adviser'}
+                                </Button>
                             )}
                         </CardFooter>
                     </Card>
