@@ -14,19 +14,21 @@ Vercel is not the active production hosting platform. Old Vercel commit statuses
 
 ## 2. Pre-merge checks
 
-Before merging a production change, the branch must pass:
+Before merging a production change, the branch must pass the same gates enforced by `.github/workflows/ci.yml`:
 
 ```bash
 npm ci
+npm audit --omit=dev --audit-level=high
 npx prisma generate --schema=./prisma/schema.prisma
 npm run lint
 npm run typecheck
 npm test
+npm run build
 ```
 
-GitHub Actions runs the repository CI workflow automatically on `main`, `codex/**`, and pull requests targeting `main`.
+High/critical production dependency findings are a blocking CI failure. The production Next.js build is also a blocking gate so a branch cannot be considered green based on lint/typecheck/tests alone.
 
-Do not merge merely because Netlify can build a preview. CI type safety and tests are separate release gates.
+GitHub Actions runs the repository CI workflow automatically on `main`, `codex/**`, and pull requests targeting `main`.
 
 ## 3. Netlify environment variables
 
@@ -37,8 +39,8 @@ Configure production values in Netlify Site configuration → Environment variab
 - `DATABASE_URL` — Neon PostgreSQL application connection string
 - `AUTH_URL` — `https://www.edumeetup.com`
 - `AUTH_SECRET` — stable production NextAuth v5 secret
-- `AUTH_GOOGLE_ID` — Google OAuth client ID
-- `AUTH_GOOGLE_SECRET` — Google OAuth client secret
+- `GOOGLE_CLIENT_ID` — Google OAuth client ID used by `lib/auth.ts`
+- `GOOGLE_CLIENT_SECRET` — Google OAuth client secret used by `lib/auth.ts`
 - `NEXT_PUBLIC_APP_URL` — `https://www.edumeetup.com`
 - `SUPPORT_EMAIL` — support mailbox
 - `NEXT_PUBLIC_SUPPORT_EMAIL` — support mailbox exposed to client UI
@@ -49,7 +51,29 @@ Configure production values in Netlify Site configuration → Environment variab
 - `RESEND_API_KEY`
 - `EMAIL_FROM`
 
-Configure any SMTP variables only if a code path still intentionally uses SMTP.
+The production magic-link path uses Resend. SMTP variables are not part of the required production auth contract unless an intentionally retained code path explicitly needs them.
+
+### Meetings and payments
+
+- `WHEREBY_API_KEY` — automatic meeting-room creation when confirming a meeting
+- `RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_SECRET`
+- `RAZORPAY_WEBHOOK_SECRET`
+- `NEXT_PUBLIC_RAZORPAY_KEY_ID`
+
+### Bot protection
+
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+- `TURNSTILE_SECRET_KEY`
+
+### AI / quota controls
+
+Configure keys for the features actually enabled in production:
+
+- `GROQ_API_KEY` — Admissions Concierge route
+- `ANTHROPIC_API_KEY` — authenticated student adviser where enabled
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
 
 ### Storage
 
@@ -59,15 +83,11 @@ Configure any SMTP variables only if a code path still intentionally uses SMTP.
 - `R2_BUCKET`
 - `R2_PUBLIC_URL`
 
-### AI / monitoring
+### Monitoring
 
-Configure only the providers actually enabled in production, for example:
-
-- `ANTHROPIC_API_KEY`
-- other AI provider keys used by enabled routes
 - `NEXT_PUBLIC_SENTRY_DSN`
 - `NEXT_PUBLIC_APP_ENV=production`
-- `SENTRY_AUTH_TOKEN`
+- `SENTRY_AUTH_TOKEN` when source-map upload/release integration is enabled
 
 ### Cron secrets
 
@@ -78,13 +98,15 @@ Configure only the providers actually enabled in production, for example:
 
 Production schema changes must be represented by committed Prisma migrations.
 
-The GitHub workflow `.github/workflows/migrate.yml` runs `prisma migrate deploy` on pushes to `main` using the repository secret `DIRECT_URL` for the direct Neon connection.
+The GitHub workflow `.github/workflows/migrate.yml` runs `prisma migrate deploy` on pushes to `main` when migration files change, using the repository secret `DIRECT_URL` for the direct Neon connection.
 
 Required GitHub Actions secret:
 
 - `DIRECT_URL` — direct/non-pooled Neon connection string suitable for Prisma migrations
 
 Do not use a public seed endpoint or `prisma db push` as the normal production migration path.
+
+If a release contains no Prisma schema/migration change, no migration should be invented merely for deployment.
 
 ### Migration safety
 
@@ -97,38 +119,47 @@ A push to `main` can cause the migration workflow and Netlify deployment to prog
 
 For a destructive migration, coordinate the publish window rather than assuming migration and deploy ordering.
 
-## 5. Netlify build
+## 5. Netlify build and security headers
 
-The production build is defined in `netlify.toml` and runs the Next.js build with Prisma Client generation. `@netlify/plugin-nextjs` handles the Next.js deployment integration.
+The production build is defined in `netlify.toml` and runs Prisma Client generation plus the Next.js production build. `@netlify/plugin-nextjs` handles the Next.js deployment integration.
 
 Netlify must have access to the production environment variables required by build-time and runtime code.
+
+**Content Security Policy has one source of truth:** `next.config.mjs`. Do not add a second `Content-Security-Policy` header in `netlify.toml`. Multiple CSP headers are enforced together and can silently block required third-party integrations such as Cloudflare Turnstile, Razorpay, Wati, Sentry, or Whereby.
 
 Native scheduled jobs are defined either inline in their function `config.schedule` or in `netlify.toml`. Netlify Scheduled Functions run only for published deploys; branch deploys/previews can be triggered manually from Netlify for testing.
 
 ## 6. Release procedure
 
 1. Work on a non-`main` branch.
-2. Confirm GitHub CI is green.
+2. Confirm GitHub CI is green, including the production build step.
 3. Review the branch diff, especially Prisma schema/migrations and authentication/authorization changes.
-4. Merge to `main`.
-5. Confirm the database migration workflow succeeds when migrations are present.
-6. Confirm the Netlify production deploy succeeds.
-7. Run the post-deploy smoke tests below.
+4. Verify the required production environment variables exist in Netlify without exposing their secret values.
+5. Confirm a Netlify branch/preview deploy succeeds when available.
+6. Merge to `main` only after the above checks are complete.
+7. Confirm the database migration workflow succeeds when migrations are present.
+8. Confirm the Netlify production deploy succeeds.
+9. Run the post-deploy smoke tests below.
 
 ## 7. Post-deploy smoke tests
 
 At minimum verify:
 
-- Student authentication and dashboard access
+- Student magic-link and Google authentication
 - University authentication and dashboard access
+- Cloudflare Turnstile on login/public protected forms
 - University representative access to assigned meetings
 - University browse/profile pages
 - Student slot-based meeting booking
 - Student meeting list after booking
-- University/rep meeting confirmation
+- University/rep meeting confirmation and Whereby room creation
 - Student and university cancellation authorization
 - Reschedule proposal, accept, and decline flows
+- 24h/1h meeting reminder path
 - Transactional email/notifications for the tested workflow
+- IAES adviser handoff from a completed meeting
+- Admissions Concierge response when AI is enabled
+- Razorpay order/webhook path when payments are enabled
 - Fair/event pages relevant to the next live event
 - Admin access to operational pages
 
