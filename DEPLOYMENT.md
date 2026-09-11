@@ -60,6 +60,7 @@ The production magic-link path uses Resend. SMTP variables are not part of the r
 - `RAZORPAY_KEY_SECRET`
 - `RAZORPAY_WEBHOOK_SECRET`
 - `NEXT_PUBLIC_RAZORPAY_KEY_ID`
+- `CIRCUIT_PRICE_INR` — optional circuit price override; current code expects the value in **paise**, not rupees
 
 ### Bot protection
 
@@ -98,7 +99,7 @@ Configure keys for the features actually enabled in production:
 
 Production schema changes must be represented by committed Prisma migrations.
 
-The GitHub workflow `.github/workflows/migrate.yml` runs `prisma migrate deploy` on pushes to `main` when migration files change, using the repository secret `DIRECT_URL` for the direct Neon connection.
+The GitHub workflow `.github/workflows/migrate.yml` runs `prisma migrate deploy` on **every push to `main`**, using the repository secret `DIRECT_URL` for the direct Neon connection. When a release contains no new migration, Prisma should simply report that there are no pending migrations.
 
 Required GitHub Actions secret:
 
@@ -137,7 +138,7 @@ Native scheduled jobs are defined either inline in their function `config.schedu
 4. Verify the required production environment variables exist in Netlify without exposing their secret values.
 5. Confirm a Netlify branch/preview deploy succeeds when available.
 6. Merge to `main` only after the above checks are complete.
-7. Confirm the database migration workflow succeeds when migrations are present.
+7. Confirm the database migration workflow succeeds (it runs on every `main` push).
 8. Confirm the Netlify production deploy succeeds.
 9. Run the post-deploy smoke tests below.
 
@@ -180,7 +181,7 @@ Do not blindly roll back a destructive database migration. Restore/forward-fix s
 GitHub can show a red overall commit indicator when an obsolete external provider check fails even if `CI / quality` passes. For EdUmeetup today, use these release signals:
 
 - GitHub `CI / quality`
-- GitHub database migration workflow when applicable
+- GitHub database migration workflow
 - Netlify deploy status
 
 If Vercel is no longer used at all, disconnect its GitHub integration/checks from this repository to eliminate misleading commit statuses.
