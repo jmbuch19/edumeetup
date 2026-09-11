@@ -11,25 +11,12 @@
 
 [functions]
   node_bundler = "esbuild"
-  # Include Prisma schema/runtime assets needed by server functions.
   included_files = ["prisma/**"]
-  # Keep Prisma engines as node modules rather than rebundling them with esbuild.
   external_node_modules = ["@prisma/client", "prisma"]
 
-[functions."process-deletions"]
-  schedule = "0 2 * * *"
-
-# Hourly agent — student + university + fair triggers
-[functions."agent"]
-  schedule = "0 * * * *"
-
-# Every 15 min — fair-auto-live + fair-auto-complete
-[functions."fair-fast-agent"]
-  schedule = "*/15 * * * *"
-
-# Every 15 min — group session reminders (24h and 30min before)
-[functions."session-reminders"]
-  schedule = "*/15 * * * *"
+# Scheduled Function cadence is defined inline in each function's exported
+# `config.schedule`. Keeping one source of truth avoids duplicate/conflicting
+# schedules between netlify.toml and function code.
 
 # ─── Required Environment Variables ─────────────────────────────────────────
 # Set production values in Netlify → Site configuration → Environment variables.
@@ -38,9 +25,10 @@
 # Core authentication / database:
 #   DATABASE_URL          Neon PostgreSQL application connection string
 #   AUTH_URL              https://www.edumeetup.com
+#   NEXTAUTH_URL          https://www.edumeetup.com (temporary compatibility alias used by magic-link wrapper)
 #   AUTH_SECRET           Stable NextAuth v5 production secret
-#   GOOGLE_CLIENT_ID      Google OAuth client ID (name used by lib/auth.ts)
-#   GOOGLE_CLIENT_SECRET  Google OAuth client secret (name used by lib/auth.ts)
+#   GOOGLE_CLIENT_ID      Google OAuth client ID
+#   GOOGLE_CLIENT_SECRET  Google OAuth client secret
 #   NEXT_PUBLIC_APP_URL   https://www.edumeetup.com
 #
 # Email / operations:
@@ -56,12 +44,13 @@
 #   RAZORPAY_KEY_SECRET
 #   RAZORPAY_WEBHOOK_SECRET
 #   NEXT_PUBLIC_RAZORPAY_KEY_ID
+#   CIRCUIT_PRICE_INR     Optional override in paise, not rupees
 #
 # Bot protection:
 #   NEXT_PUBLIC_TURNSTILE_SITE_KEY
 #   TURNSTILE_SECRET_KEY
 #
-# AI / quotas (when the corresponding feature is enabled):
+# AI / quotas (when enabled):
 #   GROQ_API_KEY
 #   ANTHROPIC_API_KEY
 #   UPSTASH_REDIS_REST_URL
@@ -81,13 +70,12 @@
 #
 # HTTP cron/API routes:
 #   CRON_SECRET           Shared secret for routes that explicitly authenticate it.
-#                         Native Netlify Scheduled Functions are platform-triggered
-#                         and MUST NOT require a custom x-cron-secret header.
+#                         Native Netlify Scheduled Functions themselves MUST NOT
+#                         require a custom incoming cron header.
 #
 # Database migrations:
-#   DIRECT_URL            Neon direct/non-pooled connection string. Production
-#                         migrations run in .github/workflows/migrate.yml; they do
-#                         not run as part of this Netlify build command.
+#   DIRECT_URL            GitHub Actions secret, not a Netlify runtime requirement.
+#                         Used by .github/workflows/migrate.yml.
 #
 # WhatsApp (when activated):
 #   WHATSAPP_TOKEN
