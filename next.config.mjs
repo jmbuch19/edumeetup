@@ -46,18 +46,21 @@ const nextConfig = {
                         value: 'camera=(self), microphone=(), geolocation=(), browsing-topics=()'
                     },
                     {
+                        // Canonical CSP. Do not duplicate this policy in netlify.toml:
+                        // multiple CSP headers are intersected by browsers and can block
+                        // third-party integrations even when one policy allows them.
                         key: 'Content-Security-Policy',
                         value: [
                             "default-src 'self'",
-                            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clare.ai https://*.wati.io https://static.cloudflareinsights.com https://challenges.cloudflare.com",
+                            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clare.ai https://*.wati.io https://static.cloudflareinsights.com https://challenges.cloudflare.com https://checkout.razorpay.com",
                             "worker-src 'self' blob:",
                             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                             "img-src 'self' data: blob: https://files.edumeetup.com https://*.r2.dev https://res.cloudinary.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://*.clare.ai https://*.wati.io",
                             "font-src 'self' data: https://fonts.gstatic.com",
-                            "connect-src 'self' https://*.neon.tech https://api.resend.com https://o4511006401691648.ingest.us.sentry.io https://*.clare.ai https://*.wati.io https://wati-integration-prod-service.clare.ai https://static.cloudflareinsights.com https://api.whereby.dev https://challenges.cloudflare.com",
+                            "connect-src 'self' https://*.neon.tech https://api.resend.com https://o4511006401691648.ingest.us.sentry.io https://*.clare.ai https://*.wati.io https://wati-integration-prod-service.clare.ai https://static.cloudflareinsights.com https://api.whereby.dev https://challenges.cloudflare.com https://api.razorpay.com https://*.razorpay.com",
                             "media-src 'self'",
                             "object-src 'none'",
-                            "frame-src 'self' https://*.clare.ai https://*.wati.io https://*.whereby.com https://challenges.cloudflare.com",
+                            "frame-src 'self' https://*.clare.ai https://*.wati.io https://*.whereby.com https://challenges.cloudflare.com https://api.razorpay.com https://checkout.razorpay.com",
                             "frame-ancestors 'none'",
                             "base-uri 'self'",
                             "form-action 'self'",
