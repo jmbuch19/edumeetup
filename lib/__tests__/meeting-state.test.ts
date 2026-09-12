@@ -6,35 +6,35 @@ import { validateMeetingTransition, MeetingStatus, canCancel } from '../meeting-
 // Or standard jest/vitest if installed later.
 
 test('Meeting State Machine Transitions', async (t) => {
-    
     await t.test('PENDING transitions', () => {
         assert.strictEqual(validateMeetingTransition(MeetingStatus.PENDING, MeetingStatus.CONFIRMED), true, 'PENDING -> CONFIRMED should be valid')
-        assert.strictEqual(validateMeetingTransition(MeetingStatus.PENDING, MeetingStatus.REJECTED), true, 'PENDING -> REJECTED should be valid')
+        assert.strictEqual(validateMeetingTransition(MeetingStatus.PENDING, MeetingStatus.RESCHEDULE_PROPOSED), true, 'PENDING -> RESCHEDULE_PROPOSED should be valid')
         assert.strictEqual(validateMeetingTransition(MeetingStatus.PENDING, MeetingStatus.CANCELLED), true, 'PENDING -> CANCELLED should be valid')
-        
+
         // Invalid
         assert.strictEqual(validateMeetingTransition(MeetingStatus.PENDING, MeetingStatus.COMPLETED), false, 'PENDING -> COMPLETED should be invalid')
         assert.strictEqual(validateMeetingTransition(MeetingStatus.PENDING, 'UNKNOWN_STATUS'), false, 'PENDING -> UNKNOWN should be invalid')
     })
-    
+
     await t.test('CONFIRMED transitions', () => {
         assert.strictEqual(validateMeetingTransition(MeetingStatus.CONFIRMED, MeetingStatus.CANCELLED), true, 'CONFIRMED -> CANCELLED should be valid')
         assert.strictEqual(validateMeetingTransition(MeetingStatus.CONFIRMED, MeetingStatus.COMPLETED), true, 'CONFIRMED -> COMPLETED should be valid')
-        
+        assert.strictEqual(validateMeetingTransition(MeetingStatus.CONFIRMED, MeetingStatus.NO_SHOW), true, 'CONFIRMED -> NO_SHOW should be valid')
+        assert.strictEqual(validateMeetingTransition(MeetingStatus.CONFIRMED, MeetingStatus.RESCHEDULE_PROPOSED), true, 'CONFIRMED -> RESCHEDULE_PROPOSED should be valid')
+
         // Invalid
         assert.strictEqual(validateMeetingTransition(MeetingStatus.CONFIRMED, MeetingStatus.PENDING), false, 'CONFIRMED -> PENDING should be invalid')
-        assert.strictEqual(validateMeetingTransition(MeetingStatus.CONFIRMED, MeetingStatus.REJECTED), false, 'CONFIRMED -> REJECTED should be invalid')
     })
-    
-    await t.test('Terminal states (REJECTED, CANCELLED, COMPLETED) should have no valid transitions', () => {
-        const terminalStates = [MeetingStatus.REJECTED, MeetingStatus.CANCELLED, MeetingStatus.COMPLETED]
+
+    await t.test('Terminal states should have no valid transitions', () => {
+        const terminalStates = [MeetingStatus.CANCELLED, MeetingStatus.COMPLETED, MeetingStatus.NO_SHOW]
         const allStates = Object.values(MeetingStatus)
-        
+
         for (const terminal of terminalStates) {
             for (const next of allStates) {
                 assert.strictEqual(
-                    validateMeetingTransition(terminal, next), 
-                    false, 
+                    validateMeetingTransition(terminal, next),
+                    false,
                     `${terminal} -> ${next} should be invalid (terminal state)`
                 )
             }
@@ -46,15 +46,17 @@ test('Meeting State Machine Transitions', async (t) => {
         assert.strictEqual(validateMeetingTransition('', MeetingStatus.COMPLETED), false, 'Should handle empty start states securely')
         assert.strictEqual(validateMeetingTransition('PENDING', 'INVALID_NEXT'), false, 'Should handle unknown next states securely')
     })
-    
+
     await t.test('canCancel helper', () => {
+        assert.strictEqual(canCancel(MeetingStatus.DRAFT), true, 'DRAFT meetings can be cancelled')
         assert.strictEqual(canCancel(MeetingStatus.PENDING), true, 'PENDING meetings can be cancelled')
         assert.strictEqual(canCancel(MeetingStatus.CONFIRMED), true, 'CONFIRMED meetings can be cancelled')
-        
-        assert.strictEqual(canCancel(MeetingStatus.REJECTED), false, 'REJECTED cannot be cancelled')
+        assert.strictEqual(canCancel(MeetingStatus.RESCHEDULE_PROPOSED), true, 'RESCHEDULE_PROPOSED meetings can be cancelled')
+
         assert.strictEqual(canCancel(MeetingStatus.CANCELLED), false, 'CANCELLED cannot be cancelled')
         assert.strictEqual(canCancel(MeetingStatus.COMPLETED), false, 'COMPLETED cannot be cancelled')
-        
+        assert.strictEqual(canCancel(MeetingStatus.NO_SHOW), false, 'NO_SHOW cannot be cancelled')
+
         // Invalid inputs
         assert.strictEqual(canCancel('INVALID_STATUS'), false, 'Unknown status cannot be cancelled')
         assert.strictEqual(canCancel(''), false, 'Empty string cannot be cancelled')

@@ -1,53 +1,54 @@
-import { prisma } from "@/lib/prisma"
-import { NextRequest, NextResponse } from "next/server"
+import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from 'next/server'
+import { hasValidBearerSecret } from '@/lib/security/bearer'
 
 /**
  * One-time admin bootstrap route.
- * Protected by ADMIN_SECRET env var — if unset the route is disabled entirely.
- * Usage: GET /api/setup-admin?secret=<ADMIN_SECRET>
+ * Disabled unless ENABLE_ADMIN_BOOTSTRAP=true and ADMIN_SECRET is configured.
  */
 export async function GET(request: NextRequest) {
-    const adminSecret = process.env.ADMIN_SECRET
-    if (!adminSecret) {
-        return NextResponse.json({ error: "Not configured" }, { status: 503 })
+    if (process.env.ENABLE_ADMIN_BOOTSTRAP !== 'true') {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    // ⚠️  Secret MUST be in the Authorization header — NOT a query param.
-    // Query params appear in Netlify logs, browser history, and proxy logs.
-    // Usage: curl -H "Authorization: Bearer <ADMIN_SECRET>" /api/setup-admin
-    const authHeader = request.headers.get('Authorization')
-    const secret = authHeader?.replace('Bearer ', '').trim()
-    if (secret !== adminSecret) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const adminSecret = process.env.ADMIN_SECRET
+    if (!adminSecret) {
+        return NextResponse.json({ error: 'Not configured' }, { status: 503 })
+    }
+
+    if (!hasValidBearerSecret(request.headers.get('Authorization'), adminSecret)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     try {
-        const adminEmail = process.env.ADMIN_EMAIL ?? "admin@edumeetup.com"
-
-        const existingAdmin = await prisma.user.findUnique({
-            where: { email: adminEmail }
+        // Refuse to bootstrap if any admin already exists, even if ADMIN_EMAIL changed.
+        const existingAdmin = await prisma.user.findFirst({
+            where: { role: 'ADMIN' },
+            select: { id: true },
         })
-
         if (existingAdmin) {
-            return NextResponse.json({ message: "Admin already exists", email: adminEmail })
+            return NextResponse.json({ error: 'Admin already configured' }, { status: 409 })
         }
 
-        const admin = await prisma.user.create({
+        const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase()
+        if (!adminEmail) {
+            return NextResponse.json({ error: 'ADMIN_EMAIL not configured' }, { status: 503 })
+        }
+
+        await prisma.user.create({
             data: {
                 email: adminEmail,
-                role: "ADMIN",
-                isActive: true
-            }
+                role: 'ADMIN',
+                isActive: true,
+            },
         })
 
-        return NextResponse.json({
-            message: "Admin created successfully",
-            email: admin.email,
-            note: "Login via magic link — no password is used."
+        console.warn('[setup-admin] Admin bootstrap completed; disable ENABLE_ADMIN_BOOTSTRAP now')
+        return NextResponse.json({ success: true }, {
+            headers: { 'Cache-Control': 'no-store' },
         })
-
-    } catch (error) {
-        console.error("[setup-admin] Failed:")
-        return NextResponse.json({ error: "Failed to create admin" }, { status: 500 })
+    } catch {
+        console.error('[setup-admin] Failed')
+        return NextResponse.json({ error: 'Failed to create admin' }, { status: 500 })
     }
 }

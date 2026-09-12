@@ -4,13 +4,9 @@ import { sendEmail, generateEmailHtml } from '../../lib/email'
 
 const prisma = new PrismaClient()
 
-export default async function handler(request: Request) {
-  // MUST be first — before prisma queries, before anything
-  const incomingSecret = request.headers.get('x-cron-secret')
-  if (process.env.CRON_SECRET && incomingSecret !== process.env.CRON_SECRET) {
-    return new Response('Unauthorized', { status: 401 })
-  }
-
+// Native Netlify Scheduled Function. Published scheduled functions are protected
+// by Netlify's scheduler semantics rather than an application-supplied header.
+export default async function handler() {
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
   const recentRun = await prisma.systemLog.findFirst({
     where: { type: 'CIRCUIT_STATE_MACHINE', createdAt: { gte: twoHoursAgo }, message: 'State machine run complete' }
@@ -22,7 +18,6 @@ export default async function handler(request: Request) {
   const now = new Date()
 
   // PUBLISHED → ONGOING
-  // Find circuits where status=PUBLISHED and startDate <= now
   const toOngoing = await prisma.fairCircuit.findMany({
     where: {
       status: 'PUBLISHED',
@@ -36,17 +31,16 @@ export default async function handler(request: Request) {
       data: { status: 'ONGOING' }
     })
 
-    // Notify admin
     if (process.env.ADMIN_NOTIFICATION_EMAIL) {
       await sendEmail({
         to: process.env.ADMIN_NOTIFICATION_EMAIL,
         subject: `Circuit now LIVE — ${circuit.name}`,
         html: generateEmailHtml(
           'Circuit Is Now Live',
-          `<p><strong>${circuit.name}</strong> has automatically 
+          `<p><strong>${circuit.name}</strong> has automatically
           moved to ONGOING status as of today.</p>
           <p>The War Room is now active for all participants.</p>
-          <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'}/admin/fair-ops/${circuit.id}">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://www.edumeetup.com'}/admin/fair-ops/${circuit.id}">
             Open War Room →
           </a>`
         )
@@ -64,7 +58,6 @@ export default async function handler(request: Request) {
   }
 
   // ONGOING → COMPLETED
-  // Find circuits where status=ONGOING and endDate < now
   const toCompleted = await prisma.fairCircuit.findMany({
     where: {
       status: 'ONGOING',
@@ -78,19 +71,17 @@ export default async function handler(request: Request) {
       data: { status: 'COMPLETED' }
     })
 
-    // Notify admin
     if (process.env.ADMIN_NOTIFICATION_EMAIL) {
-        await sendEmail({
+      await sendEmail({
         to: process.env.ADMIN_NOTIFICATION_EMAIL,
         subject: `Circuit COMPLETED — ${circuit.name}`,
         html: generateEmailHtml(
-            'Circuit Completed',
-            `<p><strong>${circuit.name}</strong> has automatically 
-            moved to COMPLETED status.</p>
-            <p>All participant access to the War Room has been 
-            set to read-only.</p>`
+          'Circuit Completed',
+          `<p><strong>${circuit.name}</strong> has automatically
+          moved to COMPLETED status.</p>
+          <p>All participant access to the War Room has been set to read-only.</p>`
         )
-        })
+      })
     }
 
     await prisma.systemLog.create({
@@ -103,12 +94,11 @@ export default async function handler(request: Request) {
     })
   }
 
-  // Log total run
   await prisma.systemLog.create({
     data: {
       level: 'INFO',
       type: 'CIRCUIT_STATE_MACHINE',
-      message: `State machine run complete`,
+      message: 'State machine run complete',
       metadata: {
         toOngoing: toOngoing.length,
         toCompleted: toCompleted.length,
@@ -116,7 +106,7 @@ export default async function handler(request: Request) {
       }
     }
   })
-  
+
   return new Response('OK', { status: 200 })
 }
 

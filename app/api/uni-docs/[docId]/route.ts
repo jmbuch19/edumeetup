@@ -2,64 +2,54 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { deleteR2File } from '@/lib/r2-delete'
+import { getUniversityForActor } from '@/lib/university-actor'
 
-export async function GET(req: NextRequest, props: { params: Promise<{ docId: string }> }) {
-    const params = await props.params;
+export async function GET(_req: NextRequest, props: { params: Promise<{ docId: string }> }) {
+    const { docId } = await props.params
     const session = await auth()
-    if (!session?.user?.id) {
-        return new NextResponse('Unauthorized', { status: 401 })
-    }
+    if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 })
+    if (!docId || docId.length > 100) return new NextResponse('Document not found', { status: 404 })
 
-    const { docId } = params
-
-    // All authenticated roles can download university documents (soft-deleted excluded)
     const doc = await prisma.universityDocument.findFirst({
         where: { id: docId, deletedAt: null },
-        select: { fileUrl: true, fileName: true, displayName: true, mimeType: true },
+        select: { fileUrl: true },
     })
+    if (!doc?.fileUrl) return new NextResponse('Document not found', { status: 404 })
 
-    if (!doc?.fileUrl) {
-        return new NextResponse('Document not found', { status: 404 })
-    }
-
-    // Redirect to the R2 URL — no binary served from DB
-    return NextResponse.redirect(doc.fileUrl)
+    return NextResponse.redirect(doc.fileUrl, {
+        headers: { 'Cache-Control': 'private, no-store' },
+    })
 }
 
-export async function DELETE(req: NextRequest, props: { params: Promise<{ docId: string }> }) {
-    const params = await props.params;
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ docId: string }> }) {
+    const { docId } = await props.params
     const session = await auth()
     if (!session?.user?.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const role = session.user.role as string
+    const role = String(session.user.role ?? '')
     if (role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP') {
         return NextResponse.json({ error: 'Only universities can delete their documents' }, { status: 403 })
     }
-
-    const { docId } = params
-
-    // Verify this doc belongs to the authenticated university
-    const university = await prisma.university.findFirst({
-        where: { userId: session.user.id },
-        select: { id: true },
-    })
-    if (!university) return NextResponse.json({ error: 'University not found' }, { status: 404 })
-
-    const doc = await prisma.universityDocument.findFirst({
-        where: { id: docId, deletedAt: null },
-        select: { universityId: true, fileUrl: true },
-    })
-
-    if (!doc || doc.universityId !== university.id) {
+    if (!docId || docId.length > 100) {
         return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Delete from R2 first (failure is non-fatal — DB record still removed)
-    if (doc.fileUrl) {
-        await deleteR2File(doc.fileUrl)
-    }
-    await prisma.universityDocument.delete({ where: { id: docId } })
+    const university = await getUniversityForActor(session.user.id, role)
+    if (!university) return NextResponse.json({ error: 'University not found' }, { status: 404 })
+
+    const doc = await prisma.universityDocument.findFirst({
+        where: { id: docId, universityId: university.id, deletedAt: null },
+        select: { fileUrl: true },
+    })
+    if (!doc) return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+
+    if (doc.fileUrl) await deleteR2File(doc.fileUrl)
+    await prisma.universityDocument.update({
+        where: { id: docId },
+        data: { deletedAt: new Date() },
+    })
+
     return NextResponse.json({ success: true })
 }

@@ -4,14 +4,9 @@ import { sendEmail, generateEmailHtml } from '../../lib/email'
 
 const prisma = new PrismaClient()
 
-// Run daily at 9am
-export default async function handler(request: Request) {
-  // MUST be first — before prisma queries, before anything
-  const incomingSecret = request.headers.get('x-cron-secret')
-  if (process.env.CRON_SECRET && incomingSecret !== process.env.CRON_SECRET) {
-    return new Response('Unauthorized', { status: 401 })
-  }
-
+// Native Netlify Scheduled Function. Netlify owns the production invocation;
+// a custom x-cron-secret header is not part of Scheduled Function delivery.
+export default async function handler() {
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
   const recentRun = await prisma.systemLog.findFirst({
     where: { type: 'HOST_SLA_CRON_RUN', createdAt: { gte: twoHoursAgo } }
@@ -28,16 +23,16 @@ export default async function handler(request: Request) {
 
   if (pending.length > 0) {
     if (process.env.ADMIN_NOTIFICATION_EMAIL) {
-        await sendEmail({
+      await sendEmail({
         to: process.env.ADMIN_NOTIFICATION_EMAIL,
         subject: `[SLA BREACH] ${pending.length} Host Requests > 48 Hours`,
         html: generateEmailHtml(
-            'SLA Breach Alert',
-            `<p><strong>${pending.length}</strong> campus fair requests have been awaiting review for over 48 hours.</p>
-            <p>Please review them immediately.</p>
-            <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://edumeetup.com'}/admin/host-requests">Open Admin Dashboard →</a>`
+          'SLA Breach Alert',
+          `<p><strong>${pending.length}</strong> campus fair requests have been awaiting review for over 48 hours.</p>
+          <p>Please review them immediately.</p>
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://www.edumeetup.com'}/admin/host-requests">Open Admin Dashboard →</a>`
         )
-        })
+      })
     }
 
     await prisma.systemLog.create({

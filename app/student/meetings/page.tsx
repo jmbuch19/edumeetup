@@ -1,5 +1,5 @@
-import { getStudentMeetings } from '@/app/actions'
-import StudentMeetingList from '@/components/student/StudentMeetingList'
+import { getStudentMeetingsSafe } from '@/app/actions/meeting-queries'
+import StudentMeetingListHardened from '@/components/student/StudentMeetingListHardened'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
@@ -10,10 +10,7 @@ export default async function StudentMeetingsPage() {
         redirect('/login')
     }
 
-    const meetings = await getStudentMeetings()
-
-    // Separate by status if needed, or just pass all to the list to filter/sort
-    // Let's pass all and let the client component display them (or simple list)
+    const meetings = await getStudentMeetingsSafe()
 
     return (
         <div className="min-h-screen bg-gray-50/50">
@@ -27,7 +24,7 @@ export default async function StudentMeetingsPage() {
             <div className="container mx-auto px-4 -mt-16 pb-12">
                 <div className="max-w-3xl mx-auto">
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 min-h-[400px]">
-                        <StudentMeetingList meetings={meetings} />
+                        <StudentMeetingListHardened meetings={meetings} />
                     </div>
                 </div>
             </div>

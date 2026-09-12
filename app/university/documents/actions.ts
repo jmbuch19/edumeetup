@@ -3,53 +3,46 @@
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { deleteR2File } from '@/lib/r2-delete'
+import { getUniversityForActor } from '@/lib/university-actor'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 async function requireUniversity() {
     const session = await auth()
-    if (!session?.user) redirect('/login')
-    const role = (session.user as any).role
+    if (!session?.user?.id) redirect('/login')
+
+    const role = String(session.user.role ?? '')
     if (role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP') redirect('/login')
-    const uni = await prisma.university.findUnique({ where: { userId: session.user.id! } })
-    if (!uni) redirect('/login')
-    return uni
+
+    const university = await getUniversityForActor(session.user.id, role)
+    if (!university) redirect('/login')
+    return university
 }
 
 export async function deleteUniversityDocument(
     documentId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
     try {
-        // Auth guard — derive universityId from session, never from caller
-        const uni = await requireUniversity()
+        if (!documentId || documentId.length > 100) return { ok: false, error: 'Invalid document.' }
+        const university = await requireUniversity()
 
-        // 1. Fetch document — verify it belongs to this university and isn't already deleted
         const doc = await prisma.universityDocument.findFirst({
-            where: { id: documentId, universityId: uni.id, deletedAt: null },
+            where: { id: documentId, universityId: university.id, deletedAt: null },
             select: { id: true, fileUrl: true },
         })
+        if (!doc) return { ok: false, error: 'Document not found.' }
 
-        if (!doc) {
-            return { ok: false, error: 'Document not found.' }
-        }
+        if (doc.fileUrl) await deleteR2File(doc.fileUrl)
 
-        // 2. Delete from R2 (non-fatal — DB soft delete always proceeds)
-        if (doc.fileUrl) {
-            await deleteR2File(doc.fileUrl)
-        }
-
-        // 3. Soft delete in DB
         await prisma.universityDocument.update({
             where: { id: documentId },
             data: { deletedAt: new Date() },
         })
 
-        // 4. Revalidate both pages that list documents
         revalidatePath('/university/profile')
         revalidatePath('/university/documents')
-
         return { ok: true }
-    } catch (err) {
+    } catch {
         console.error('[deleteUniversityDocument]')
         return { ok: false, error: 'Failed to delete document. Please try again.' }
     }
@@ -62,45 +55,41 @@ export async function replaceUniversityDocument(
     newSizeBytes: number,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
     try {
-        // Auth guard — derive universityId from session
-        const uni = await requireUniversity()
-
-        // 1. Fetch existing document — verify ownership, capture old fileUrl
-        const doc = await prisma.universityDocument.findFirst({
-            where: { id: documentId, universityId: uni.id, deletedAt: null },
-            select: { id: true, fileUrl: true },
-        })
-
-        if (!doc) {
-            return { ok: false, error: 'Document not found.' }
+        if (!documentId || documentId.length > 100) return { ok: false, error: 'Invalid document.' }
+        if (!newFileUrl || !newFileName || !Number.isSafeInteger(newSizeBytes) || newSizeBytes <= 0 || newSizeBytes > 10 * 1024 * 1024) {
+            return { ok: false, error: 'Invalid replacement file.' }
         }
 
-        const oldFileUrl = doc.fileUrl
+        const university = await requireUniversity()
+        const expectedPrefix = `${(process.env.R2_PUBLIC_URL ?? '').replace(/\/$/, '')}/uni-docs/${university.id}/`
+        if (!process.env.R2_PUBLIC_URL || !newFileUrl.startsWith(expectedPrefix)) {
+            return { ok: false, error: 'Invalid replacement file location.' }
+        }
 
-        // 2. Update the same record in-place with new file fields
+        const doc = await prisma.universityDocument.findFirst({
+            where: { id: documentId, universityId: university.id, deletedAt: null },
+            select: { id: true, fileUrl: true },
+        })
+        if (!doc) return { ok: false, error: 'Document not found.' }
+
+        const oldFileUrl = doc.fileUrl
         await prisma.universityDocument.update({
             where: { id: documentId },
             data: {
                 fileUrl: newFileUrl,
-                fileName: newFileName,
+                fileName: newFileName.slice(0, 160),
                 sizeBytes: newSizeBytes,
                 uploadedAt: new Date(),
             },
         })
 
-        // 3. Delete old R2 object (non-fatal — DB update already committed)
-        if (oldFileUrl) {
-            await deleteR2File(oldFileUrl)
-        }
+        if (oldFileUrl) await deleteR2File(oldFileUrl)
 
-        // 4. Revalidate
         revalidatePath('/university/profile')
         revalidatePath('/university/documents')
-
         return { ok: true }
-    } catch (err) {
+    } catch {
         console.error('[replaceUniversityDocument]')
         return { ok: false, error: 'Failed to replace document. Please try again.' }
     }
 }
-

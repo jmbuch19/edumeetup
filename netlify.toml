@@ -1,7 +1,6 @@
 [build]
   command = "rm -rf .next && npx prisma generate && npm run build"
 
-
 [build.environment]
   NETLIFY_USE_YARN = "false"
   NODE_VERSION = "20"
@@ -12,69 +11,81 @@
 
 [functions]
   node_bundler = "esbuild"
-  # Increase timeout for data-heavy routes (delete route cancels meetings + sends emails)
   included_files = ["prisma/**"]
-  # Prevent esbuild from bundling the Prisma query engine binary — must stay as a node_module
   external_node_modules = ["@prisma/client", "prisma"]
 
-[functions."process-deletions"]
-  schedule = "0 2 * * *"
-
-# Hourly agent — student + university + 4 fair triggers
-[functions."agent"]
-  schedule = "0 * * * *"
-
-# Every 15 min — fair-auto-live + fair-auto-complete
-[functions."fair-fast-agent"]
-  schedule = "*/15 * * * *"
-
-# Every 15 min — group session reminders (24h and 30min before)
-[functions."session-reminders"]
-  schedule = "*/15 * * * *"
+# Scheduled Function cadence is defined inline in each function's exported
+# `config.schedule`. Keeping one source of truth avoids duplicate/conflicting
+# schedules between netlify.toml and function code.
 
 # ─── Required Environment Variables ─────────────────────────────────────────
-# Set all of the following in the Netlify dashboard → Site Settings → Env vars:
+# Set production values in Netlify → Site configuration → Environment variables.
+# Never commit secret values.
 #
-# ⚠️  This app uses NextAuth v5. The env var names changed from v4:
-#       AUTH_SECRET  (was: NEXTAUTH_SECRET) ← CRITICAL — if missing, a random
-#                    secret is generated on every deploy, wiping all sessions!
-#       AUTH_URL     (was: NEXTAUTH_URL)    ← must be your full Netlify URL
+# Core authentication / database:
+#   DATABASE_URL          Neon PostgreSQL application connection string
+#   AUTH_URL              https://www.edumeetup.com
+#   NEXTAUTH_URL          https://www.edumeetup.com (temporary compatibility alias used by magic-link wrapper)
+#   AUTH_SECRET           Stable NextAuth v5 production secret
+#   GOOGLE_CLIENT_ID      Google OAuth client ID
+#   GOOGLE_CLIENT_SECRET  Google OAuth client secret
+#   NEXT_PUBLIC_APP_URL   https://www.edumeetup.com
 #
-#   DATABASE_URL          Neon PostgreSQL connection string
-#   AUTH_URL              https://www.edumeetup.com  (your production URL)
-#   AUTH_SECRET           Random 32-char secret — generate with: openssl rand -base64 32
-#   AUTH_GOOGLE_ID        Google OAuth client ID (env var name unchanged in v5)
-#   AUTH_GOOGLE_SECRET    Google OAuth client secret
-#   R2_ACCOUNT_ID         Cloudflare R2 account ID
-#   R2_ACCESS_KEY_ID      R2 access key
-#   R2_SECRET_ACCESS_KEY  R2 secret key
-#   R2_BUCKET             R2 bucket name
-#   R2_PUBLIC_URL         Public R2 domain (e.g. https://files.EdUmeetup.com)
-#   EMAIL_FROM            Sender address for transactional email
-#   RESEND_API_KEY        Resend API key (or SMTP vars if using nodemailer)
-#   CRON_SECRET           Random secret shared with the process-deletions function
-#   SUPPORT_EMAIL         support@edumeetup.com  ← used in deletion confirmation emails and server-side error messages
-#   NEXT_PUBLIC_SUPPORT_EMAIL support@edumeetup.com  ← same address, exposed to client error/auth pages
-#   ANTHROPIC_API_KEY     Claude Sonnet 4 API key — required for /student/dashboard AI advisor widget
+# Email / operations:
+#   EMAIL_FROM
+#   RESEND_API_KEY
+#   SUPPORT_EMAIL
+#   NEXT_PUBLIC_SUPPORT_EMAIL
+#   ADMIN_NOTIFICATION_EMAIL
+#
+# Meetings / payments:
+#   WHEREBY_API_KEY
+#   RAZORPAY_KEY_ID
+#   RAZORPAY_KEY_SECRET
+#   RAZORPAY_WEBHOOK_SECRET
+#   NEXT_PUBLIC_RAZORPAY_KEY_ID
+#   CIRCUIT_PRICE_INR     Optional override in paise, not rupees
+#
+# Bot protection:
+#   NEXT_PUBLIC_TURNSTILE_SITE_KEY
+#   TURNSTILE_SECRET_KEY
+#
+# AI / quotas (when enabled):
+#   GROQ_API_KEY
+#   ANTHROPIC_API_KEY
+#   UPSTASH_REDIS_REST_URL
+#   UPSTASH_REDIS_REST_TOKEN
+#
+# Storage:
+#   R2_ACCOUNT_ID
+#   R2_ACCESS_KEY_ID
+#   R2_SECRET_ACCESS_KEY
+#   R2_BUCKET
+#   R2_PUBLIC_URL
+#
+# Monitoring:
+#   NEXT_PUBLIC_SENTRY_DSN
+#   NEXT_PUBLIC_APP_ENV   production
+#   SENTRY_AUTH_TOKEN
+#
+# HTTP cron/API routes:
+#   CRON_SECRET           Shared secret for routes that explicitly authenticate it.
+#                         Native Netlify Scheduled Functions themselves MUST NOT
+#                         require a custom incoming cron header.
+#
+# Database migrations:
+#   DIRECT_URL            GitHub Actions secret, not a Netlify runtime requirement.
+#                         Used by .github/workflows/migrate.yml.
+#
+# WhatsApp (when activated):
+#   WHATSAPP_TOKEN
+#   WHATSAPP_PHONE_ID
 
-#
-# ⚠️  REQUIRED: DIRECT_URL — Neon direct (non-pooled) connection string — required for Prisma migrate deploy (runs in build command)
-#
-# ── Sentry (Error Monitoring) ──────────────────────────────────────────────────
-#   NEXT_PUBLIC_SENTRY_DSN  DSN from sentry.io → edumeetup → javascript-nextjs → Settings → Client Keys
-#   NEXT_PUBLIC_APP_ENV     production  (controls tracing sample rates and replay)
-#   SENTRY_AUTH_TOKEN       Auth token for source map uploads — generate at sentry.io → User Settings → Auth Tokens
-#                           Scope: project:releases + org:read  |  Keep server-only (not NEXT_PUBLIC_*)
-#
-# ⏳ ADD BEFORE FIRST FAIR:
-#   NEXT_PUBLIC_APP_URL   https://www.edumeetup.com  ← used in client-side fair pass / QR links
-#
-# ⏳ ADD WHEN WHATSAPP ACTIVATED:
-#   WHATSAPP_TOKEN        Meta Cloud API permanent token
-#   WHATSAPP_PHONE_ID     WhatsApp Business phone number ID
-
-
-# --- Security Headers -----------------------------------------------------------
+# --- Security Headers ---------------------------------------------------------
+# Content-Security-Policy is intentionally NOT set here. next.config.mjs is the
+# single source of truth for CSP because the app requires third-party origins for
+# Turnstile, Razorpay, Wati, Sentry and Whereby. Sending a second CSP from Netlify
+# would intersect with the Next.js policy and can silently block those features.
 [[headers]]
   for = "/*"
   [headers.values]
@@ -85,4 +96,3 @@
     Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
     Cross-Origin-Resource-Policy = "same-origin"
     Cross-Origin-Opener-Policy = "same-origin"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clare.ai https://*.wati.io https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://fonts.googleapis.com https://o4508786857902080.ingest.sentry.io; frame-src 'none'; object-src 'none';"
