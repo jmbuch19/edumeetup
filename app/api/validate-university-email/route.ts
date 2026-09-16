@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
 import {
     extractDomain,
     getUniversityInfo,
@@ -9,39 +11,42 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-// ─── Rate limiter ─────────────────────────────────────────────────────────────
-
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
+const localRateLimit = new Map<string, { count: number; resetTime: number }>()
 const RATE_LIMIT = 10
 const RATE_WINDOW_MS = 60_000
 
-function checkRateLimit(ip: string): boolean {
+function checkLocalRateLimit(ip: string): boolean {
     const now = Date.now()
-    const entry = rateLimitMap.get(ip)
+    const entry = localRateLimit.get(ip)
     if (!entry || now > entry.resetTime) {
-        rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_WINDOW_MS })
+        if (localRateLimit.size > 2_000) localRateLimit.clear()
+        localRateLimit.set(ip, { count: 1, resetTime: now + RATE_WINDOW_MS })
         return true
     }
     if (entry.count >= RATE_LIMIT) return false
-    entry.count++
+    entry.count += 1
     return true
 }
 
-// Prune stale rate-limit entries every 5 minutes
-setInterval(() => {
-    const now = Date.now()
-    for (const [ip, entry] of rateLimitMap.entries()) {
-        if (now > entry.resetTime) rateLimitMap.delete(ip)
+async function checkRateLimit(ip: string): Promise<boolean> {
+    try {
+        const limiter = new Ratelimit({
+            redis: Redis.fromEnv(),
+            limiter: Ratelimit.slidingWindow(RATE_LIMIT, '1 m'),
+            prefix: 'api:university-email',
+            ephemeralCache: new Map(),
+        })
+        return (await limiter.limit(ip)).success
+    } catch {
+        // Local fallback still limits bursts when Redis is unavailable; serverless instances
+        // cannot provide a globally consistent fallback, so production should configure Upstash.
+        return checkLocalRateLimit(ip)
     }
-}, 5 * 60_000)
-
-// ─── Schema ───────────────────────────────────────────────────────────────────
+}
 
 const Schema = z.object({
-    email: z.string().email('Please enter a valid email address.'),
+    email: z.string().trim().max(254).email('Please enter a valid email address.').transform(value => value.toLowerCase()),
 })
-
-// ─── Messages ─────────────────────────────────────────────────────────────────
 
 const MSG_GENERIC_BLOCKED = [
     'Personal, generic, or disposable email providers are not allowed for university registration.',
@@ -56,32 +61,25 @@ const MSG_NOT_RECOGNIZED = [
     `\n\nIf your institution should be listed, contact ${process.env.SUPPORT_EMAIL ?? 'support@edumeetup.com'} with your official domain.`,
 ].join(' ')
 
-// ─── Handler ──────────────────────────────────────────────────────────────────
-
 export async function POST(request: Request) {
-    // Rate limiting
-    const ip =
-        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+    const ip = request.headers.get('x-nf-client-connection-ip')?.trim()
+        || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        || 'unknown'
 
-    if (!checkRateLimit(ip)) {
+    if (!(await checkRateLimit(ip))) {
         return NextResponse.json(
             { valid: false, message: 'Too many validation requests. Please try again in a minute.' },
-            { status: 429 }
+            { status: 429, headers: { 'Retry-After': '60', 'Cache-Control': 'no-store' } }
         )
     }
 
-    // Parse body
     let body: unknown
     try {
         body = await request.json()
     } catch {
-        return NextResponse.json(
-            { valid: false, message: 'Invalid request body.' },
-            { status: 400 }
-        )
+        return NextResponse.json({ valid: false, message: 'Invalid request body.' }, { status: 400 })
     }
 
-    // Validate schema
     const parsed = Schema.safeParse(body)
     if (!parsed.success) {
         return NextResponse.json(
@@ -90,32 +88,31 @@ export async function POST(request: Request) {
         )
     }
 
-    const { email } = parsed.data
-    const domain = extractDomain(email)
-
+    const domain = extractDomain(parsed.data.email)
     if (!domain) {
-        return NextResponse.json({ valid: false, message: 'Could not extract domain from email.' })
+        return NextResponse.json({ valid: false, message: 'Could not extract domain from email.' }, { status: 400 })
     }
 
-    // Ensure caches are warm (handles cold start)
     await waitForCache()
 
-    // 1. Block disposable / generic / personal providers
     if (isDisposableDomain(domain)) {
-        return NextResponse.json({ valid: false, message: MSG_GENERIC_BLOCKED })
+        return NextResponse.json({ valid: false, message: MSG_GENERIC_BLOCKED }, {
+            headers: { 'Cache-Control': 'no-store' },
+        })
     }
 
-    // 2. Look up in university domain map
     const info = getUniversityInfo(domain)
-
     if (info) {
         return NextResponse.json({
             valid: true,
             universityName: info.name,
             country: info.country,
+        }, {
+            headers: { 'Cache-Control': 'no-store' },
         })
     }
 
-    // 3. No match
-    return NextResponse.json({ valid: false, message: MSG_NOT_RECOGNIZED })
+    return NextResponse.json({ valid: false, message: MSG_NOT_RECOGNIZED }, {
+        headers: { 'Cache-Control': 'no-store' },
+    })
 }

@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { validateFileSignature } from '@/lib/file-signature'
 
-const MAX_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
-const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']
+const MAX_SIZE_BYTES = 2 * 1024 * 1024
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const
+const EXTENSION_BY_TYPE: Record<(typeof ALLOWED_TYPES)[number], string> = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+}
 
 async function uploadToR2(buffer: Buffer, key: string, mimeType: string): Promise<string> {
     const accountId = process.env.R2_ACCOUNT_ID
@@ -28,11 +34,10 @@ async function uploadToR2(buffer: Buffer, key: string, mimeType: string): Promis
         Key: key,
         Body: buffer,
         ContentType: mimeType,
-        // Logos are public — no cache-control issues
         CacheControl: 'public, max-age=31536000, immutable',
     }))
 
-    return `${publicUrl}/${key}`
+    return `${publicUrl.replace(/\/$/, '')}/${key}`
 }
 
 export async function POST(req: NextRequest) {
@@ -54,9 +59,9 @@ export async function POST(req: NextRequest) {
     }
 
     const file = formData.get('file') as File | null
-    if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    if (!file || file.size <= 0) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (!ALLOWED_TYPES.includes(file.type as (typeof ALLOWED_TYPES)[number])) {
         return NextResponse.json({ error: 'Unsupported image type. Upload a PNG, JPG, WebP, or GIF.' }, { status: 422 })
     }
 
@@ -65,28 +70,20 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `Image is too large (${mb} MB). Max 2 MB.` }, { status: 422 })
     }
 
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-
-    // Magic byte validation — never trust file.type, it's client-controlled.
-    // For SVG, also checks for embedded <script> tags (XSS guard).
-    if (!validateFileSignature(buffer, file.type)) {
-        return NextResponse.json(
-            { error: 'File content does not match the declared type. Upload a genuine image file.' },
-            { status: 422 }
-        )
+    const mimeType = file.type as (typeof ALLOWED_TYPES)[number]
+    const buffer = Buffer.from(await file.arrayBuffer())
+    if (!validateFileSignature(buffer, mimeType)) {
+        return NextResponse.json({ error: 'File content does not match the declared type.' }, { status: 422 })
     }
 
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
-    const r2Key = `logos/${session.user.id}/${Date.now()}.${ext}`
+    // Derive the extension from the validated MIME type, never from the client filename.
+    const r2Key = `logos/${session.user.id}/${Date.now()}.${EXTENSION_BY_TYPE[mimeType]}`
 
-    let url: string
     try {
-        url = await uploadToR2(buffer, r2Key, file.type)
-    } catch (err) {
-        console.error('[Logo Upload] R2 upload failed:')
+        const url = await uploadToR2(buffer, r2Key, mimeType)
+        return NextResponse.json({ success: true, url })
+    } catch {
+        console.error('[Logo Upload] R2 upload failed')
         return NextResponse.json({ error: 'Upload failed. Check R2 config.' }, { status: 500 })
     }
-
-    return NextResponse.json({ success: true, url })
 }

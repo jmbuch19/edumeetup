@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, LayoutDashboard, Users, Zap, CalendarDays, MessageSquare, Mail, BookOpen, BarChart2, Settings, Shield, MapPin, HelpCircle, User, LogOut, GraduationCap } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Users, Zap, CalendarDays, Clock, MessageSquare, Mail, BookOpen, BarChart2, Settings, Shield, MapPin, HelpCircle, User, LogOut, GraduationCap } from 'lucide-react'
 import { UniversityAvatar } from './university-avatar'
 import { ContactAdminPanel } from '@/components/layout/contact-admin-panel'
 import { signOut } from 'next-auth/react'
@@ -21,6 +21,7 @@ const NAV_ITEMS: NavItem[] = [
     { href: '/university/dashboard?tab=interests', label: 'Student Discovery', icon: <Users className="h-4.5 w-4.5" /> },
     { href: '/university/dashboard?tab=overview', label: 'Action Centre', icon: <Zap className="h-4.5 w-4.5" /> },
     { href: '/university/meetings', label: 'Meetings', icon: <CalendarDays className="h-4.5 w-4.5" /> },
+    { href: '/university/availability', label: 'Availability', icon: <Clock className="h-4.5 w-4.5" /> },
     { href: '/university/engagement', label: 'Engagement', icon: <MessageSquare className="h-4.5 w-4.5" /> },
     { href: '/university/messages', label: 'Messages', icon: <Mail className="h-4.5 w-4.5" /> },
     { href: '/university/dashboard?tab=programs', label: 'Programs', icon: <BookOpen className="h-4.5 w-4.5" /> },
@@ -50,7 +51,6 @@ function NavContent({ userName, institutionName, logoUrl, uniId, senderEmail, li
     const [popoverOpen, setPopoverOpen] = useState(false)
     const stripRef = useRef<HTMLDivElement>(null)
 
-    // Close popover when clicking outside
     useEffect(() => {
         if (!popoverOpen) return
         const handler = (e: MouseEvent) => {
@@ -64,9 +64,8 @@ function NavContent({ userName, institutionName, logoUrl, uniId, senderEmail, li
 
     return (
         <div className="flex flex-col h-full" style={{ background: 'var(--navy)' }}>
-            {/* Logo */}
             <div className="flex items-center gap-3 px-6 py-5 border-b" style={{ borderColor: 'var(--navy-mid)' }}>
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xl flex-shrink-0 shadow-lg"
+                <div className="w-9 h-9 rounded-full flex shrink-0 items-center justify-center text-xl shadow-lg"
                     style={{ background: 'linear-gradient(135deg, var(--teal), var(--teal-light))', boxShadow: '0 0 0 3px rgba(13,148,136,0.3)' }}>
                     🌐
                 </div>
@@ -85,7 +84,6 @@ function NavContent({ userName, institutionName, logoUrl, uniId, senderEmail, li
                 )}
             </div>
 
-            {/* Live fair banner */}
             {liveFairHref && (
                 <Link href={liveFairHref} className="mx-3 mt-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold"
                     style={{ background: 'rgba(5,150,105,0.2)', color: '#34d399' }}>
@@ -94,13 +92,12 @@ function NavContent({ userName, institutionName, logoUrl, uniId, senderEmail, li
                 </Link>
             )}
 
-            {/* Main nav */}
             <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
                 <p className="text-[9px] font-semibold tracking-[2px] uppercase px-3 pb-2" style={{ color: 'rgba(255,255,255,0.3)' }}>Main</p>
                 {NAV_ITEMS.map(item => {
                     const active = pathname === item.href || (item.href !== '/university/dashboard' && pathname.startsWith(item.href.split('?')[0]))
                     const isAlumni = item.href === '/university/alumni'
-                    
+
                     let badge = item.badge
                     let badgeColor = item.badgeColor
                     if (isAlumni && alumniCount && alumniCount > 0) {
@@ -149,7 +146,6 @@ function NavContent({ userName, institutionName, logoUrl, uniId, senderEmail, li
                 </div>
             </nav>
 
-            {/* Help & Contact Admin */}
             <div className="px-3 pb-1">
                 <button
                     onClick={() => setHelpOpen(true)}
@@ -163,9 +159,7 @@ function NavContent({ userName, institutionName, logoUrl, uniId, senderEmail, li
                 </button>
             </div>
 
-            {/* Profile strip — clickable, opens popover */}
             <div ref={stripRef} className="relative">
-                {/* Popover menu — appears above the strip */}
                 {popoverOpen && (
                     <div
                         className="absolute bottom-full left-3 right-3 mb-2 rounded-xl overflow-hidden shadow-xl z-50"
@@ -207,7 +201,6 @@ function NavContent({ userName, institutionName, logoUrl, uniId, senderEmail, li
                     </div>
                 )}
 
-                {/* Clickable strip */}
                 <button
                     onClick={() => setPopoverOpen(p => !p)}
                     className="w-full px-4 py-4 border-t flex items-center gap-3 transition-colors text-left"
@@ -245,14 +238,12 @@ export function UniversityNav(props: UniversityNavProps & { hamburgerOnly?: bool
 
     return (
         <>
-            {/* Desktop sidebar — hidden when hamburgerOnly */}
             {!hamburgerOnly && (
                 <aside className="hidden md:flex flex-col w-[260px] min-w-[260px] h-screen sticky top-0 overflow-hidden" style={{ background: 'var(--navy)' }}>
                     <NavContent {...navProps} />
                 </aside>
             )}
 
-            {/* Mobile hamburger button */}
             <button
                 onClick={() => setDrawerOpen(true)}
                 className="md:hidden p-2 rounded-lg text-white/80 hover:text-white transition-colors"
@@ -262,7 +253,6 @@ export function UniversityNav(props: UniversityNavProps & { hamburgerOnly?: bool
                 <Menu className="h-5 w-5" style={{ color: 'var(--navy)' }} />
             </button>
 
-            {/* Mobile drawer overlay */}
             {drawerOpen && (
                 <div className="fixed inset-0 z-50 md:hidden flex">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />

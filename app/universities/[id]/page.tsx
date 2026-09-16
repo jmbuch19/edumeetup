@@ -22,11 +22,9 @@ export default async function UniversityDetailPage({
 }) {
   const { id } = await params
 
-  // ── Auth check (optional — used to decide what to show) ───────────────────
   const session = await auth()
   const isLoggedIn = !!session?.user
 
-  // ── Security gate — VERIFIED + isPublic only ──────────────────────────────
   const uni = await prisma.university.findFirst({
     where: {
       id,
@@ -59,10 +57,8 @@ export default async function UniversityDetailPage({
     },
   })
 
-  // 404 if not found, not verified, or not public
   if (!uni) notFound()
 
-  // Check if this student has already expressed interest
   let alreadyExpressed = false
   if (session?.user?.role === 'STUDENT') {
     const existing = await prisma.interest.findFirst({
@@ -77,12 +73,9 @@ export default async function UniversityDetailPage({
 
   return (
     <div className="min-h-screen bg-slate-50">
-
-      {/* ── Hero header ──────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-slate-100">
         <div className="max-w-5xl mx-auto px-4 py-8">
           <div className="flex items-start gap-5">
-            {/* Logo — links to external website if available */}
             {uni.website ? (
               <a href={uni.website} target="_blank" rel="noopener noreferrer" title={`Visit ${uni.institutionName} website`}>
                 <UniversityLogo src={uni.logo} alt={uni.institutionName} size="lg" isVerified />
@@ -95,7 +88,6 @@ export default async function UniversityDetailPage({
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  {/* Institution name — links to external website */}
                   {uni.website ? (
                     <a
                       href={uni.website}
@@ -134,25 +126,22 @@ export default async function UniversityDetailPage({
                   </div>
                 </div>
 
-                {/* CTA — Book Meeting gated for guests */}
                 <div className="flex gap-2 shrink-0 flex-wrap">
-                  {uni.meetingLink && (
-                    isLoggedIn ? (
-                      <a href={uni.meetingLink} target="_blank" rel="noopener noreferrer">
-                        <Button variant="outline" className="gap-2">
-                          <Calendar className="h-4 w-4" />
-                          Book a Meeting
-                        </Button>
-                      </a>
-                    ) : (
-                      <Link href="/login">
-                        <Button variant="outline" className="gap-2">
-                          <Lock className="h-4 w-4 text-slate-400" />
-                          Book a Meeting
-                        </Button>
-                      </Link>
-                    )
-                  )}
+                  {session?.user?.role === 'STUDENT' ? (
+                    <Link href={`/student/book/${uni.id}`}>
+                      <Button variant="outline" className="gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Book a Meeting
+                      </Button>
+                    </Link>
+                  ) : !isLoggedIn ? (
+                    <Link href={`/login?callbackUrl=${encodeURIComponent(`/student/book/${uni.id}`)}`}>
+                      <Button variant="outline" className="gap-2">
+                        <Lock className="h-4 w-4 text-slate-400" />
+                        Book a Meeting
+                      </Button>
+                    </Link>
+                  ) : null}
                   {session?.user?.role === 'STUDENT' ? (
                     <ExpressInterestButton
                       universityId={uni.id}
@@ -169,7 +158,6 @@ export default async function UniversityDetailPage({
                 </div>
               </div>
 
-              {/* Quick stats */}
               <div className="flex gap-4 mt-4 flex-wrap">
                 {uni.totalStudents && (
                   <StatPill icon={Users} value={uni.totalStudents.toLocaleString()} label="Students" />
@@ -187,7 +175,6 @@ export default async function UniversityDetailPage({
             </div>
           </div>
 
-          {/* About */}
           {uni.about && (
             <p className="mt-5 text-slate-600 leading-relaxed max-w-3xl text-sm">
               {uni.about}
@@ -196,10 +183,7 @@ export default async function UniversityDetailPage({
         </div>
       </div>
 
-      {/* ── Body ─────────────────────────────────────────────────────────── */}
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
-
-        {/* ── Rep Contact — GATED for guests ───────────────────────────── */}
         {(uni.repName || uni.repEmail || uni.contactPhone || uni.contactEmail) && (
           <Card>
             <CardHeader className="pb-3">
@@ -246,7 +230,6 @@ export default async function UniversityDetailPage({
                   )}
                 </div>
               ) : (
-                /* ── SOFT GATE — inline blurred placeholder ────────────── */
                 <div className="relative">
                   <div className="grid sm:grid-cols-2 gap-4 select-none pointer-events-none"
                     style={{ filter: 'blur(5px)', opacity: 0.4 }}>
@@ -280,7 +263,6 @@ export default async function UniversityDetailPage({
           </Card>
         )}
 
-        {/* ── Programmes — multi-select via ProgramsCollapsible ───────────────── */}
         {uni.programList.length > 0 && (
           <ProgramsCollapsible
             programs={JSON.parse(JSON.stringify(uni.programList))}
@@ -289,7 +271,6 @@ export default async function UniversityDetailPage({
           />
         )}
 
-        {/* ── Documents — names visible, download gated ─────────────────── */}
         {uni.documents.length > 0 && (
           <Card>
             <CardHeader className="pb-3">
@@ -328,7 +309,6 @@ export default async function UniversityDetailPage({
           </Card>
         )}
 
-        {/* ── Events — fully visible ────────────────────────────────────── */}
         {uni.events.length > 0 && (
           <Card>
             <CardHeader className="pb-3">
@@ -359,7 +339,6 @@ export default async function UniversityDetailPage({
           </Card>
         )}
 
-        {/* ── Bottom CTA for guests ─────────────────────────────────────── */}
         {!isLoggedIn && (
           <div className="rounded-2xl border border-primary/20 p-8 text-center"
             style={{ background: 'linear-gradient(135deg, #f0f4ff, #e8eeff)' }}>
@@ -386,7 +365,6 @@ export default async function UniversityDetailPage({
   )
 }
 
-// ── Helper components ─────────────────────────────────────────────────────────
 function StatPill({ icon: Icon, value, label }: {
   icon: React.ComponentType<{ className?: string }>
   value: string

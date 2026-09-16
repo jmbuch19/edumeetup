@@ -8,11 +8,30 @@ import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import { AvailabilityProfileData, saveAllAvailabilityProfiles } from '@/app/university/availability/actions'
-import { DaysOfWeek, MeetingDurations, VideoProviders, DegreeLevels } from '@/lib/constants'
-import { AvailabilityProfile, DayOfWeek, VideoProvider } from '@prisma/client'
-import { Loader2, Plus, Trash2, Clock, MapPin, Copy } from 'lucide-react'
+import { DaysOfWeek, MeetingDurations, VideoProviders } from '@/lib/constants'
+import { AvailabilityProfile, DayOfWeek } from '@prisma/client'
+import { Loader2 } from 'lucide-react'
 
-// Helper to get default profile structure
+const COMMON_TIMEZONES = [
+    'UTC',
+    'America/New_York',
+    'America/Chicago',
+    'America/Denver',
+    'America/Los_Angeles',
+    'America/Phoenix',
+    'Asia/Kolkata',
+    'Europe/London',
+]
+
+function isValidTimezone(timezone: string) {
+    try {
+        Intl.DateTimeFormat(undefined, { timeZone: timezone })
+        return true
+    } catch {
+        return false
+    }
+}
+
 const createDefaultProfile = (day: DayOfWeek): AvailabilityProfileData => ({
     dayOfWeek: day,
     startTime: '09:00',
@@ -25,21 +44,18 @@ const createDefaultProfile = (day: DayOfWeek): AvailabilityProfileData => ({
     videoProvider: 'GOOGLE_MEET',
     eligibleDegreeLevels: ['Grad'],
     eligibleCountries: [],
-    timezone: 'UTC',  // rep's scheduling timezone — can be updated via profile settings
+    timezone: 'UTC',
 })
 
 export default function AvailabilityForm({
     initialAvailability = []
 }: {
-    initialAvailability: AvailabilityProfile[] // Array of Availability records
+    initialAvailability: AvailabilityProfile[]
 }) {
     const [isLoading, setIsLoading] = useState(false)
-
-    // Initialize state merging existing profiles with defaults for all days
     const [profiles, setProfiles] = useState<AvailabilityProfileData[]>(() => {
         return DaysOfWeek.map(dayObj => {
             const existing = initialAvailability.find(p => p.dayOfWeek === dayObj.value)
-            // If existing, map to data structure (handling optional fields)
             if (existing) {
                 return {
                     dayOfWeek: existing.dayOfWeek,
@@ -61,31 +77,48 @@ export default function AvailabilityForm({
         })
     })
 
-    const handleProfileChange = (day: DayOfWeek, field: keyof AvailabilityProfileData, value: any) => {
+    const handleProfileChange = <K extends keyof AvailabilityProfileData>(
+        day: DayOfWeek,
+        field: K,
+        value: AvailabilityProfileData[K]
+    ) => {
         setProfiles(prev => prev.map(p =>
             p.dayOfWeek === day ? { ...p, [field]: value } : p
         ))
     }
 
-    // Global setters (apply to all active days)
-    const applyToAll = (field: keyof AvailabilityProfileData, value: any) => {
+    const setAll = <K extends keyof AvailabilityProfileData>(
+        field: K,
+        value: AvailabilityProfileData[K],
+        notify = false
+    ) => {
         setProfiles(prev => prev.map(p => ({ ...p, [field]: value })))
-        toast.success(`Applied to all days`)
+        if (notify) toast.success('Applied to all days')
     }
 
     async function onSubmit() {
+        const timezone = profiles[0]?.timezone || 'UTC'
+        if (!isValidTimezone(timezone)) {
+            toast.error('Please enter a valid IANA timezone, for example America/New_York')
+            return
+        }
+        if (profiles.some(profile => profile.meetingDurationOptions.length === 0)) {
+            toast.error('Select at least one meeting duration')
+            return
+        }
+
         setIsLoading(true)
-        // Filter to only send active profiles? 
-        // No, we should send all state so we know which are active/inactive (inactive ones will be saved as inactive)
         const res = await saveAllAvailabilityProfiles(profiles)
         setIsLoading(false)
 
         if (res.error) {
             toast.error(res.error)
         } else {
-            toast.success("Availability saved successfully!")
+            toast.success('Availability saved successfully!')
         }
     }
+
+    const global = profiles[0]
 
     return (
         <div className="space-y-8">
@@ -99,13 +132,13 @@ export default function AvailabilityForm({
 
             <div className="grid gap-6">
                 {profiles.map((profile) => (
-                    <div key={profile.dayOfWeek} className={`p-4 rounded-lg border ${profile.isActive ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-50 border-slate-100 opacity-70'}`}>
-                        <div className="flex items-center gap-4 mb-4">
+                    <div key={profile.dayOfWeek} className={`rounded-lg border p-4 ${profile.isActive ? 'border-slate-200 bg-white shadow-sm' : 'border-slate-100 bg-slate-50 opacity-70'}`}>
+                        <div className="flex flex-wrap items-center gap-4">
                             <Switch
                                 checked={profile.isActive}
                                 onChange={(e) => handleProfileChange(profile.dayOfWeek, 'isActive', e.target.checked)}
                             />
-                            <span className="font-medium w-24">{DaysOfWeek.find(d => d.value === profile.dayOfWeek)?.label || ''}</span>
+                            <span className="w-24 font-medium">{DaysOfWeek.find(d => d.value === profile.dayOfWeek)?.label || ''}</span>
 
                             {profile.isActive && (
                                 <div className="flex items-center gap-2">
@@ -125,98 +158,135 @@ export default function AvailabilityForm({
                                 </div>
                             )}
                         </div>
-
-                        {profile.isActive && (
-                            <div className="pl-14 grid md:grid-cols-2 gap-4 text-sm text-slate-600">
-                                {/* Configuration per day (optional, could be global) */}
-                                {/* For MVP, let's keep it simple. Only show simple slots here. */}
-                            </div>
-                        )}
                     </div>
                 ))}
             </div>
 
-            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-6">
-                <h3 className="font-semibold text-lg">Global Settings</h3>
-                <p className="text-sm text-slate-500">These settings apply to all your available slots.</p>
+            {global && (
+                <div className="space-y-6 rounded-xl border border-slate-200 bg-slate-50 p-6">
+                    <div>
+                        <h3 className="text-lg font-semibold">Global Settings</h3>
+                        <p className="mt-1 text-sm text-slate-500">These settings apply to every day in this representative&apos;s schedule.</p>
+                    </div>
 
-                <div className="grid md:grid-cols-2 gap-8">
-                    <div className="space-y-4">
-                        <label className="text-sm font-medium">Meeting Duration</label>
-                        <div className="flex gap-4">
-                            {MeetingDurations.map(duration => (
-                                <div key={duration} className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id={`dur-${duration}`}
-                                        checked={profiles[0].meetingDurationOptions.includes(duration)}
-                                        onChange={(e) => {
-                                            const current = profiles[0].meetingDurationOptions
-                                            const newVal = e.target.checked
-                                                ? [...current, duration]
-                                                : current.filter(d => d !== duration)
-                                            applyToAll('meetingDurationOptions', newVal)
-                                        }}
-                                    />
-                                    <label htmlFor={`dur-${duration}`}>{duration} min</label>
-                                </div>
-                            ))}
+                    <div className="grid gap-8 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <label htmlFor="availability-timezone" className="text-sm font-medium">Scheduling timezone</label>
+                            <Input
+                                id="availability-timezone"
+                                list="availability-timezones"
+                                value={global.timezone}
+                                onChange={(e) => setAll('timezone', e.target.value)}
+                                placeholder="America/New_York"
+                                aria-invalid={!isValidTimezone(global.timezone)}
+                            />
+                            <datalist id="availability-timezones">
+                                {COMMON_TIMEZONES.map(timezone => <option key={timezone} value={timezone} />)}
+                            </datalist>
+                            <p className="text-xs text-slate-500">
+                                Use an IANA timezone. Weekly hours and student-facing slots are generated in this timezone.
+                            </p>
+                            {!isValidTimezone(global.timezone) && (
+                                <p className="text-xs text-red-600">Enter a valid timezone such as America/New_York.</p>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Meeting Duration</label>
+                            <div className="flex flex-wrap gap-4">
+                                {MeetingDurations.map(duration => (
+                                    <div key={duration} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id={`dur-${duration}`}
+                                            checked={global.meetingDurationOptions.includes(duration)}
+                                            onChange={(e) => {
+                                                const current = global.meetingDurationOptions
+                                                if (!e.target.checked && current.length === 1) {
+                                                    toast.error('At least one meeting duration is required')
+                                                    return
+                                                }
+                                                const next = e.target.checked
+                                                    ? Array.from(new Set([...current, duration]))
+                                                    : current.filter(d => d !== duration)
+                                                setAll('meetingDurationOptions', next)
+                                            }}
+                                        />
+                                        <label htmlFor={`dur-${duration}`}>{duration} min</label>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Video Provider</label>
+                            <Select
+                                value={global.videoProvider}
+                                onValueChange={(value) => setAll('videoProvider', value as AvailabilityProfileData['videoProvider'], true)}
+                            >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {VideoProviders.map(provider => (
+                                        <SelectItem key={provider.value} value={provider.value}>{provider.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            {global.videoProvider === 'EXTERNAL_LINK' && (
+                                <Input
+                                    placeholder="Paste your meeting link here..."
+                                    value={global.externalLink || ''}
+                                    onChange={(e) => setAll('externalLink', e.target.value)}
+                                />
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Daily Meeting Cap</label>
+                            <Input
+                                type="number"
+                                min={1}
+                                max={20}
+                                value={global.dailyCap}
+                                onChange={(e) => setAll('dailyCap', Math.min(20, Math.max(1, Number(e.target.value) || 1)))}
+                                className="w-28"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Minimum Lead Time</label>
+                            <Select
+                                value={String(global.minLeadTimeHours)}
+                                onValueChange={(value) => setAll('minLeadTimeHours', Number(value), true)}
+                            >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="6">6 Hours</SelectItem>
+                                    <SelectItem value="12">12 Hours</SelectItem>
+                                    <SelectItem value="24">24 Hours</SelectItem>
+                                    <SelectItem value="48">48 Hours</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Buffer Between Meetings</label>
+                            <Select
+                                value={String(global.bufferMinutes)}
+                                onValueChange={(value) => setAll('bufferMinutes', Number(value), true)}
+                            >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="0">No buffer</SelectItem>
+                                    <SelectItem value="5">5 Minutes</SelectItem>
+                                    <SelectItem value="10">10 Minutes</SelectItem>
+                                    <SelectItem value="15">15 Minutes</SelectItem>
+                                    <SelectItem value="30">30 Minutes</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
-
-                    <div className="space-y-4">
-                        <label className="text-sm font-medium">Video Provider</label>
-                        <Select
-                            value={profiles[0].videoProvider}
-                            onValueChange={(val) => applyToAll('videoProvider', val)}
-                        >
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {VideoProviders.map(p => (
-                                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        {profiles[0].videoProvider === 'EXTERNAL_LINK' && (
-                            <Input
-                                placeholder="Paste your meeting link here..."
-                                value={profiles[0].externalLink || ''}
-                                onChange={(e) => applyToAll('externalLink', e.target.value)}
-                            />
-                        )}
-                    </div>
-
-                    <div className="space-y-4">
-                        <label className="text-sm font-medium">Daily Meeting Cap</label>
-                        <Input
-                            type="number"
-                            value={profiles[0].dailyCap}
-                            onChange={(e) => applyToAll('dailyCap', parseInt(e.target.value) || 8)}
-                            className="w-24"
-                        />
-                    </div>
-
-                    <div className="space-y-4">
-                        <label className="text-sm font-medium">Minimum Lead Time (Hours)</label>
-                        <Select
-                            value={String(profiles[0].minLeadTimeHours)}
-                            onValueChange={(val) => applyToAll('minLeadTimeHours', parseInt(val))}
-                        >
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="6">6 Hours</SelectItem>
-                                <SelectItem value="12">12 Hours</SelectItem>
-                                <SelectItem value="24">24 Hours</SelectItem>
-                                <SelectItem value="48">48 Hours</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
                 </div>
-            </div>
+            )}
         </div>
     )
 }

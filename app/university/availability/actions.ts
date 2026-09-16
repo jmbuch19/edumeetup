@@ -3,16 +3,8 @@
 import { requireUniversityUser } from "@/lib/auth/requireAuth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
-import { DayOfWeek, VideoProvider } from "@prisma/client"
+import { DayOfWeek, Prisma, VideoProvider } from "@prisma/client"
 import { z } from "zod"
-
-// ─── HH:MM Normalizer ─────────────────────────────────────────────────────────
-// Guarantees stored startTime/endTime are always zero-padded "HH:MM" in 24h format.
-// This is the format discipline that makes lexicographic comparison safe in the
-// booking action. It must be applied on EVERY write path, never trusted from input.
-//
-// Accepts: "9:00", "09:00", "9:5", "9:05"
-// Rejects: anything that isn't parseable as HH:MM 24h
 
 function normalizeHHMM(raw: string): string {
     const match = raw.trim().match(/^(\d{1,2}):(\d{2})$/)
@@ -23,8 +15,6 @@ function normalizeHHMM(raw: string): string {
     if (m < 0 || m > 59) throw new Error(`Minute out of range in "${raw}"`)
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
-
-// ─── Input Validation ─────────────────────────────────────────────────────────
 
 const HHMM_REGEX = /^\d{1,2}:\d{2}$/
 
@@ -41,7 +31,6 @@ const profileSchema = z.object({
     externalLink: z.string().url().optional().or(z.literal('')),
     eligibleDegreeLevels: z.array(z.string()),
     eligibleCountries: z.array(z.string()),
-    // Canonical scheduling timezone for this profile (IANA format)
     timezone: z.string().min(1).max(100).refine(
         tz => { try { Intl.DateTimeFormat(undefined, { timeZone: tz }); return true } catch { return false } },
         { message: 'Invalid IANA timezone' }
@@ -50,16 +39,12 @@ const profileSchema = z.object({
 
 export type AvailabilityProfileData = z.infer<typeof profileSchema>
 
-// ─── Shared: normalize and validate times ────────────────────────────────────
-
 function normalizeTimes(data: AvailabilityProfileData) {
     const startTime = normalizeHHMM(data.startTime)
     const endTime = normalizeHHMM(data.endTime)
     if (startTime >= endTime) throw new Error(`startTime (${startTime}) must be before endTime (${endTime})`)
     return { ...data, startTime, endTime }
 }
-
-// ─── Shared: look up university for current user ──────────────────────────────
 
 async function getUniversityForSession(userId: string, role: string) {
     if (role === 'UNIVERSITY') {
@@ -76,7 +61,16 @@ async function getUniversityForSession(userId: string, role: string) {
     return null
 }
 
-// ─── Save single profile ─────────────────────────────────────────────────────
+async function invalidateFutureUnbookedSlots(tx: Prisma.TransactionClient, repId: string) {
+    await tx.availabilitySlot.deleteMany({
+        where: {
+            repId,
+            startTime: { gt: new Date() },
+            isBooked: false,
+            meetingId: null,
+        },
+    })
+}
 
 export async function saveAvailabilityProfile(rawData: AvailabilityProfileData) {
     const session = await requireUniversityUser().catch(() => null)
@@ -96,49 +90,53 @@ export async function saveAvailabilityProfile(rawData: AvailabilityProfileData) 
     if (!university) return { error: "University profile not found" }
 
     try {
-        const existing = await prisma.availabilityProfile.findFirst({
-            where: { repId: session.user.id, dayOfWeek: data.dayOfWeek },
-        })
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            const existing = await tx.availabilityProfile.findFirst({
+                where: { repId: session.user.id, dayOfWeek: data.dayOfWeek },
+            })
 
-        if (existing) {
-            await prisma.availabilityProfile.update({
-                where: { id: existing.id },
-                data: {
-                    startTime: data.startTime,   // ← normalized
-                    endTime: data.endTime,     // ← normalized
-                    isActive: data.isActive,
-                    timezone: data.timezone,
-                    meetingDurationOptions: data.meetingDurationOptions,
-                    bufferMinutes: data.bufferMinutes,
-                    minLeadTimeHours: data.minLeadTimeHours,
-                    dailyCap: data.dailyCap,
-                    videoProvider: data.videoProvider,
-                    externalLink: data.externalLink,
-                    eligibleDegreeLevels: data.eligibleDegreeLevels,
-                    eligibleCountries: data.eligibleCountries,
-                },
-            })
-        } else {
-            await prisma.availabilityProfile.create({
-                data: {
-                    universityId: university.id,
-                    repId: session.user.id,
-                    dayOfWeek: data.dayOfWeek,
-                    startTime: data.startTime,   // ← normalized
-                    endTime: data.endTime,     // ← normalized
-                    isActive: data.isActive,
-                    timezone: data.timezone,
-                    meetingDurationOptions: data.meetingDurationOptions,
-                    bufferMinutes: data.bufferMinutes,
-                    minLeadTimeHours: data.minLeadTimeHours,
-                    dailyCap: data.dailyCap,
-                    videoProvider: data.videoProvider,
-                    externalLink: data.externalLink,
-                    eligibleDegreeLevels: data.eligibleDegreeLevels,
-                    eligibleCountries: data.eligibleCountries,
-                },
-            })
-        }
+            if (existing) {
+                await tx.availabilityProfile.update({
+                    where: { id: existing.id },
+                    data: {
+                        startTime: data.startTime,
+                        endTime: data.endTime,
+                        isActive: data.isActive,
+                        timezone: data.timezone,
+                        meetingDurationOptions: data.meetingDurationOptions,
+                        bufferMinutes: data.bufferMinutes,
+                        minLeadTimeHours: data.minLeadTimeHours,
+                        dailyCap: data.dailyCap,
+                        videoProvider: data.videoProvider,
+                        externalLink: data.externalLink,
+                        eligibleDegreeLevels: data.eligibleDegreeLevels,
+                        eligibleCountries: data.eligibleCountries,
+                    },
+                })
+            } else {
+                await tx.availabilityProfile.create({
+                    data: {
+                        universityId: university.id,
+                        repId: session.user.id,
+                        dayOfWeek: data.dayOfWeek,
+                        startTime: data.startTime,
+                        endTime: data.endTime,
+                        isActive: data.isActive,
+                        timezone: data.timezone,
+                        meetingDurationOptions: data.meetingDurationOptions,
+                        bufferMinutes: data.bufferMinutes,
+                        minLeadTimeHours: data.minLeadTimeHours,
+                        dailyCap: data.dailyCap,
+                        videoProvider: data.videoProvider,
+                        externalLink: data.externalLink,
+                        eligibleDegreeLevels: data.eligibleDegreeLevels,
+                        eligibleCountries: data.eligibleCountries,
+                    },
+                })
+            }
+
+            await invalidateFutureUnbookedSlots(tx, session.user.id)
+        })
 
         revalidatePath('/university/availability')
         return { success: true }
@@ -148,13 +146,10 @@ export async function saveAvailabilityProfile(rawData: AvailabilityProfileData) 
     }
 }
 
-// ─── Save all profiles (bulk replace) ────────────────────────────────────────
-
 export async function saveAllAvailabilityProfiles(rawProfiles: AvailabilityProfileData[]) {
     const session = await requireUniversityUser().catch(() => null)
     if (!session) return { error: "Unauthorized" }
 
-    // Validate and normalize every profile before touching the DB
     const normalized: AvailabilityProfileData[] = []
     for (const raw of rawProfiles) {
         const parsed = profileSchema.safeParse(raw)
@@ -172,32 +167,33 @@ export async function saveAllAvailabilityProfiles(rawProfiles: AvailabilityProfi
     if (!university) return { error: "University profile not found" }
 
     try {
-        // Delete-then-recreate is the correct bulk-replace pattern.
-        // Avoids zombie records and the non-unique upsert complexity.
-        await prisma.$transaction([
-            prisma.availabilityProfile.deleteMany({
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            await tx.availabilityProfile.deleteMany({
                 where: { repId: session.user.id },
-            }),
-            prisma.availabilityProfile.createMany({
-                data: normalized.map(p => ({
-                    universityId: university.id,
-                    repId: session.user.id,
-                    dayOfWeek: p.dayOfWeek,
-                    startTime: p.startTime,   // ← normalized
-                    endTime: p.endTime,     // ← normalized
-                    isActive: p.isActive,
-                    timezone: p.timezone,
-                    meetingDurationOptions: p.meetingDurationOptions,
-                    bufferMinutes: p.bufferMinutes,
-                    minLeadTimeHours: p.minLeadTimeHours,
-                    dailyCap: p.dailyCap,
-                    videoProvider: p.videoProvider,
-                    externalLink: p.externalLink,
-                    eligibleDegreeLevels: p.eligibleDegreeLevels,
-                    eligibleCountries: p.eligibleCountries,
-                })),
-            }),
-        ])
+            })
+            if (normalized.length > 0) {
+                await tx.availabilityProfile.createMany({
+                    data: normalized.map(p => ({
+                        universityId: university.id,
+                        repId: session.user.id,
+                        dayOfWeek: p.dayOfWeek,
+                        startTime: p.startTime,
+                        endTime: p.endTime,
+                        isActive: p.isActive,
+                        timezone: p.timezone,
+                        meetingDurationOptions: p.meetingDurationOptions,
+                        bufferMinutes: p.bufferMinutes,
+                        minLeadTimeHours: p.minLeadTimeHours,
+                        dailyCap: p.dailyCap,
+                        videoProvider: p.videoProvider,
+                        externalLink: p.externalLink,
+                        eligibleDegreeLevels: p.eligibleDegreeLevels,
+                        eligibleCountries: p.eligibleCountries,
+                    })),
+                })
+            }
+            await invalidateFutureUnbookedSlots(tx, session.user.id)
+        })
 
         revalidatePath('/university/availability')
         return { success: true }
@@ -206,8 +202,6 @@ export async function saveAllAvailabilityProfiles(rawProfiles: AvailabilityProfi
         return { error: "Failed to save availability" }
     }
 }
-
-// ─── Read ─────────────────────────────────────────────────────────────────────
 
 export async function getAvailabilityProfiles() {
     const session = await requireUniversityUser().catch(() => null)

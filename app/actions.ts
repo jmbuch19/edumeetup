@@ -90,7 +90,7 @@ export async function registerStudent(prevState: any, formData: FormData) {
     }
 
     // RATE LIMIT (By IP)
-    const ip = getIpFromHeaders()
+    const ip = await getIpFromHeaders()
     if (!registerRateLimiter.check(ip)) {
         return { error: 'Too many registration attempts. Please try again later.' }
     }

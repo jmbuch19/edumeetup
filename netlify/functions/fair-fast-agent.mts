@@ -6,35 +6,16 @@ import {
 } from '../../lib/fair/notifications'
 
 /**
- * fair-fast-agent — runs every 15 minutes
- *
- * JOB 1: fair-auto-live
- *   UPCOMING fairs whose startDate <= now → set LIVE + fire go-live notifications
- *
- * JOB 2: fair-auto-complete
- *   LIVE fairs whose endDate <= now → set COMPLETED + fire ended notifications
- *
- * Idempotency: SystemLog dedup key prevents double-processing.
- * Never throws — all errors are caught and logged.
+ * fair-fast-agent — native Netlify Scheduled Function, every 15 minutes.
+ * Netlify invokes this directly; do not require custom incoming cron headers.
  */
-export default async function handler(req: Request): Promise<Response> {
-    // ── Optional auth check (same pattern as process-deletions.mts) ────────────
-    const cronSecret = process.env.CRON_SECRET
-    if (cronSecret) {
-        const auth = req.headers.get('x-cron-secret') ?? req.headers.get('Authorization')
-        if (auth !== cronSecret && auth !== `Bearer ${cronSecret}`) {
-            return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
-        }
-    }
-
+export default async function handler(): Promise<Response> {
     const startTime = Date.now()
     console.log(`[FAIR-FAST-AGENT] Run started at ${new Date().toISOString()}`)
     const results = { fairAutoLive: 0, fairAutoComplete: 0, errors: 0 }
 
     try {
         const now = new Date()
-
-        // ── JOB 1: fair-auto-live ─────────────────────────────────────────────────
         const fairsToGoLive = await prisma.fairEvent.findMany({
             where: { status: 'UPCOMING', startDate: { lte: now } },
         })
@@ -46,13 +27,8 @@ export default async function handler(req: Request): Promise<Response> {
             })
             if (existing) continue
 
-            await prisma.fairEvent.update({
-                where: { id: fair.id },
-                data: { status: 'LIVE' },
-            })
-
+            await prisma.fairEvent.update({ where: { id: fair.id }, data: { status: 'LIVE' } })
             triggerFairGoLiveNotifications(fair.id).catch(console.error)
-
             await prisma.systemLog.create({
                 data: {
                     level: 'INFO',
@@ -62,10 +38,8 @@ export default async function handler(req: Request): Promise<Response> {
                 },
             })
             results.fairAutoLive++
-            console.log(`[FAIR-FAST-AGENT] Fair "${fair.name}" set to LIVE`)
         }
 
-        // ── JOB 2: fair-auto-complete ─────────────────────────────────────────────
         const fairsToComplete = await prisma.fairEvent.findMany({
             where: { status: 'LIVE', endDate: { lte: now } },
         })
@@ -81,9 +55,7 @@ export default async function handler(req: Request): Promise<Response> {
                 where: { id: fair.id },
                 data: { status: 'COMPLETED', endedAt: now },
             })
-
             triggerFairEndedNotifications(fair.id).catch(console.error)
-
             await prisma.systemLog.create({
                 data: {
                     level: 'INFO',
@@ -93,7 +65,6 @@ export default async function handler(req: Request): Promise<Response> {
                 },
             })
             results.fairAutoComplete++
-            console.log(`[FAIR-FAST-AGENT] Fair "${fair.name}" set to COMPLETED`)
         }
     } catch (error) {
         console.error('[FAIR-FAST-AGENT] Fatal error:', error)
@@ -101,15 +72,10 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     const duration = Date.now() - startTime
-    console.log(`[FAIR-FAST-AGENT] Complete in ${duration}ms`, results)
-
-    return new Response(JSON.stringify({ ok: true, duration, results }), {
-        status: 200,
+    return new Response(JSON.stringify({ ok: results.errors === 0, duration, results }), {
+        status: results.errors === 0 ? 200 : 500,
         headers: { 'Content-Type': 'application/json' },
     })
 }
 
-// Runs every 15 minutes
-export const config: Config = {
-    schedule: '*/15 * * * *',
-}
+export const config: Config = { schedule: '*/15 * * * *' }

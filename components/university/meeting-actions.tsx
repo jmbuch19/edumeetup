@@ -9,7 +9,8 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { cancelMeeting, updateMeeting } from '@/app/actions'
+import { cancelUniversityMeeting } from '@/app/actions/meeting-university'
+import { updateMeeting } from '@/app/actions'
 import { toast } from 'sonner'
 import {
     Dialog,
@@ -38,7 +39,7 @@ export function MeetingActions({ meeting }: MeetingActionsProps) {
     const handleCancel = async () => {
         if (!confirm("Are you sure you want to cancel this meeting? This action cannot be undone and will notify all participants.")) return
 
-        const res = await cancelMeeting(meeting.id)
+        const res = await cancelUniversityMeeting(meeting.id, 'Cancelled by university')
         if (res.success) {
             toast.success("Meeting canceled")
         } else {

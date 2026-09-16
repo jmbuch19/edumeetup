@@ -2,7 +2,7 @@
 import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
-import Email from "next-auth/providers/email"
+import ResendProvider from "next-auth/providers/resend"
 import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
 import { Resend } from "resend"
@@ -188,14 +188,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         maxAge: 7 * 24 * 60 * 60, // 7 days for students & universities
     },
     providers: [
-        Email({
-            // NextAuth requires `server` to exist for validation even when
-            // sendVerificationRequest fully overrides sending (via Resend below).
-            server: {
-                host: 'localhost',
-                port: 25,
-                auth: { user: 'placeholder', pass: 'placeholder' }
-            },
+        ResendProvider({
+            // Preserve the historical provider id so existing signIn("email")
+            // calls and callback URLs continue working without a migration.
+            id: "email",
+            name: "Email",
+            apiKey: process.env.RESEND_API_KEY,
             from: process.env.EMAIL_FROM || 'EdUmeetup <noreply@edumeetup.com>',
             maxAge: 15 * 60, // 15 minutes
             sendVerificationRequest: async ({ identifier, url }) => {

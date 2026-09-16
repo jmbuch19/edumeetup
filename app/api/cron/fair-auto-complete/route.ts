@@ -9,11 +9,13 @@ import { NextResponse } from 'next/server'
  */
 export async function GET(request: Request) {
     const cronSecret = process.env.CRON_SECRET
-    if (cronSecret) {
-        const auth = request.headers.get('Authorization')
-        if (auth !== `Bearer ${cronSecret}`) {
-            return Response.json({ error: 'Unauthorized' }, { status: 401 })
-        }
+    if (!cronSecret) {
+        return NextResponse.json({ error: 'Not configured' }, { status: 503 })
+    }
+
+    const auth = request.headers.get('Authorization')
+    if (auth !== `Bearer ${cronSecret}`) {
+        return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const now = new Date()
