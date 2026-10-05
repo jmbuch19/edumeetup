@@ -76,10 +76,10 @@ npm run dev
 ```
 
 ### Manual Verification Steps
-1. **Mock Users**:
-   - **University Admin**: `admin@techuni.edu` / `password123`
-   - **Rep**: `rep1@techuni.edu` / `password123`
-   - **Student**: `alice@student.com` / `password123`
+1. **Mock Users** (password: set `SEED_DEMO_PASSWORD` before seeding, or use the one printed by the seed script):
+   - **University Admin**: `admin@techuni.edu`
+   - **Rep**: `rep1@techuni.edu`
+   - **Student**: `alice@student.com`
 
 2. **Test Flow**:
    - Log in as `alice@student.com`.

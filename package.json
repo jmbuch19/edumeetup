@@ -9,7 +9,7 @@
     "build": "prisma generate --schema=./prisma/schema.prisma && next build",
     "db:deploy": "prisma migrate deploy",
     "typecheck": "node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit",
-    "test": "tsx --test lib/__tests__/auth-ratelimit.test.ts lib/__tests__/meeting-state.test.ts lib/__tests__/outreach-utils.test.ts lib/__tests__/university-domains.test.ts"
+    "test": "tsx --test lib/__tests__/auth-ratelimit.test.ts lib/__tests__/meeting-state.test.ts lib/__tests__/outreach-utils.test.ts lib/__tests__/university-domains.test.ts lib/__tests__/seed-password.test.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.58",
