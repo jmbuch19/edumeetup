@@ -12,6 +12,7 @@ import { sendMagicLink } from '@/lib/magic-link'
 import { logAudit } from '@/lib/audit'
 import { isDisposableEmail } from '@/lib/email-blocklist'
 import { hasMxRecord } from '@/lib/email-validate'
+import { checkInstitutionalEmail, normalizeEmail, UNIVERSITY_REGISTRATION_MESSAGES } from '@/lib/university-registration'
 import { loginRateLimiter, registerRateLimiter, contactRateLimiter, supportRateLimiter, interestRateLimiter, inviteRateLimiter } from '@/lib/ratelimit'
 import { headers } from 'next/headers'
 import { registerStudentSchema, registerUniversitySchema, loginSchema, createProgramSchema, createMeetingSchema, supportTicketSchema, publicInquirySchema, studentProfileSchema, pdoRegistrationSchema, studentInteractionSchema } from '@/lib/schemas'
@@ -46,6 +47,7 @@ interface UniversityRegistrationData {
     accreditation: string
     scholarshipsAvailable: boolean
     website_url?: string // Honeypot
+    turnstileToken?: string // Cloudflare Turnstile token
     programs: ProgramData[]
     // Certification
     certAuthority: boolean
@@ -912,61 +914,58 @@ export async function logout() {
 }
 
 export async function registerUniversityWithPrograms(data: UniversityRegistrationData) {
+    const M = UNIVERSITY_REGISTRATION_MESSAGES
     const {
-        email, institutionName, country, city, website,
+        institutionName, country, city, website,
         repName, repDesignation, contactPhone, accreditation, scholarshipsAvailable,
         programs,
         certAuthority, certLegitimacy, certPurpose, certAccountability,
         detectedUniversityName, detectedCountry,
     } = data as any
+    const email = normalizeEmail(data?.email)
 
-    if (!email || !institutionName) {
-        return { error: 'Missing required fields' }
+    if (!email || !institutionName || !Array.isArray(programs)) {
+        return { error: M.missingFields }
     }
 
     // HONEYPOT
-    if (data.website_url) return { error: 'Spam detected' }
+    if (data.website_url) return { error: M.generic }
+
+    // BOT CHECK (Cloudflare Turnstile) — same verifier as the other public forms
+    const turnstileCheck = await verifyTurnstile(data.turnstileToken)
+    if (!turnstileCheck.success) {
+        console.warn('[registerUniversity] Turnstile check failed:', turnstileCheck.error)
+        return { error: M.botCheckFailed, botCheckFailed: true }
+    }
 
     // RATE LIMIT
     const ip = (await headers()).get('x-forwarded-for') || 'unknown'
     if (!registerRateLimiter.check(ip)) {
-        return { error: 'Too many attempts. Please verify you are human.' }
+        return { error: M.rateLimited }
     }
 
-    // SERVER-SIDE EMAIL DOMAIN VALIDATION
-    try {
-        const { extractDomain, getUniversityInfo, waitForCache } = await import('@/lib/university-domains')
-        const BLOCKED = new Set(['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'proton.me', 'icloud.com', 'yandex.com', 'mail.ru', 'qq.com', '163.com', 'rediffmail.com'])
-        const domain = extractDomain(email)
-        if (!domain || BLOCKED.has(domain)) {
-            return { error: 'Personal or generic email providers are not allowed. Please use an official university email.' }
-        }
-        await waitForCache()
-        const info = getUniversityInfo(domain)
-        if (!info) {
-            return { error: 'Email domain not recognized as an official university. Please use your institutional email.' }
-        }
-    } catch (validationErr) {
-        console.warn('[registerUniversity] Email validation skipped due to error:', validationErr)
+    // SERVER-SIDE EMAIL DOMAIN VALIDATION — fails closed
+    const domainCheck = await checkInstitutionalEmail(email)
+    if (!domainCheck.ok) {
+        return { error: domainCheck.error }
     }
 
     try {
         // ── 1. Duplicate guard ────────────────────────────────────────────────
-        const existingUser = await prisma.user.findUnique({
-            where: { email },
-            include: { university: true }
+        // Never modify an existing account from this public, unauthenticated
+        // form (that allowed anyone to flip someone else's account to UNIVERSITY
+        // and lock them out). Existing users must sign in instead.
+        const existingUser = await prisma.user.findFirst({
+            where: { email: { equals: email, mode: 'insensitive' } },
+            select: { id: true },
         })
-
-        // Block only if they already have a university profile
-        if (existingUser?.university) {
-            if (existingUser.isActive) {
-                await sendMagicLink(email, '/university/dashboard').catch(() => null)
-            }
-            return { success: true, isAutoApproved: true, message: "Registered successfully! Check your email to login." }
+        if (existingUser) {
+            console.warn('[registerUniversity] Registration refused: email already belongs to an existing user', { userId: existingUser.id })
+            return { error: M.accountExists, accountExists: true }
         }
 
         // ── 2. Parent Institution Auto-Detection ──────────────────────────────
-        const emailDomain = email.split('@')[1]?.toLowerCase()
+        const emailDomain = domainCheck.domain
         let parentMatch: { id: string; groupSlug: string | null; institutionName: string } | null = null
 
         if (emailDomain) {
@@ -1028,19 +1027,8 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
             }
         }
 
-        // ── 3. Create or update user + university record ───────────────────────
-        if (existingUser) {
-            // User exists but has no university record — just create the University
-            await prisma.user.update({
-                where: { id: existingUser.id },
-                data: {
-                    role: 'UNIVERSITY',
-                    name: repName || existingUser.name,
-                    university: { create: universityData }
-                }
-            })
-        } else {
-            // Fresh registration — create user + university together
+        // ── 3. Create user + university record (new accounts only) ────────────
+        try {
             await prisma.user.create({
                 data: {
                     email,
@@ -1048,6 +1036,13 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
                     university: { create: universityData }
                 }
             })
+        } catch (createErr) {
+            // Concurrent registration with the same email → unique constraint
+            if ((createErr as { code?: string })?.code === 'P2002') {
+                console.warn('[registerUniversity] Registration refused: duplicate email (race)')
+                return { error: M.accountExists, accountExists: true }
+            }
+            throw createErr
         }
 
         console.log(
@@ -1065,9 +1060,9 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
                 to: email,
                 subject: `✅ Your EdUmeetup account is verified under ${parentMatch!.institutionName}`,
                 html: generateEmailHtml('Account Automatically Verified', `
-                    <p>Your institution <strong>${institutionName}</strong> has been automatically verified on EdUmeetup as a school under <strong>${parentMatch!.institutionName}</strong>.</p>
+                    <p>Your institution <strong>${escapeHtml(institutionName)}</strong> has been automatically verified on EdUmeetup as a school under <strong>${escapeHtml(parentMatch!.institutionName)}</strong>.</p>
                     <p>No manual review is needed — your dashboard is ready immediately after you sign in via the login link sent to this email.</p>
-                    <p>Your school profile will appear on EdUmeetup alongside other institutions in the ${parentMatch!.institutionName} group.</p>
+                    <p>Your school profile will appear on EdUmeetup alongside other institutions in the ${escapeHtml(parentMatch!.institutionName)} group.</p>
                 `)
             })
         } else {
@@ -1083,8 +1078,9 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
         }
 
     } catch (error) {
-        console.error('Registration failed:')
-        return { error: 'Registration failed: ' + (error as Error).message }
+        // Log full details server-side only; never return raw error text to the client.
+        console.error('[registerUniversity] Registration failed:', error)
+        return { error: M.generic }
     }
 
     return { success: true, email, message: "Registered! Check your email to login." }

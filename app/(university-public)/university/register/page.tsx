@@ -7,6 +7,8 @@ import { School, ChevronRight, Plus, Trash2, CheckCircle, ArrowLeft, Loader2, Ch
 import { toast } from 'sonner'
 import { registerUniversityWithPrograms } from '@/app/actions'
 import { DegreeLevels } from '@/lib/constants'
+import { TurnstileWidget } from '@/components/ui/TurnstileWidget'
+import Link from 'next/link'
 
 const FIELD_CATEGORIES = ["Computer Science", "Engineering", "Business", "Data Science", "Health Sciences", "Social Sciences", "Arts & Humanities", "Law", "Architecture", "Others"]
 const INTAKES = ["Fall", "Spring", "Summer"]
@@ -37,6 +39,20 @@ export default function UniversityRegisterPage() {
     const [step, setStep] = useState(1)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const [accountExists, setAccountExists] = useState(false)
+
+    // Bot check (Cloudflare Turnstile).
+    // null = still verifying; '' = widget unavailable/blocked (server decides); otherwise a token.
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+    // Bumping the key remounts the widget to get a fresh token (tokens are single-use).
+    const [turnstileKey, setTurnstileKey] = useState(0)
+    // Stable callbacks so the widget doesn't re-render / re-challenge on every keystroke.
+    const handleTurnstileVerify = useCallback((token: string) => setTurnstileToken(token), [])
+    const handleTurnstileExpire = useCallback(() => setTurnstileToken(null), [])
+    const resetTurnstile = useCallback(() => {
+        setTurnstileToken(null)
+        setTurnstileKey(k => k + 1)
+    }, [])
 
     // Email validation state
     const [emailValidation, setEmailValidation] = useState<EmailValidationState>({ status: 'idle' })
@@ -223,6 +239,14 @@ export default function UniversityRegisterPage() {
         }
         setLoading(true)
         setError('')
+        setAccountExists(false)
+        const fail = (message: string) => {
+            setError(message)
+            toast.error(message)
+            setLoading(false)
+            // The Turnstile token has been used — fetch a fresh one for the next attempt.
+            resetTurnstile()
+        }
         try {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const formattedPrograms = programs.map(({ id, ...p }) => ({
@@ -231,19 +255,23 @@ export default function UniversityRegisterPage() {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 fieldCategory: p.fieldCategory as any
             }))
-            const result = await registerUniversityWithPrograms({ ...formData, programs: formattedPrograms })
+            const result = await registerUniversityWithPrograms({
+                ...formData,
+                programs: formattedPrograms,
+                turnstileToken: turnstileToken || '',
+            })
             if (result?.error) {
-                setError(result.error)
-                toast.error(result.error)
-                setLoading(false)
+                setAccountExists('accountExists' in result && !!result.accountExists)
+                fail(result.error)
             } else if (result?.success && result?.email) {
                 toast.success(result.message || "Registration successful! Check your email.")
                 window.location.href = `/auth/verify-request?email=${encodeURIComponent(result.email)}`
+            } else {
+                // Never leave the button spinning on an unexpected response.
+                fail('Something went wrong. Please try again.')
             }
         } catch {
-            setError("Something went wrong")
-            toast.error("An unexpected error occurred.")
-            setLoading(false)
+            fail('An unexpected error occurred. Please try again.')
         }
     }
 
@@ -689,8 +717,22 @@ export default function UniversityRegisterPage() {
                             {error && (
                                 <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm border border-red-200">
                                     {error}
+                                    {accountExists && (
+                                        <div className="mt-2">
+                                            <Link href="/university-login" className="font-semibold underline">
+                                                Go to University Login
+                                            </Link>
+                                        </div>
+                                    )}
                                 </div>
                             )}
+
+                            {/* Invisible Cloudflare Turnstile bot check — verified server-side */}
+                            <TurnstileWidget
+                                key={turnstileKey}
+                                onVerify={handleTurnstileVerify}
+                                onExpire={handleTurnstileExpire}
+                            />
 
                             <div className="flex justify-between pt-6">
                                 <Button variant="ghost" onClick={() => setStep(3)}>
@@ -700,9 +742,9 @@ export default function UniversityRegisterPage() {
                                     onClick={handleSubmit}
                                     size="lg"
                                     className="px-8 transition-all"
-                                    disabled={loading || !formData.certAuthority || !formData.certLegitimacy || !formData.certPurpose || !formData.certAccountability || !isEmailValid}
+                                    disabled={loading || turnstileToken === null || !formData.certAuthority || !formData.certLegitimacy || !formData.certPurpose || !formData.certAccountability || !isEmailValid}
                                 >
-                                    {loading ? "Registering..." : "Confirm & Register"}
+                                    {loading ? "Registering..." : turnstileToken === null ? "Verifying you're human..." : "Confirm & Register"}
                                 </Button>
                             </div>
                         </div>
