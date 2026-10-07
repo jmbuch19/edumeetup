@@ -1,9 +1,21 @@
 import { PrismaClient } from '@prisma/client'
 import { hash } from 'bcryptjs'
+import { assertSeedAllowed, resolveSeedPassword } from '../lib/seed-password'
 
 const prisma = new PrismaClient()
 
+// Passwords for seed accounts come from the environment, or are generated
+// randomly and printed once. Never hard-code credentials here.
+//   SEED_ADMIN_PASSWORD — admin accounts
+//   SEED_DEMO_PASSWORD  — demo student / university accounts
 async function main() {
+    assertSeedAllowed()
+
+    const adminPassword = resolveSeedPassword('SEED_ADMIN_PASSWORD')
+    const demoPassword = resolveSeedPassword('SEED_DEMO_PASSWORD')
+    const adminHash = await hash(adminPassword.password, 12)
+    const demoHash = await hash(demoPassword.password, 12)
+
     // Create Admin
     const adminEmail = 'jaydeep@edumeetup.com'
     const admin = await prisma.user.upsert({
@@ -11,7 +23,7 @@ async function main() {
         update: {},
         create: {
             email: adminEmail,
-            password: await hash('password123', 12),
+            password: adminHash,
             role: 'ADMIN',
             isActive: true,
         },
@@ -22,10 +34,10 @@ async function main() {
     const adminEmail2 = 'admin@edumeetup.com' // Renamed to avoid conflict with previous adminEmail
     const admin2 = await prisma.user.upsert({ // Renamed to avoid conflict with previous admin
         where: { email: adminEmail2 },
-        update: { password: await hash('admin123', 12) }, // Force update password
+        update: { password: adminHash }, // Force update password
         create: {
             email: adminEmail2,
-            password: await hash('admin123', 12),
+            password: adminHash,
             role: 'ADMIN',
             isActive: true
         }
@@ -39,7 +51,7 @@ async function main() {
         update: {},
         create: {
             email: studentEmail,
-            password: await hash('password123', 12),
+            password: demoHash,
             role: 'STUDENT',
             isActive: true,
             student: {
@@ -65,7 +77,7 @@ async function main() {
         update: {},
         create: {
             email: uniEmail,
-            password: await hash('password123', 12),
+            password: demoHash,
             role: 'UNIVERSITY',
             isActive: true,
             university: {
@@ -92,6 +104,14 @@ async function main() {
         },
     })
     console.log({ uni })
+
+    // Print generated passwords once (only when not supplied via env)
+    if (adminPassword.generated) {
+        console.log(`\n[seed] Generated admin password (set SEED_ADMIN_PASSWORD to choose your own): ${adminPassword.password}`)
+    }
+    if (demoPassword.generated) {
+        console.log(`[seed] Generated demo account password (set SEED_DEMO_PASSWORD to choose your own): ${demoPassword.password}`)
+    }
 }
 
 main()

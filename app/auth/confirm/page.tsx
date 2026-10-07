@@ -1,13 +1,24 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, useSyncExternalStore } from 'react'
+import { getSafeMagicLinkCallbackUrl } from '@/lib/safe-redirect'
+
+// window.location.origin on the client; undefined during server render/hydration
+// (avoids hydration mismatches while still letting same-origin dev/preview links work).
+const subscribeNoop = () => () => {}
+function useCurrentOrigin(): string | undefined {
+    return useSyncExternalStore(subscribeNoop, () => window.location.origin, () => undefined)
+}
 
 function ConfirmContent() {
     const params = useSearchParams()
-    const url = params.get('url')
+    // Only follow links to our own NextAuth email-callback endpoint.
+    // Rejects external hosts, javascript:/data: URLs and protocol-relative tricks.
+    const currentOrigin = useCurrentOrigin()
+    const safeUrl = getSafeMagicLinkCallbackUrl(params.get('url'), currentOrigin)
 
-    if (!url || !url.includes('/api/auth/callback/email')) {
+    if (!safeUrl) {
         return (
             <div style={styles.card}>
                 <div style={styles.icon}>⚠️</div>
@@ -28,7 +39,14 @@ function ConfirmContent() {
             <p style={styles.text}>
                 Click the button below to complete your sign-in. This link is single-use and expires in 15 minutes.
             </p>
-            <button onClick={() => { window.location.href = url! }} style={styles.btn}>
+            <button
+                onClick={() => {
+                    // Re-validate at click time against the live origin (defence in depth)
+                    const target = getSafeMagicLinkCallbackUrl(safeUrl, window.location.origin)
+                    if (target) window.location.assign(target)
+                }}
+                style={styles.btn}
+            >
                 Sign In to EdUmeetup →
             </button>
             <p style={styles.warning}>

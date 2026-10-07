@@ -3,9 +3,9 @@
  *
  * Refreshes both the Hipo university map and the disposable-email-domains blocklist.
  *
- * Netlify Scheduled Function — runs automatically every Sunday at midnight UTC.
- * Can also be triggered manually:
- *   GET /api/refresh-university-domains?secret=uni-refresh-secret-2025
+ * Not currently scheduled (the domain lists also load lazily on first use).
+ * Trigger manually with the cron secret in the Authorization header:
+ *   curl -H "Authorization: Bearer $CRON_SECRET" https://edumeetup.com/api/refresh-university-domains
  */
 import { NextResponse } from 'next/server'
 import { refreshDomains } from '@/lib/university-domains'
