@@ -428,7 +428,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // Role-aware fallback — avoids UX flash when middleware hasn't corrected yet
             const role = (params as any)?.token?.role
             if (role === 'ADMIN') return `${baseUrl}/admin/dashboard`
-            if (role === 'EVENT_PLANNER') return `${baseUrl}/planner/dashboard`
+            if (role === 'EVENT_PLANNER') return `${baseUrl}/fair-ops`
             if (role === 'UNIVERSITY' || role === 'UNIVERSITY_REP') return `${baseUrl}/university/dashboard`
             if (role === 'ALUMNI') return `${baseUrl}/alumni/dashboard`
             return `${baseUrl}/student/dashboard`
@@ -521,7 +521,7 @@ export async function requireRole(role: "ADMIN" | "UNIVERSITY" | "STUDENT" | "EV
     const user = await requireUser()
     if (user.role !== role) {
         if (user.role === 'ADMIN') redirect('/admin/dashboard')
-        if (user.role === 'EVENT_PLANNER') redirect('/planner/dashboard')
+        if (user.role === 'EVENT_PLANNER') redirect('/fair-ops')
         if (user.role === 'STUDENT') redirect('/student/dashboard')
         if (user.role === 'UNIVERSITY' || user.role === 'UNIVERSITY_REP') redirect('/university/dashboard')
         redirect('/login')

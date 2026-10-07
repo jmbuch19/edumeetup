@@ -1,4 +1,5 @@
 import { getToken } from "next-auth/jwt"
+import { homePathForRole } from "@/lib/role-home"
 import { NextResponse, type NextRequest } from "next/server"
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
@@ -146,13 +147,12 @@ export default async function middleware(req: NextRequest) {
     // Redirect logged-in users away from login/register pages
     // NOTE: '/' is NOT in this list — it is handled as isPublicRoute above
     if (isAuthRoute && isLoggedIn) {
-        if (role === 'ADMIN') return NextResponse.redirect(new URL('/admin/dashboard', nextUrl))
-        if (role === 'UNIVERSITY' || role === 'UNIVERSITY_REP') return NextResponse.redirect(new URL('/university/dashboard', nextUrl))
-        if (role === 'STUDENT') return NextResponse.redirect(new URL('/student/dashboard', nextUrl))
-        if (role === 'ALUMNI') return NextResponse.redirect(new URL('/alumni/dashboard', nextUrl))
-        if (role === 'EVENT_PLANNER') return NextResponse.redirect(new URL('/fair-ops', nextUrl))
         // Unknown / unset role — let them through rather than loop
-        return NextResponse.next()
+        if (!role) return NextResponse.next()
+        // The cookie decodes, but the session may have been invalidated server-side
+        // (deactivated, sessionVersion bump). /auth/session-check verifies it with
+        // auth() and either continues to the dashboard or clears the stale cookie.
+        return NextResponse.redirect(new URL(`/auth/session-check${nextUrl.search}`, nextUrl))
     }
 
     // Redirect unauthenticated users away from protected routes
@@ -172,14 +172,7 @@ export default async function middleware(req: NextRequest) {
 
     // Cross-role enforcement — strictly bounce unauthorized access even if role is undefined
     if (isLoggedIn) {
-        const getDest = (r: typeof role) => {
-            if (r === 'ADMIN') return '/admin/dashboard'
-            if (r === 'UNIVERSITY' || r === 'UNIVERSITY_REP') return '/university/dashboard'
-            if (r === 'STUDENT') return '/student/dashboard'
-            if (r === 'ALUMNI') return '/alumni/dashboard'
-            if (r === 'EVENT_PLANNER') return '/fair-ops'
-            return '/'
-        }
+        const getDest = homePathForRole
 
         if (isAdminRoute && role !== 'ADMIN') return NextResponse.redirect(new URL(getDest(role), nextUrl))
         if (isUniversityRoute && role !== 'UNIVERSITY' && role !== 'UNIVERSITY_REP') return NextResponse.redirect(new URL(getDest(role), nextUrl))
