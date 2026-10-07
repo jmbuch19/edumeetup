@@ -24,12 +24,13 @@ try {
 
 console.log('GROQ_API_KEY set:', !!process.env.GROQ_API_KEY)
 
+const MODEL = process.env.GROQ_CHAT_MODEL?.trim() || 'openai/gpt-oss-120b'
 const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
 
 try {
-  console.log('\nCalling generateText with llama-3.3-70b-versatile...')
+  console.log(`\nCalling generateText with ${MODEL}...`)
   const { text } = await generateText({
-    model: groq('llama-3.3-70b-versatile'),
+    model: groq(MODEL),
     prompt: 'Reply with exactly: "EdUmeetup bot works!"',
     stopWhen: stepCountIs(1),
   })

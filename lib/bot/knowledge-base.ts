@@ -1,7 +1,7 @@
 // lib/bot/knowledge-base.ts
 // Tier 0 — Platform Knowledge Base
 // Structured as a keyed section map so getKnowledge can return only the relevant section.
-// Groq/Llama 3.3 70B knows general study abroad facts — we only store EdUmeetup-specific info.
+// The Groq-hosted model knows general study abroad facts — we only store EdUmeetup-specific info.
 
 export interface KnowledgeSection {
     title: string

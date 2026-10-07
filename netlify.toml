@@ -52,6 +52,7 @@
 #
 # AI / quotas (when enabled):
 #   GROQ_API_KEY
+#   GROQ_CHAT_MODEL (optional, default openai/gpt-oss-120b)
 #   ANTHROPIC_API_KEY
 #   UPSTASH_REDIS_REST_URL
 #   UPSTASH_REDIS_REST_TOKEN
