@@ -78,3 +78,7 @@ deployed_*.css
 
 # One-off prompt fragments
 spec.txt.txt
+
+# Editor/AI snapshot folders and Windows shortcuts
+.snapshots/
+*.lnk

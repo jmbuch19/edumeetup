@@ -4,7 +4,7 @@ import { sendEmail, generateEmailHtml } from '@/lib/email'
 
 /**
  * GET /api/cron/alumni-nudge
- * Schedule: 9am UTC on the 1st of every other month (vercel.json).
+ * Schedule: 9am UTC on the 1st of every other month (netlify/functions).
  * Nudges verified, non-suspended alumni who haven't been nudged in 60+ days
  * to refresh their profile.
  */

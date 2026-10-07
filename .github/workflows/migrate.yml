@@ -5,6 +5,18 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch: # re-run by hand after a failure, e.g. a Neon outage
+
+# Never run two migrations against the same database at once
+# (two quick merges to main used to start overlapping runs).
+concurrency:
+  group: prisma-migrate-production
+  cancel-in-progress: false
+
+# Deliberately NOT gated on CI: Netlify deploys main as soon as it is pushed,
+# and migrations (~40 s) must land before the new code (~2 min build) goes
+# live. Waiting for CI would put the code ahead of the schema. Keep CI green
+# by requiring it on pull requests instead (branch protection on main).
 
 # 2. What the robot does
 jobs:

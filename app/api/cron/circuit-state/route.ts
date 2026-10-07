@@ -4,7 +4,7 @@ import { sendEmail, generateEmailHtml } from '@/lib/email'
 
 /**
  * GET /api/cron/circuit-state
- * Schedule: midnight UTC daily (vercel.json).
+ * Schedule: midnight UTC daily (netlify/functions).
  * Advances FairCircuit state machine:
  *   PUBLISHED → ONGOING when startDate has passed
  *   ONGOING   → COMPLETED when endDate has passed

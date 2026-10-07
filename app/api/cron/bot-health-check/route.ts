@@ -4,7 +4,7 @@ import { sendEmail, generateEmailHtml } from '@/lib/email'
 
 /**
  * GET /api/cron/bot-health-check
- * Schedule: every hour at :15 (vercel.json).
+ * Schedule: every hour at :15 (netlify/functions).
  * Scans the previous hour of BOT_TRACE / BOT_ERROR logs for silent failures
  * and emails an admin alert when thresholds are breached.
  *
