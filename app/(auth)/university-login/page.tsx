@@ -9,6 +9,7 @@ import { SubmitButton } from "@/components/SubmitButton"
 import { Input } from "@/components/ui/input"
 import { Building2, AlertCircle, Clock, CheckCircle2, Info, ShieldCheck } from "lucide-react"
 import { loginUniversity } from "@/app/actions"
+import { UNIVERSITY_LOGIN_ERRORS } from "@/lib/university-login"
 
 function UniversityLoginForm() {
     const searchParams = useSearchParams()
@@ -28,8 +29,9 @@ function UniversityLoginForm() {
     useEffect(() => {
         const errorType = searchParams.get('error')
         if (errorType === 'NotUniversityEmail') setError("Please use your official university email address")
-        if (errorType === 'PendingVerification') setError("Your university account is pending admin verification. You'll receive an email once approved.")
-        if (errorType === 'AccountDeactivated') setError(`Your account has been deactivated. Contact ${process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? 'support@edumeetup.com'}.`)
+        if (errorType && errorType in UNIVERSITY_LOGIN_ERRORS) {
+            setError(UNIVERSITY_LOGIN_ERRORS[errorType as keyof typeof UNIVERSITY_LOGIN_ERRORS])
+        }
         if (errorType === 'EmailSignin') setError("The magic link has expired")
         if (errorType === 'Verification') setError("This link has already been used")
     }, [searchParams])
@@ -275,7 +277,7 @@ function UniversityLoginForm() {
                 <div className="mt-6">
                     <button
                         type="button"
-                        onClick={() => signIn('google')}
+                        onClick={() => signIn('google', { callbackUrl: '/university/dashboard' })}
                         className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                     >
                         <svg className="h-5 w-5" viewBox="0 0 24 24">

@@ -3,6 +3,7 @@
 
 import { redirect } from 'next/navigation'
 import { verifyTurnstile } from '@/lib/turnstile'
+import { UNIVERSITY_LOGIN_ERRORS, universityLoginBlock } from '@/lib/university-login'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, EmailTemplates, generateEmailHtml } from '@/lib/email'
@@ -227,7 +228,7 @@ export async function registerStudent(prevState: any, formData: FormData) {
 
 
 export async function loginUniversity(formData: FormData) {
-    const email = formData.get('email') as string
+    const email = ((formData.get('email') as string) ?? '').trim().toLowerCase()
     const token = formData.get('cf-turnstile-response') as string
 
     const turnstileCheck = await verifyTurnstile(token)
@@ -251,19 +252,37 @@ export async function loginUniversity(formData: FormData) {
         return { error: "Please use your official university email (e.g. name@university.edu). Personal emails are not accepted." }
     }
 
-    // 3. Rate Limit
-    const ip = (await headers()).get('x-forwarded-for') || 'unknown'
-    // Note: We use a separate limiter for login if needed, or reuse generic. 
-    // For now, let's rely on Auth.js built-in rate limit or adding a check here.
-    // Let's use the register limiter for now or skip if Auth.js handles it.
-    // Auth.js `signIn` callback handles per-email rate limiting.
+    // 3. Account check — refuse up front instead of claiming a link was sent.
+    // Without this, an unregistered address got a link that silently created a
+    // STUDENT account, and pending universities got a link to an error page.
+    const account = await prisma.user.findUnique({
+        where: { email },
+        select: { role: true, isActive: true, university: { select: { verificationStatus: true } } },
+    })
+    const block = universityLoginBlock(account)
+    if (block) {
+        return { error: UNIVERSITY_LOGIN_ERRORS[block] }
+    }
 
     try {
-        await signIn("email", {
+        // With redirect: false, a refusal from the signIn callback (e.g. rate limit)
+        // comes back as an /auth/error URL rather than an exception.
+        const result = await signIn("email", {
             email,
             redirect: false,
             redirectTo: '/university/dashboard'
         })
+        const errorCode = typeof result === 'string' && result.includes('/auth/error')
+            ? new URL(result, 'https://edumeetup.com').searchParams.get('error')
+            : null
+        if (errorCode === 'RateLimited') {
+            return { error: "Too many attempts. Please try again later." }
+        }
+        if (errorCode) {
+            return { error: errorCode in UNIVERSITY_LOGIN_ERRORS
+                ? UNIVERSITY_LOGIN_ERRORS[errorCode as keyof typeof UNIVERSITY_LOGIN_ERRORS]
+                : "We couldn't send a login link to this address. Please contact support." }
+        }
         return { success: true, message: "Magic link sent! Check your inbox." }
     } catch (error) {
         // Always rethrow NEXT_REDIRECT — Next.js needs it
@@ -950,6 +969,7 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
         return { error: domainCheck.error }
     }
 
+    let isAutoApproved = false
     try {
         // ── 1. Duplicate guard ────────────────────────────────────────────────
         // Never modify an existing account from this public, unauthenticated
@@ -982,7 +1002,7 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
             })
         }
 
-        const isAutoApproved = !!parentMatch
+        isAutoApproved = !!parentMatch
         const verificationStatus = isAutoApproved ? 'VERIFIED' : 'PENDING'
 
         const universityData = {
@@ -1050,8 +1070,12 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
             (isAutoApproved ? ` — AUTO-APPROVED under parent: ${parentMatch!.institutionName}` : ' — PENDING admin review')
         )
 
-        // ── 4. Send magic link ────────────────────────────────────────────────
-        await sendMagicLink(email, '/university/dashboard')
+        // ── 4. Send magic link — only if the account can actually sign in now.
+        // A PENDING university would land on an error page; it logs in via
+        // /university-login once an admin approves it.
+        if (isAutoApproved) {
+            await sendMagicLink(email, '/university/dashboard')
+        }
 
         // ── 5. Notification emails ────────────────────────────────────────────
         if (isAutoApproved) {
@@ -1083,7 +1107,9 @@ export async function registerUniversityWithPrograms(data: UniversityRegistratio
         return { error: M.generic }
     }
 
-    return { success: true, email, message: "Registered! Check your email to login." }
+    return isAutoApproved
+        ? { success: true, email, pendingReview: false, message: "Registered! Check your email to login." }
+        : { success: true, email, pendingReview: true, message: "Registration received — we'll email you once it's approved." }
 }
 
 
