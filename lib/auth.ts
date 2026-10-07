@@ -8,6 +8,7 @@ import Credentials from "next-auth/providers/credentials"
 import { Resend } from "resend"
 import { redirect } from "next/navigation"
 import { authConfig } from "./auth.config"
+import { isUniversityIntent, universityLoginBlock } from "./university-login"
 
 // ==============================================================================
 // 1. RATE LIMITER
@@ -180,6 +181,20 @@ async function sendMagicLinkEmail(to: string, url: string) {
 // 4. AUTH CONFIG
 // ==============================================================================
 
+/** Auth.js keeps the OAuth callbackUrl in a cookie between redirect and callback. */
+async function startedFromUniversityPortal(): Promise<boolean> {
+    try {
+        const { cookies } = await import('next/headers')
+        const jar = await cookies()
+        const callbackUrl =
+            jar.get('__Secure-authjs.callback-url')?.value ??
+            jar.get('authjs.callback-url')?.value
+        return isUniversityIntent(callbackUrl ? decodeURIComponent(callbackUrl) : null)
+    } catch {
+        return false
+    }
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
     ...authConfig,
     adapter: PrismaAdapter(prisma) as any,
@@ -251,7 +266,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         ] : [])
     ],
     callbacks: {
-        async signIn({ user }) {
+        async signIn({ user, account }) {
             const email = user.email
             if (!email) return false
 
@@ -282,6 +297,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
                 if (dbUser && !dbUser.isActive) {
                     return `/auth/error?error=AccountDeactivated`
+                }
+
+                // Google sign-in started from the university portal: refuse unless a
+                // university account already exists. This runs before the adapter
+                // creates a user, so unregistered staff no longer become STUDENTs.
+                if (account?.provider === 'google' && await startedFromUniversityPortal()) {
+                    const block = universityLoginBlock(dbUser)
+                    if (block) return `/university-login?error=${block}`
                 }
 
                 if (dbUser) {
@@ -419,7 +442,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             if (account?.provider === 'email') {
                 try {
                     const { headers } = await import('next/headers');
-                    const headersList = headers();
+                    const headersList = await headers();
                     const ip = (headersList as any).get('x-forwarded-for') || (headersList as any).get('x-real-ip') || 'unknown';
                     
                     await prisma.systemLog.create({

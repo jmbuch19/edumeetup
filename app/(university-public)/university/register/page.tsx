@@ -265,7 +265,8 @@ export default function UniversityRegisterPage() {
                 fail(result.error)
             } else if (result?.success && result?.email) {
                 toast.success(result.message || "Registration successful! Check your email.")
-                window.location.href = `/auth/verify-request?email=${encodeURIComponent(result.email)}`
+                const pending = 'pendingReview' in result && result.pendingReview ? '&pending=1' : ''
+                window.location.href = `/auth/verify-request?email=${encodeURIComponent(result.email)}${pending}`
             } else {
                 // Never leave the button spinning on an unexpected response.
                 fail('Something went wrong. Please try again.')
