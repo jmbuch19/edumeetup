@@ -1,6 +1,6 @@
 // lib/bot/system-prompt.ts
 // Compact system prompt — embeds EdUmeetup platform knowledge directly.
-// Groq (Llama 3.3 70B) handles general study abroad Q&A from its own training.
+// The Groq-hosted model handles general study abroad Q&A from its own training.
 // Only 2 tools available: searchInternalUniversities, getUpcomingFairs.
 // Max 1 tool call per request to stay within Netlify's 10-second function limit.
 

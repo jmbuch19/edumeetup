@@ -1,5 +1,5 @@
 // app/api/chat/route.ts
-// EdUmeetup Admissions Concierge Bot — Groq (Llama 3.3 70B Versatile)
+// EdUmeetup Admissions Concierge Bot — Groq (model from GROQ_CHAT_MODEL, see lib/ai.ts)
 
 // Streaming response — changes Netlify timeout from "10s total" to "10s idle".
 // First token arrives ~1s, resets the clock — full reply completes easily.
@@ -10,7 +10,7 @@ import { streamText, tool, stepCountIs } from 'ai'
 import { z } from 'zod'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
-import { groq } from '@/lib/ai'
+import { groq, getGroqChatModelId, groqProviderOptions } from '@/lib/ai'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
@@ -247,7 +247,8 @@ export async function POST(req: NextRequest) {
       // streamText changes Netlify timeout from "10s total" to "10s idle".
       // First token arrives ~1s, resets the clock — full reply completes easily.
       const result = streamText({
-        model: groq('llama-3.3-70b-versatile'),
+        model: groq(getGroqChatModelId()),
+        providerOptions: groqProviderOptions(),
 
         system: systemPrompt,
         messages,

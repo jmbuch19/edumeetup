@@ -22,6 +22,7 @@ const envSchema = z.object({
     
     // Third-party APIs
     GROQ_API_KEY: z.string().min(1).optional(),
+    GROQ_CHAT_MODEL: z.string().min(1).optional(), // defaults to openai/gpt-oss-120b (lib/ai.ts)
     TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().min(1).optional(),
 })

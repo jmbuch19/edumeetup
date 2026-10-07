@@ -72,6 +72,7 @@ The production magic-link path uses Resend. SMTP variables are not part of the r
 Configure keys for the features actually enabled in production:
 
 - `GROQ_API_KEY` — Admissions Concierge route
+- `GROQ_CHAT_MODEL` (optional) — Groq model id for the chat; defaults to `openai/gpt-oss-120b`
 - `ANTHROPIC_API_KEY` — authenticated student adviser where enabled
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
