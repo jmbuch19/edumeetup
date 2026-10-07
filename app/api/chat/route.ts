@@ -20,11 +20,29 @@ import { getQuotaStatus, consumeMessage } from '@/lib/bot/quota'
 import { scoreConversation } from '@/lib/bot/lead-scorer'
 import * as Sentry from '@sentry/nextjs'
 import { verifyTurnstile } from '@/lib/turnstile'
+import {
+  HUMAN_COOKIE, HUMAN_COOKIE_TTL_SEC, createHumanCookie, verifyHumanCookie,
+  decideAnonAccess, sanitizeMessages,
+} from '@/lib/chat/access'
 
 export const maxDuration = 30
 
 // Lazy rate-limiter — initialised inside the handler so missing Redis env vars
 // only skip rate-limiting, never crash the whole function at module load time.
+// Stricter limiter for anonymous visitors whose browser couldn't run Turnstile
+// (ad blocker / CSP / network). They still get answers, just fewer per hour.
+function getFallbackRatelimit(): Ratelimit | null {
+  try {
+    return new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(8, '1 h'),
+      prefix: 'bot:chat:unverified',
+    })
+  } catch {
+    return null
+  }
+}
+
 function getRatelimit(): Ratelimit | null {
   try {
     return new Ratelimit({
@@ -43,8 +61,8 @@ function getRatelimit(): Ratelimit | null {
 export async function POST(req: NextRequest) {
   // ── Helper to mock AI streams for immediate blocks ──
   const mockTextStream = (text: string) => new Response(
-    `0:${JSON.stringify(text)}\n`, 
-    { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Vercel-AI-Data-Stream': 'v1' } }
+    text,
+    { headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
   );
 
   // ── Observability: one traceId per turn, timings in ms from request start ──
@@ -56,10 +74,38 @@ export async function POST(req: NextRequest) {
 
   return Sentry.startSpan({ name: 'bot.chat', op: 'ai' }, async (span) => {
     try {
-      const { messages, studentId } = await req.json()
+      const body = await req.json().catch(() => null)
+      // NOTE: any client-supplied studentId is deliberately ignored — the profile
+      // used for context comes only from the authenticated session (see below).
+      const messages = sanitizeMessages(body?.messages)
 
-      if (!messages || !Array.isArray(messages)) {
-        return NextResponse.json({ error: 'messages array required' }, { status: 400 })
+      if (!messages) {
+        return NextResponse.json({ error: 'Please type a message to send.' }, { status: 400 })
+      }
+
+      // Resolve identity from the session only.
+      const session = await auth()
+      const userId = session?.user?.id ?? null
+      let studentId: string | null = null
+      let studentContext = null
+      if (userId) {
+        try {
+          const student = await prisma.student.findUnique({
+            where: { userId },
+            select: {
+              id: true,
+              fullName: true, fieldOfInterest: true, budgetRange: true,
+              preferredDegree: true, preferredCountries: true,
+              englishTestType: true, englishScore: true,
+              currentStatus: true, country: true,
+            }
+          })
+          if (student) {
+            const { id, ...ctx } = student
+            studentId = id
+            studentContext = ctx
+          }
+        } catch { /* non-fatal */ }
       }
 
       span.setAttribute('bot.traceId', traceId)
@@ -123,20 +169,50 @@ export async function POST(req: NextRequest) {
 
       timings.auth = Date.now() - t0
 
-      // ── Quota check (session/daily limits) ───────────────────────────────
-      const session = await auth()
-      const userId = session?.user?.id ?? null
-
+      // ── Anonymous human check: Turnstile token → signed cookie, or fallback ──
+      let humanCookieToSet: string | null = null
       if (!userId) {
-        const turnstileToken = req.headers.get('x-turnstile-token')
-        const turnstileResult = await verifyTurnstile(turnstileToken)
-        if (!turnstileResult.success) {
-          return NextResponse.json(
-            { error: 'Please verify you are human to use the advisor.' },
-            { status: 403 }
-          )
+        const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
+        const access = await decideAnonAccess({
+          hasValidCookie: verifyHumanCookie(req.cookies.get(HUMAN_COOKIE)?.value, ip, secret),
+          token: req.headers.get('x-turnstile-token'),
+          verify: verifyTurnstile,
+        })
+        if (access.kind === 'denied') {
+          return NextResponse.json({ error: access.message }, { status: 403 })
+        }
+        if (access.kind === 'verified' && access.setCookie && secret) {
+          humanCookieToSet = createHumanCookie(ip, secret)
+        }
+        if (access.kind === 'fallback') {
+          const frl = getFallbackRatelimit()
+          if (!frl) {
+            return NextResponse.json(
+              { error: "The advisor couldn't verify your browser. Please disable any content blocker for this site, refresh, and try again." },
+              { status: 403 }
+            )
+          }
+          try {
+            const { success, reset } = await frl.limit(ip)
+            if (!success) {
+              const mins = Math.max(1, Math.ceil((reset - Date.now()) / 60000))
+              return NextResponse.json(
+                { error: `You've reached the message limit for now. Please wait ${mins} minute(s), or refresh the page and try again.` },
+                { status: 429, headers: { 'Retry-After': String(mins * 60) } }
+              )
+            }
+          } catch (e) {
+            redisOk = false
+            console.warn('[chat] fallback rate-limit Redis error (denying unverified):', (e as Error).message)
+            return NextResponse.json(
+              { error: 'The advisor is busy right now. Please refresh the page and try again.' },
+              { status: 503 }
+            )
+          }
         }
       }
+
+      // ── Quota check (session/daily limits) ───────────────────────────────
 
       let quota
       try {
@@ -160,21 +236,7 @@ export async function POST(req: NextRequest) {
       }
 
 
-      // ── 1. Load student context (non-fatal) ───────────────────────────────
-      let studentContext = null
-      if (studentId) {
-        try {
-          studentContext = await prisma.student.findUnique({
-            where: { id: studentId },
-            select: {
-              fullName: true, fieldOfInterest: true, budgetRange: true,
-              preferredDegree: true, preferredCountries: true,
-              englishTestType: true, englishScore: true,
-              currentStatus: true, country: true,
-            }
-          })
-        } catch { /* non-fatal */ }
-      }
+      // ── 1. Student context was loaded above from the session user only ────
 
       timings.context = Date.now() - t0
 
@@ -347,6 +409,10 @@ export async function POST(req: NextRequest) {
       // Return text stream with traceId header for client-side correlation
       const response = result.toTextStreamResponse()
       response.headers.set('X-Trace-Id', traceId)
+      if (humanCookieToSet) {
+        response.headers.append('Set-Cookie',
+          `${HUMAN_COOKIE}=${humanCookieToSet}; Path=/api/chat; Max-Age=${HUMAN_COOKIE_TTL_SEC}; HttpOnly; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`)
+      }
       return response
 
     } catch (error) {
