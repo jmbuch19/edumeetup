@@ -1,12 +1,16 @@
 const { PrismaClient } = require('@prisma/client')
 const { hash } = require('bcryptjs')
+const { randomBytes } = require('crypto')
 
 const prisma = new PrismaClient()
 
 async function main() {
     console.log('Start seeding (JS user)...')
 
-    const password = await hash('password123', 10)
+    // Never hard-code credentials: use SEED_DEMO_PASSWORD or a random one (printed once).
+    const plainPassword = process.env.SEED_DEMO_PASSWORD || randomBytes(18).toString('base64url')
+    if (!process.env.SEED_DEMO_PASSWORD) console.log(`[seed] Generated demo account password: ${plainPassword}`)
+    const password = await hash(plainPassword, 10)
 
     // 1. Create a University
     const uniUser = await prisma.user.upsert({

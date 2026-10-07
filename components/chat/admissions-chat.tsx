@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { RegistrationGate } from './RegistrationGate'
 import { CaptchaGate, isCaptchaVerified } from './CaptchaGate'
+import { TurnstileWidget } from '@/components/ui/TurnstileWidget'
+import { createStreamDecoder } from '@/lib/chat/stream-protocol'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -69,6 +71,27 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
     const panelRef = useRef<HTMLDivElement>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
 
+    // ── Cloudflare Turnstile (anonymous visitors) ─────────────────────────
+    // Token is single-use: it's sent with the next request, then the server
+    // sets a short-lived "verified" cookie. '' = widget unavailable/blocked,
+    // in which case the server admits us on a stricter rate limit.
+    const turnstileToken = useRef<string | null>(null) // null = not settled yet
+    const turnstileWaiters = useRef<Array<() => void>>([])
+    const [turnstileKey, setTurnstileKey] = useState(0)
+    const onTurnstile = useCallback((token: string) => {
+        turnstileToken.current = token
+        turnstileWaiters.current.splice(0).forEach(fn => fn())
+    }, [])
+    const onTurnstileExpire = useCallback(() => { turnstileToken.current = null }, [])
+    const waitForTurnstile = useCallback(async (ms: number) => {
+        if (turnstileToken.current !== null) return turnstileToken.current
+        await new Promise<void>(resolve => {
+            const t = setTimeout(resolve, ms)
+            turnstileWaiters.current.push(() => { clearTimeout(t); resolve() })
+        })
+        return turnstileToken.current ?? ''
+    }, [])
+
     // Restore hide + captcha state from sessionStorage on mount
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -120,15 +143,45 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
         setInput('')
         setLoading(true)
 
+        const showError = (text: string) => {
+            setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${text}` }])
+            setLoading(false)
+        }
+
         try {
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+            if (!studentId) {
+                const token = await waitForTurnstile(5000)
+                if (token) headers['x-turnstile-token'] = token
+                // Single-use: consume it and get a fresh one in the background
+                // in case the server's verified cookie is lost or expires.
+                if (token) { turnstileToken.current = null; setTurnstileKey(k => k + 1) }
+            }
+
             const res = await fetch('/api/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
+                credentials: 'same-origin',
                 body: JSON.stringify({
-                    messages: updated.map(m => ({ role: m.role, content: m.content })),
-                    studentId,
+                    // Only real conversation turns; the welcome bubble is UI, not history.
+                    messages: updated.slice(1)
+                        .filter(m => !(m.role === 'assistant' && m.content.startsWith('⚠️')))
+                        .map(m => ({ role: m.role, content: m.content })),
                 }),
             })
+
+            // ── Error responses: always show something to the visitor ─────
+            if (!res.ok) {
+                let msg = res.status === 429
+                    ? "You've sent a lot of messages. Please wait a few minutes and try again."
+                    : 'Sorry, the advisor is unavailable right now. Please try again in a moment.'
+                try {
+                    const data = await res.json()
+                    if (typeof data?.error === 'string' && data.error) msg = data.error
+                } catch { /* not JSON */ }
+                showError(msg)
+                return
+            }
 
             const contentType = res.headers.get('content-type') || ''
             const traceId = res.headers.get('X-Trace-Id') ?? 'unknown'
@@ -166,6 +219,8 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
 
             const reader = res.body.getReader()
             const decoder = new TextDecoder()
+            // Handles plain text and the AI-SDK `0:"..."` data-stream format.
+            const protocol = createStreamDecoder()
 
             // ── rAF-batched chunk flusher ─────────────────────────────────
             // Calling setMessages on every token fires history.replaceState
@@ -193,10 +248,12 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                 if (done) {
                     // Cancel any pending frame and flush remainder immediately
                     if (rafId.current) cancelAnimationFrame(rafId.current)
+                    chunkBuf.current += protocol.flush()
                     flushBuf()
                     break
                 }
-                const chunk = decoder.decode(value, { stream: true })
+                const chunk = protocol.push(decoder.decode(value, { stream: true }))
+                if (!chunk) continue
 
                 // Skip tool call chunks — never show raw JSON to user
                 if (
@@ -213,10 +270,15 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
             }
 
             // Check if the stream produced any content
-            const lastMsg = (() => { let m: Message | undefined; setMessages(prev => { m = prev[prev.length - 1]; return prev }); return m })()
-            if (!lastMsg?.content) {
-                console.warn('[bot] empty stream received', { traceId })
-            }
+            // Empty stream → replace the blank bubble with a visible message
+            setMessages(prev => {
+                const last = prev[prev.length - 1]
+                if (last?.role === 'assistant' && !last.content.trim()) {
+                    console.warn('[bot] empty stream received', { traceId })
+                    return [...prev.slice(0, -1), { role: 'assistant', content: "⚠️ I didn't get a reply that time. Please try again." }]
+                }
+                return prev
+            })
 
         } catch {
             setMessages(prev => [...prev, {
@@ -268,6 +330,11 @@ export function AdmissionsChat({ studentId }: AdmissionsChatProps) {
                             : 'w-[380px] max-w-[calc(100vw-24px)] h-[560px] max-h-[calc(100vh-80px)]'
                         }`}
                 >
+                    {/* Invisible Turnstile for anonymous visitors (falls back gracefully if blocked) */}
+                    {!studentId && (
+                        <TurnstileWidget key={turnstileKey} onVerify={onTurnstile} onExpire={onTurnstileExpire} />
+                    )}
+
                     {/* CAPTCHA gate — shown once per session for anonymous users */}
                     {!captchaOk && (
                         <CaptchaGate onVerified={() => setCaptchaOk(true)} />
