@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { registerAlumni } from '@/app/actions/alumni'
 import { TurnstileWidget } from '@/components/ui/TurnstileWidget'
+import { TurnstileBlockedNotice } from '@/components/ui/TurnstileBlockedNotice'
 import {
     ALUMNI_STATUS_OPTIONS,
     ALUMNI_AVAILABLE_FOR_OPTIONS,
@@ -70,8 +71,10 @@ export default function AlumniRegisterForm({ inviteToken }: { inviteToken?: stri
     const router = useRouter()
     const [step, setStep] = useState(1)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    // null = still verifying, '' = Turnstile blocked in this browser, otherwise a token
     const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
-    const [turnstileError, setTurnstileError] = useState(false)
+    const [turnstileKey, setTurnstileKey] = useState(0)
+    const resetTurnstile = () => { setTurnstileToken(null); setTurnstileKey(k => k + 1) }
     const [isSuccess, setIsSuccess] = useState(false)
 
     const [form, setForm] = useState({
@@ -156,6 +159,7 @@ export default function AlumniRegisterForm({ inviteToken }: { inviteToken?: stri
             })
             if ('error' in res) {
                 toast.error(res.error)
+                resetTurnstile() // tokens are single-use
             } else {
                 setIsSuccess(true)
             }
@@ -463,15 +467,11 @@ export default function AlumniRegisterForm({ inviteToken }: { inviteToken?: stri
 
                                 <div className="pt-4">
                                     <TurnstileWidget
-                                        onVerify={(token) => { setTurnstileToken(token); setTurnstileError(false) }}
-                                        onExpire={() => setTurnstileToken(null)}
-                                        onError={() => setTurnstileError(true)}
+                                        key={turnstileKey}
+                                        onVerify={setTurnstileToken}
+                                        onExpire={resetTurnstile}
                                     />
-                                    {turnstileError && (
-                                        <p className="text-sm text-red-500 mt-2 text-center">
-                                            Bot protection failed. Please refresh the page and try again.
-                                        </p>
-                                    )}
+                                    {turnstileToken === '' && <TurnstileBlockedNotice onRetry={resetTurnstile} />}
                                 </div>
                             </div>
                         )}

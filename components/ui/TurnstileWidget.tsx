@@ -22,11 +22,27 @@ declare global {
   }
 }
 
+/**
+ * onVerify(token) fires once the form may be submitted. token === '' means
+ * Turnstile could not run (ad blocker, privacy browser, corporate proxy,
+ * timeout). Callers should treat '' as settled-but-blocked and show
+ * <TurnstileBlockedNotice> with a retry, rather than spinning forever.
+ * onError is informational only.
+ *
+ * Callbacks are read through refs, so inline arrows are fine: the widget
+ * renders once per mount. Change its `key` to get a fresh token.
+ */
 export function TurnstileWidget({ onVerify, onExpire, onError }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
+  const callbacks = useRef({ onVerify, onExpire, onError })
+  callbacks.current = { onVerify, onExpire, onError }
 
   useEffect(() => {
+    const onVerify = (token: string) => callbacks.current.onVerify(token)
+    const onExpire = () => callbacks.current.onExpire?.()
+    const onError = () => callbacks.current.onError?.()
+
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
     if (!siteKey) {
       // Site key not configured — skip widget and unblock form immediately.
@@ -53,7 +69,7 @@ export function TurnstileWidget({ onVerify, onExpire, onError }: TurnstileWidget
           onVerify(token)
         },
         'expired-callback': () => {
-          onExpire?.()
+          onExpire()
         },
         'error-callback': () => {
           // If Cloudflare can't be reached (ad blocker / network blip),
@@ -61,7 +77,7 @@ export function TurnstileWidget({ onVerify, onExpire, onError }: TurnstileWidget
           clearTimeout(timeoutId)
           console.warn('[turnstile] Widget error — falling back to server-side check only')
           onVerify('')
-          onError?.()
+          onError()
         },
       })
 
@@ -96,7 +112,7 @@ export function TurnstileWidget({ onVerify, onExpire, onError }: TurnstileWidget
         window.turnstile.remove(widgetIdRef.current)
       }
     }
-  }, [onVerify, onExpire, onError])
+  }, [])
 
   return <div ref={containerRef} />
 }

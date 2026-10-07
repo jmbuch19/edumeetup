@@ -13,6 +13,7 @@ import { signIn } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { TurnstileWidget } from '@/components/ui/TurnstileWidget'
+import { TurnstileBlockedNotice } from '@/components/ui/TurnstileBlockedNotice'
 
 function LoginContent() {
     const searchParams = useSearchParams()
@@ -24,6 +25,16 @@ function LoginContent() {
     const [showTip, setShowTip] = useState(false)
     const [turnstileToken, setTurnstileToken] = useState<string>('')
     const [turnstileReady, setTurnstileReady] = useState(false)
+    const [turnstileKey, setTurnstileKey] = useState(0)
+    // Widget settled but produced no token (blocked by an ad blocker / privacy browser)
+    const turnstileBlocked = turnstileReady && !turnstileToken
+
+    function resetTurnstile() {
+        // Tokens are single-use: remount the widget to get a fresh one
+        setTurnstileToken('')
+        setTurnstileReady(false)
+        setTurnstileKey(k => k + 1)
+    }
 
     function checkEmailTypo(email: string): string | null {
         const domain = email.trim().toLowerCase().split('@')[1] ?? ''
@@ -53,6 +64,7 @@ function LoginContent() {
                     ? result.error
                     : Object.values(result.error).flat().join(', ')
                 toast.error(errorMessage)
+                resetTurnstile()
             } else if (result?.success) {
                 toast.success(result.message)
             }
@@ -135,16 +147,21 @@ function LoginContent() {
                             )}
                         </div>
 
-                        <TurnstileWidget 
+                        <TurnstileWidget
+                            key={turnstileKey}
                             onVerify={(token) => { setTurnstileToken(token); setTurnstileReady(true) }}
-                            onExpire={() => { setTurnstileToken(''); setTurnstileReady(false) }}
-                            onError={() => { setTurnstileToken(''); setTurnstileReady(false) }}
+                            onExpire={resetTurnstile}
                         />
 
-                        <Button className="w-full" type="submit" disabled={isLoading || !turnstileReady}>
-                            {isLoading ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : !turnstileReady ? (
+                        {turnstileBlocked && (
+                            <TurnstileBlockedNotice
+                                onRetry={resetTurnstile}
+                                hint="Or use Continue with Google below."
+                            />
+                        )}
+
+                        <Button className="w-full" type="submit" disabled={isLoading || !turnstileReady || turnstileBlocked}>
+                            {isLoading || !turnstileReady ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             ) : (
                                 <Mail className="mr-2 h-4 w-4" />

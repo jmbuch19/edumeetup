@@ -444,8 +444,10 @@ export default function StudentRegisterForm({ initialCount }: { initialCount: nu
     const [animKey, setAnimKey] = useState(0)
     const [busy, setBusy] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
+    // null = still verifying, '' = Turnstile blocked in this browser, otherwise a token
     const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
-    const [turnstileError, setTurnstileError] = useState(false)
+    const [turnstileKey, setTurnstileKey] = useState(0)
+    const resetTurnstile = () => { setTurnstileToken(null); setTurnstileKey(k => k + 1) }
 
     const [form, setForm] = useState({
         fullName: "", email: "", confirmEmail: "", gender: "", ageGroup: "", phone: "", whatsappNumber: "", city: "", pincode: "",
@@ -526,6 +528,7 @@ export default function StudentRegisterForm({ initialCount }: { initialCount: nu
                 const msg = typeof res.error === 'string' ? res.error : "Please check your form inputs."
                 toast.error(msg)
                 setBusy(false)
+                resetTurnstile() // tokens are single-use
             } else {
                 toast.success(res.message || "Account created!")
                 setView("done")
@@ -728,15 +731,18 @@ export default function StudentRegisterForm({ initialCount }: { initialCount: nu
 
                         {step === STEPS.length ? (
                             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                                {turnstileError && (
-                                    <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 500 }}>
-                                        Verification failed. Refresh page.
+                                {turnstileToken === '' && (
+                                    <span role="alert" style={{ color: "#b45309", fontSize: 13, fontWeight: 500 }}>
+                                        Security check blocked (often an ad blocker).{" "}
+                                        <button type="button" onClick={resetTurnstile} style={{ textDecoration: "underline" }}>
+                                            Retry
+                                        </button>
                                     </span>
                                 )}
-                                <TurnstileWidget 
-                                    onVerify={(token) => { setTurnstileToken(token); setTurnstileError(false) }}
-                                    onExpire={() => setTurnstileToken(null)}
-                                    onError={() => setTurnstileError(true)}
+                                <TurnstileWidget
+                                    key={turnstileKey}
+                                    onVerify={setTurnstileToken}
+                                    onExpire={resetTurnstile}
                                 />
                                 <button className="btn-primary" onClick={submit} disabled={busy || !turnstileToken}>
                                     {busy ? (
