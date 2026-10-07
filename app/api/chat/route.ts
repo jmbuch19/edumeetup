@@ -350,6 +350,12 @@ export async function POST(req: NextRequest) {
           }),
 
         },
+        // Without this, provider errors (bad/missing GROQ_API_KEY, model errors)
+        // just end the stream silently. The client shows a retry message.
+        onError: ({ error }) => {
+          console.error('[/api/chat] stream error:', (error as Error)?.message ?? error)
+          Sentry.captureException(error, { extra: { traceId } })
+        },
         onChunk: () => {
           if (streamEmpty) {
             // First chunk received — mark the timing
