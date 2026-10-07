@@ -20,6 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import type { FairVenue, FairCircuit } from "@prisma/client"
 import { TurnstileWidget } from "@/components/ui/TurnstileWidget"
+import { TurnstileBlockedNotice } from "@/components/ui/TurnstileBlockedNotice"
 
 const PREFERRED_COUNTRIES = ["USA", "UK", "Canada", "Australia", "New Zealand", "Europe (General)", "Ireland", "Germany", "France"]
 const FIELDS_OF_STUDY = ["Engineering", "Business & Management", "Computer Science", "Data Science", "Health Sciences", "Arts & Humanities", "Law", "Social Sciences"]
@@ -29,8 +30,10 @@ export type VenueWithCircuit = FairVenue & { circuit: FairCircuit | null }
 export function HostFairRequestForm({ venues = [] }: { venues?: VenueWithCircuit[] }) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [successRef, setSuccessRef] = useState<string | null>(null)
+    // null = still verifying, '' = Turnstile blocked in this browser, otherwise a token
     const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
-    const [turnstileError, setTurnstileError] = useState(false)
+    const [turnstileKey, setTurnstileKey] = useState(0)
+    const resetTurnstile = () => { setTurnstileToken(null); setTurnstileKey(k => k + 1) }
 
     const form = useForm<HostRequestFormValues>({
         resolver: zodResolver(hostRequestSchema),
@@ -59,6 +62,7 @@ export function HostFairRequestForm({ venues = [] }: { venues?: VenueWithCircuit
             } else {
                 toast.error(result.message || "Failed to submit request")
                 console.error(result.errors)
+                resetTurnstile() // tokens are single-use
             }
         } catch (error) {
             toast.error("Something went wrong. Please try again.")
@@ -372,18 +376,15 @@ export function HostFairRequestForm({ venues = [] }: { venues?: VenueWithCircuit
 
             <div className="pt-6">
                 <TurnstileWidget
-                  onVerify={(token) => {
-                    setTurnstileToken(token)
-                    setTurnstileError(false)
-                  }}
-                  onExpire={() => setTurnstileToken(null)}
-                  onError={() => setTurnstileError(true)}
+                  key={turnstileKey}
+                  onVerify={setTurnstileToken}
+                  onExpire={resetTurnstile}
                 />
-                
-                {turnstileError && (
-                  <p className="text-sm text-red-500 mb-4 text-center">
-                    Bot protection failed. Please refresh the page and try again.
-                  </p>
+
+                {turnstileToken === '' && (
+                  <div className="mb-4">
+                    <TurnstileBlockedNotice onRetry={resetTurnstile} />
+                  </div>
                 )}
 
                 <Button 
