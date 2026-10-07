@@ -5,7 +5,7 @@ import { sendEmail, generateEmailHtml } from '@/lib/email'
 
 /**
  * GET /api/cron/uni-rsvp
- * Schedule: 9am UTC every Monday (vercel.json).
+ * Schedule: 9am UTC every Monday (netlify/functions).
  * Reminds university admins to assign a Representative for any PUBLISHED
  * circuit starting in less than 30 days that still has no rep assigned.
  */

@@ -2137,13 +2137,6 @@ export async function getStudentMeetings() {
     }))
 }
 
-// Stubs for future implementation (were in meeting-actions.ts)
-export async function updateAvailability(formData: FormData) { return { error: 'Not implemented' } }
-export async function getAvailableSlots(universityId: string, dateStr: string) { return [] }
-export async function holdSlot(universityId: string, repId: string, dateStr: string, timeStr: string) { return { error: 'Not implemented' } }
-export async function createMeetingRequest(formData: FormData) { return { error: 'Not implemented' } }
-export async function proposeReschedule(meetingId: string, newDateStr: string, reason: string) { return { error: 'Not implemented' } }
-export async function getAvailability() { return [] }
 export async function cancelMeetingByStudent(meetingId: string, reason: string) {
     try {
         const user = await requireUser()

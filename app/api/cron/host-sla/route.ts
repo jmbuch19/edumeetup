@@ -4,7 +4,7 @@ import { sendEmail, generateEmailHtml } from '@/lib/email'
 
 /**
  * GET /api/cron/host-sla
- * Schedule: 9am UTC daily (vercel.json).
+ * Schedule: 9am UTC daily (netlify/functions).
  * Detects host requests still in SUBMITTED state past the 48-hour SLA
  * and sends an admin breach alert.
  */
