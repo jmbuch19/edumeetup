@@ -74,9 +74,6 @@ export function Footer() {
                     <p className="text-xs text-gray-500">
                         &copy; {new Date().getFullYear()} EdUmeetup. All rights reserved.
                     </p>
-                    <p className="text-xs text-gray-400 font-mono">
-                        v0.2.0-beta • build:{new Date().toISOString().split('T')[0]} • <Link href="/admin/dashboard" className="hover:text-gray-600">Admin</Link>
-                    </p>
                 </div>
             </div>
         </footer >

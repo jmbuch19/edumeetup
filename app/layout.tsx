@@ -67,12 +67,6 @@ export default async function RootLayout({
     if (user?.timezone) sessionTimezone = user.timezone;
   }
 
-  const banner = session ? (
-    <div className="bg-amber-100 text-amber-900 text-center py-2 text-sm font-medium border-b border-amber-200">
-      🚧 Beta Version – Testing Phase. System is active for demonstration.
-    </div>
-  ) : undefined;
-
   return (
     <html lang="en" className={`${fraunces.variable} ${plusJakartaSans.variable}`}>
       <body className={`${plusJakartaSans.className} overflow-x-hidden`}>
@@ -85,7 +79,6 @@ export default async function RootLayout({
           <PublicShell
             header={<Header />}
             footer={<Footer />}
-            banner={banner}
           >
             {children}
           </PublicShell>

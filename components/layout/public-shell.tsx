@@ -1,14 +1,13 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
+import { isDashboardPath } from '@/lib/dashboard-routes'
 
 /**
  * Client-side route guard that hides the public header/footer on dashboard routes.
  * Header and Footer are passed as React nodes rendered by the server layout —
  * this component never imports them directly (avoids bundling Node.js-only deps).
  */
-
-const DASHBOARD_PREFIXES = ['/university', '/student', '/admin']
 
 export function PublicShell({
     children,
@@ -22,7 +21,7 @@ export function PublicShell({
     banner?: React.ReactNode
 }) {
     const pathname = usePathname()
-    const isDashboard = DASHBOARD_PREFIXES.some(p => pathname.startsWith(p))
+    const isDashboard = isDashboardPath(pathname)
 
     if (isDashboard) {
         return <>{children}</>

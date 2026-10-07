@@ -6,6 +6,7 @@
 
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
+import { isDashboardPath } from '@/lib/dashboard-routes'
 
 // AdmissionsChat is the global concierge — available on public pages only.
 // Hidden on dashboard routes since those have dedicated AI chat (Claude bot).
@@ -19,19 +20,9 @@ const SessionGuard = dynamic(
     { ssr: false }
 )
 
-// Dashboard route prefixes where the concierge should be hidden
-const DASHBOARD_PREFIXES = [
-    '/student/',
-    '/university/',
-    '/admin/',
-    '/student',
-    '/university',
-    '/admin',
-]
-
 export function ClientOnlyWidgets() {
     const pathname = usePathname()
-    const isOnDashboard = DASHBOARD_PREFIXES.some(prefix => pathname.startsWith(prefix))
+    const isOnDashboard = isDashboardPath(pathname)
 
     return (
         <>
